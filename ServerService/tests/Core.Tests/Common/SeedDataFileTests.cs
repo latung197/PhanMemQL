@@ -40,7 +40,18 @@ public sealed class SeedDataFileTests
     public void SystemConfigSectionsAreValid()
     {
         var seed = Load();
-        Assert.Equal(SystemConfigSections.Keys.Count, seed.SystemConfig.Count);
+        // Every company-wide section; unit-only sections (unitDefaults) are not seeded.
+        Assert.Equal(SystemConfigSections.Keys.Keys.Count(k => !SystemConfigSections.IsUnitOnly(k)), seed.SystemConfig.Count);
         foreach (var (section, value) in seed.SystemConfig) SystemConfigSections.Validate(section, value);
+    }
+
+    [Fact]
+    public void SettingsTablesAreConsistent()
+    {
+        var seed = Load();
+        Assert.Single(seed.Currencies, x => x.IsBase);
+        Assert.All(seed.ExchangeRates, r => Assert.Contains(seed.Currencies, c => c.Code == r.CurrencyCode && !c.IsBase));
+        Assert.NotEmpty(seed.Departments);
+        Assert.All(seed.Users, u => Assert.True(u.DepartmentCode is null || seed.Departments.Any(d => d.Code == u.DepartmentCode)));
     }
 }

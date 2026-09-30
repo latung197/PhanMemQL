@@ -16,7 +16,7 @@ public interface IRoleService
     Task<RoleDto> CreateAsync(int actorUserId, SaveRoleRequest request, CancellationToken ct);
     Task<RoleDto> UpdateAsync(int actorUserId, int roleId, SaveRoleRequest request, CancellationToken ct);
 
-    /// <summary>Copies the role matrix to every user holding the role; returns the user count.</summary>
+    /// <summary>Removes the individual exceptions of every holder of the role; returns the user count.</summary>
     Task<int> SyncUsersAsync(int roleId, CancellationToken ct);
 
     /// <summary>

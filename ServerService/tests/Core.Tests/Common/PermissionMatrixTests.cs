@@ -19,15 +19,42 @@ public sealed class PermissionMatrixTests
     }
 
     [Fact]
-    public void OwnMatrixReplacesRoleMatrix()
+    public void OwnRowReplacesOnlyItsFunction()
     {
         var matrix = PermissionMatrix.Resolve(false, [("sys_users", ViewOnly)], [("sys_users", EditOnly), ("hr_list", EditOnly)]);
         Assert.Equal(ViewOnly, matrix["sys_users"]);
-        Assert.Equal(ActionPermissions.None, matrix["hr_list"]);
+        // Functions without an own row follow the role, so rights added to a role reach its holders.
+        Assert.Equal(EditOnly, matrix["hr_list"]);
     }
 
     [Fact]
-    public void RolesAreCombinedWhenUserHasNoOwnMatrix()
+    public void OnlyDifferencesFromTheRoleAreStored()
+    {
+        var role = PermissionMatrix.Build([("sys_users", ViewOnly), ("hr_list", EditOnly)]);
+        var wanted = new Dictionary<string, ActionPermissions>(role) { ["hr_list"] = ActionPermissions.None, ["hr_report"] = ViewOnly };
+        var overrides = PermissionMatrix.Overrides(role, wanted);
+        Assert.Equal(2, overrides.Count);
+        Assert.Equal(ActionPermissions.None, overrides["hr_list"]);
+        Assert.Equal(ViewOnly, overrides["hr_report"]);
+        // Applying the exceptions to the role gives back exactly what was wanted.
+        Assert.Equal(wanted, PermissionMatrix.Resolve(false, overrides.Select(x => (x.Key, x.Value)).ToList(),
+            role.Select(x => (x.Key, x.Value))));
+    }
+
+    [Fact]
+    public void SpecialRightsAreRoleRightsPlusGrantsMinusDenials()
+    {
+        var price = SpecialRightCatalog.Key("inv_receipt", SpecialRightCatalog.ViewPrice);
+        var post = SpecialRightCatalog.Key("inv_receipt", SpecialRightCatalog.Post);
+        var cost = SpecialRightCatalog.Key("inv_issue", SpecialRightCatalog.ViewCost);
+        var (granted, denied) = PermissionMatrix.RightOverrides([price, post], [price, cost]);
+        Assert.Equal([cost], granted);
+        Assert.Equal([post], denied);
+        Assert.Equal(new HashSet<string> { price, cost }, PermissionMatrix.ResolveRights(false, [price, post], granted, denied));
+    }
+
+    [Fact]
+    public void RolesAreCombined()
     {
         var matrix = PermissionMatrix.Resolve(false, [], [("sys_users", ViewOnly), ("sys_users", EditOnly)]);
         Assert.Equal(new ActionPermissions(true, true, false, false, false), matrix["sys_users"]);

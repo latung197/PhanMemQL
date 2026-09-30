@@ -61,7 +61,6 @@ public sealed class AuthService(CoreContext db, IPasswordService passwords, ITok
         user.FullName = Guard.Required(request.FullName, 100, "họ tên");
         user.Email = Guard.Optional(request.Email, 150, "Email");
         user.Phone = Guard.Optional(request.Phone, 20, "Số điện thoại");
-        user.Department = Guard.Optional(request.Department, 100, "Phòng ban") ?? string.Empty;
         user.Avatar = Guard.Optional(request.Avatar, 2000, "Ảnh đại diện") ?? string.Empty;
         user.ThemePref = request.ThemePref is "dark" ? "dark" : "light";
         user.NotificationsEnabled = request.NotificationsEnabled;

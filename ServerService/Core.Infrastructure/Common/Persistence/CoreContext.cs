@@ -2,9 +2,13 @@ using Core.Application.Common.Security;
 using Core.Domain.Common;
 using Core.Domain.Modules.Approvals;
 using Core.Domain.Modules.CompanyUnits;
+using Core.Domain.Modules.Currencies;
+using Core.Domain.Modules.Departments;
+using Core.Domain.Modules.Fiscal;
 using Core.Domain.Modules.Notifications;
 using Core.Domain.Modules.SystemConfig;
 using Core.Domain.Modules.Users;
+using Core.Domain.Modules.VoucherNumbering;
 using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Common.Persistence;
@@ -42,6 +46,14 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<ApprovalRule> ApprovalRules => Set<ApprovalRule>();
     public DbSet<DocumentApproval> DocumentApprovals => Set<DocumentApproval>();
 
+    // Organization and accounting settings
+    public DbSet<Department> Departments => Set<Department>();
+    public DbSet<Currency> Currencies => Set<Currency>();
+    public DbSet<ExchangeRate> ExchangeRates => Set<ExchangeRate>();
+    public DbSet<FiscalPeriod> FiscalPeriods => Set<FiscalPeriod>();
+    public DbSet<VoucherNumberingRule> VoucherNumberingRules => Set<VoucherNumberingRule>();
+    public DbSet<VoucherSequence> VoucherSequences => Set<VoucherSequence>();
+
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<SysUserRole>().HasKey(x => new { x.UserId, x.RoleId });
@@ -64,6 +76,10 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<NotificationRead>().HasOne<Notification>().WithMany().HasForeignKey(x => x.NotificationId);
 
         model.Entity<SystemSetting>().HasIndex(x => new { x.Key, x.Scope }).IsUnique();
+
+        model.Entity<ExchangeRate>().HasIndex(x => new { x.CurrencyCode, x.RateDate }).IsUnique();
+        model.Entity<FiscalPeriod>().HasKey(x => new { x.UnitCode, x.Year, x.Month });
+        model.Entity<VoucherSequence>().HasKey(x => new { x.VoucherType, x.UnitCode, x.PeriodKey });
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

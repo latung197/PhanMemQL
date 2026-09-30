@@ -5,8 +5,9 @@ namespace Core.Application.Modules.Auth;
 public sealed record LoginRequest(string Username, string Password, string UnitCode);
 public sealed record SwitchUnitRequest(string UnitCode);
 public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+/// <summary>The department is not here: it drives approval rules, so only user managers change it.</summary>
 public sealed record UpdateMyProfileRequest(string FullName, string? Email, string? Phone,
-    string? Department, string? Avatar, string? ThemePref, bool NotificationsEnabled);
+    string? Avatar, string? ThemePref, bool NotificationsEnabled);
 
 public sealed record AuthResult(string Token, DateTime ExpiresAt, UserProfileDto User);
 

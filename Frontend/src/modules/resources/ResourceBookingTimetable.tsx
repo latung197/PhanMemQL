@@ -610,7 +610,7 @@ export const ResourceBookingTimetable: React.FC<ResourceBookingTimetableProps> =
         {/* Top Title & Actions */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-indigo-500 to-sky-500 text-white rounded-2xl shadow-md shadow-indigo-500/20">
+            <div className="p-3 bg-brand-600 text-white rounded-lg">
               <CalendarDays className="h-6 w-6" />
             </div>
             <div>
@@ -639,7 +639,7 @@ export const ResourceBookingTimetable: React.FC<ResourceBookingTimetableProps> =
 
             <button
               onClick={() => handleOpenNewBooking()}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 text-white rounded-xl shadow-md shadow-indigo-500/25 transition active:scale-95"
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white rounded-[5px] transition active:scale-95"
             >
               <Plus className="h-4 w-4" />
               <span>Đăng Ký Tài Nguyên Mới</span>
@@ -1025,7 +1025,7 @@ export const ResourceBookingTimetable: React.FC<ResourceBookingTimetableProps> =
                                   {b.startTime} - {b.endTime}
                                 </span>
                                 {b.recurrence.frequency !== 'none' && (
-                                  <Repeat className="h-3 w-3 text-purple-600" title={getRecurrenceLabel(b.recurrence)} />
+                                  <span title={getRecurrenceLabel(b.recurrence)}><Repeat className="h-3 w-3 text-brand-600" /></span>
                                 )}
                               </div>
 
@@ -1308,7 +1308,7 @@ export const ResourceBookingTimetable: React.FC<ResourceBookingTimetableProps> =
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden my-8">
             {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-50 to-indigo-50/30 dark:from-slate-800/80 dark:to-slate-800">
+            <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-md">
                   <CalendarIcon className="h-5 w-5" />

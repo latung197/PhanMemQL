@@ -75,7 +75,7 @@ export const HRReportView: React.FC<HRReportViewProps> = ({ employees }) => {
                 ))}
               </Pie>
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '11px' }} />
-              <Legend wrapperStyle={{ fontSize: '12px', pt: '10px' }} />
+              <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
             </RePieChart>
           </ResponsiveContainer>
         </div>

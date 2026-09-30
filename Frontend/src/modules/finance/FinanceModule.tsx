@@ -36,7 +36,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({
       id: 'chung_tu',
       title: '2. Chứng Từ Thu & Chi Tiền',
       badgeText: 'Lập phiếu thu & phiếu chi',
-      icon: <FileText className="h-4 w-4 text-emerald-500" />,
+      icon: <FileText className="h-4 w-4 text-brand-500" />,
       items: [
         { subKey: 'fin_receipt_voucher', label: 'Lập Phiếu Thu Tiền (Receipt Voucher)', icon: <ArrowDownLeft className="h-3.5 w-3.5" /> },
         { subKey: 'fin_payment_voucher', label: 'Lập Phiếu Chi Tiền (Payment Voucher)', icon: <ArrowUpRight className="h-3.5 w-3.5" /> }

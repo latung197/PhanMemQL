@@ -95,21 +95,21 @@ export const I18nDbManager: React.FC = () => {
     <div className="space-y-6">
       
       {/* Overview Banner */}
-      <div className="p-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl text-white border border-indigo-800/40 shadow-md">
+      <div className="p-4 bg-white dark:bg-slate-900 rounded-lg text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-indigo-600/30 rounded-xl border border-indigo-500/30 shrink-0">
-              <Languages className="h-6 w-6 text-indigo-300" />
+            <div className="p-3 bg-brand-50 dark:bg-brand-950/60 rounded-lg border border-brand-200 dark:border-brand-800 shrink-0">
+              <Languages className="h-6 w-6 text-brand-600 dark:text-brand-300" />
             </div>
             <div>
               <h3 className="font-extrabold text-base tracking-wide flex items-center gap-2">
                 Hệ Thống Đa Ngôn Ngữ Lưu Trữ Trong Database (i18n Hybrid)
-                <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] rounded-full font-bold">
+                <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[10px] rounded-full font-bold">
                   C# EF Core Ready
                 </span>
               </h3>
-              <p className="text-xs text-slate-300 mt-1">
-                Khai báo nhãn dynamic (Bảng <code className="text-indigo-200 font-mono">SysResources</code>) và dịch trường danh mục (Bảng <code className="text-indigo-200 font-mono">SysEntityLocalizations</code>) để dùng trực tiếp cho C# Web API Backend.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Khai báo nhãn dynamic (Bảng <code className="text-brand-700 dark:text-brand-300 font-mono">SysResources</code>) và dịch trường danh mục (Bảng <code className="text-brand-700 dark:text-brand-300 font-mono">SysEntityLocalizations</code>) để dùng trực tiếp cho C# Web API Backend.
               </p>
             </div>
           </div>
@@ -118,7 +118,7 @@ export const I18nDbManager: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={handleResetSeed}
-              className="text-white border-slate-700 hover:bg-slate-800"
+              className=""
               icon={<RefreshCw className="h-3.5 w-3.5" />}
             >
               Reset Seed Data

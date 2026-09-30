@@ -59,7 +59,7 @@ const ConfirmContext = createContext<ConfirmFn | null>(null);
 /** Mount once near the root (App). Enables useConfirm() everywhere below it. */
 export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
-  const resolver = useRef<(value: boolean) => void>();
+  const resolver = useRef<((value: boolean) => void) | undefined>(undefined);
 
   const confirm = useCallback<ConfirmFn>((next) => new Promise<boolean>(resolve => {
     resolver.current?.(false);

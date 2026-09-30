@@ -1,22 +1,16 @@
 import { ModuleCategoryKey, SubMenuKey } from './index';
 
-/**
- * Entity specification for System Menu items mapped directly to database tables:
- * - SysModules (Phân hệ chính)
- * - SysMenuGroups (Nhóm chức năng: Danh mục, Chứng từ, Báo cáo...)
- * - SysMenuItems (Màn hình chức năng chi tiết)
- */
+/** Sidebar menu: modules (phân hệ) → groups (Danh mục, Chứng từ, Báo cáo...) → items (one function each). */
 
 export interface SysMenuItem {
   id: string;
+  /** The function opened by the item; its route and permission come from config/functions.ts. */
   subKey: SubMenuKey;
   titleVi: string;
   titleEn: string;
   icon: string; // Lucide icon identifier e.g. "Package", "Building2"
-  routePath?: string;
   orderNo: number;
   badgeType?: 'lowStock' | 'pendingOrder';
-  requiredPermission?: SubMenuKey;
   isActive: boolean;
 }
 
@@ -42,7 +36,6 @@ export interface SysModule {
   directSubKey?: SubMenuKey;
   subGroups?: SysMenuGroup[];
   isActive: boolean;
-  requiredPermission?: SubMenuKey;
 }
 
 /**

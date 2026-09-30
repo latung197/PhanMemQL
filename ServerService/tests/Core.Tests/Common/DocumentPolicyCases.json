@@ -1,0 +1,35 @@
+{
+  "_comment": "Expected results of DocumentStatusPolicy, checked by both the backend (DocumentPolicyCasesTests) and the frontend mirror (Frontend: npm run check-policy). Add a case here when you add a status, action or rule.",
+  "cases": [
+    { "name": "no view right", "action": "View", "status": "Draft", "isOwner": true, "actions": [], "rights": [], "allowed": false },
+    { "name": "owner views", "action": "View", "status": "Draft", "isOwner": true, "actions": ["view"], "rights": [], "allowed": true },
+    { "name": "other's voucher without VIEW_ALL", "action": "View", "status": "Approved", "isOwner": false, "actions": ["view"], "rights": [], "allowed": false },
+    { "name": "other's voucher with VIEW_ALL", "action": "View", "status": "Approved", "isOwner": false, "actions": ["view"], "rights": ["VIEW_ALL"], "allowed": true },
+
+    { "name": "edit draft", "action": "Edit", "status": "Draft", "isOwner": true, "actions": ["view", "createEdit"], "rights": [], "allowed": true },
+    { "name": "edit draft without createEdit", "action": "Edit", "status": "Draft", "isOwner": true, "actions": ["view"], "rights": [], "allowed": false },
+    { "name": "edit pending without EDIT_PENDING", "action": "Edit", "status": "Pending", "isOwner": true, "actions": ["view", "createEdit"], "rights": [], "allowed": false },
+    { "name": "edit pending with EDIT_PENDING", "action": "Edit", "status": "Pending", "isOwner": true, "actions": ["view", "createEdit"], "rights": ["EDIT_PENDING"], "allowed": true },
+    { "name": "edit approved with EDIT_APPROVED", "action": "Edit", "status": "Approved", "isOwner": true, "actions": ["view", "createEdit"], "rights": ["EDIT_APPROVED"], "allowed": true },
+    { "name": "edit posted never", "action": "Edit", "status": "Posted", "isOwner": true, "actions": ["view", "createEdit"], "rights": ["EDIT_PENDING", "EDIT_APPROVED"], "allowed": false },
+    { "name": "edit cancelled never", "action": "Edit", "status": "Cancelled", "isOwner": true, "actions": ["view", "createEdit"], "rights": ["EDIT_APPROVED"], "allowed": false },
+
+    { "name": "submit draft", "action": "Submit", "status": "Draft", "isOwner": true, "actions": ["view", "createEdit"], "rights": [], "allowed": true },
+    { "name": "submit pending", "action": "Submit", "status": "Pending", "isOwner": true, "actions": ["view", "createEdit"], "rights": [], "allowed": false },
+
+    { "name": "approve other's pending", "action": "Approve", "status": "Pending", "isOwner": false, "actions": ["view", "approve"], "rights": ["VIEW_ALL"], "allowed": true },
+    { "name": "approve own voucher", "action": "Approve", "status": "Pending", "isOwner": true, "actions": ["view", "approve"], "rights": [], "allowed": false },
+    { "name": "approve a draft", "action": "Approve", "status": "Draft", "isOwner": false, "actions": ["view", "approve"], "rights": ["VIEW_ALL"], "allowed": false },
+    { "name": "reject without approve right", "action": "Reject", "status": "Pending", "isOwner": false, "actions": ["view"], "rights": ["VIEW_ALL"], "allowed": false },
+
+    { "name": "post approved", "action": "Post", "status": "Approved", "isOwner": true, "actions": ["view"], "rights": ["POST"], "allowed": true },
+    { "name": "post without POST", "action": "Post", "status": "Approved", "isOwner": true, "actions": ["view", "createEdit", "approve"], "rights": [], "allowed": false },
+    { "name": "post a pending voucher", "action": "Post", "status": "Pending", "isOwner": true, "actions": ["view"], "rights": ["POST"], "allowed": false },
+    { "name": "unpost posted", "action": "Unpost", "status": "Posted", "isOwner": true, "actions": ["view"], "rights": ["UNPOST"], "allowed": true },
+
+    { "name": "owner deletes own draft", "action": "Cancel", "status": "Draft", "isOwner": true, "actions": ["view", "delete"], "rights": [], "allowed": true },
+    { "name": "cancel draft without delete or CANCEL", "action": "Cancel", "status": "Draft", "isOwner": true, "actions": ["view"], "rights": [], "allowed": false },
+    { "name": "cancel approved with CANCEL", "action": "Cancel", "status": "Approved", "isOwner": true, "actions": ["view"], "rights": ["CANCEL"], "allowed": true },
+    { "name": "cancel posted never", "action": "Cancel", "status": "Posted", "isOwner": true, "actions": ["view", "delete"], "rights": ["CANCEL"], "allowed": false }
+  ]
+}

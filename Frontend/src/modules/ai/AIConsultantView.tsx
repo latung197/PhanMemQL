@@ -58,16 +58,16 @@ export const AIConsultantView: React.FC<AIConsultantViewProps> = ({ erpData }) =
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white p-6 rounded-3xl shadow-xl flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 p-6 rounded-lg flex items-center justify-between">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-500/30 text-purple-200 border border-purple-400/30 rounded-full text-[11px] font-bold">
-            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800 rounded-full text-[11px] font-bold">
+            <Sparkles className="h-3.5 w-3.5 text-brand-500" />
             Trợ Lý Cố Vấn Thông Minh Gemini 3.5 Flash
           </div>
           <h2 className="text-xl font-bold font-display">Phân Tích & Kiểm Toán ERP Bằng Trí Tuệ Nhân Tạo</h2>
-          <p className="text-xs text-purple-200/80">Tự động quét dữ liệu Kho, Tài chính, Bán hàng để đưa ra khuyến nghị tức thì</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Tự động quét dữ liệu Kho, Tài chính, Bán hàng để đưa ra khuyến nghị tức thì</p>
         </div>
-        <Bot className="h-12 w-12 text-purple-300 hidden sm:block animate-pulse" />
+        <Bot className="h-12 w-12 text-brand-400 hidden sm:block" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

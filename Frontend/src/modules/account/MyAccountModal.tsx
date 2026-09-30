@@ -49,7 +49,7 @@ export const MyAccountModal: React.FC<MyAccountModalProps> = ({ user, companyUni
 const AccountSummary: React.FC<{ user: UserProfile; companyUnits: CompanyUnit[] }> = ({ user, companyUnits }) => {
   const unitName = (code?: string) => companyUnits.find(u => u.code === code)?.shortName || code || '—';
   return (
-    <div className="flex items-center gap-3 p-3 rounded-[5px] bg-[#edf4fb] dark:bg-slate-800/60 border border-[#cbdcf0] dark:border-slate-700">
+    <div className="flex items-center gap-3 p-3 rounded-[5px] bg-brand-50 dark:bg-slate-800/60 border border-brand-200 dark:border-slate-700">
       <span className="h-12 w-12 rounded-full bg-indigo-600 text-white flex items-center justify-center font-extrabold text-lg shrink-0">
         {user.fullName.charAt(0)}
       </span>
@@ -75,7 +75,6 @@ const ProfileForm: React.FC<{ user: UserProfile; onSaved: (user: UserProfile) =>
   const [fullName, setFullName] = useState(user.fullName);
   const [email, setEmail] = useState(user.email);
   const [phone, setPhone] = useState(user.phone);
-  const [department, setDepartment] = useState(user.department);
   const [notificationsEnabled, setNotificationsEnabled] = useState(user.notificationsEnabled !== false);
   const [saving, setSaving] = useState(false);
 
@@ -83,7 +82,7 @@ const ProfileForm: React.FC<{ user: UserProfile; onSaved: (user: UserProfile) =>
     e.preventDefault();
     setSaving(true);
     await saveWithFeedback(authService.updateMyProfile({
-      fullName: fullName.trim(), email: email.trim(), phone: phone.trim(), department: department.trim(),
+      fullName: fullName.trim(), email: email.trim(), phone: phone.trim(),
       avatar: user.avatar, themePref: theme, notificationsEnabled
     }).then(onSaved), () => showToast.success('Đã cập nhật thông tin tài khoản'));
     setSaving(false);
@@ -96,7 +95,7 @@ const ProfileForm: React.FC<{ user: UserProfile; onSaved: (user: UserProfile) =>
         <TextInput label="Tên đăng nhập" readOnly value={user.username} hint="Không thể thay đổi" />
         <TextInput label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <TextInput label="Số điện thoại" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        <TextInput label="Phòng ban" value={department} onChange={(e) => setDepartment(e.target.value)} />
+        <TextInput label="Phòng ban" readOnly value={user.department || 'Chưa gán phòng ban'} hint="Do quản trị viên khai báo" />
         <TextInput label="Vai trò" readOnly value={user.role || 'Chưa gán vai trò'} hint="Do quản trị viên phân quyền" />
       </div>
       <Checkbox label="Hiện thông báo nổi khi có thông báo mới" checked={notificationsEnabled}

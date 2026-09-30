@@ -1,56 +1,10 @@
 import { SysModule } from '../types/menu';
 
 /**
- * DATABASE SEED DATA FOR ERP NAVIGATION MENU (SYS_MODULES, SYS_MENU_GROUPS, SYS_MENU_ITEMS)
- * 
- * =========================================================================================
- * C# ASP.NET CORE ENTITY FRAMEWORK DB MAPPING REFERENCE FOR YOUR BACKEND DEVELOPMENT:
- * =========================================================================================
- * 
- * [Table("SysModules")]
- * public class SysModuleEntity {
- *     [Key] public string Id { get; set; }
- *     public string Key { get; set; }
- *     public string TitleVi { get; set; }
- *     public string TitleEn { get; set; }
- *     public string Icon { get; set; }
- *     public int OrderNo { get; set; }
- *     public string DirectSubKey { get; set; }
- *     public bool IsActive { get; set; } = true;
- *     public List<SysMenuGroupEntity> SubGroups { get; set; }
- * }
- * 
- * [Table("SysMenuGroups")]
- * public class SysMenuGroupEntity {
- *     [Key] public string Id { get; set; }
- *     public string ModuleId { get; set; }
- *     public string GroupCode { get; set; }
- *     public string TitleVi { get; set; }
- *     public string TitleEn { get; set; }
- *     public string Icon { get; set; }
- *     public string IconColor { get; set; }
- *     public int OrderNo { get; set; }
- *     public bool IsActive { get; set; } = true;
- *     public List<SysMenuItemEntity> Items { get; set; }
- * }
- * 
- * [Table("SysMenuItems")]
- * public class SysMenuItemEntity {
- *     [Key] public string Id { get; set; }
- *     public string GroupId { get; set; }
- *     public string SubKey { get; set; }
- *     public string TitleVi { get; set; }
- *     public string TitleEn { get; set; }
- *     public string Icon { get; set; }
- *     public string RoutePath { get; set; }
- *     public int OrderNo { get; set; }
- *     public string BadgeType { get; set; }
- *     public string RequiredPermission { get; set; }
- *     public bool IsActive { get; set; } = true;
- * }
- * =========================================================================================
+ * Sidebar menu: modules → groups → items. An item only names its function (subKey); the route, label
+ * and permission of a function come from config/functions.ts. To show a new function in the sidebar,
+ * add an item to the right group here.
  */
-
 export const INITIAL_SYS_MODULES: SysModule[] = [
   {
     id: 'MOD_OVERVIEW',
@@ -87,9 +41,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Phiếu Nhập kho',
             titleEn: 'Goods Receipt Vouchers',
             icon: 'ArrowDownLeft',
-            routePath: '/inventory/receipts',
             orderNo: 10,
-            requiredPermission: 'inv_receipt',
             isActive: true
           },
           {
@@ -98,9 +50,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Phiếu Xuất kho',
             titleEn: 'Goods Issue Vouchers',
             icon: 'ArrowUpRight',
-            routePath: '/inventory/issues',
             orderNo: 20,
-            requiredPermission: 'inv_issue',
             isActive: true
           },
           {
@@ -109,9 +59,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Lệnh điều chuyển kho',
             titleEn: 'Transfer Orders',
             icon: 'ArrowRightLeft',
-            routePath: '/inventory/transfer-orders',
             orderNo: 30,
-            requiredPermission: 'inv_transfer_order',
             isActive: true
           },
           {
@@ -120,9 +68,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Phiếu xuất điều chuyển kho',
             titleEn: 'Transfer Outward Vouchers',
             icon: 'ArrowUpRight',
-            routePath: '/inventory/transfer-issues',
             orderNo: 40,
-            requiredPermission: 'inv_transfer_issue',
             isActive: true
           },
           {
@@ -131,9 +77,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Phiếu nhập điều chuyển kho',
             titleEn: 'Transfer Inward Vouchers',
             icon: 'ArrowDownLeft',
-            routePath: '/inventory/transfer-receipts',
             orderNo: 50,
-            requiredPermission: 'inv_transfer_receipt',
             isActive: true
           },
           {
@@ -142,9 +86,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Phiếu kiểm kê hàng hóa',
             titleEn: 'Physical Inventory Audit',
             icon: 'ClipboardCheck',
-            routePath: '/inventory/audit-counts',
             orderNo: 60,
-            requiredPermission: 'inv_audit_count',
             isActive: true
           },
           {
@@ -153,9 +95,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Tính giá trung bình tháng',
             titleEn: 'Monthly Weighted Avg Cost',
             icon: 'Calculator',
-            routePath: '/inventory/calc-monthly-cost',
             orderNo: 70,
-            requiredPermission: 'inv_calc_monthly_cost',
             isActive: true
           },
           {
@@ -164,9 +104,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Tính tồn kho tức thời',
             titleEn: 'Instant Stock Balance Calc',
             icon: 'RefreshCw',
-            routePath: '/inventory/calc-instant-stock',
             orderNo: 80,
-            requiredPermission: 'inv_calc_instant_stock',
             isActive: true
           }
         ]
@@ -187,9 +125,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Phê duyệt nhập kho',
             titleEn: 'Approve Receipts',
             icon: 'CheckSquare',
-            routePath: '/inventory/approvals/receipts',
             orderNo: 10,
-            requiredPermission: 'inv_approve_receipt',
             isActive: true
           },
           {
@@ -198,9 +134,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Phê duyệt xuất kho',
             titleEn: 'Approve Issues',
             icon: 'CheckSquare',
-            routePath: '/inventory/approvals/issues',
             orderNo: 20,
-            requiredPermission: 'inv_approve_issue',
             isActive: true
           },
           {
@@ -209,9 +143,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Phê duyệt điều chuyển',
             titleEn: 'Approve Transfers',
             icon: 'CheckSquare',
-            routePath: '/inventory/approvals/transfers',
             orderNo: 30,
-            requiredPermission: 'inv_approve_transfer',
             isActive: true
           }
         ]
@@ -232,9 +164,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Khai báo vật tư & Sản phẩm',
             titleEn: 'Materials & Products Catalog',
             icon: 'Package',
-            routePath: '/inventory/materials',
             orderNo: 10,
-            requiredPermission: 'inv_material_cat',
             badgeType: 'lowStock',
             isActive: true
           },
@@ -244,9 +174,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Danh mục Loại vật tư',
             titleEn: 'Material Types',
             icon: 'Tag',
-            routePath: '/inventory/material-types',
             orderNo: 20,
-            requiredPermission: 'inv_material_type_cat',
             isActive: true
           },
           {
@@ -255,9 +183,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Khai báo danh mục kho',
             titleEn: 'Warehouses Master',
             icon: 'Warehouse',
-            routePath: '/inventory/warehouses',
             orderNo: 30,
-            requiredPermission: 'inv_warehouse_cat',
             isActive: true
           },
           {
@@ -266,9 +192,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Danh mục Vị trí kho (Bin/Rack)',
             titleEn: 'Rack Locations (Bin/Rack)',
             icon: 'MapPin',
-            routePath: '/inventory/locations',
             orderNo: 40,
-            requiredPermission: 'inv_location_cat',
             isActive: true
           },
           {
@@ -277,9 +201,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Danh mục Đơn vị tính',
             titleEn: 'Units of Measure (UOM)',
             icon: 'Scale',
-            routePath: '/inventory/uom',
             orderNo: 50,
-            requiredPermission: 'inv_uom_cat',
             isActive: true
           },
           {
@@ -288,9 +210,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Danh mục Quy đổi ĐVT',
             titleEn: 'UOM Conversions',
             icon: 'ArrowRightLeft',
-            routePath: '/inventory/uom-conversions',
             orderNo: 60,
-            requiredPermission: 'inv_uom_conversion_cat',
             isActive: true
           },
           {
@@ -299,9 +219,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Danh mục Định mức tồn kho',
             titleEn: 'Stock Norms',
             icon: 'ShieldAlert',
-            routePath: '/inventory/stock-norms',
             orderNo: 70,
-            requiredPermission: 'inv_stock_norm_cat',
             isActive: true
           },
           {
@@ -310,9 +228,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Danh mục Lô & Hạn sử dụng',
             titleEn: 'Lots & Expiration',
             icon: 'Boxes',
-            routePath: '/inventory/lots',
             orderNo: 80,
-            requiredPermission: 'inv_lot_cat',
             isActive: true
           }
         ]
@@ -333,9 +249,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Bảng kê & Báo cáo hàng nhập kho',
             titleEn: 'Inward Summary Report',
             icon: 'PieChart',
-            routePath: '/inventory/reports/inward',
             orderNo: 10,
-            requiredPermission: 'inv_report_inward',
             isActive: true
           }
         ]
@@ -356,9 +270,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Bảng kê & Báo cáo hàng xuất kho',
             titleEn: 'Outward Summary Report',
             icon: 'PieChart',
-            routePath: '/inventory/reports/outward',
             orderNo: 10,
-            requiredPermission: 'inv_report_outward',
             isActive: true
           }
         ]
@@ -379,9 +291,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Tồn đầu kỳ & Tổng hợp Nhập-Xuất-Tồn',
             titleEn: 'Beginning & In-Out-Stock (NXT)',
             icon: 'PieChart',
-            routePath: '/inventory/reports/nxt',
             orderNo: 10,
-            requiredPermission: 'inv_report_nxt',
             isActive: true
           },
           {
@@ -390,9 +300,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Báo cáo Tồn kho cuối kỳ / Tức thời',
             titleEn: 'Ending & Real-Time Stock',
             icon: 'PieChart',
-            routePath: '/inventory/reports/stock',
             orderNo: 20,
-            requiredPermission: 'inv_report_stock',
             isActive: true
           },
           {
@@ -401,9 +309,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Báo cáo Tuổi hàng tồn kho',
             titleEn: 'Inventory Aging Analysis',
             icon: 'Clock',
-            routePath: '/inventory/reports/aging',
             orderNo: 30,
-            requiredPermission: 'inv_report_aging',
             isActive: true
           }
         ]
@@ -435,9 +341,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Danh mục Khách hàng & Phân nhóm',
             titleEn: 'Customers & Partners',
             icon: 'UserCheck',
-            routePath: '/sales/customers',
             orderNo: 10,
-            requiredPermission: 'sales_customers',
             isActive: true
           }
         ]
@@ -458,9 +362,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Hóa đơn & Đơn bán hàng',
             titleEn: 'Sales Orders & Invoices',
             icon: 'FileText',
-            routePath: '/sales/orders',
             orderNo: 10,
-            requiredPermission: 'sales_orders',
             badgeType: 'pendingOrder',
             isActive: true
           },
@@ -470,9 +372,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Phiếu giao hàng / Vận chuyển',
             titleEn: 'Delivery Notes',
             icon: 'FileText',
-            routePath: '/sales/deliveries',
             orderNo: 20,
-            requiredPermission: 'sales_delivery',
             isActive: true
           }
         ]
@@ -493,9 +393,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Báo cáo Doanh số & Công nợ',
             titleEn: 'Sales & AR Report',
             icon: 'PieChart',
-            routePath: '/sales/reports',
             orderNo: 10,
-            requiredPermission: 'sales_report',
             isActive: true
           }
         ]
@@ -527,9 +425,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Khai báo khoản mục Thu Chi',
             titleEn: 'Revenue/Expense Items',
             icon: 'CreditCard',
-            routePath: '/finance/categories',
             orderNo: 10,
-            requiredPermission: 'fin_categories',
             isActive: true
           }
         ]
@@ -550,9 +446,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Lập Phiếu Thu tiền',
             titleEn: 'Cash Receipt Vouchers',
             icon: 'FileText',
-            routePath: '/finance/receipts',
             orderNo: 10,
-            requiredPermission: 'fin_receipt_voucher',
             isActive: true
           },
           {
@@ -561,9 +455,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Lập Phiếu Chi tiền',
             titleEn: 'Cash Payment Vouchers',
             icon: 'FileText',
-            routePath: '/finance/payments',
             orderNo: 20,
-            requiredPermission: 'fin_payment_voucher',
             isActive: true
           }
         ]
@@ -584,9 +476,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Báo cáo Sổ quỹ & Lợi nhuận',
             titleEn: 'Cashbook & Profit Report',
             icon: 'PieChart',
-            routePath: '/finance/reports',
             orderNo: 10,
-            requiredPermission: 'fin_report',
             isActive: true
           }
         ]
@@ -618,9 +508,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Danh sách Cán bộ Nhân sự',
             titleEn: 'Employee Directory',
             icon: 'Building2',
-            routePath: '/hr/employees',
             orderNo: 10,
-            requiredPermission: 'hr_list',
             isActive: true
           }
         ]
@@ -641,9 +529,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Bảng Chấm công & Quỹ lương',
             titleEn: 'Timekeeping & Payroll',
             icon: 'FileText',
-            routePath: '/hr/payroll',
             orderNo: 10,
-            requiredPermission: 'hr_payroll',
             isActive: true
           }
         ]
@@ -664,9 +550,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Đăng ký tài nguyên (Phòng họp, Xe, Máy tính...)',
             titleEn: 'Resource Booking & Timetable',
             icon: 'Calendar',
-            routePath: '/hr/resources',
             orderNo: 10,
-            requiredPermission: 'hr_resource_booking',
             isActive: true
           }
         ]
@@ -687,9 +571,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Báo cáo Biến động Nhân sự',
             titleEn: 'HR Movement Report',
             icon: 'PieChart',
-            routePath: '/hr/reports',
             orderNo: 10,
-            requiredPermission: 'hr_report',
             isActive: true
           }
         ]
@@ -741,9 +623,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Quản lý người sử dụng & phân quyền',
             titleEn: 'User Directory & Permissions',
             icon: 'ShieldCheck',
-            routePath: '/settings/users',
             orderNo: 10,
-            requiredPermission: 'sys_users',
             isActive: true
           }
         ]
@@ -751,8 +631,8 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
       {
         id: 'GRP_SYS_UNITS',
         groupCode: 'company_units',
-        titleVi: 'Khai Báo Đơn Vị Cơ Sở',
-        titleEn: 'Company Units',
+        titleVi: 'Tổ Chức Doanh Nghiệp',
+        titleEn: 'Organization',
         icon: 'Building2',
         iconColor: 'text-cyan-400',
         orderNo: 20,
@@ -764,9 +644,25 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Danh mục Đơn vị cơ sở',
             titleEn: 'Company / Branch Units',
             icon: 'Building2',
-            routePath: '/settings/company-units',
             orderNo: 10,
-            requiredPermission: 'inv_company_unit_cat',
+            isActive: true
+          },
+          {
+            id: 'MNU_SYS_DEPARTMENTS',
+            subKey: 'sys_departments',
+            titleVi: 'Danh mục phòng ban',
+            titleEn: 'Departments',
+            icon: 'Network',
+            orderNo: 20,
+            isActive: true
+          },
+          {
+            id: 'MNU_SYS_COMPANY_PROFILE',
+            subKey: 'settings_main',
+            titleVi: 'Hồ sơ doanh nghiệp & sao lưu',
+            titleEn: 'Company Profile & Backup',
+            icon: 'Landmark',
+            orderNo: 30,
             isActive: true
           }
         ]
@@ -787,9 +683,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Khai báo mặc định hệ thống',
             titleEn: 'System Default Configurations',
             icon: 'Sliders',
-            routePath: '/settings/default-configs',
             orderNo: 10,
-            requiredPermission: 'sys_default_config',
             isActive: true
           },
           {
@@ -798,9 +692,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Khai báo năm làm việc & Ngày nhập liệu',
             titleEn: 'Fiscal Year & Entry Start Date',
             icon: 'Calendar',
-            routePath: '/settings/fiscal-year',
             orderNo: 20,
-            requiredPermission: 'sys_fiscal_year',
             isActive: true
           }
         ]
@@ -821,9 +713,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Danh mục ngoại tệ',
             titleEn: 'Currencies List',
             icon: 'Coins',
-            routePath: '/settings/currencies',
             orderNo: 10,
-            requiredPermission: 'sys_currencies',
             isActive: true
           },
           {
@@ -832,9 +722,7 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleVi: 'Cập nhật tỷ giá ngoại tệ',
             titleEn: 'Exchange Rate Updates',
             icon: 'TrendingUp',
-            routePath: '/settings/exchange-rates',
             orderNo: 20,
-            requiredPermission: 'sys_exchange_rates',
             isActive: true
           }
         ]

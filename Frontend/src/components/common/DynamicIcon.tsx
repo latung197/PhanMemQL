@@ -24,6 +24,21 @@ import {
   PieChart,
   UserCheck,
   CreditCard,
+  Calculator,
+  Calendar,
+  CheckCircle2,
+  CheckSquare,
+  ClipboardCheck,
+  Clock,
+  Coins,
+  Download,
+  Landmark,
+  Network,
+  RefreshCw,
+  ShieldCheck,
+  Sliders,
+  TrendingUp,
+  Upload,
   LucideProps
 } from 'lucide-react';
 
@@ -55,7 +70,22 @@ const iconMap: Record<string, React.FC<LucideProps>> = {
   ArrowUpRight,
   PieChart,
   UserCheck,
-  CreditCard
+  CreditCard,
+  Calculator,
+  Calendar,
+  CheckCircle2,
+  CheckSquare,
+  ClipboardCheck,
+  Clock,
+  Coins,
+  Download,
+  Landmark,
+  Network,
+  RefreshCw,
+  ShieldCheck,
+  Sliders,
+  TrendingUp,
+  Upload
 };
 
 export const DynamicIcon: React.FC<DynamicIconProps> = ({ name, ...props }) => {

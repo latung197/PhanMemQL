@@ -29,7 +29,7 @@
 
 export interface SysResource {
   id: string;
-  categoryCode: 'MENU' | 'CATALOG' | 'SYSTEM' | 'REPORT' | 'VALIDATION';
+  categoryCode: 'MENU' | 'CATALOG' | 'SYSTEM' | 'REPORT' | 'VALIDATION' | 'GENERAL';
   resourceKey: string;
   cultureCode: 'vi' | 'en' | 'vi-VN' | 'en-US';
   resourceValue: string;

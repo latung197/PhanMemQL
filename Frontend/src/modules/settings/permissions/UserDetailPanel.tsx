@@ -135,7 +135,7 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
       </div>
 
       {/* Role */}
-      <div className="flex flex-col md:flex-row md:items-end gap-2 p-2.5 rounded-[5px] bg-[#edf4fb] dark:bg-slate-800/60 border border-[#cbdcf0] dark:border-slate-700">
+      <div className="flex flex-col md:flex-row md:items-end gap-2 p-2.5 rounded-[5px] bg-brand-50 dark:bg-slate-800/60 border border-brand-200 dark:border-slate-700">
         <SelectInput
           label="Vai trò"
           wrapperClassName="md:w-80"
@@ -148,7 +148,7 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
         <p className="text-[11px] text-slate-500 dark:text-slate-400 grow">
           {isAdmin
             ? 'Vai trò quản trị có toàn quyền trên mọi chức năng.'
-            : 'Chọn vai trò để nạp bộ quyền chuẩn, sau đó có thể bật/tắt thêm từng quyền riêng cho tài khoản này.'}
+            : 'Tài khoản dùng quyền của vai trò. Ô nào bật/tắt khác vai trò được lưu thành quyền riêng (tô màu); các ô còn lại tự theo mỗi khi vai trò thay đổi.'}
         </p>
         {!readOnly && baseline && (countDifferences(baseline, draft.matrix) + countRightDifferences(baselineRights ?? [], draft.rights)) > 0 && (
           <Button variant="outline" size="sm" className="h-7 shrink-0" icon={<RotateCcw className="h-3.5 w-3.5" />}

@@ -7,7 +7,7 @@ import { useConfirm } from '../../components/common/ConfirmDialog';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/StateViews';
 import { showToast } from '../../utils/toast';
 import { getErrorMessage } from '../../services/apiClient';
-import { PermissionCatalog, permissionCatalogApi, rolesApi, usersApi } from '../../services/settingsApi';
+import { Department, departmentsApi, PermissionCatalog, permissionCatalogApi, rolesApi, usersApi } from '../../services/settingsApi';
 import { CompanyUnit, RoleDefinition, UserProfile } from '../../types';
 import { getActionPermission } from '../../utils/permissions';
 import { CreateRoleModal, CreateUserModal, EditUserModal } from './UserAccountModals';
@@ -30,6 +30,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
   const confirm = useConfirm();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [roles, setRoles] = useState<RoleDefinition[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [catalog, setCatalog] = useState<PermissionCatalog>({ specialRights: [], groups: { data: '', scope: '', status: '', feature: '' } });
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -44,10 +45,12 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
 
   const loadData = useCallback(async () => {
     try {
-      const [userList, roleList, rightCatalog] = await Promise.all([usersApi.getAll(), rolesApi.getAll(), permissionCatalogApi.get()]);
+      const [userList, roleList, rightCatalog, departmentList] = await Promise.all(
+        [usersApi.getAll(), rolesApi.getAll(), permissionCatalogApi.get(), departmentsApi.getAll()]);
       setUsers(userList);
       setRoles(roleList);
       setCatalog(rightCatalog);
+      setDepartments(departmentList);
       setLoadError('');
     } catch (error) {
       setLoadError(getErrorMessage(error));
@@ -158,7 +161,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
 
       {view === 'approvals' && (
         <div className={`${panelClass} lg:h-[calc(100vh-250px)]`}>
-          <ApprovalRulesPanel users={users} roles={roles} companyUnits={activeUnits} rightDefs={catalog.specialRights}
+          <ApprovalRulesPanel users={users} roles={roles} departments={departments} companyUnits={activeUnits} rightDefs={catalog.specialRights}
             canEdit={perms.createEdit} />
         </div>
       )}
@@ -217,6 +220,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
         <CreateUserModal
           roles={roles}
           units={activeUnits}
+          departments={departments}
           defaultUnitCode={currentUser.ma_dvcs || activeUnits[0]?.code || ''}
           suggestedEmployeeCode={`NV${String(users.length + 1).padStart(3, '0')}`}
           onClose={() => setModal(null)}
@@ -246,6 +250,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
         <EditUserModal
           user={selectedUser}
           units={activeUnits}
+          departments={departments}
           isSelf={selectedUser.id === currentUser.id}
           onClose={() => setModal(null)}
           onSaved={(user) => {

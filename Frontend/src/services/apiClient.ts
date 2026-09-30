@@ -1,6 +1,7 @@
 // HTTP client for the ERP backend (ServerService). Every backend call goes through apiRequest.
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:2512').replace(/\/$/, '');
+// import.meta.env is missing outside Vite (e.g. scripts/export-seed.ts run by tsx).
+const API_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:2512').replace(/\/$/, '');
 const TOKEN_KEY = 's_erp_auth_token';
 
 /** Backend base URL, for the few callers that cannot use apiRequest (streams). */

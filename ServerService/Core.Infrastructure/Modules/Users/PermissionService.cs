@@ -53,19 +53,18 @@ public sealed class PermissionService(CoreContext db) : IPermissionService
     {
         if (_rightsCache.TryGetValue(userId, out var cached)) return cached;
         var isAdmin = await IsAdminAsync(userId, ct);
-        var hasOwnMatrix = !isAdmin && await db.UserCommands.AnyAsync(x => x.UserId == userId && x.Status == "1", ct);
-        List<string> own = hasOwnMatrix
-            ? await db.UserRights.AsNoTracking().Where(x => x.UserId == userId && x.Status == "1")
-                .Select(x => x.MenuId0 + ":" + x.RightCode).ToListAsync(ct)
-            : [];
+        if (isAdmin) return _rightsCache[userId] = SpecialRightCatalog.Keys;
+        var own = await db.UserRights.AsNoTracking().Where(x => x.UserId == userId && x.Status == "1")
+            .Select(x => new { Key = x.MenuId0 + ":" + x.RightCode, x.IsGranted }).ToListAsync(ct);
         var roleIds = db.UserRoles.ActiveRoles().Where(x => x.UserId == userId).Select(x => x.RoleId);
-        List<string> fromRoles = isAdmin || hasOwnMatrix ? [] : await db.RoleRights.AsNoTracking()
+        var fromRoles = await db.RoleRights.AsNoTracking()
             .Where(x => x.Status == "1" && roleIds.Contains(x.RoleId))
             .Select(x => x.MenuId0 + ":" + x.RightCode).ToListAsync(ct);
         // A special right only counts on a function the user may view (same rule as the permission screen).
         var matrix = await GetEffectiveAsync(userId, ct);
-        var rights = PermissionMatrix.ResolveRights(isAdmin, hasOwnMatrix, own, fromRoles);
-        return _rightsCache[userId] = isAdmin ? rights : rights
+        var rights = PermissionMatrix.ResolveRights(false, fromRoles,
+            own.Where(x => x.IsGranted).Select(x => x.Key), own.Where(x => !x.IsGranted).Select(x => x.Key));
+        return _rightsCache[userId] = rights
             .Where(key => matrix.TryGetValue(SpecialRightCatalog.Split(key).Function, out var a) && a.View)
             .ToHashSet(StringComparer.Ordinal);
     }

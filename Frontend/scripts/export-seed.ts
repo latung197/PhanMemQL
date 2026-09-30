@@ -13,10 +13,10 @@ import { initialRoles, FULL_ACTIONS, FORBIDDEN_ACTIONS } from '../src/mock/initi
 import {
   DEFAULT_SYSTEM_CONFIG,
   DEFAULT_FISCAL_CONFIG,
-  DEFAULT_CURRENCIES,
-  DEFAULT_EXCHANGE_RATES,
+  DEFAULT_NUMBER_FORMAT_CONFIG,
   DEFAULT_COMPANY_PROFILE
 } from '../src/services/systemSettingsService';
+import { DEMO_CURRENCIES, DEMO_DEPARTMENTS, DEMO_EXCHANGE_RATES } from '../src/mock/initialSettingsData';
 import type { ActionPermissions, SubKeyPermissions } from '../src/types';
 
 const toActions = (value: SubKeyPermissions | undefined): ActionPermissions => {
@@ -46,6 +46,7 @@ const seed = {
     email: user.email,
     roleId: user.isSystemAdmin ? 'ROLE_ADMIN' : user.roleId ?? null,
     department: user.department,
+    departmentCode: DEMO_DEPARTMENTS.find(d => d.name === user.department)?.code ?? null,
     phone: user.phone,
     avatar: user.avatar,
     themePref: user.themePref,
@@ -64,10 +65,12 @@ const seed = {
   systemConfig: {
     systemDefaults: DEFAULT_SYSTEM_CONFIG,
     fiscalConfig: DEFAULT_FISCAL_CONFIG,
-    currencies: DEFAULT_CURRENCIES,
-    exchangeRates: DEFAULT_EXCHANGE_RATES,
-    companyProfile: DEFAULT_COMPANY_PROFILE
-  }
+    companyProfile: DEFAULT_COMPANY_PROFILE,
+    numberFormat: DEFAULT_NUMBER_FORMAT_CONFIG
+  },
+  departments: DEMO_DEPARTMENTS,
+  currencies: DEMO_CURRENCIES,
+  exchangeRates: DEMO_EXCHANGE_RATES
 };
 
 const target = resolve(dirname(fileURLToPath(import.meta.url)), '../../ServerService/Core/SeedData/seed.json');

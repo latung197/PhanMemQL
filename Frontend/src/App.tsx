@@ -44,6 +44,7 @@ import {
 import { Lock, ShieldAlert, ArrowLeft, KeyRound } from 'lucide-react';
 import { Button } from './components/common/Button';
 import { ConfirmProvider } from './components/common/ConfirmDialog';
+import { NumberFormatProvider, useNumberFormat } from './context/NumberFormatContext';
 
 // The realtime stream delivers new notifications at once; polling is only the fallback.
 const NOTIFICATION_POLL_MS = 180_000;
@@ -66,6 +67,7 @@ const loadDemoData = (): ERPData => {
 
 const ERPAppContent: React.FC = () => {
   const [erpData, setErpData] = useState<ERPData>(loadDemoData);
+  const { applyConfig: applyNumberFormat } = useNumberFormat();
 
   // Signed-in user from the backend; null shows the login screen.
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -83,6 +85,8 @@ const ERPAppContent: React.FC = () => {
     setActiveCategory(cat);
     setActiveSubMenu(subKey);
   });
+  /** Opens a function's screen; the module comes from the function registry. */
+  const openFunction = (subKey: SubMenuKey) => navigateTo(getSubMenuMeta(subKey).category, subKey);
 
   // Recent Navigation History Steps
   const [navHistory, setNavHistory] = useState<NavHistoryItem[]>(() => {
@@ -193,8 +197,9 @@ const ERPAppContent: React.FC = () => {
     } catch (error) {
       showToast.warning('Không tải được cài đặt hệ thống, đang dùng giá trị mặc định.', getErrorMessage(error));
     }
+    applyNumberFormat(systemSettingsService.getNumberFormat());
     await Promise.all([refreshCompanyUnits(), refreshNotifications()]);
-  }, [refreshCompanyUnits, refreshNotifications]);
+  }, [refreshCompanyUnits, refreshNotifications, applyNumberFormat]);
 
   const handleLogout = useCallback(() => {
     authService.logout();
@@ -248,8 +253,8 @@ const ERPAppContent: React.FC = () => {
   }, [signedIn, refreshNotifications]);
 
   const handleLoginSuccess = (user: UserProfile) => {
-    setActiveCategory('overview');
-    setActiveSubMenu('overview_main');
+    // Keep the screen of the address bar (e.g. a shared link) when the user may open it.
+    if (!canView(user, activeSubMenu)) openFunction('overview_main');
     void startSession(user);
   };
 
@@ -416,7 +421,7 @@ const ERPAppContent: React.FC = () => {
         showToast.warning('Bạn không có quyền xem chức năng này.');
         return;
       }
-      navigateTo(getSubMenuMeta(fn).category, fn);
+      openFunction(fn);
       if (notification.linkDocumentId) requestOpenDocument(fn, notification.linkDocumentId);
       return;
     }
@@ -461,7 +466,7 @@ const ERPAppContent: React.FC = () => {
 
   if (isRestoringSession) {
     return (
-      <div className="h-dvh w-full flex items-center justify-center bg-slate-100 dark:bg-slate-950 text-xs text-slate-500">
+      <div className="h-dvh w-full flex items-center justify-center bg-background text-xs text-slate-500">
         <span className="inline-block animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full mr-3"></span>
         Đang khôi phục phiên đăng nhập...
       </div>
@@ -509,7 +514,7 @@ const ERPAppContent: React.FC = () => {
   const pageHeaders = getSubTitleText();
 
   return (
-    <div className="flex h-dvh w-full min-w-0 bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 overflow-hidden font-sans transition-colors">
+    <div className="flex h-dvh w-full min-w-0 bg-background text-slate-800 dark:text-slate-100 overflow-hidden font-sans transition-colors">
       
       {/* Multi-level Collapsible Sidebar */}
       <Sidebar
@@ -595,10 +600,7 @@ const ERPAppContent: React.FC = () => {
                   <Button
                     variant="outline"
                     icon={<ArrowLeft className="h-4 w-4" />}
-                    onClick={() => {
-                      setActiveCategory('overview');
-                      setActiveSubMenu('overview_main');
-                    }}
+                    onClick={() => openFunction('overview_main')}
                   >
                     Về Bàn Điều Hành
                   </Button>
@@ -617,10 +619,7 @@ const ERPAppContent: React.FC = () => {
                     erpData={erpDataView}
                     activeCompanyUnitCode={activeCompanyUnitCode}
                     onSelectCompanyUnit={handleSelectCompanyUnit}
-                    onNavigate={(cat, subKey) => {
-                      setActiveCategory(cat);
-                      setActiveSubMenu(subKey);
-                    }}
+                    onNavigate={navigateTo}
                   />
                 )}
 
@@ -628,7 +627,7 @@ const ERPAppContent: React.FC = () => {
                   <InventoryModule
                     subKey={activeSubMenu}
                     currentUser={currentUser}
-                    onSelectSubKey={setActiveSubMenu}
+                    onSelectSubKey={openFunction}
                     products={erpData.products}
                     warehouses={erpData.warehouses}
                     vouchers={erpData.vouchers}
@@ -656,7 +655,7 @@ const ERPAppContent: React.FC = () => {
                   <SalesModule
                     subKey={activeSubMenu}
                     currentUser={currentUser}
-                    onSelectSubKey={setActiveSubMenu}
+                    onSelectSubKey={openFunction}
                     customers={erpData.customers}
                     orders={erpData.orders}
                     products={erpData.products}
@@ -670,7 +669,7 @@ const ERPAppContent: React.FC = () => {
                   <FinanceModule
                     subKey={activeSubMenu}
                     currentUser={currentUser}
-                    onSelectSubKey={setActiveSubMenu}
+                    onSelectSubKey={openFunction}
                     transactions={erpData.transactions}
                     onAddTransaction={handleAddTransaction}
                   />
@@ -680,7 +679,7 @@ const ERPAppContent: React.FC = () => {
                   <HRModule
                     subKey={activeSubMenu}
                     currentUser={currentUser}
-                    onSelectSubKey={setActiveSubMenu}
+                    onSelectSubKey={openFunction}
                     employees={erpData.employees}
                     onAddEmployee={handleAddEmployee}
                   />
@@ -699,6 +698,8 @@ const ERPAppContent: React.FC = () => {
                     subKey={activeSubMenu}
                     user={currentUser}
                     companyUnits={companyUnits}
+                    warehouses={erpData.warehouses}
+                    onSelectSubKey={openFunction}
                     onAddCompanyUnit={handleAddCompanyUnit}
                     onUpdateCompanyUnit={handleUpdateCompanyUnit}
                     onDeleteCompanyUnit={handleDeleteCompanyUnit}
@@ -717,7 +718,7 @@ const ERPAppContent: React.FC = () => {
   );
 };
 
-import { NumberFormatProvider } from './context/NumberFormatContext';
+
 
 export function App() {
   return (

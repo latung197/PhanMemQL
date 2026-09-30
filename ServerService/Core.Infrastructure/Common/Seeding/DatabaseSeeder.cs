@@ -1,12 +1,18 @@
 using System.Text.Json;
+using Core.Application.Common.Documents;
 using Core.Application.Common.Permissions;
 using Core.Application.Common.Security;
 using Core.Application.Modules.CompanyUnits;
+using Core.Application.Modules.Currencies;
+using Core.Application.Modules.Departments;
 using Core.Application.Modules.SystemConfig;
 using Core.Domain.Modules.CompanyUnits;
+using Core.Domain.Modules.Currencies;
+using Core.Domain.Modules.Departments;
 using Core.Domain.Modules.Notifications;
 using Core.Domain.Modules.SystemConfig;
 using Core.Domain.Modules.Users;
+using Core.Domain.Modules.VoucherNumbering;
 using Core.Infrastructure.Common.Persistence;
 using Core.Infrastructure.Modules.Users;
 using Microsoft.EntityFrameworkCore;
@@ -35,7 +41,57 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
             else logger.LogWarning("Chưa có tài khoản nào. Cấu hình Seed:DemoData hoặc Bootstrap:AdminPassword.");
         }
         await EnsureInitialSpecialRightsAsync(ct);
+        await EnsureVoucherNumberingAsync(ct);
+        await EnsureBaseCurrencyAsync(ct);
         await ResetDevAdminPasswordAsync(ct);
+    }
+
+    /// <summary>
+    /// Creates the number series of vouchers added to VoucherCatalog. Older databases kept the series in the
+    /// systemDefaults setting (autoNumbering); their prefix, pattern and digits are taken over.
+    /// </summary>
+    private async Task EnsureVoucherNumberingAsync(CancellationToken ct)
+    {
+        var existing = await db.VoucherNumberingRules.Select(x => x.VoucherType).ToListAsync(ct);
+        var missing = VoucherCatalog.All.Where(x => !existing.Contains(x.VoucherType)).ToList();
+        if (missing.Count == 0) return;
+
+        var legacy = await db.SystemSettings.AsNoTracking()
+            .Where(x => x.Key == SystemConfigSections.Keys["systemDefaults"] && x.Scope == SystemSetting.GlobalScope)
+            .Select(x => x.Value).FirstOrDefaultAsync(ct);
+        JsonElement autoNumbering = default;
+        if (legacy is not null)
+        {
+            using var document = JsonDocument.Parse(legacy);
+            if (document.RootElement.TryGetProperty("autoNumbering", out var value)) autoNumbering = value.Clone();
+        }
+
+        foreach (var voucher in missing)
+        {
+            var rule = new VoucherNumberingRule
+            {
+                VoucherType = voucher.VoucherType, MenuId0 = voucher.Function, Name = voucher.Name,
+                Prefix = voucher.VoucherType, Pattern = VoucherCatalog.DefaultPattern, Digits = VoucherCatalog.DefaultDigits
+            };
+            if (autoNumbering.ValueKind == JsonValueKind.Object && autoNumbering.TryGetProperty(voucher.VoucherType, out var old))
+            {
+                if (old.TryGetProperty("prefix", out var prefix) && prefix.GetString() is { Length: > 0 } p) rule.Prefix = p;
+                if (old.TryGetProperty("pattern", out var pattern) && pattern.GetString() is { } text && text.Contains("{SEQ}")) rule.Pattern = text;
+                if (old.TryGetProperty("digits", out var digits) && digits.TryGetInt16(out var d) && d is >= 1 and <= 10) rule.Digits = d;
+            }
+            db.VoucherNumberingRules.Add(rule);
+        }
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Vouchers need a base currency; a new database starts with VND.</summary>
+    private async Task EnsureBaseCurrencyAsync(CancellationToken ct)
+    {
+        if (await db.Currencies.AnyAsync(x => x.IsBase, ct)) return;
+        var vnd = await db.Currencies.FirstOrDefaultAsync(x => x.Code == "VND", ct);
+        if (vnd is null) db.Currencies.Add(new Currency { Code = "VND", Name = "Việt Nam Đồng", Symbol = "₫", DecimalPlaces = 0, IsBase = true });
+        else vnd.IsBase = vnd.IsActive = true;
+        await db.SaveChangesAsync(ct);
     }
 
     /// <summary>
@@ -49,10 +105,21 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
         foreach (var role in roleGrants.GroupBy(x => x.RoleId))
             foreach (var right in SpecialRightCatalog.InitialFor(role.ToDictionary(x => x.MenuId0, x => x.ToActions())))
                 db.RoleRights.Add(new SysRoleRight { RoleId = role.Key, MenuId0 = right.Function, RightCode = right.Code });
+        // Users with matrix exceptions: the rights their own matrix calls for, stored as exceptions to the role's.
         var userGrants = await db.UserCommands.AsNoTracking().Where(x => x.Status == "1").ToListAsync(ct);
+        var userRoles = await db.UserRoles.AsNoTracking().Where(x => x.Status == "1").ToListAsync(ct);
         foreach (var user in userGrants.GroupBy(x => x.UserId))
-            foreach (var right in SpecialRightCatalog.InitialFor(user.ToDictionary(x => x.MenuId0, x => x.ToActions())))
-                db.UserRights.Add(new SysUserRight { UserId = user.Key, MenuId0 = right.Function, RightCode = right.Code });
+        {
+            var roleIds = userRoles.Where(x => x.UserId == user.Key).Select(x => x.RoleId).ToHashSet();
+            var fromRoles = roleGrants.Where(x => roleIds.Contains(x.RoleId)).Select(x => (x.MenuId0, x.ToActions())).ToList();
+            var roleMatrix = PermissionMatrix.Build(fromRoles);
+            var effective = PermissionMatrix.Resolve(false, user.Select(x => (x.MenuId0, x.ToActions())).ToList(), fromRoles);
+            static IEnumerable<string> Keys(IEnumerable<SpecialRightDefinition> rights) =>
+                rights.Select(r => SpecialRightCatalog.Key(r.Function, r.Code));
+            var (granted, denied) = PermissionMatrix.RightOverrides(Keys(SpecialRightCatalog.InitialFor(roleMatrix)),
+                Keys(SpecialRightCatalog.InitialFor(effective)));
+            await access.ReplaceRightOverridesAsync(user.Key, granted, denied, ct);
+        }
         var count = await db.SaveChangesAsync(ct);
         logger.LogInformation("Đã cấp {Count} quyền đặc biệt ban đầu theo ma trận quyền hiện có.", count);
     }
@@ -101,9 +168,11 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var units = await SeedCompanyUnitsAsync(seed.CompanyUnits, ct);
         var roles = await SeedRolesAsync(seed.Roles, ct);
-        await SeedUsersAsync(seed.Users, roles, units, password!, ct);
+        var departments = await SeedDepartmentsAsync(seed.Departments, ct);
+        await SeedUsersAsync(seed.Users, roles, units, departments, password!, ct);
         SeedNotifications(seed.Notifications);
         SeedSystemConfig(seed.SystemConfig);
+        await SeedCurrenciesAsync(seed.Currencies, seed.ExchangeRates, ct);
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         logger.LogInformation("Đã nạp dữ liệu mẫu: {Units} đơn vị, {Roles} vai trò, {Users} người dùng.",
@@ -153,17 +222,55 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
         return map;
     }
 
+    private async Task<List<Department>> SeedDepartmentsAsync(List<SaveDepartmentRequest> items, CancellationToken ct)
+    {
+        var departments = await db.Departments.ToListAsync(ct);
+        foreach (var item in items.Where(item => departments.All(d => d.Code != item.Code)))
+        {
+            var department = new Department
+            {
+                Code = item.Code, Name = item.Name, Note = item.Note, IsActive = item.IsActive, SortOrder = departments.Count + 1
+            };
+            db.Departments.Add(department);
+            departments.Add(department);
+        }
+        await db.SaveChangesAsync(ct);
+        return departments;
+    }
+
+    private async Task SeedCurrenciesAsync(List<SaveCurrencyRequest> currencies, List<SaveExchangeRateRequest> rates,
+        CancellationToken ct)
+    {
+        if (await db.Currencies.AnyAsync(ct)) return;
+        var order = 0;
+        foreach (var item in currencies)
+            db.Currencies.Add(new Currency
+            {
+                Code = item.Code, Name = item.Name, Symbol = item.Symbol ?? string.Empty, DecimalPlaces = (short)item.DecimalPlaces,
+                IsBase = item.IsBase, IsActive = item.IsActive, SortOrder = ++order
+            });
+        db.ExchangeRates.AddRange(rates.Where(r => currencies.Any(c => c.Code == r.CurrencyCode && !c.IsBase))
+            .Select(r => new ExchangeRate
+            {
+                CurrencyCode = r.CurrencyCode, RateDate = r.Date, BuyRate = r.BuyRate, SellRate = r.SellRate,
+                AccountingRate = r.AccountingRate, UpdatedAtUtc = DateTime.UtcNow, UpdatedByUserId = 0
+            }));
+        await db.SaveChangesAsync(ct);
+    }
+
     private async Task SeedUsersAsync(List<SeedUser> items, Dictionary<string, SysRole> roles,
-        List<CompanyUnit> units, string password, CancellationToken ct)
+        List<CompanyUnit> units, List<Department> departments, string password, CancellationToken ct)
     {
         var defaultUnit = units.FirstOrDefault(x => x.IsDefault)?.Code ?? units.First().Code;
         var adminRole = roles.Values.FirstOrDefault(x => x.IsAdmin);
         foreach (var item in items)
         {
+            var department = departments.FirstOrDefault(d => d.Code == item.DepartmentCode);
             var user = new SysUser
             {
                 UserName = item.Username.Trim().ToLowerInvariant(), FullName = item.FullName,
-                Email = item.Email, Phone = item.Phone, Department = item.Department ?? string.Empty,
+                Email = item.Email, Phone = item.Phone,
+                DepartmentCode = department?.Code, Department = department?.Name ?? item.Department ?? string.Empty,
                 Avatar = item.Avatar ?? string.Empty, ThemePref = item.ThemePref is "dark" ? "dark" : "light",
                 NotificationsEnabled = item.NotificationsEnabled, EmployeeCode = item.Id,
                 MaDvcs = item.MaDvcs ?? defaultUnit
@@ -178,9 +285,15 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
             var role = item.IsSystemAdmin ? adminRole
                 : item.RoleId is not null && roles.TryGetValue(item.RoleId, out var mapped) ? mapped : null;
             await access.ReplaceRoleAsync(user.UserId, role, ct);
-            if (role?.IsAdmin != true)
-                await access.ReplaceMatrixAsync(user.UserId, item.Permissions is null ? RoleMatrix(role)
-                    : Known(item.Permissions).ToDictionary(x => x.Key, x => x.Value), ct);
+            // A mock user matrix is the whole wanted matrix (missing functions = no rights); only what
+            // differs from the role is stored.
+            if (role?.IsAdmin != true && item.Permissions is not null)
+            {
+                var wanted = PermissionMatrix.Uniform(ActionPermissions.None);
+                foreach (var (code, actions) in Known(item.Permissions)) wanted[code] = actions;
+                await access.ReplaceMatrixOverridesAsync(user.UserId,
+                    PermissionMatrix.Overrides(await access.RoleMatrixAsync(role, ct), wanted), ct);
+            }
         }
         await db.SaveChangesAsync(ct);
     }
@@ -242,7 +355,4 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
 
     private static IEnumerable<KeyValuePair<string, ActionPermissions>> Known(Dictionary<string, ActionPermissions>? matrix) =>
         (matrix ?? []).Where(x => FunctionCatalog.IsFunction(x.Key));
-
-    private static Dictionary<string, ActionPermissions>? RoleMatrix(SysRole? role) =>
-        role is null ? null : role.Permissions.ToDictionary(x => x.MenuId0, x => x.ToActions());
 }

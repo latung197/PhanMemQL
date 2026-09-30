@@ -1,13 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Filter, RefreshCw, Download, Upload, Plus, X } from 'lucide-react';
 import { Button } from './Button';
+import { SearchInput } from './SearchInput';
 
 export interface CategoryHeaderToolbarProps {
-  icon: React.ReactNode;
-  title: string;
-  count: number;
+  /** Title block; screens that only need a search / action bar leave it out. */
+  icon?: React.ReactNode;
+  title?: string;
+  count?: number;
   countLabel?: string;
-  subtitle: string;
+  subtitle?: string;
+  /** Alias of count. */
+  totalItems?: number;
+
+  // Optional search box (text of the box and its change handler)
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
 
   // Advanced Filter state
   showAdvancedFilter?: boolean;
@@ -39,6 +48,10 @@ export const CategoryHeaderToolbar: React.FC<CategoryHeaderToolbarProps> = ({
   count,
   countLabel = 'Mục',
   subtitle,
+  totalItems,
+  searchValue,
+  onSearchChange,
+  searchPlaceholder = 'Tìm kiếm...',
   showAdvancedFilter = false,
   onToggleAdvancedFilter,
   activeFilterCount = 0,
@@ -53,25 +66,42 @@ export const CategoryHeaderToolbar: React.FC<CategoryHeaderToolbarProps> = ({
   onClearFilter,
   extraActions
 }) => {
+  // The search box keeps its own text when the screen only listens to changes.
+  const [ownSearch, setOwnSearch] = useState('');
+  const shownCount = count ?? totalItems;
+
   return (
     <div className="w-full min-w-0 shrink-0 px-3 py-1.5 sm:px-3 sm:py-2 bg-white dark:bg-slate-900 rounded-lg text-slate-900 dark:text-white border border-slate-200/90 dark:border-slate-800 shadow-2xs">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-        
+
         {/* Title, Badge & Subtitle */}
+        {title && (
         <div className="flex items-center gap-2 min-w-0">
-          <div className="p-1 sm:p-1.5 bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 rounded-md border border-indigo-200/80 dark:border-indigo-800/80 shrink-0 [&>svg]:h-4 [&>svg]:w-4">
+          {icon && (
+          <div className="p-1 sm:p-1.5 bg-brand-50 dark:bg-brand-950/70 text-brand-600 dark:text-brand-400 rounded-md border border-brand-200/80 dark:border-brand-800/80 shrink-0 [&>svg]:h-4 [&>svg]:w-4">
             {icon}
           </div>
+          )}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <h2 className="font-extrabold text-xs sm:text-sm tracking-tight text-slate-900 dark:text-slate-100 truncate">{title}</h2>
-              <span className="px-1.5 py-0.2 bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80 text-[10px] rounded-full font-bold shrink-0">
-                {count} {countLabel}
+              {shownCount !== undefined && (
+              <span className="px-1.5 py-0.2 bg-brand-50 dark:bg-brand-950/80 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800/80 text-[10px] rounded-full font-bold shrink-0">
+                {shownCount} {countLabel}
               </span>
+              )}
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-none mt-0.5 truncate">{subtitle}</p>
+            {subtitle && <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-none mt-0.5 truncate">{subtitle}</p>}
           </div>
         </div>
+        )}
+
+        {onSearchChange && (
+          <div className="w-full sm:max-w-sm">
+            <SearchInput value={searchValue ?? ownSearch} placeholder={searchPlaceholder}
+              onChange={value => { setOwnSearch(value); onSearchChange(value); }} />
+          </div>
+        )}
 
         {/* Toolbar Action Buttons */}
         <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto min-w-0 justify-start sm:justify-end">
@@ -112,7 +142,7 @@ export const CategoryHeaderToolbar: React.FC<CategoryHeaderToolbarProps> = ({
               size="sm"
               onClick={onImportExcel}
               className="h-7 px-2.5 text-[11px] font-semibold text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-              icon={<Upload className="h-3.5 w-3.5 text-emerald-500" />}
+              icon={<Upload className="h-3.5 w-3.5 text-brand-500" />}
             >
               Nhập Excel
             </Button>
@@ -124,7 +154,7 @@ export const CategoryHeaderToolbar: React.FC<CategoryHeaderToolbarProps> = ({
               size="sm"
               onClick={onExportExcel}
               className="h-7 px-2.5 text-[11px] font-semibold text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-              icon={<Download className="h-3.5 w-3.5 text-amber-500" />}
+              icon={<Download className="h-3.5 w-3.5 text-brand-500" />}
             >
               Xuất Excel
             </Button>

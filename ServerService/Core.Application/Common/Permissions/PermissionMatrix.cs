@@ -3,7 +3,13 @@ using Core.Domain.Modules.Users;
 
 namespace Core.Application.Common.Permissions;
 
-/// <summary>Builds and checks the per-function matrix the frontend expects (every catalog code present).</summary>
+/// <summary>
+/// Builds and checks the per-function matrix the frontend expects (every catalog code present).
+/// Rights model: the user gets the rights of their roles; the user's own rows are exceptions to it.
+/// An own matrix row replaces the role rights of that one function only; own special rights are grants
+/// (added) or denials (removed). So a function or right added to a role later reaches every holder
+/// who has no exception for it.
+/// </summary>
 public static class PermissionMatrix
 {
     public static Dictionary<string, ActionPermissions> Uniform(ActionPermissions value) =>
@@ -20,30 +26,50 @@ public static class PermissionMatrix
     }
 
     /// <summary>
-    /// The one rule for effective rights: admins get everything; otherwise the user's own matrix,
-    /// or, when the user has none, the combined matrix of the assigned roles.
+    /// The one rule for effective rights: admins get everything; otherwise the combined matrix of the
+    /// assigned roles, with the user's own rows replacing the functions they name.
     /// </summary>
     public static Dictionary<string, ActionPermissions> Resolve(bool isAdmin,
         IReadOnlyCollection<(string Code, ActionPermissions Actions)> own,
         IEnumerable<(string Code, ActionPermissions Actions)> fromRoles)
     {
         if (isAdmin) return Uniform(ActionPermissions.Full);
-        return Build(own.Count > 0 ? own : fromRoles);
+        var matrix = Build(fromRoles);
+        foreach (var (code, actions) in own)
+            if (matrix.ContainsKey(code)) matrix[code] = actions;
+        return matrix;
     }
 
     public static ActionPermissions Combine(ActionPermissions a, ActionPermissions b) => new(
         a.View || b.View, a.CreateEdit || b.CreateEdit, a.Delete || b.Delete,
         a.Approve || b.Approve, a.PrintExport || b.PrintExport);
 
-    /// <summary>
-    /// Special rights follow the matrix: the user's own set when the user has an own matrix,
-    /// otherwise the rights of the assigned roles. Admins have every right.
-    /// </summary>
-    public static IReadOnlySet<string> ResolveRights(bool isAdmin, bool hasOwnMatrix,
-        IEnumerable<string> own, IEnumerable<string> fromRoles)
+    /// <summary>Special rights: admins have all; otherwise role rights plus own grants, minus own denials.</summary>
+    public static IReadOnlySet<string> ResolveRights(bool isAdmin, IEnumerable<string> fromRoles,
+        IEnumerable<string> granted, IEnumerable<string> denied)
     {
         if (isAdmin) return SpecialRightCatalog.Keys;
-        return (hasOwnMatrix ? own : fromRoles).Where(SpecialRightCatalog.IsKnown).ToHashSet(StringComparer.Ordinal);
+        var rights = fromRoles.Concat(granted).Where(SpecialRightCatalog.IsKnown).ToHashSet(StringComparer.Ordinal);
+        rights.ExceptWith(denied);
+        return rights;
+    }
+
+    /// <summary>
+    /// The exceptions to store for a user who should have <paramref name="wanted"/>: one row per function
+    /// that differs from the role matrix. Functions missing from <paramref name="wanted"/> follow the role.
+    /// </summary>
+    public static Dictionary<string, ActionPermissions> Overrides(IReadOnlyDictionary<string, ActionPermissions> roleMatrix,
+        IReadOnlyDictionary<string, ActionPermissions> wanted) =>
+        wanted.Where(x => FunctionCatalog.IsFunction(x.Key) && roleMatrix.GetValueOrDefault(x.Key, ActionPermissions.None) != x.Value)
+            .ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal);
+
+    /// <summary>Special right exceptions for a user who should have exactly <paramref name="wanted"/>.</summary>
+    public static (List<string> Granted, List<string> Denied) RightOverrides(IEnumerable<string> fromRoles, IEnumerable<string> wanted)
+    {
+        var role = fromRoles.ToHashSet(StringComparer.Ordinal);
+        var target = wanted.ToHashSet(StringComparer.Ordinal);
+        return (target.Where(x => !role.Contains(x)).Order(StringComparer.Ordinal).ToList(),
+            role.Where(x => !target.Contains(x)).Order(StringComparer.Ordinal).ToList());
     }
 
     public static void EnsureKnownRights(IEnumerable<string>? rights)

@@ -2,7 +2,7 @@ using Core.Domain.Modules.Approvals;
 
 namespace Core.Application.Modules.Approvals;
 
-/// <summary>The person who created the document, as seen by the rules.</summary>
+/// <summary>The person who created the document, as seen by the rules. Department = department code.</summary>
 public sealed record ApprovalRequester(int UserId, IReadOnlyCollection<int> RoleIds, string? Department);
 
 public sealed record ApproverRef(string Type, string Value);

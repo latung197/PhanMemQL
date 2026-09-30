@@ -174,7 +174,7 @@ export const FormSection: React.FC<{
   children: React.ReactNode;
 }> = ({ title, description, icon, action, className, children }) => (
   <section className={cn('rounded-[5px] border border-slate-200 dark:border-slate-800', className)}>
-    <header className="flex items-center justify-between gap-2 px-3 py-2 bg-[#edf4fb] dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 rounded-t-[5px]">
+    <header className="flex items-center justify-between gap-2 px-3 py-2 bg-brand-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 rounded-t-[5px]">
       <div className="min-w-0">
         <h4 className="flex items-center gap-1.5 text-xs font-extrabold text-slate-800 dark:text-slate-100 [&>svg]:h-3.5 [&>svg]:w-3.5 [&>svg]:text-indigo-600">
           {icon}{title}

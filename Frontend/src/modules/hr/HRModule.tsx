@@ -83,7 +83,7 @@ export const HRModule: React.FC<HRModuleProps> = ({
                 <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-extrabold uppercase flex items-center gap-0.5 ${
                   isActive 
                     ? 'bg-white/20 text-white' 
-                    : 'bg-gradient-to-r from-amber-500 to-rose-500 text-white'
+                    : 'bg-brand-100 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
                 }`}>
                   <Sparkles className="h-2.5 w-2.5" /> Mới
                 </span>

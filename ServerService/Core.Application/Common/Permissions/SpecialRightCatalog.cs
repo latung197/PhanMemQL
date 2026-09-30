@@ -1,3 +1,5 @@
+using Core.Application.Common.Documents;
+
 namespace Core.Application.Common.Permissions;
 
 /// <summary>Kind of special right, used to group them on the permission screen.</summary>
@@ -37,11 +39,7 @@ public static class SpecialRightCatalog
     public const string SendNotification = "SEND_NOTIFICATION";
     public const string SendNotificationAll = "SEND_NOTIFICATION_ALL";
 
-    private static readonly string[] Vouchers =
-    [
-        "inv_receipt", "inv_issue", "inv_transfer_order", "inv_transfer_issue", "inv_transfer_receipt",
-        "inv_audit_count", "sales_orders", "sales_delivery", "fin_receipt_voucher", "fin_payment_voucher"
-    ];
+    private static readonly string[] Vouchers = VoucherCatalog.All.Select(x => x.Function).ToArray();
 
     private static readonly string[] PricedCatalogsAndReports =
     [

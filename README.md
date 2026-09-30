@@ -6,7 +6,7 @@ ERP gồm hai phần:
 | --- | --- | --- | --- |
 | [`Frontend/`](Frontend/README.md) | Giao diện web | React 19 + TypeScript, Vite 6, Tailwind v4, Express (`server.ts`) | `http://localhost:3000` |
 | [`ServerService/`](ServerService/README.md) | API | .NET 10, EF Core + Dapper, PostgreSQL | `http://localhost:2512` |
-| [`docs/`](docs/README.md) | Tài liệu cho người dùng / nghiệp vụ | Word | — |
+| [`docs/`](docs/) | Tài liệu cho người dùng / nghiệp vụ | Word | — |
 
 **Frontend là chuẩn.** Tên chức năng, kiểu dữ liệu và cách hiển thị lấy theo frontend (`Frontend/src/types/index.ts`). Backend làm theo cho khớp.
 
@@ -93,7 +93,9 @@ Trình duyệt ── fetch + Bearer token ──► ServerService (Core, contro
 | Phần | Lưu ở đâu |
 | --- | --- |
 | Đăng nhập, người dùng, vai trò, phân quyền, quyền đặc biệt | **Backend / PostgreSQL** |
-| Đơn vị cơ sở, cài đặt hệ thống (năm tài chính, tiền tệ, tỷ giá, cấu hình mặc định, thông tin công ty) | **Backend** |
+| Đơn vị cơ sở, phòng ban | **Backend** |
+| Ngoại tệ, tỷ giá (bảng riêng), khóa sổ theo tháng từng đơn vị, đánh số chứng từ | **Backend** |
+| Tham số mặc định, năm tài chính, hồ sơ doanh nghiệp, định dạng số (JSON trong `sys_setting`), sao lưu / phục hồi cài đặt | **Backend** |
 | Thông báo (gửi, đọc, thời gian thực, tự dọn) | **Backend** |
 | Quy tắc phê duyệt (Cài đặt › Phân quyền › Quy trình phê duyệt) | **Backend** |
 | API trình / duyệt / từ chối phiếu (`/api/approvals/...`) | Backend đã có, **frontend chưa gọi** |
@@ -106,61 +108,92 @@ Khi làm một nghiệp vụ thật (ví dụ phiếu nhập kho), làm theo quy
 - Giao diện, thông báo lỗi và tài liệu viết **tiếng Việt**.
 - **Bảng:** `sys_*` cho bảng hệ thống, `erp_*` cho bảng nghiệp vụ. Tên bảng và cột viết `snake_case`. **Không dùng khóa ngoại**: liên kết bằng mã hoặc ID có index, và service tự kiểm tra.
 - **Truy vấn:** CRUD viết bằng EF Core. Báo cáo, tính toán và ghi sổ dùng SQL thuần qua `ISqlExecutor`, luôn truyền tham số, không nối chuỗi.
-- **Mã chức năng** (`SubMenuKey`, ví dụ `inv_receipt`) là khóa chung của menu, route, phân quyền và thông báo. Phải khai báo ở cả frontend (`types/index.ts`) lẫn backend (`FunctionCatalog.cs`).
+- **Mã chức năng** (`SubMenuKey`, ví dụ `inv_receipt`) là khóa chung của menu, route, phân quyền và thông báo. Frontend khai báo một lần trong `src/config/functions.ts` (route, nhãn, ma trận quyền tự lấy từ đây); backend khai báo trong `FunctionCatalog.cs`.
 - **Quyền:** mỗi chức năng có 5 thao tác (`view`, `createEdit`, `delete`, `approve`, `printExport`). Ngoài ra có quyền đặc biệt dạng `{chức năng}:{mã}`, ví dụ `inv_receipt:VIEW_PRICE`.
 - **Bí mật** (mật khẩu database, khóa JWT, mật khẩu demo) chỉ để trong `appsettings.Local.json` hoặc `.env.local`, không commit.
 
-## Thêm một chức năng mới (đầu đến cuối)
+## Thêm một chức năng mới
 
-Ví dụ: danh mục **Nhà cung cấp**, mã `inv_supplier_cat`.
+Mỗi chức năng có một **mã** (ví dụ `inv_supplier_cat`) và thuộc một trong ba loại: **danh mục**, **phiếu (chứng từ)** hoặc **báo cáo**. Các bước chung giống nhau; phần khác nhau ghi ở cuối.
 
-**Backend** (chi tiết: [ServerService/README.md](ServerService/README.md#thêm-module-mới))
+### Bước chung
+
+**Backend** (`ServerService/`, chi tiết: [ServerService/README.md](ServerService/README.md#thêm-module-mới))
 
 1. `Core.Application/Common/Permissions/FunctionCatalog.cs`: thêm `["inv_supplier_cat"] = "Danh mục nhà cung cấp"`. API tự thêm mã vào `sys_command` khi khởi động.
-2. `sql/postgresql/NN-suppliers.sql`: `CREATE TABLE IF NOT EXISTS erp_supplier (...)`, rồi chạy script trên database.
-3. `Core.Domain/Modules/Suppliers/Supplier.cs`: entity. Thêm `DbSet` vào `Core.Infrastructure/Common/Persistence/CoreContext.cs`.
-4. `Core.Application/Modules/Suppliers/SupplierContracts.cs`: DTO, request và `ISupplierService`.
-5. `Core.Infrastructure/Modules/Suppliers/SupplierService.cs`: triển khai, đăng ký trong `Core.Infrastructure/DependencyInjection.cs`.
-6. `Core/Modules/Suppliers/SuppliersController.cs`: kế thừa `ApiControllerBase`, gắn `[RequirePermission("inv_supplier_cat", PermissionAction.X)]` cho từng action.
-7. Thêm test trong `tests/Core.Tests/Modules/Suppliers/`, rồi chạy `dotnet test`.
+2. `sql/postgresql/NN-<ten>.sql`: `CREATE TABLE IF NOT EXISTS erp_...` (bảng nghiệp vụ `erp_*`, cột `snake_case`, không khóa ngoại), rồi chạy script.
+3. `Core.Domain/Modules/<Module>/`: entity; thêm `DbSet` vào `Core.Infrastructure/Common/Persistence/CoreContext.cs`.
+4. `Core.Application/Modules/<Module>/<Module>Contracts.cs`: DTO, request, interface service.
+5. `Core.Infrastructure/Modules/<Module>/<Module>Service.cs`: triển khai; đăng ký trong `Core.Infrastructure/DependencyInjection.cs`.
+6. `Core/Modules/<Module>/<Module>Controller.cs`: kế thừa `ApiControllerBase`, gắn `[RequirePermission("mã", PermissionAction.X)]`.
+7. Test trong `tests/Core.Tests/Modules/<Module>/`, chạy `dotnet test`.
 
-**Frontend** (chi tiết: [Frontend/src/DEVELOPER_GUIDE.md](Frontend/src/DEVELOPER_GUIDE.md))
+**Frontend** (`Frontend/src/`)
 
-1. `src/types/index.ts`: thêm `'inv_supplier_cat'` vào `SubMenuKey`.
-2. `src/mock/initialMenuData.ts`: thêm mục menu. `src/utils/navigationHelper.ts` (`SUB_MENU_MAP`) và `src/config/router.ts` (`ROUTE_MAP`): thêm nhãn và đường dẫn.
-3. Copy `src/modules/_templates/category-feature-template/` sang `src/modules/inventory/suppliers/` rồi đổi tên và sửa cột, form.
-4. `src/modules/inventory/suppliers/api.ts`: các hàm gọi `apiRequest('GET', '/api/...')`. Không để màn hình gọi `fetch` trực tiếp.
-5. `src/modules/inventory/InventoryModule.tsx`: thêm `case 'inv_supplier_cat'`.
-6. `src/modules/settings/permissions/permissionCatalog.ts`: thêm chức năng vào nhóm để hiện trong ma trận phân quyền.
-7. Chạy `npm run lint` (kiểm tra kiểu) và `npm run build`.
+1. `types/index.ts`: thêm mã vào `SubMenuKey`.
+2. `config/functions.ts`: thêm một dòng `mã: fn(phân hệ, '/đường-dẫn', 'Nhãn', loại)`. Route, tiêu đề, lịch sử điều hướng và ma trận phân quyền tự lấy từ đây. Thiếu dòng này TypeScript báo lỗi.
+3. `mock/initialMenuData.ts`: thêm mục menu (chỉ cần `subKey`, tên, icon, thứ tự).
+4. Thư mục chức năng trong `modules/<phân hệ>/<ten>/`: màn hình + `api.ts` (gọi `apiRequest`, không gọi `fetch` trực tiếp).
+5. `modules/<phân hệ>/<Phân hệ>Module.tsx`: thêm `case 'mã'`.
+6. Chạy `npm run lint` và `npm run build`.
 
-**Nếu chứng từ cần phê duyệt:**
-- Gọi `/api/approvals/{fn}/{id}/submit | approve | reject | withdraw`.
-- Trong màn chứng từ, gọi `useOpenDocumentRequest('<mã chức năng>', id => mở phiếu)` để thông báo mở được đúng phiếu.
+### Danh mục
+
+- Backend: làm theo mẫu **Phòng ban** (`Core.Infrastructure/Modules/Departments/DepartmentService.cs`): kiểm tra dữ liệu bằng `Guard`, không trùng mã, không xóa bản ghi đang được dùng (tự kiểm tra vì không có khóa ngoại), cho phép "ngừng sử dụng".
+- Frontend: copy **`modules/settings/DepartmentCategoryView.tsx`**. Hook `useCatalog(api, ...)` lo phần tải, thêm, sửa, xóa kèm thông báo; màn hình chỉ khai báo cột (`GridView`) và form (`Modal` + `TextInput`, `SelectInput`, `Checkbox`).
+- Danh mục mà màn khác cần tra cứu thì cho `GET` không cần quyền riêng (chỉ cần đăng nhập), như phòng ban, ngoại tệ.
+
+### Phiếu (chứng từ)
+
+- Backend: thêm một dòng vào **`Core.Application/Common/Documents/VoucherCatalog.cs`** (mã chức năng, loại số, tên). Tự có ngay: dải số chứng từ (sửa được ở Cài đặt › Tham số mặc định › Đánh số chứng từ), các quyền đặc biệt của phiếu (xem giá, sửa phiếu đã duyệt, ghi sổ...), và phiếu xuất hiện trong màn quy trình phê duyệt.
+- Service của phiếu dùng các khối dùng chung đã có:
+
+  | Việc | Gọi |
+  | --- | --- |
+  | Chặn ngày đã khóa sổ / trước ngày bắt đầu nhập liệu | `IFiscalPeriodService.EnsureDateOpenAsync(unit, ngày)` |
+  | Cấp số chứng từ (không trùng khi nhiều người lưu cùng lúc) | `IVoucherNumberService.NextAsync(loại, unit, ngày)` trong `IUnitOfWork.ExecuteAsync` |
+  | Tỷ giá hạch toán cho phiếu ngoại tệ | `IExchangeRateService.GetRateAsync(mã tiền, ngày)` |
+  | Thao tác nào được phép theo trạng thái phiếu | `DocumentStatusPolicy.Check(...)` |
+  | Trình duyệt / duyệt / từ chối | `IDocumentApprovalService` (`/api/approvals/...`) |
+  | Ghi sổ kho / sổ cái | SQL trong `Modules/<Module>/Sql/*.sql` qua `ISqlExecutor`, cùng transaction |
+
+- Frontend: copy `modules/_templates/voucher-feature-template/`. Số phiếu hiển thị trước khi lưu lấy bằng `voucherNumberingApi.preview(loại)`; số thật do backend cấp lúc lưu. Kiểm tra ngày bằng `fiscalPeriodsApi.check(ngày)`. Mở đúng phiếu từ thông báo bằng `useOpenDocumentRequest('mã', id => ...)`.
+
+### Báo cáo
+
+- Backend: câu SQL đặt trong `Core.Infrastructure/Modules/<Module>/Sql/<TenBaoCao>.sql`, đọc bằng `SqlScripts.Get("<Module>", "<TenBaoCao>")`, chạy bằng `ISqlExecutor.QueryAsync<T>` (luôn truyền tham số `@ten`). Controller chỉ cần quyền `View` (xuất file: `PrintExport`). Ẩn cột giá / giá vốn theo quyền đặc biệt `VIEW_PRICE` / `VIEW_COST` ngay ở backend.
+- Frontend: loại `'report'` trong `config/functions.ts`.
+
+### Quyền đặc biệt và trạng thái chứng từ
+
+Quyền thực tế của một người = **quyền của vai trò + ngoại lệ riêng**. Sửa vai trò thì mọi người giữ vai trò nhận ngay, trừ những ô đã chỉnh riêng cho từng người.
+
+**Thêm quyền đặc biệt** (ví dụ "Xem công nợ" cho danh mục khách hàng):
+
+1. `ServerService/Core.Application/Common/Permissions/SpecialRightCatalog.cs`: thêm mã và một dòng khai báo:
+   ```csharp
+   public const string ViewDebt = "VIEW_DEBT";
+   // trong Build():
+   list.Add(new("sales_customers", ViewDebt, "Xem công nợ", SpecialRightGroups.Data, "Xem số dư công nợ của khách hàng."));
+   ```
+   Chỉ cần "Xem giá / Xem giá vốn" cho một danh mục hoặc báo cáo khác: thêm mã chức năng vào mảng `PricedCatalogsAndReports`. Mọi phiếu trong `VoucherCatalog` tự có đủ quyền theo trạng thái.
+2. Màn phân quyền tự hiện quyền mới dưới chức năng đó. Quyền mới chưa ai có (trừ quản trị viên) cho tới khi được cấp.
+3. Chặn ở backend (bắt buộc): `await permissions.HasRightAsync(userId, "sales_customers", SpecialRightCatalog.ViewDebt, ct)` rồi bỏ trường bị ẩn khỏi DTO; hoặc `[RequireRight("sales_customers", SpecialRightCatalog.ViewDebt)]` cho cả API.
+4. Frontend: thêm mã vào `RIGHTS` (`src/utils/permissions.ts`), ẩn cột bằng `hasRight(currentUser, 'sales_customers', RIGHTS.VIEW_DEBT)`.
+
+**Luật theo trạng thái chứng từ** (Lập → Chờ duyệt → Đã duyệt → Đã ghi sổ, hoặc Hủy):
+
+- Backend: `Core.Application/Common/Permissions/DocumentStatusPolicy.cs`. Frontend: bản sao `src/utils/documentPolicy.ts`; màn phiếu bật / tắt nút bằng `documentActions(user, 'mã', status, isOwner)` (xem `modules/_templates/voucher-feature-template`).
+- Thêm luật hoặc trạng thái mới (ví dụ quyền "Mở lại phiếu đã hủy"):
+  1. `SpecialRightCatalog.cs`: thêm mã `REOPEN` vào vòng lặp quyền của phiếu (nhóm `Status`).
+  2. `DocumentStatusPolicy.cs`: thêm `DocumentAction.Reopen` và luật của nó. Trạng thái mới: thêm vào `DocumentStatus` và xử lý trong từng luật.
+  3. `src/utils/documentPolicy.ts`: sửa y hệt; thêm `REOPEN` vào `RIGHTS`.
+  4. Thêm ca vào `ServerService/tests/Core.Tests/Common/DocumentPolicyCases.json`, rồi chạy `dotnet test` (backend) và `npm run check-policy` (frontend). Hai bên lệch nhau thì lệnh báo sai.
 
 ## Bản đồ tài liệu
 
-- Frontend:
-  - [Frontend/README.md](Frontend/README.md)
-  - [src/components](Frontend/src/components/README.md)
-  - [src/modules](Frontend/src/modules/README.md)
-  - [src/services](Frontend/src/services/README.md)
-  - [src/utils](Frontend/src/utils/README.md)
-  - [src/types](Frontend/src/types/README.md)
-  - [src/mock](Frontend/src/mock/README.md)
-  - [src/context](Frontend/src/context/README.md)
-  - [src/hooks](Frontend/src/hooks/README.md)
-  - [src/config](Frontend/src/config/README.md)
-  - [src/lib](Frontend/src/lib/README.md)
-  - [src/locales](Frontend/src/locales/README.md)
-  - [scripts](Frontend/scripts/README.md)
-- Backend:
-  - [ServerService/README.md](ServerService/README.md): thiết kế, phân quyền, API, thông báo
-  - [Core](ServerService/Core/README.md)
-  - [Core.Application](ServerService/Core.Application/README.md)
-  - [Core.Domain](ServerService/Core.Domain/README.md)
-  - [Core.Infrastructure](ServerService/Core.Infrastructure/README.md)
-  - [sql](ServerService/sql/README.md)
-  - [tests](ServerService/tests/README.md)
-  - [_legacy](ServerService/_legacy/README.md)
+- [ServerService/README.md](ServerService/README.md): thiết kế backend, database, phân quyền, API, thông báo, thêm module.
+- [Frontend/src/DEVELOPER_GUIDE.md](Frontend/src/DEVELOPER_GUIDE.md): màn hình mẫu và các control dùng chung.
+- Mẫu màn hình: [danh mục](Frontend/src/modules/_templates/category-feature-template/README.md), [chứng từ](Frontend/src/modules/_templates/voucher-feature-template/README.md).
+- [CLAUDE.md](CLAUDE.md): tóm tắt kiến trúc và lệnh thường dùng.
 - Tài liệu phân quyền cho người dùng: [docs/Phan-quyen-S-ERP.docx](docs/Phan-quyen-S-ERP.docx)

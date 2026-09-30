@@ -12,6 +12,8 @@ export interface DeleteConfirmModalProps {
   itemName?: string;
   isBulk?: boolean;
   bulkCount?: number;
+  /** Own explanation, shown instead of the default sentence. */
+  message?: React.ReactNode;
 }
 
 export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
@@ -22,7 +24,8 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   itemCode,
   itemName,
   isBulk = false,
-  bulkCount = 0
+  bulkCount = 0,
+  message
 }) => {
   return (
     <Modal
@@ -38,7 +41,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             <p className="font-bold text-sm text-rose-800 dark:text-rose-200">
               {isBulk ? `Xóa ${bulkCount} mục đã chọn?` : 'Bạn có chắc chắn muốn xóa?'}
             </p>
-            {isBulk ? (
+            {message ? <p>{message}</p> : isBulk ? (
               <p>Toàn bộ các mục đã chọn sẽ bị gỡ bỏ khỏi hệ thống.</p>
             ) : (
               <p>

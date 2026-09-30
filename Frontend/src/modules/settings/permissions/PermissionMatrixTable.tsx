@@ -171,7 +171,7 @@ export const PermissionMatrixTable: React.FC<PermissionMatrixTableProps> = ({
               const moduleRights = items.flatMap(fn => defsByFunction[fn.subKey] ?? []);
               return (
                 <React.Fragment key={module}>
-                  <tr className="bg-[#edf4fb] dark:bg-slate-800/70 border-y border-slate-200 dark:border-slate-700">
+                  <tr className="bg-brand-50 dark:bg-slate-800/70 border-y border-slate-200 dark:border-slate-700">
                     <td className="px-3 py-1.5">
                       <button
                         type="button"

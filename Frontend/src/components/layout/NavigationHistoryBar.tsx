@@ -63,13 +63,13 @@ export const NavigationHistoryBar: React.FC<NavigationHistoryBarProps> = ({
               className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-[5px] text-[11px] font-semibold transition-all cursor-pointer border shrink-0 ${
                 isActive
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
-                  : 'bg-[#edf4fb] dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-[#cbdcf0] dark:border-slate-700 hover:bg-[#dbeaf8] dark:hover:bg-slate-800 hover:border-indigo-400 dark:hover:border-indigo-600'
+                  : 'bg-brand-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-brand-200 dark:border-slate-700 hover:bg-brand-100 dark:hover:bg-slate-800 hover:border-indigo-400 dark:hover:border-indigo-600'
               }`}
             >
               <span className={`text-[9px] font-extrabold px-1 py-0.1 rounded-[5px] ${
                 isActive
                   ? 'bg-indigo-700/80 text-indigo-100'
-                  : 'bg-[#d8e8f8] dark:bg-slate-700 text-indigo-900 dark:text-slate-300'
+                  : 'bg-brand-100 dark:bg-slate-700 text-indigo-900 dark:text-slate-300'
               }`}>
                 {step.moduleName}
               </span>

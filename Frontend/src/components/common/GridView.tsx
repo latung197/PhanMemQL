@@ -109,6 +109,18 @@ export interface GridViewProps<T> {
   className?: string;
 }
 
+/** GridView accepts colour names for its buttons; Button knows meanings. */
+const buttonVariant = (variant: string | undefined, fallback: 'primary' | 'secondary') => {
+  switch (variant) {
+    case 'emerald': return 'success' as const;
+    case 'rose':
+    case 'danger': return 'danger' as const;
+    case 'primary':
+    case 'secondary': return variant;
+    default: return fallback; // amber / warning: there is no warning button, use the default style
+  }
+};
+
 export function GridView<T extends Record<string, any>>({
   data = [],
   columns = [],
@@ -356,7 +368,7 @@ export function GridView<T extends Record<string, any>>({
 
           {primaryAction && (
             <Button
-              variant={primaryAction.variant || 'primary'}
+              variant={buttonVariant(primaryAction.variant, 'primary')}
               onClick={primaryAction.onClick}
               disabled={primaryAction.disabled}
               className="flex items-center gap-1.5 self-start sm:self-auto shrink-0"
@@ -415,7 +427,7 @@ export function GridView<T extends Record<string, any>>({
                     <Button
                       key={idx}
                       size="sm"
-                      variant={action.variant || 'secondary'}
+                      variant={buttonVariant(action.variant, 'secondary')}
                       onClick={() => action.onClick(selectedItemsList, selectedIds)}
                       className="flex items-center gap-1 text-xs"
                     >

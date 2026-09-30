@@ -24,6 +24,15 @@ public sealed class CoreContextModelTests
         Assert.Equal(2, context.Model.FindEntityType(entity)!.FindPrimaryKey()!.Properties.Count);
     }
 
+    [Theory]
+    [InlineData(typeof(Core.Domain.Modules.Fiscal.FiscalPeriod))]
+    [InlineData(typeof(Core.Domain.Modules.VoucherNumbering.VoucherSequence))]
+    public void PeriodTablesHaveThreePartKeys(Type entity)
+    {
+        using var context = CreateContext();
+        Assert.Equal(3, context.Model.FindEntityType(entity)!.FindPrimaryKey()!.Properties.Count);
+    }
+
     /// <summary>Naming convention: sys_* system tables, erp_* business tables, snake_case columns.</summary>
     [Fact]
     public void TablesAndColumnsFollowNamingConvention()

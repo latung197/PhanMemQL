@@ -72,17 +72,25 @@ src/modules/inventory/suppliers/
      // ... các menu hiện có ...
      | 'inv_supplier_cat'; // <-- Thêm mã menu mới tại đây
    ```
-2. Mở `src/mock/initialMenuData.ts`, khai báo mục hiển thị trên cây Menu:
+2. Mở `src/config/functions.ts`, thêm một dòng (đường dẫn, nhãn, loại chức năng). Route, tiêu đề và ma trận phân quyền tự lấy từ đây; thiếu dòng này TypeScript báo lỗi:
+   ```typescript
+   inv_supplier_cat: fn('inventory', '/inventory/suppliers', 'Nhà cung cấp', 'catalog'),
+   ```
+3. Mở `src/mock/initialMenuData.ts`, khai báo mục hiển thị trên cây Menu:
    ```typescript
    {
      id: 'ITEM_INV_SUPPLIERS',
      subKey: 'inv_supplier_cat',
      titleVi: 'Danh Mục Nhà Cung Cấp',
      titleEn: 'Suppliers Category',
-     icon: 'Truck', // Tên icon Lucide
-     routePath: '#/inventory/suppliers'
+     icon: 'Truck', // Tên icon Lucide, phải có trong components/common/DynamicIcon.tsx
+     orderNo: 90,
+     isActive: true
    }
    ```
+4. Backend: thêm mã vào `ServerService/Core.Application/Common/Permissions/FunctionCatalog.cs` (xem README gốc, mục "Thêm một chức năng mới").
+
+> Danh mục có dữ liệu thật trên backend: copy `src/modules/settings/DepartmentCategoryView.tsx` (dùng hook `useCatalog`) thay cho template dữ liệu mẫu.
 
 ### 🔹 BƯỚC 4: Hiển thị Component trong Module cha
 Mở `src/modules/inventory/InventoryModule.tsx`:
@@ -150,3 +158,12 @@ Dùng các control sau thay vì tự viết `<input>`, `<select>`, nút tab hay 
 | `saveWithFeedback` (utils/toast) | Lưu qua API, báo thành công/lỗi | `saveWithFeedback(api.save(x), () => showToast.success('Đã lưu'))` |
 
 `useConfirm()` cần `ConfirmProvider`, đã gắn sẵn trong `App.tsx`.
+## Màu sắc giao diện
+
+Bảng màu khai báo một chỗ trong `src/index.css`:
+
+- **Màu thương hiệu** `brand-50` … `brand-950` (xanh nhạt): nút chính, tab đang chọn, icon, viền nhấn. Các tên cũ `indigo`, `violet`, `purple`, `blue`, `sky`, `cyan` đều trỏ về màu này, nên code cũ vẫn đúng tông; code mới viết thẳng `brand-*`.
+- **Màu trung tính** `slate-*`: chữ, viền, nền phụ. Ở giao diện tối, `slate` và `gray` tự đổi sang xám trung tính (đen xám).
+- **Màu có ý nghĩa**, chỉ dùng khi đúng nghĩa: `emerald` = thành công / đã duyệt, `amber` = cảnh báo / chờ, `rose` = lỗi / xóa.
+- Không dùng dải màu chuyển (gradient), không tô mỗi tab một màu. Nền trang dùng `bg-background`, thẻ dùng `bg-white dark:bg-slate-900`.
+- Muốn đổi tông thương hiệu cả hệ thống: chỉ sửa 11 giá trị `--color-brand-*` trong `index.css`.

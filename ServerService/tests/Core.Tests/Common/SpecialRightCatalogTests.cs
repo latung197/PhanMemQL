@@ -20,12 +20,14 @@ public sealed class SpecialRightCatalogTests
     }
 
     [Fact]
-    public void RightsFollowOwnMatrixOrRolesAndAdminHasAll()
+    public void RightsFollowRolesWithExceptionsAndAdminHasAll()
     {
         var key = SpecialRightCatalog.Key("inv_receipt", SpecialRightCatalog.ViewPrice);
-        Assert.Equal(SpecialRightCatalog.Keys.Count, PermissionMatrix.ResolveRights(true, false, [], []).Count);
-        Assert.Contains(key, PermissionMatrix.ResolveRights(false, false, [], [key]));
-        Assert.Empty(PermissionMatrix.ResolveRights(false, true, [], [key]));
+        Assert.Equal(SpecialRightCatalog.Keys.Count, PermissionMatrix.ResolveRights(true, [], [], []).Count);
+        Assert.Contains(key, PermissionMatrix.ResolveRights(false, [key], [], []));
+        Assert.Empty(PermissionMatrix.ResolveRights(false, [key], [], [key]));
+        Assert.Contains(key, PermissionMatrix.ResolveRights(false, [], [key], []));
+        Assert.Empty(PermissionMatrix.ResolveRights(false, [], ["inv_receipt:FLY"], []));
         Assert.Throws<BusinessRuleException>(() => PermissionMatrix.EnsureKnownRights(["inv_receipt:FLY"]));
     }
 

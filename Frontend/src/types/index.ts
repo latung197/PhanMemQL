@@ -364,7 +364,10 @@ export interface UserProfile {
   email: string;
   role: string;          // Ten vai tro / Role Name
   roleId?: string;       // ID vai tro ma dinh
+  /** Department name, for display. */
   department: string;
+  /** Department code (Settings › Phòng ban); used by approval rules. */
+  departmentCode?: string | null;
   phone: string;
   avatar: string;
   themePref: 'light' | 'dark';
@@ -451,6 +454,7 @@ export type SubMenuKey =
   // Settings submenus
   | 'sys_users'                 // Người sử dụng & Phân quyền
   | 'inv_company_unit_cat'      // Khai báo Đơn vị cơ sở (Chuyển sang Cài đặt)
+  | 'sys_departments'           // Danh mục phòng ban
   | 'sys_default_config'        // Khai báo mặc định
   | 'sys_fiscal_year'           // Khai báo năm làm việc & Ngày nhập liệu
   | 'sys_currencies'            // Danh mục ngoại tệ

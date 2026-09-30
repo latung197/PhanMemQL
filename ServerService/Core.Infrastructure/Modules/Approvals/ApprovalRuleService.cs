@@ -76,6 +76,12 @@ public sealed class ApprovalRuleService(CoreContext db, ApprovalResolver resolve
             : Guard.Required(request.RequesterValue, 100, "giá trị điều kiện người lập");
         if (request.RequesterType == RequesterTypes.User) await EnsureUserAsync(requesterValue!, ct);
         if (request.RequesterType == RequesterTypes.Role) await EnsureRoleAsync(requesterValue!, ct);
+        if (request.RequesterType == RequesterTypes.Department)
+        {
+            requesterValue = requesterValue!.ToUpperInvariant();
+            if (!await db.Departments.AnyAsync(x => x.Code == requesterValue, ct))
+                throw new BusinessRuleException("Phòng ban không tồn tại.");
+        }
 
         var approverValue = Guard.Required(request.ApproverValue, 100, "người duyệt");
         if (request.ApproverType == ApproverTypes.User) await EnsureUserAsync(approverValue, ct);

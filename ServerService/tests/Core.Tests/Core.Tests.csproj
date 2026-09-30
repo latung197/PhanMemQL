@@ -20,6 +20,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Modules\**\Sql\*.sql" />
+    <!-- Shared with the frontend (npm run check-policy). -->
+    <None Include="Common\DocumentPolicyCases.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

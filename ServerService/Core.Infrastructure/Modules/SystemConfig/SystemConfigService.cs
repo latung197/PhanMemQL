@@ -49,6 +49,13 @@ public sealed class SystemConfigService(CoreContext db, ILogger<SystemConfigServ
                 throw new BusinessRuleException("Đơn vị cơ sở không tồn tại.");
             scope = SystemSetting.UnitScope(unitCode);
         }
+        else if (SystemConfigSections.IsUnitOnly(name))
+            throw new BusinessRuleException("Tham số theo đơn vị phải được lưu cho một đơn vị cơ sở.");
+
+        // References to other catalogs (no foreign keys): the accounting currency must be an active currency.
+        if (name == "systemDefaults" && value.TryGetProperty("defaultCurrency", out var currency)
+            && !await db.Currencies.AnyAsync(x => x.Code == currency.GetString() && x.IsActive, ct))
+            throw new BusinessRuleException($"Đồng tiền {currency.GetString()} không có trong danh mục ngoại tệ hoặc đã ngừng sử dụng.");
 
         var key = SystemConfigSections.Keys[name];
         var setting = await db.SystemSettings.FirstOrDefaultAsync(x => x.Key == key && x.Scope == scope, ct);

@@ -32,7 +32,8 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
             throw new BusinessRuleException("Tên đăng nhập từ 3–50 ký tự, chỉ gồm chữ thường không dấu, số và . _ -");
         PasswordPolicy.Validate(request.Password);
         var user = new SysUser { UserName = username };
-        ApplyContact(user, request.FullName, request.Email, request.Phone, request.Department, request.Avatar);
+        ApplyContact(user, request.FullName, request.Email, request.Phone, request.Avatar);
+        await ApplyDepartmentAsync(user, request.DepartmentCode, ct);
         user.EmployeeCode = Guard.Optional(request.EmployeeCode, 50, "Mã nhân viên") ?? string.Empty;
         await EnsureUniqueAsync(user, ct);
         var units = await access.ResolveUnitsAsync(request.MaDvcs, request.DsMaDvcs, ct);
@@ -40,9 +41,12 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
         var role = await FindRoleAsync(request.RoleId, ct);
         await EnsureActorMayManageAsync(actorUserId, null, role, ct);
         PermissionMatrix.EnsureKnownCodes(request.Permissions);
-        var matrix = request.Permissions ?? RoleMatrix(role);
-        var rights = await RoleRightsAsync(role, ct);
-        await grants.EnsureCanGrantAsync(actorUserId, null, matrix, null, rights, ct);
+        // The user gets the role rights; given permissions become exceptions to them.
+        var roleMatrix = await access.RoleMatrixAsync(role, ct);
+        var overrides = role?.IsAdmin == true || request.Permissions is null ? []
+            : PermissionMatrix.Overrides(roleMatrix, request.Permissions);
+        await grants.EnsureCanGrantAsync(actorUserId, null, Apply(roleMatrix, overrides), null,
+            await access.RoleRightsAsync(role, ct), ct);
         await grants.EnsureCanAssignUnitsAsync(actorUserId, [], units, ct);
         user.PasswordHash = passwords.Hash(user, request.Password);
 
@@ -52,9 +56,7 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
             await db.SaveChangesAsync(token);
             await access.ReplaceUnitsAsync(user.UserId, units, token);
             await access.ReplaceRoleAsync(user.UserId, role, token);
-            // Like the frontend, a new user starts from a copy of the role matrix and rights unless given.
-            await access.ReplaceMatrixAsync(user.UserId, matrix, token);
-            await access.ReplaceRightsAsync(user.UserId, rights, token);
+            await access.ReplaceMatrixOverridesAsync(user.UserId, overrides, token);
             await db.SaveChangesAsync(token);
         }, ct);
         return await profiles.BuildAsync(user, null, ct);
@@ -70,7 +72,8 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
             if (userId == actorUserId) throw new BusinessRuleException("Không thể khóa tài khoản đang đăng nhập.");
             await EnsureNotLastAdminAsync(userId, ct);
         }
-        ApplyContact(user, request.FullName, request.Email, request.Phone, request.Department, request.Avatar);
+        ApplyContact(user, request.FullName, request.Email, request.Phone, request.Avatar);
+        await ApplyDepartmentAsync(user, request.DepartmentCode, ct);
         user.ThemePref = request.ThemePref is "dark" ? "dark" : "light";
         user.NotificationsEnabled = request.NotificationsEnabled;
         user.EmployeeCode = Guard.Optional(request.EmployeeCode, 50, "Mã nhân viên") ?? string.Empty;
@@ -103,11 +106,32 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
         if (role?.IsAdmin != true && !UserQueries.IsLegacyAdmin(user.AuthFl))
             await EnsureNotLastAdminAsync(userId, ct);
 
+        // The request carries the wanted rights; only what differs from the (new) role is stored, so later
+        // changes of the role still reach the functions and rights the user was not given exceptions for.
         await access.ReplaceRoleAsync(userId, role, ct);
-        await access.ReplaceMatrixAsync(userId, request.Permissions, ct);
-        if (request.SpecialRights is not null) await access.ReplaceRightsAsync(userId, request.SpecialRights, ct);
+        if (role?.IsAdmin == true)
+            await access.ClearOverridesAsync(userId, ct);
+        else
+        {
+            await access.ReplaceMatrixOverridesAsync(userId,
+                PermissionMatrix.Overrides(await access.RoleMatrixAsync(role, ct), request.Permissions), ct);
+            if (request.SpecialRights is not null)
+            {
+                var (granted, denied) = PermissionMatrix.RightOverrides(await access.RoleRightsAsync(role, ct), request.SpecialRights);
+                await access.ReplaceRightOverridesAsync(userId, granted, denied, ct);
+            }
+        }
         await db.SaveChangesAsync(ct);
         return await profiles.BuildAsync(user, null, ct);
+    }
+
+    /// <summary>The role matrix with the exceptions applied (what the user will have).</summary>
+    private static Dictionary<string, ActionPermissions> Apply(IReadOnlyDictionary<string, ActionPermissions> roleMatrix,
+        IReadOnlyDictionary<string, ActionPermissions> overrides)
+    {
+        var result = new Dictionary<string, ActionPermissions>(roleMatrix, StringComparer.Ordinal);
+        foreach (var (code, actions) in overrides) result[code] = actions;
+        return result;
     }
 
     public async Task ResetPasswordAsync(int actorUserId, int userId, ResetPasswordRequest request,
@@ -170,23 +194,29 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
             ?? throw new BusinessRuleException("Vai trò không tồn tại hoặc đã ngừng sử dụng.");
     }
 
-    private async Task<List<string>> RoleRightsAsync(SysRole? role, CancellationToken ct) =>
-        role is null || role.IsAdmin ? [] : await db.RoleRights.AsNoTracking()
-            .Where(x => x.RoleId == role.RoleId && x.Status == "1")
-            .Select(x => x.MenuId0 + ":" + x.RightCode).ToListAsync(ct);
-
-    private static Dictionary<string, ActionPermissions>? RoleMatrix(SysRole? role) =>
-        role is null || role.IsAdmin ? null
-            : role.Permissions.Where(x => x.Status == "1").ToDictionary(x => x.MenuId0, x => x.ToActions());
-
-    private static void ApplyContact(SysUser user, string fullName, string? email, string? phone,
-        string? department, string? avatar)
+    private static void ApplyContact(SysUser user, string fullName, string? email, string? phone, string? avatar)
     {
         user.FullName = Guard.Required(fullName, 100, "họ tên");
         user.Email = Guard.Optional(email, 150, "Email");
         user.Phone = Guard.Optional(phone, 20, "Số điện thoại");
-        user.Department = Guard.Optional(department, 100, "Phòng ban") ?? string.Empty;
         user.Avatar = Guard.Optional(avatar, 2000, "Ảnh đại diện") ?? string.Empty;
+    }
+
+    /// <summary>Links the user to an active department; the name is copied for display.</summary>
+    private async Task ApplyDepartmentAsync(SysUser user, string? departmentCode, CancellationToken ct)
+    {
+        var code = Guard.Optional(departmentCode, 20, "Phòng ban")?.ToUpperInvariant();
+        if (code is null)
+        {
+            user.DepartmentCode = null;
+            user.Department = string.Empty;
+            return;
+        }
+        if (code == user.DepartmentCode) return; // may stay in a department that was set inactive later
+        var department = await db.Departments.AsNoTracking().FirstOrDefaultAsync(x => x.Code == code && x.IsActive, ct)
+            ?? throw new BusinessRuleException("Phòng ban không tồn tại hoặc đã ngừng sử dụng.");
+        user.DepartmentCode = department.Code;
+        user.Department = department.Name;
     }
 
     private async Task EnsureUniqueAsync(SysUser user, CancellationToken ct)

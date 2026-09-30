@@ -109,12 +109,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         className={`
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} 
           md:translate-x-0 transition-all duration-300 ease-in-out
-          fixed md:static inset-y-0 left-0 z-50 bg-[#edf4fb] dark:bg-slate-950 text-slate-700 dark:text-slate-300 flex flex-col justify-between shrink-0 border-r border-[#cbdcf0] dark:border-slate-800 shadow-xl md:shadow-none
+          fixed md:static inset-y-0 left-0 z-50 bg-brand-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 flex flex-col justify-between shrink-0 border-r border-brand-200 dark:border-slate-800 shadow-xl md:shadow-none
           ${isCollapsed ? 'w-20' : 'w-68'}
         `}
       >
         {/* Brand Header */}
-        <div className="p-4 border-b border-[#cbdcf0] dark:border-slate-800 bg-[#e2edf8]/80 dark:bg-slate-900/60 flex items-center justify-between">
+        <div className="p-4 border-b border-brand-200 dark:border-slate-800 bg-brand-100/80 dark:bg-slate-900/60 flex items-center justify-between">
           <button
             type="button"
             onClick={() => {
@@ -143,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* Desktop Collapse Toggle */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden md:flex p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-[#d6e5f5] dark:hover:bg-slate-800 rounded-[5px] transition-colors cursor-pointer"
+            className="hidden md:flex p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-brand-100 dark:hover:bg-slate-800 rounded-[5px] transition-colors cursor-pointer"
             title={isCollapsed ? t('navigation.expandSidebar') : t('navigation.collapseSidebar')}
           >
             {isCollapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
@@ -179,7 +179,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onCloseMobile();
                   }}
                   className={`w-full flex items-center justify-center p-3 rounded-[5px] transition-all cursor-pointer relative ${
-                    isCatActive ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:bg-[#dbe9f7] dark:hover:bg-slate-800 hover:text-indigo-950 dark:hover:text-white'
+                    isCatActive ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:bg-brand-100 dark:hover:bg-slate-800 hover:text-indigo-950 dark:hover:text-white'
                   }`}
                   title={mod.title}
                 >
@@ -206,7 +206,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-[5px] text-left text-xs font-bold transition-all cursor-pointer focus:outline-hidden ${
                     isCatActive
                       ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-[#dbe9f7] dark:hover:bg-slate-800 hover:text-indigo-950 dark:hover:text-white'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-brand-100 dark:hover:bg-slate-800 hover:text-indigo-950 dark:hover:text-white'
                   }`}
                 >
                   <span className="flex items-center gap-2.5">
@@ -230,7 +230,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Sub Groups Accordion (Hierarchical levels) */}
                 {hasSubGroups && isExpanded && (
-                  <div className="pl-2.5 pr-1 py-1 space-y-1.5 border-l-2 border-[#b8d4f1] dark:border-slate-800 ml-3.5 my-1 animate-fade-in bg-[#e4effa]/60 dark:bg-slate-900/30 rounded-r-[7px]">
+                  <div className="pl-2.5 pr-1 py-1 space-y-1.5 border-l-2 border-brand-200 dark:border-slate-800 ml-3.5 my-1 animate-fade-in bg-brand-100/60 dark:bg-slate-900/30 rounded-r-[7px]">
                     {mod.subGroups!.map((group, gIdx) => {
                       const groupExpanded = isGroupOpen(mod.key, group.groupTitle);
                       const visibleItems = group.items.filter((subItem) => isSubKeyVisible(subItem.subKey));
@@ -243,7 +243,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           <button
                             type="button"
                             onClick={() => toggleGroupExpand(mod.key, group.groupTitle)}
-                            className="w-full flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-indigo-300 pt-1.5 pb-1 px-2 rounded-[5px] hover:bg-[#d4e4f5] dark:hover:bg-slate-800/40 transition-colors cursor-pointer group/sub"
+                            className="w-full flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-indigo-300 pt-1.5 pb-1 px-2 rounded-[5px] hover:bg-brand-100 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group/sub"
                           >
                             <span className="flex items-center gap-1.5">
                               <DynamicIcon name={group.iconName} className={`h-3.5 w-3.5 ${group.iconColor || 'text-indigo-600 dark:text-indigo-400'}`} />
@@ -277,7 +277,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-[5px] text-xs font-medium transition-all text-left cursor-pointer ${
                                       isSubActive
                                         ? 'bg-indigo-600 text-white font-bold shadow-2xs'
-                                        : 'text-slate-600 dark:text-slate-400 hover:text-indigo-950 dark:hover:text-slate-200 hover:bg-[#d8e8f6] dark:hover:bg-slate-800/60'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-indigo-950 dark:hover:text-slate-200 hover:bg-brand-100 dark:hover:bg-slate-800/60'
                                     }`}
                                   >
                                     <span className="flex items-center gap-2 min-w-0 truncate">
@@ -302,13 +302,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* AI Quick Footer Link */}
         {!isCollapsed && (
-          <div className="p-3 border-t border-[#cbdcf0] dark:border-slate-800 bg-[#e2edf8]/70 dark:bg-slate-950/40">
+          <div className="p-3 border-t border-brand-200 dark:border-slate-800 bg-brand-100/70 dark:bg-slate-950/40">
             <button
               onClick={() => {
                 onSelectSubMenu('ai', 'ai_main');
                 onCloseMobile();
               }}
-              className="w-full flex items-center gap-2.5 p-2.5 rounded-[7px] text-left text-xs font-bold bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-xs hover:opacity-95 transition-opacity cursor-pointer"
+              className="w-full flex items-center gap-2.5 p-2.5 rounded-[7px] text-left text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition-colors cursor-pointer"
             >
               <Bot className="h-4 w-4 animate-pulse text-amber-300" />
               <div className="grow truncate">

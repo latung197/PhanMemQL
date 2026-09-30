@@ -20,7 +20,6 @@ export interface UpdateMyProfileInput {
   fullName: string;
   email?: string;
   phone?: string;
-  department?: string;
   avatar?: string;
   themePref: 'light' | 'dark';
   notificationsEnabled: boolean;

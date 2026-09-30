@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNumberFormat, DEFAULT_NUMBER_FORMAT_CONFIG } from '../../context/NumberFormatContext';
+import { useNumberFormat, DEFAULT_NUMBER_FORMAT_CONFIG, NumberFormatConfig } from '../../context/NumberFormatContext';
+import { systemSettingsService } from '../../services/systemSettingsService';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { 
@@ -9,11 +10,12 @@ import {
   QuantityInput, 
   PercentageInput 
 } from '../../components/common';
-import { showToast } from '../../utils/toast';
+import { saveWithFeedback, showToast } from '../../utils/toast';
 import { Calculator, Save, RotateCcw, CheckCircle2, Sparkles, Sliders } from 'lucide-react';
 
-export const NumberFormatSettings: React.FC = () => {
-  const { config, updateConfig, resetConfig, formatCurrency, formatForeignCurrency, formatQuantity, formatPercent } = useNumberFormat();
+/** Company-wide number format (section numberFormat); every user sees numbers this way. */
+export const NumberFormatSettings: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
+  const { config, applyConfig, formatCurrency, formatForeignCurrency, formatQuantity, formatPercent } = useNumberFormat();
 
   const [formConfig, setFormConfig] = useState({ ...config });
   const [testAmount, setTestAmount] = useState<number>(12500000);
@@ -22,21 +24,24 @@ export const NumberFormatSettings: React.FC = () => {
   const [testQuantity, setTestQuantity] = useState<number>(25);
   const [testTaxRate, setTestTaxRate] = useState<number>(8);
 
-  const handleSave = () => {
-    updateConfig(formConfig);
-    showToast.success('Đã lưu cấu hình khai báo định dạng số & tiền tệ thành công!');
+  const persist = (value: NumberFormatConfig, message: string) => {
+    // The same rule as before: the two separators must differ.
+    const next = value.thousandSeparator === value.decimalSeparator
+      ? { ...value, thousandSeparator: value.decimalSeparator === '.' ? ',' as const : '.' as const } : value;
+    void saveWithFeedback(systemSettingsService.saveNumberFormat(next), () => {
+      applyConfig(next);
+      setFormConfig({ ...next });
+      showToast.success(message);
+    });
   };
 
-  const handleReset = () => {
-    resetConfig();
-    setFormConfig({ ...DEFAULT_NUMBER_FORMAT_CONFIG });
-    showToast.info('Đã khôi phục cấu hình định dạng số & tiền tệ mặc định');
-  };
+  const handleSave = () => persist(formConfig, 'Đã lưu định dạng số & tiền tệ cho toàn công ty');
+  const handleReset = () => persist(DEFAULT_NUMBER_FORMAT_CONFIG, 'Đã khôi phục định dạng số & tiền tệ mặc định');
 
   return (
     <div className="space-y-6">
       {/* Intro Header Card */}
-      <Card className="bg-gradient-to-r from-indigo-50/80 via-white to-indigo-50/40 dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-900 border-indigo-200 dark:border-indigo-800">
+      <Card className="bg-brand-50/60 dark:bg-slate-900 border-brand-200 dark:border-slate-800">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-md shrink-0">
@@ -54,14 +59,16 @@ export const NumberFormatSettings: React.FC = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-            <Button variant="outline" size="sm" onClick={handleReset} icon={<RotateCcw className="h-3.5 w-3.5" />}>
-              Mặc Định
-            </Button>
-            <Button size="sm" onClick={handleSave} icon={<Save className="h-3.5 w-3.5" />} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
-              Lưu Khai Báo
-            </Button>
-          </div>
+          {canEdit && (
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              <Button variant="outline" size="sm" onClick={handleReset} icon={<RotateCcw className="h-3.5 w-3.5" />}>
+                Mặc Định
+              </Button>
+              <Button size="sm" onClick={handleSave} icon={<Save className="h-3.5 w-3.5" />} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
+                Lưu Khai Báo
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -249,14 +256,16 @@ export const NumberFormatSettings: React.FC = () => {
           </Card>
 
           {/* Save Action Footer */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Button variant="secondary" onClick={handleReset}>
-              Khôi Phục Ban Đầu
-            </Button>
-            <Button onClick={handleSave} icon={<Save className="h-4 w-4" />} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
-              Lưu Cấu Hình Định Dạng Số
-            </Button>
-          </div>
+          {canEdit && (
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button variant="secondary" onClick={handleReset}>
+                Khôi Phục Ban Đầu
+              </Button>
+              <Button onClick={handleSave} icon={<Save className="h-4 w-4" />} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
+                Lưu Cấu Hình Định Dạng Số
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Right Column: Interactive Live Demonstration & Controls Test */}

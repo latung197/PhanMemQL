@@ -1,39 +1,18 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useState, ReactNode } from 'react';
+import { DEFAULT_NUMBER_FORMAT_CONFIG, NumberFormatConfig } from '../services/systemSettingsService';
 
-export interface NumberFormatConfig {
-  thousandSeparator: ',' | '.' | ' ' | '';
-  decimalSeparator: '.' | ',';
-  currencySymbol: string;
-  currencyPosition: 'prefix' | 'suffix';
-  amountDecimals: number;
-  foreignAmountDecimals: number;
-  exchangeRateDecimals: number;
-  quantityDecimals: number;
-  unitPriceDecimals: number;
-  percentDecimals: number;
-  defaultForeignCurrency: string;
-  defaultExchangeRate: number;
-}
+// The format is a company setting (systemSettingsService, section numberFormat). App applies it after
+// login with applyConfig; the settings screen previews edits with updateConfig and saves them to the backend.
+export { DEFAULT_NUMBER_FORMAT_CONFIG };
+export type { NumberFormatConfig };
 
-export const DEFAULT_NUMBER_FORMAT_CONFIG: NumberFormatConfig = {
-  thousandSeparator: ',',
-  decimalSeparator: '.',
-  currencySymbol: 'VNĐ',
-  currencyPosition: 'suffix',
-  amountDecimals: 0,
-  foreignAmountDecimals: 2,
-  exchangeRateDecimals: 2,
-  quantityDecimals: 0,
-  unitPriceDecimals: 0,
-  percentDecimals: 2,
-  defaultForeignCurrency: 'USD',
-  defaultExchangeRate: 25450,
-};
-
-const STORAGE_KEY = 'erp_number_format_config';
+// Older versions kept the format per browser.
+try { localStorage.removeItem('erp_number_format_config'); } catch { /* storage unavailable */ }
 
 interface NumberFormatContextType {
   config: NumberFormatConfig;
+  /** Replaces the whole format (values loaded from the backend). */
+  applyConfig: (config: NumberFormatConfig) => void;
   updateConfig: (newConfig: Partial<NumberFormatConfig>) => void;
   resetConfig: () => void;
   formatNumber: (val: number | string | undefined | null, decimals?: number) => string;
@@ -48,21 +27,9 @@ interface NumberFormatContextType {
 const NumberFormatContext = createContext<NumberFormatContextType | undefined>(undefined);
 
 export const NumberFormatProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [config, setConfig] = useState<NumberFormatConfig>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        return { ...DEFAULT_NUMBER_FORMAT_CONFIG, ...JSON.parse(saved) };
-      } catch (e) {
-        return DEFAULT_NUMBER_FORMAT_CONFIG;
-      }
-    }
-    return DEFAULT_NUMBER_FORMAT_CONFIG;
-  });
+  const [config, setConfig] = useState<NumberFormatConfig>(DEFAULT_NUMBER_FORMAT_CONFIG);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-  }, [config]);
+  const applyConfig = useCallback((next: NumberFormatConfig) => setConfig({ ...DEFAULT_NUMBER_FORMAT_CONFIG, ...next }), []);
 
   const updateConfig = (newConfig: Partial<NumberFormatConfig>) => {
     setConfig(prev => {
@@ -168,6 +135,7 @@ export const NumberFormatProvider: React.FC<{ children: ReactNode }> = ({ childr
     <NumberFormatContext.Provider
       value={{
         config,
+        applyConfig,
         updateConfig,
         resetConfig,
         formatNumber,

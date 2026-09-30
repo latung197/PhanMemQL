@@ -9,7 +9,8 @@
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "export-seed": "tsx scripts/export-seed.ts"
+    "export-seed": "tsx scripts/export-seed.ts",
+    "check-policy": "tsx scripts/check-document-policy.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

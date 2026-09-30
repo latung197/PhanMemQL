@@ -65,8 +65,8 @@ export const RoleDetailPanel: React.FC<RoleDetailPanelProps> = ({
         specialRights: draft.rights
       });
       onSaved(result);
-      showToast.success(`Đã lưu vai trò "${result.name}"`);
-      if (userCount > 0) showToast.info(`Bấm "Áp dụng cho ${userCount} người dùng" để cập nhật quyền của những người đang giữ vai trò này.`);
+      showToast.success(`Đã lưu vai trò "${result.name}"`,
+        userCount > 0 ? `${userCount} người giữ vai trò nhận quyền mới ngay, trừ những ô đã chỉnh riêng cho từng người.` : undefined);
     } catch (error) {
       showToast.error(getErrorMessage(error));
     } finally {
@@ -76,15 +76,15 @@ export const RoleDetailPanel: React.FC<RoleDetailPanelProps> = ({
 
   const handleSync = async () => {
     const ok = await confirm({
-      title: `Áp dụng quyền vai trò "${role.name}"?`,
-      message: `Ma trận quyền riêng của ${userCount} người dùng đang giữ vai trò này sẽ được thay bằng quyền của vai trò. Các chỉnh sửa riêng trước đó sẽ mất.`,
-      confirmLabel: 'Áp dụng',
+      title: `Bỏ quyền chỉnh riêng của ${userCount} người giữ vai trò "${role.name}"?`,
+      message: 'Các ô quyền đã chỉnh riêng cho từng người (khác với vai trò) sẽ bị xóa; họ dùng đúng quyền của vai trò.',
+      confirmLabel: 'Bỏ quyền chỉnh riêng',
       tone: 'warning'
     });
     if (!ok) return;
     try {
       const count = await rolesApi.syncUsers(role.id);
-      showToast.success(`Đã áp dụng quyền vai trò cho ${count} người dùng`);
+      showToast.success(`${count} người dùng đã về đúng quyền của vai trò`);
       onSynced();
     } catch (error) {
       showToast.error(getErrorMessage(error));
@@ -120,9 +120,9 @@ export const RoleDetailPanel: React.FC<RoleDetailPanelProps> = ({
         <div className="flex items-center gap-1.5 shrink-0">
           {canEdit && !role.isSystemRole && (
             <Button variant="outline" size="sm" className="h-7" disabled={dirty || userCount === 0}
-              title={dirty ? 'Lưu vai trò trước khi áp dụng' : undefined}
+              title={dirty ? 'Lưu vai trò trước' : 'Xóa các quyền chỉnh riêng của người giữ vai trò này'}
               onClick={() => void handleSync()} icon={<RefreshCcw className="h-3.5 w-3.5" />}>
-              Áp dụng cho {userCount} người dùng
+              Đưa {userCount} người về đúng vai trò
             </Button>
           )}
           {canDelete && !role.isSystemRole && (

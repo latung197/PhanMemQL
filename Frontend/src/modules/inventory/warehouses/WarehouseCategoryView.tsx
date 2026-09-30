@@ -74,7 +74,7 @@ export const WarehouseCategoryView: React.FC<WarehouseCategoryViewProps> = ({
   const [address, setAddress] = useState('');
   const [manager, setManager] = useState('');
   const [capacity, setCapacity] = useState('2,500 m2');
-  const [status, setStatus] = useState<string>('Hoạt động');
+  const [status, setStatus] = useState<WarehouseType['status']>('Đang hoạt động');
 
   const handleApplyFilter = () => {
     const parsedCodes = filterMultiCodes
@@ -119,7 +119,7 @@ export const WarehouseCategoryView: React.FC<WarehouseCategoryViewProps> = ({
 
       // 3. Status filter
       if (appliedFilters.status !== 'ALL') {
-        const wStatus = w.status || 'Hoạt động';
+        const wStatus = w.status || 'Đang hoạt động';
         if (wStatus !== appliedFilters.status) return false;
       }
 
@@ -139,7 +139,7 @@ export const WarehouseCategoryView: React.FC<WarehouseCategoryViewProps> = ({
         `"${(w.address || '').replace(/"/g, '""')}"`,
         `"${(w.manager || '').replace(/"/g, '""')}"`,
         `"${w.capacity || ''}"`,
-        `"${w.status || 'Hoạt động'}"`
+        `"${w.status || 'Đang hoạt động'}"`
       ];
       csvRows.push(row.join(','));
     });
@@ -185,7 +185,7 @@ export const WarehouseCategoryView: React.FC<WarehouseCategoryViewProps> = ({
     setAddress('');
     setManager('Trần Thịnh');
     setCapacity('2,500 m2');
-    setStatus('Hoạt động');
+    setStatus('Đang hoạt động');
     setShowAddModal(true);
   };
 
@@ -200,7 +200,7 @@ export const WarehouseCategoryView: React.FC<WarehouseCategoryViewProps> = ({
     setAddress(wh.address);
     setManager(wh.manager || '');
     setCapacity(wh.capacity || '2,500 m2');
-    setStatus(wh.status || 'Hoạt động');
+    setStatus(wh.status || 'Đang hoạt động');
   };
 
   const handleDeleteClick = (wh: WarehouseType) => {
@@ -337,7 +337,7 @@ export const WarehouseCategoryView: React.FC<WarehouseCategoryViewProps> = ({
       align: 'center',
       render: (item) => (
         <Badge variant={item.status === 'Đang hoạt động' ? 'success' : 'neutral'} size="sm">
-          {item.status || 'Hoạt động'}
+          {item.status || 'Đang hoạt động'}
         </Badge>
       )
     },
@@ -427,7 +427,7 @@ export const WarehouseCategoryView: React.FC<WarehouseCategoryViewProps> = ({
                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-[5px] px-3 py-1.5 text-xs font-bold focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="ALL">Tất cả Trạng thái</option>
-                <option value="Hoạt động">Đang hoạt động</option>
+                <option value="Đang hoạt động">Đang hoạt động</option>
                 <option value="Tạm dừng">Tạm dừng</option>
               </select>
             </div>
@@ -551,7 +551,7 @@ export const WarehouseCategoryView: React.FC<WarehouseCategoryViewProps> = ({
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="Hoạt động">Đang hoạt động</option>
+                <option value="Đang hoạt động">Đang hoạt động</option>
                 <option value="Tạm dừng">Tạm dừng</option>
               </select>
             </div>

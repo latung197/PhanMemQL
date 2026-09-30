@@ -1,5 +1,8 @@
 using System.Text.Json;
 using Core.Application.Common.Exceptions;
+using Core.Application.Modules.Currencies;
+using Core.Application.Modules.Departments;
+using Core.Application.Modules.VoucherNumbering;
 
 namespace Core.Application.Modules.SystemConfig;
 
@@ -13,7 +16,8 @@ public interface ISystemConfigService
 }
 
 /// <summary>
-/// Sections of Frontend src/services/systemSettingsService.ts, each stored as one JSON setting.
+/// Settings kept as one JSON value each (Frontend src/services/systemSettingsService.ts). Settings that
+/// other data refers to (currencies, rates, departments, locks, numbering) have their own tables.
 /// </summary>
 public static class SystemConfigSections
 {
@@ -24,9 +28,9 @@ public static class SystemConfigSections
         {
             ["systemDefaults"] = "FRONTEND_SYSTEM_DEFAULTS",
             ["fiscalConfig"] = "FRONTEND_FISCAL_CONFIG",
-            ["currencies"] = "FRONTEND_CURRENCIES",
-            ["exchangeRates"] = "FRONTEND_EXCHANGE_RATES",
-            ["companyProfile"] = "FRONTEND_COMPANY_PROFILE"
+            ["companyProfile"] = "FRONTEND_COMPANY_PROFILE",
+            ["numberFormat"] = "FRONTEND_NUMBER_FORMAT",
+            ["unitDefaults"] = "FRONTEND_UNIT_DEFAULTS"
         };
 
     /// <summary>Frontend function (SubMenuKey) whose "createEdit" right allows saving the section.</summary>
@@ -35,17 +39,18 @@ public static class SystemConfigSections
         {
             ["systemDefaults"] = "sys_default_config",
             ["fiscalConfig"] = "sys_fiscal_year",
-            ["currencies"] = "sys_currencies",
-            ["exchangeRates"] = "sys_exchange_rates",
-            ["companyProfile"] = "settings_main"
+            ["companyProfile"] = "settings_main",
+            ["numberFormat"] = "sys_default_config",
+            ["unitDefaults"] = "sys_default_config"
         };
 
     private static readonly IReadOnlyDictionary<string, string[]> RequiredFields =
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            ["systemDefaults"] = ["defaultWarehouse", "costingMethod", "defaultCurrency", "autoNumbering"],
-            ["fiscalConfig"] = ["fiscalYear", "startDate", "lockDate", "months"],
-            ["companyProfile"] = ["companyName", "taxCode", "address"]
+            ["systemDefaults"] = ["costingMethod", "defaultCurrency"],
+            ["fiscalConfig"] = ["fiscalYear", "startDate"],
+            ["companyProfile"] = ["companyName", "taxCode", "address"],
+            ["numberFormat"] = ["thousandSeparator", "decimalSeparator"]
         };
 
     /// <summary>Returns the canonical section name (as the frontend spells it).</summary>
@@ -53,16 +58,47 @@ public static class SystemConfigSections
     {
         var name = Keys.Keys.FirstOrDefault(k => k.Equals(section, StringComparison.OrdinalIgnoreCase))
             ?? throw new BusinessRuleException("Nhóm cài đặt không hợp lệ.");
-        var expectsArray = name is "currencies" or "exchangeRates";
-        if (value.ValueKind != (expectsArray ? JsonValueKind.Array : JsonValueKind.Object))
+        if (value.ValueKind != JsonValueKind.Object)
             throw new BusinessRuleException("Dữ liệu cài đặt không đúng định dạng.");
-        if (expectsArray && value.EnumerateArray().Any(item => item.ValueKind != JsonValueKind.Object))
-            throw new BusinessRuleException("Danh sách cài đặt không hợp lệ.");
         if (RequiredFields.TryGetValue(name, out var fields)
             && fields.Any(field => !value.TryGetProperty(field, out _)))
             throw new BusinessRuleException("Thiếu trường bắt buộc của cài đặt.");
         if (JsonSerializer.SerializeToUtf8Bytes(value).Length > MaxBytes)
             throw new BusinessRuleException("Dữ liệu cài đặt quá lớn.");
+        if (name is "systemDefaults" or "unitDefaults") SystemParameters.ValidateSection(name, value);
         return name;
     }
+
+    /// <summary>Sections that only exist per company unit (saved with ?unitCode=).</summary>
+    public static bool IsUnitOnly(string section) => section.Equals("unitDefaults", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>fiscalConfig.startDate: vouchers dated before it are refused (null when not set).</summary>
+    public static DateOnly? StartDate(IReadOnlyDictionary<string, JsonElement> sections) =>
+        sections.TryGetValue("fiscalConfig", out var fiscal) && fiscal.TryGetProperty("startDate", out var start)
+        && start.ValueKind == JsonValueKind.String && DateOnly.TryParse(start.GetString(), out var date) ? date : null;
+}
+
+/// <summary>Number series settings as stored in a backup.</summary>
+public sealed record VoucherNumberingBackup(string VoucherType, string Prefix, string Pattern, int Digits);
+
+/// <summary>
+/// Settings › Sao lưu cấu hình: the global settings sections and the settings tables. Restoring adds or
+/// updates records and never deletes, all in one transaction.
+/// </summary>
+public sealed record SettingsBackup(
+    int Version,
+    DateTime ExportedAt,
+    IReadOnlyDictionary<string, JsonElement> Sections,
+    IReadOnlyList<SaveCurrencyRequest> Currencies,
+    IReadOnlyList<SaveExchangeRateRequest> ExchangeRates,
+    IReadOnlyList<SaveDepartmentRequest> Departments,
+    IReadOnlyList<VoucherNumberingBackup> Numbering,
+    /// <summary>Per company unit sections (unit code → section → value), e.g. unitDefaults. Version 4+.</summary>
+    IReadOnlyDictionary<string, IReadOnlyDictionary<string, JsonElement>>? UnitSections = null);
+
+public interface ISettingsBackupService
+{
+    Task<SettingsBackup> ExportAsync(CancellationToken ct);
+    /// <param name="unitCode">Unit of the session (used for the number previews returned by the services).</param>
+    Task RestoreAsync(int userId, string unitCode, SettingsBackup backup, CancellationToken ct);
 }

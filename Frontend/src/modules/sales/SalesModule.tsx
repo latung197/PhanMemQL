@@ -44,7 +44,7 @@ export const SalesModule: React.FC<SalesModuleProps> = ({
       id: 'chung_tu',
       title: '2. Chứng Từ Bán Hàng & Vận Chuyển',
       badgeText: 'Lập đơn hàng & Phiếu giao',
-      icon: <FileText className="h-4 w-4 text-emerald-500" />,
+      icon: <FileText className="h-4 w-4 text-brand-500" />,
       items: [
         { subKey: 'sales_orders', label: 'Hóa đơn & Đơn bán hàng (Sales Orders)', icon: <ShoppingBag className="h-3.5 w-3.5" /> },
         { subKey: 'sales_delivery', label: 'Phiếu Giao Hàng & Vận Chuyển', icon: <Truck className="h-3.5 w-3.5" /> }

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Core.Application.Common.Security;
 using Core.Application.Modules.Users;
@@ -21,6 +22,8 @@ public static class ApiServiceExtensions
     {
         services.AddProblemDetails();
         services.AddControllers(o => o.Filters.Add<AppExceptionFilter>())
+            // Enums travel as their names ("Draft", "Pending"...), as the frontend types spell them.
+            .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
             .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = _ =>
                 ErrorResponse.Create(StatusCodes.Status400BadRequest, "Dữ liệu gửi lên không hợp lệ."));
 

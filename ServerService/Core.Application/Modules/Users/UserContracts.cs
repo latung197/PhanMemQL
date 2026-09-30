@@ -3,7 +3,10 @@ using Core.Domain.Modules.Users;
 
 namespace Core.Application.Modules.Users;
 
-/// <summary>Same shape as Frontend UserProfile (src/types/index.ts).</summary>
+/// <summary>
+/// Same shape as Frontend UserProfile (src/types/index.ts). Department is the department name for
+/// display, DepartmentCode its code (sys_department).
+/// </summary>
 public sealed record UserProfileDto(
     string Id,
     string Username,
@@ -12,6 +15,7 @@ public sealed record UserProfileDto(
     string Role,
     string? RoleId,
     string Department,
+    string? DepartmentCode,
     string Phone,
     string Avatar,
     string ThemePref,
@@ -31,7 +35,7 @@ public sealed record CreateUserRequest(
     string FullName,
     string? Email,
     string? Phone,
-    string? Department,
+    string? DepartmentCode,
     string? Avatar,
     string? EmployeeCode,
     string? RoleId,
@@ -43,7 +47,7 @@ public sealed record UpdateUserRequest(
     string FullName,
     string? Email,
     string? Phone,
-    string? Department,
+    string? DepartmentCode,
     string? Avatar,
     string? ThemePref,
     bool NotificationsEnabled,

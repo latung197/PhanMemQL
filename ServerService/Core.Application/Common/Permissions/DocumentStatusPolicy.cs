@@ -38,7 +38,8 @@ public sealed record PolicyDecision(bool Allowed, string? Reason = null)
 
 /// <summary>
 /// Which document actions are allowed in which status. Voucher services call Check before changing a
-/// document; the frontend mirrors these rules to enable buttons (utils/documentPolicy.ts).
+/// document; the frontend mirrors these rules to enable buttons (Frontend/src/utils/documentPolicy.ts,
+/// keep both in step). Enum names travel as strings in JSON ("Draft", "Pending"...).
 /// Approve / Reject also require the user to be an approver of the current level (ApprovalService).
 /// </summary>
 public static class DocumentStatusPolicy

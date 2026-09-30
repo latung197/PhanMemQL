@@ -66,7 +66,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-1.5 rounded-[5px] text-slate-600 dark:text-slate-300 hover:bg-[#dbeaf8] dark:hover:bg-slate-700 relative transition-colors focus:outline-hidden cursor-pointer"
+        className="p-1.5 rounded-[5px] text-slate-600 dark:text-slate-300 hover:bg-brand-100 dark:hover:bg-slate-700 relative transition-colors focus:outline-hidden cursor-pointer"
         title={unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Thông báo'}
         aria-label="Thông báo"
       >
@@ -81,9 +81,9 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-          <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1.5rem))] sm:w-96 bg-[#f8fafd] dark:bg-slate-900 border border-[#cbdcf0] dark:border-slate-800 rounded-[9px] shadow-xl z-50 overflow-hidden animate-fade-in">
+          <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1.5rem))] sm:w-96 bg-brand-50 dark:bg-slate-900 border border-brand-200 dark:border-slate-800 rounded-[9px] shadow-xl z-50 overflow-hidden animate-fade-in">
             {/* Header */}
-            <div className="px-4 py-2.5 bg-[#edf4fb] dark:bg-slate-800/60 border-b border-[#cbdcf0] dark:border-slate-800 flex justify-between items-center gap-2">
+            <div className="px-4 py-2.5 bg-brand-50 dark:bg-slate-800/60 border-b border-brand-200 dark:border-slate-800 flex justify-between items-center gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <Bell className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                 <h4 className="font-bold text-xs text-slate-900 dark:text-slate-200 truncate">

@@ -1,8 +1,9 @@
 namespace Core.Application.Common.Permissions;
 
 /// <summary>
-/// Function codes = SubMenuKey in Frontend/src/types/index.ts; module keys = ModuleCategoryKey.
-/// Keep both lists in sync with the frontend. Missing codes are inserted into sys_command at startup.
+/// Function codes = SubMenuKey in Frontend/src/types/index.ts (declared in Frontend/src/config/functions.ts);
+/// module keys = ModuleCategoryKey. Keep both lists in sync with the frontend. Missing codes are inserted
+/// into sys_command at startup. Vouchers are also listed in Common/Documents/VoucherCatalog.
 /// </summary>
 public static class FunctionCatalog
 {
@@ -36,6 +37,7 @@ public static class FunctionCatalog
             ["inv_report_aging"] = "Báo cáo tuổi hàng tồn",
             ["sys_users"] = "Người dùng và phân quyền",
             ["inv_company_unit_cat"] = "Đơn vị cơ sở",
+            ["sys_departments"] = "Phòng ban",
             ["sys_default_config"] = "Cài đặt mặc định",
             ["sys_fiscal_year"] = "Năm làm việc và khóa sổ",
             ["sys_currencies"] = "Ngoại tệ",

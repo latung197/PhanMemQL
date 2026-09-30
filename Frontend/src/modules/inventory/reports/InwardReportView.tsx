@@ -95,7 +95,7 @@ export const InwardReportView: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleExportExcel} className="flex items-center gap-1.5">
-            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+            <FileSpreadsheet className="h-3.5 w-3.5 text-brand-600" />
             <span>Xuất Excel</span>
           </Button>
           <Button variant="outline" size="sm" onClick={() => window.print()} className="flex items-center gap-1.5">

@@ -46,16 +46,18 @@ public sealed class UserProfileBuilder(CoreContext db)
             var permissions = PermissionMatrix.Resolve(isAdmin,
                 ownGrants.Where(x => x.UserId == user.UserId).Select(x => (x.MenuId0, x.ToActions())).ToList(),
                 roleGrants.Where(x => assigned.Any(r => r.RoleId == x.RoleId)).Select(x => (x.MenuId0, x.ToActions())));
-            var rights = PermissionMatrix.ResolveRights(isAdmin, ownGrants.Any(x => x.UserId == user.UserId),
-                ownRights.Where(x => x.UserId == user.UserId).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)),
-                roleRights.Where(x => assigned.Any(r => r.RoleId == x.RoleId)).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)));
+            var own = ownRights.Where(x => x.UserId == user.UserId).ToList();
+            var rights = PermissionMatrix.ResolveRights(isAdmin,
+                roleRights.Where(x => assigned.Any(r => r.RoleId == x.RoleId)).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)),
+                own.Where(x => x.IsGranted).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)),
+                own.Where(x => !x.IsGranted).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)));
             var primaryRole = assigned.FirstOrDefault();
             var units = isAdmin ? activeUnits
                 : userUnits.Where(x => x.UserId == user.UserId).Select(x => x.UnitCode).ToList();
 
             return new UserProfileDto(user.UserId.ToString(), user.UserName, user.FullName,
                 user.Email ?? string.Empty, primaryRole?.RoleName ?? (isAdmin ? AdminRoleLabel : string.Empty),
-                primaryRole?.RoleId.ToString(), user.Department, user.Phone ?? string.Empty, user.Avatar,
+                primaryRole?.RoleId.ToString(), user.Department, user.DepartmentCode, user.Phone ?? string.Empty, user.Avatar,
                 user.ThemePref, user.NotificationsEnabled, isAdmin, permissions,
                 signedInUnit ?? user.MaDvcs, units, user.EmployeeCode, user.IsActive,
                 rights.OrderBy(x => x, StringComparer.Ordinal).ToList());

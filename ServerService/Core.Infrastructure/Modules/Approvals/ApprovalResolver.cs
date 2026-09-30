@@ -55,7 +55,7 @@ public sealed class ApprovalResolver(CoreContext db, IPermissionService permissi
 
     public async Task<ApprovalRequester> RequesterAsync(int userId, CancellationToken ct)
     {
-        var department = await db.Users.AsNoTracking().Where(x => x.UserId == userId).Select(x => x.Department).FirstOrDefaultAsync(ct);
+        var department = await db.Users.AsNoTracking().Where(x => x.UserId == userId).Select(x => x.DepartmentCode).FirstOrDefaultAsync(ct);
         var roleIds = await db.UserRoles.AsNoTracking().ActiveRoles().Where(x => x.UserId == userId).Select(x => x.RoleId).ToListAsync(ct);
         return new ApprovalRequester(userId, roleIds, department);
     }

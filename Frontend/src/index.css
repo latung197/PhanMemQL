@@ -38,51 +38,173 @@
   --radius-2xl: 9px;
   --radius-3xl: 9px;
   --radius-4xl: 9px;
+
+  /* ------------------------------------------------------------------------------------------
+     Brand colours. The whole UI uses one light-blue brand scale; indigo / violet / purple / blue /
+     sky / cyan used by older screens point to it, so every screen shares the same colours.
+     Semantic colours stay: emerald = success, amber = warning, rose / red = danger.
+     Use "brand-*" in new code.
+     ------------------------------------------------------------------------------------------ */
+  --color-brand-50: #eef5fb;
+  --color-brand-100: #dcebf7;
+  --color-brand-200: #c3dbef;
+  --color-brand-300: #99c3e5;
+  --color-brand-400: #65a4d5;
+  --color-brand-500: #4189c2;
+  --color-brand-600: #2d6ea8;
+  --color-brand-700: #265a8a;
+  --color-brand-800: #234b71;
+  --color-brand-900: #203f5d;
+  --color-brand-950: #14283d;
+
+  --color-indigo-50: var(--color-brand-50);
+  --color-indigo-100: var(--color-brand-100);
+  --color-indigo-200: var(--color-brand-200);
+  --color-indigo-300: var(--color-brand-300);
+  --color-indigo-400: var(--color-brand-400);
+  --color-indigo-500: var(--color-brand-500);
+  --color-indigo-600: var(--color-brand-600);
+  --color-indigo-700: var(--color-brand-700);
+  --color-indigo-800: var(--color-brand-800);
+  --color-indigo-900: var(--color-brand-900);
+  --color-indigo-950: var(--color-brand-950);
+  --color-violet-50: var(--color-brand-50);
+  --color-violet-100: var(--color-brand-100);
+  --color-violet-200: var(--color-brand-200);
+  --color-violet-300: var(--color-brand-300);
+  --color-violet-400: var(--color-brand-400);
+  --color-violet-500: var(--color-brand-500);
+  --color-violet-600: var(--color-brand-600);
+  --color-violet-700: var(--color-brand-700);
+  --color-violet-800: var(--color-brand-800);
+  --color-violet-900: var(--color-brand-900);
+  --color-violet-950: var(--color-brand-950);
+  --color-purple-50: var(--color-brand-50);
+  --color-purple-100: var(--color-brand-100);
+  --color-purple-200: var(--color-brand-200);
+  --color-purple-300: var(--color-brand-300);
+  --color-purple-400: var(--color-brand-400);
+  --color-purple-500: var(--color-brand-500);
+  --color-purple-600: var(--color-brand-600);
+  --color-purple-700: var(--color-brand-700);
+  --color-purple-800: var(--color-brand-800);
+  --color-purple-900: var(--color-brand-900);
+  --color-purple-950: var(--color-brand-950);
+  --color-fuchsia-50: var(--color-brand-50);
+  --color-fuchsia-100: var(--color-brand-100);
+  --color-fuchsia-200: var(--color-brand-200);
+  --color-fuchsia-300: var(--color-brand-300);
+  --color-fuchsia-400: var(--color-brand-400);
+  --color-fuchsia-500: var(--color-brand-500);
+  --color-fuchsia-600: var(--color-brand-600);
+  --color-fuchsia-700: var(--color-brand-700);
+  --color-fuchsia-800: var(--color-brand-800);
+  --color-fuchsia-900: var(--color-brand-900);
+  --color-fuchsia-950: var(--color-brand-950);
+  --color-blue-50: var(--color-brand-50);
+  --color-blue-100: var(--color-brand-100);
+  --color-blue-200: var(--color-brand-200);
+  --color-blue-300: var(--color-brand-300);
+  --color-blue-400: var(--color-brand-400);
+  --color-blue-500: var(--color-brand-500);
+  --color-blue-600: var(--color-brand-600);
+  --color-blue-700: var(--color-brand-700);
+  --color-blue-800: var(--color-brand-800);
+  --color-blue-900: var(--color-brand-900);
+  --color-blue-950: var(--color-brand-950);
+  --color-sky-50: var(--color-brand-50);
+  --color-sky-100: var(--color-brand-100);
+  --color-sky-200: var(--color-brand-200);
+  --color-sky-300: var(--color-brand-300);
+  --color-sky-400: var(--color-brand-400);
+  --color-sky-500: var(--color-brand-500);
+  --color-sky-600: var(--color-brand-600);
+  --color-sky-700: var(--color-brand-700);
+  --color-sky-800: var(--color-brand-800);
+  --color-sky-900: var(--color-brand-900);
+  --color-sky-950: var(--color-brand-950);
+  --color-cyan-50: var(--color-brand-50);
+  --color-cyan-100: var(--color-brand-100);
+  --color-cyan-200: var(--color-brand-200);
+  --color-cyan-300: var(--color-brand-300);
+  --color-cyan-400: var(--color-brand-400);
+  --color-cyan-500: var(--color-brand-500);
+  --color-cyan-600: var(--color-brand-600);
+  --color-cyan-700: var(--color-brand-700);
+  --color-cyan-800: var(--color-brand-800);
+  --color-cyan-900: var(--color-brand-900);
+  --color-cyan-950: var(--color-brand-950);
 }
 
+/* Light theme: white surfaces on a very light brand-blue background. */
 :root {
-  --background: #f8fafc;
+  --background: #f3f7fb;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #4f46e5;
+  --primary: var(--color-brand-600);
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
+  --secondary: var(--color-brand-50);
   --secondary-foreground: #0f172a;
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
-  --accent: #f1f5f9;
+  --accent: var(--color-brand-50);
   --accent-foreground: #0f172a;
-  --destructive: #ef4444;
+  --destructive: #e11d48;
   --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #6366f1;
+  --border: #dbe4ee;
+  --input: #d5dfea;
+  --ring: var(--color-brand-400);
   --radius: 5px;
 }
 
+/* Dark theme: black and neutral grays. The "slate" scale (cool gray) used everywhere becomes a neutral
+   gray here, so dark screens are black / gray rather than navy; the brand blue stays for accents. */
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --card: #1e293b;
-  --card-foreground: #f8fafc;
-  --popover: #1e293b;
-  --popover-foreground: #f8fafc;
-  --primary: #6366f1;
+  --color-slate-50: #fafafa;
+  --color-slate-100: #f4f4f5;
+  --color-slate-200: #e4e4e7;
+  --color-slate-300: #d4d4d8;
+  --color-slate-400: #a1a1aa;
+  --color-slate-500: #85858d;
+  --color-slate-600: #5b5b63;
+  --color-slate-700: #3f3f46;
+  --color-slate-800: #2a2a2e;
+  --color-slate-900: #1c1c1f;
+  --color-slate-950: #111113;
+  --color-gray-50: var(--color-slate-50);
+  --color-gray-100: var(--color-slate-100);
+  --color-gray-200: var(--color-slate-200);
+  --color-gray-300: var(--color-slate-300);
+  --color-gray-400: var(--color-slate-400);
+  --color-gray-500: var(--color-slate-500);
+  --color-gray-600: var(--color-slate-600);
+  --color-gray-700: var(--color-slate-700);
+  --color-gray-800: var(--color-slate-800);
+  --color-gray-900: var(--color-slate-900);
+  --color-gray-950: var(--color-slate-950);
+
+  --background: #0c0c0d;
+  --foreground: #f4f4f5;
+  --card: #1c1c1f;
+  --card-foreground: #f4f4f5;
+  --popover: #1c1c1f;
+  --popover-foreground: #f4f4f5;
+  --primary: var(--color-brand-500);
   --primary-foreground: #ffffff;
-  --secondary: #334155;
-  --secondary-foreground: #f8fafc;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #334155;
-  --accent-foreground: #f8fafc;
-  --destructive: #f87171;
+  --secondary: #2a2a2e;
+  --secondary-foreground: #f4f4f5;
+  --muted: #1c1c1f;
+  --muted-foreground: #a1a1aa;
+  --accent: #2a2a2e;
+  --accent-foreground: #f4f4f5;
+  --destructive: #f43f5e;
   --destructive-foreground: #ffffff;
-  --border: #334155;
-  --input: #334155;
-  --ring: #818cf8;
+  --border: #2a2a2e;
+  --input: #3f3f46;
+  --ring: var(--color-brand-400);
 }
 
 body {

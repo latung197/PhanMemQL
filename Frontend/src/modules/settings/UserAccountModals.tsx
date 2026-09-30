@@ -6,12 +6,16 @@ import { Button } from '../../components/common/Button';
 import { Checkbox } from '../../components/common/Checkbox';
 import { FormSection, PasswordInput, SelectInput, TextArea, TextInput } from '../../components/common/FormField';
 import { CompanyUnit, RoleDefinition, UserProfile } from '../../types';
-import { rolesApi, usersApi } from '../../services/settingsApi';
+import { Department, rolesApi, usersApi } from '../../services/settingsApi';
 import { getErrorMessage } from '../../services/apiClient';
 import { showToast } from '../../utils/toast';
 import { countViewable, toFullMatrix } from './permissions/permissionCatalog';
 
-export const DEPARTMENTS = ['Ban Giám Đốc', 'Phòng Kế Toán', 'Phòng Kinh Doanh', 'Phòng Kho Vận', 'Phòng Nhân Sự', 'Phòng Kỹ Thuật & IT'];
+/** Department picker; inactive departments are only listed when already selected. */
+const DepartmentSelect: React.FC<{ departments: Department[]; value: string; onChange: (code: string) => void }> = ({ departments, value, onChange }) => (
+  <SelectInput label="Phòng ban" value={value} onChange={(e) => onChange(e.target.value)} placeholder="— Chưa chọn phòng ban —"
+    options={departments.filter(d => d.isActive || d.code === value).map(d => ({ value: d.code, label: d.name }))} />
+);
 
 /** Same rule as the backend (UserService): lowercase letters, digits, ".", "_" or "-". */
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,50}$/;
@@ -111,14 +115,15 @@ const RolePicker: React.FC<{ roles: RoleDefinition[]; value: string; onChange: (
 export const CreateUserModal: React.FC<{
   roles: RoleDefinition[];
   units: CompanyUnit[];
+  departments: Department[];
   defaultUnitCode: string;
   suggestedEmployeeCode: string;
   onClose: () => void;
   onCreated: (user: UserProfile) => void;
-}> = ({ roles, units, defaultUnitCode, suggestedEmployeeCode, onClose, onCreated }) => {
+}> = ({ roles, units, departments, defaultUnitCode, suggestedEmployeeCode, onClose, onCreated }) => {
   const [form, setForm] = useState({
     username: '', password: '', confirmPassword: '', fullName: '', employeeCode: suggestedEmployeeCode,
-    email: '', phone: '', department: '', roleId: roles.find(r => !r.isSystemRole)?.id || '',
+    email: '', phone: '', departmentCode: '', roleId: roles.find(r => !r.isSystemRole)?.id || '',
     defaultUnit: defaultUnitCode || units[0]?.code || '', allowedUnits: [] as string[]
   });
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -155,7 +160,7 @@ export const CreateUserModal: React.FC<{
         fullName: form.fullName.trim(),
         email: form.email.trim() || undefined,
         phone: form.phone.trim() || undefined,
-        department: form.department.trim() || undefined,
+        departmentCode: form.departmentCode || null,
         employeeCode: form.employeeCode.trim() || undefined,
         roleId: form.roleId || null,
         ma_dvcs: form.defaultUnit,
@@ -204,9 +209,7 @@ export const CreateUserModal: React.FC<{
             <TextInput label="Email" type="email" value={form.email} error={errors.email}
               onChange={(e) => set('email', e.target.value)} />
             <TextInput label="Số điện thoại" type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
-            <TextInput label="Phòng ban" list="erp-departments" placeholder="Chọn hoặc nhập" value={form.department}
-              onChange={(e) => set('department', e.target.value)} />
-            <datalist id="erp-departments">{DEPARTMENTS.map(d => <option key={d} value={d} />)}</datalist>
+            <DepartmentSelect departments={departments} value={form.departmentCode} onChange={(code) => set('departmentCode', code)} />
           </div>
         </FormSection>
 
@@ -233,13 +236,14 @@ export const CreateUserModal: React.FC<{
 export const EditUserModal: React.FC<{
   user: UserProfile;
   units: CompanyUnit[];
+  departments: Department[];
   isSelf: boolean;
   onClose: () => void;
   onSaved: (user: UserProfile) => void;
-}> = ({ user, units, isSelf, onClose, onSaved }) => {
+}> = ({ user, units, departments, isSelf, onClose, onSaved }) => {
   const [form, setForm] = useState({
     fullName: user.fullName, employeeCode: user.employeeCode || '', email: user.email, phone: user.phone,
-    department: user.department, isActive: user.isActive !== false,
+    departmentCode: user.departmentCode ?? '', isActive: user.isActive !== false,
     defaultUnit: user.ma_dvcs || units[0]?.code || '', allowedUnits: user.ds_ma_dvcs || []
   });
   const [newPassword, setNewPassword] = useState('');
@@ -266,7 +270,7 @@ export const EditUserModal: React.FC<{
         fullName: form.fullName.trim(),
         email: form.email.trim() || undefined,
         phone: form.phone.trim() || undefined,
-        department: form.department.trim() || undefined,
+        departmentCode: form.departmentCode || null,
         avatar: user.avatar,
         themePref: user.themePref,
         notificationsEnabled: user.notificationsEnabled,
@@ -311,9 +315,7 @@ export const EditUserModal: React.FC<{
                 onChange={(e) => set('employeeCode', e.target.value.toUpperCase())} />
               <TextInput label="Email" type="email" value={form.email} error={errors.email} onChange={(e) => set('email', e.target.value)} />
               <TextInput label="Số điện thoại" type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
-              <TextInput label="Phòng ban" list="erp-departments-edit" value={form.department}
-                onChange={(e) => set('department', e.target.value)} />
-              <datalist id="erp-departments-edit">{DEPARTMENTS.map(d => <option key={d} value={d} />)}</datalist>
+              <DepartmentSelect departments={departments} value={form.departmentCode} onChange={(code) => set('departmentCode', code)} />
             </div>
           </FormSection>
 

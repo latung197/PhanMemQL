@@ -56,21 +56,16 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
         return ToDto(role, rights);
     }
 
-    /// <summary>Copies the role matrix and special rights to every user holding the role.</summary>
+    /// <summary>
+    /// Removes the permission exceptions of every user holding the role, so they have exactly the role
+    /// rights. (Role changes reach holders without this; it only discards their individual adjustments.)
+    /// </summary>
     public async Task<int> SyncUsersAsync(int roleId, CancellationToken ct)
     {
-        var role = await FindAsync(roleId, ct);
+        await FindAsync(roleId, ct);
         var userIds = await db.UserRoles.Where(x => x.RoleId == roleId && x.Status == "1")
             .Select(x => x.UserId).ToListAsync(ct);
-        var matrix = role.IsAdmin ? null
-            : role.Permissions.Where(x => x.Status == "1").ToDictionary(x => x.MenuId0, x => x.ToActions());
-        List<string> rights = role.IsAdmin ? [] : await LoadRightsAsync(roleId, ct);
-
-        foreach (var userId in userIds)
-        {
-            await access.ReplaceMatrixAsync(userId, matrix, ct);
-            await access.ReplaceRightsAsync(userId, rights, ct);
-        }
+        foreach (var userId in userIds) await access.ClearOverridesAsync(userId, ct);
         await db.SaveChangesAsync(ct);
         return userIds.Count;
     }

@@ -81,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
   const currentUnit = companyUnits.find(u => u.code === activeCompanyUnitCode) || companyUnits[0];
 
   return (
-    <header className="bg-[#c6dff3] dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 px-3 sm:px-5 py-1.5 sm:py-2 flex items-center justify-between gap-2 min-w-0 shrink-0 transition-colors">
+    <header className="bg-brand-200 dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 px-3 sm:px-5 py-1.5 sm:py-2 flex items-center justify-between gap-2 min-w-0 shrink-0 transition-colors">
       
       {/* Title & Mobile Toggle */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -100,12 +100,12 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Right Toolbar Controls: Menu bên phải */}
-      <div className="flex items-center gap-1 sm:gap-1.5 p-1 shrink-0 bg-[#edf4fb] dark:bg-slate-800/80 border border-[#cbdcf0] dark:border-slate-700/80 rounded-[7px] shadow-2xs">
+      <div className="flex items-center gap-1 sm:gap-1.5 p-1 shrink-0 bg-brand-50 dark:bg-slate-800/80 border border-brand-200 dark:border-slate-700/80 rounded-[7px] shadow-2xs">
 
         {/* Business Unit Selector in Header */}
         {companyUnits.length > 0 && onSelectCompanyUnit && (
           <div className="relative hidden sm:block">
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-[5px] bg-white dark:bg-slate-900 border border-[#cbdcf0] dark:border-indigo-800/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold shadow-2xs">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-[5px] bg-white dark:bg-slate-900 border border-brand-200 dark:border-indigo-800/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold shadow-2xs">
               <Building2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
               <select
                 value={activeCompanyUnitCode || currentUnit?.code || ''}
@@ -126,7 +126,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Multi-language Selector Toggle */}
         <button
           onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
-          className="px-2 py-1 rounded-[5px] text-xs font-extrabold bg-white dark:bg-slate-900 hover:bg-[#dbeaf8] dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1 cursor-pointer border border-[#cbdcf0] dark:border-slate-700/60 shadow-2xs"
+          className="px-2 py-1 rounded-[5px] text-xs font-extrabold bg-white dark:bg-slate-900 hover:bg-brand-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1 cursor-pointer border border-brand-200 dark:border-slate-700/60 shadow-2xs"
           title={language === 'vi' ? t('common.switchToEnglish') : t('common.switchToVietnamese')}
         >
           <Globe className="h-3.5 w-3.5 text-indigo-500" />
@@ -136,7 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Theme Toggle Button */}
         <button
           onClick={toggleTheme}
-          className="p-1.5 rounded-[5px] text-slate-600 dark:text-slate-300 hover:bg-[#dbeaf8] dark:hover:bg-slate-700 transition-colors cursor-pointer focus:outline-hidden"
+          className="p-1.5 rounded-[5px] text-slate-600 dark:text-slate-300 hover:bg-brand-100 dark:hover:bg-slate-700 transition-colors cursor-pointer focus:outline-hidden"
           title={theme === 'dark' ? t('common.switchToLight') : t('common.switchToDark')}
         >
           {theme === 'dark' ? (
@@ -167,13 +167,13 @@ export const Header: React.FC<HeaderProps> = ({
           />
         )}
 
-        <div className="h-4 w-px bg-[#cbdcf0] dark:bg-slate-700 mx-0.5"></div>
+        <div className="h-4 w-px bg-brand-200 dark:bg-slate-700 mx-0.5"></div>
 
         {/* User Profile Menu Dropdown */}
         <div className="relative">
           <button
             onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-[5px] bg-white dark:bg-slate-900 hover:bg-[#dbeaf8] dark:hover:bg-slate-700 transition-colors cursor-pointer focus:outline-hidden border border-[#cbdcf0] dark:border-slate-700/60 shadow-2xs"
+            className="flex items-center gap-1.5 px-2 py-1 rounded-[5px] bg-white dark:bg-slate-900 hover:bg-brand-100 dark:hover:bg-slate-700 transition-colors cursor-pointer focus:outline-hidden border border-brand-200 dark:border-slate-700/60 shadow-2xs"
           >
             <div className="h-6 w-6 bg-indigo-600 text-white rounded-[5px] flex items-center justify-center font-bold text-xs shadow-xs">
               {user.fullName.charAt(0)}
@@ -190,11 +190,11 @@ export const Header: React.FC<HeaderProps> = ({
           {userDropdownOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setUserDropdownOpen(false)}></div>
-              <div className="absolute right-0 mt-2 w-56 bg-[#f8fafd] dark:bg-slate-900 border border-[#cbdcf0] dark:border-slate-800 rounded-[9px] shadow-xl z-50 p-2 text-xs space-y-1 animate-fade-in">
-                <div className="p-2.5 rounded-[7px] bg-[#edf4fb] dark:bg-slate-800/80 border border-[#cbdcf0] dark:border-slate-700/60 mb-1.5">
+              <div className="absolute right-0 mt-2 w-56 bg-brand-50 dark:bg-slate-900 border border-brand-200 dark:border-slate-800 rounded-[9px] shadow-xl z-50 p-2 text-xs space-y-1 animate-fade-in">
+                <div className="p-2.5 rounded-[7px] bg-brand-50 dark:bg-slate-800/80 border border-brand-200 dark:border-slate-700/60 mb-1.5">
                   <p className="font-bold text-slate-900 dark:text-slate-100">{user.fullName}</p>
                   <p className="text-[10px] text-slate-400">{user.email}</p>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 dark:text-indigo-400 bg-[#dce9f7] dark:bg-indigo-950/50 px-2 py-0.5 rounded-[5px] mt-1">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 dark:text-indigo-400 bg-brand-100 dark:bg-indigo-950/50 px-2 py-0.5 rounded-[5px] mt-1">
                     <ShieldCheck className="h-3 w-3" />
                     {user.role}
                   </span>
@@ -205,7 +205,7 @@ export const Header: React.FC<HeaderProps> = ({
                     setUserDropdownOpen(false);
                     setAccountTab('profile');
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-[#e2edf8] dark:hover:bg-slate-800 rounded-[5px] transition-colors text-left font-semibold cursor-pointer"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-brand-100 dark:hover:bg-slate-800 rounded-[5px] transition-colors text-left font-semibold cursor-pointer"
                 >
                   <UserRound className="h-4 w-4 text-slate-400" />
                   Thông tin tài khoản
@@ -216,7 +216,7 @@ export const Header: React.FC<HeaderProps> = ({
                     setUserDropdownOpen(false);
                     setAccountTab('password');
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-[#e2edf8] dark:hover:bg-slate-800 rounded-[5px] transition-colors text-left font-semibold cursor-pointer"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-brand-100 dark:hover:bg-slate-800 rounded-[5px] transition-colors text-left font-semibold cursor-pointer"
                 >
                   <KeyRound className="h-4 w-4 text-slate-400" />
                   Đổi mật khẩu
@@ -241,7 +241,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
                 )}
 
-                <div className="border-t border-[#cbdcf0] dark:border-slate-800 my-1 pt-1"></div>
+                <div className="border-t border-brand-200 dark:border-slate-800 my-1 pt-1"></div>
 
                 <button
                   onClick={() => {

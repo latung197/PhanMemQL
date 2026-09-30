@@ -1993,6 +1993,7 @@
       "email": "admin@erp-enterprise.vn",
       "roleId": "ROLE_ADMIN",
       "department": "Ban Giám Đốc",
+      "departmentCode": "BGD",
       "phone": "0901112233",
       "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
       "themePref": "light",
@@ -2009,6 +2010,7 @@
       "email": "minh.nguyen@erp-enterprise.vn",
       "roleId": null,
       "department": "Phòng Kế Toán - Kho Vận",
+      "departmentCode": "KTKV",
       "phone": "0902223344",
       "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
       "themePref": "light",
@@ -2222,6 +2224,7 @@
       "email": "thao.le@erp-enterprise.vn",
       "roleId": "ROLE_SALES_EXEC",
       "department": "Phòng Kinh Doanh",
+      "departmentCode": "KD",
       "phone": "0903334455",
       "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
       "themePref": "light",
@@ -2435,6 +2438,7 @@
       "email": "lan.pham@erp-enterprise.vn",
       "roleId": "ROLE_CHIEF_ACCOUNTANT",
       "department": "Phòng Kế Toán",
+      "departmentCode": "KT",
       "phone": "0904445566",
       "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150",
       "themePref": "light",
@@ -2648,6 +2652,7 @@
       "email": "hung.dang@erp-enterprise.vn",
       "roleId": "ROLE_WAREHOUSE_MASTER",
       "department": "Phòng Kho Vận",
+      "departmentCode": "KV",
       "phone": "0905556677",
       "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150",
       "themePref": "light",
@@ -2861,6 +2866,7 @@
       "email": "mai.trinh@erp-enterprise.vn",
       "roleId": "ROLE_HR_OFFICER",
       "department": "Phòng Nhân Sự",
+      "departmentCode": "NS",
       "phone": "0906667788",
       "avatar": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150",
       "themePref": "light",
@@ -3095,62 +3101,6 @@
       "defaultCurrency": "VND",
       "qtyDecimalPlaces": 2,
       "priceDecimalPlaces": 0,
-      "autoNumbering": {
-        "PNK": {
-          "prefix": "PNK",
-          "pattern": "{PREFIX}-{YYYY}{MM}-{SEQ}",
-          "nextNumber": 1,
-          "digits": 4
-        },
-        "PXK": {
-          "prefix": "PXK",
-          "pattern": "{PREFIX}-{YYYY}{MM}-{SEQ}",
-          "nextNumber": 1,
-          "digits": 4
-        },
-        "LDC": {
-          "prefix": "LDC",
-          "pattern": "{PREFIX}-{YYYY}{MM}-{SEQ}",
-          "nextNumber": 1,
-          "digits": 4
-        },
-        "PXDC": {
-          "prefix": "PXDC",
-          "pattern": "{PREFIX}-{YYYY}{MM}-{SEQ}",
-          "nextNumber": 1,
-          "digits": 4
-        },
-        "PNDC": {
-          "prefix": "PNDC",
-          "pattern": "{PREFIX}-{YYYY}{MM}-{SEQ}",
-          "nextNumber": 1,
-          "digits": 4
-        },
-        "PKK": {
-          "prefix": "PKK",
-          "pattern": "{PREFIX}-{YYYY}{MM}-{SEQ}",
-          "nextNumber": 1,
-          "digits": 4
-        },
-        "SO": {
-          "prefix": "SO",
-          "pattern": "{PREFIX}-{YYYY}{MM}-{SEQ}",
-          "nextNumber": 1,
-          "digits": 4
-        },
-        "PT": {
-          "prefix": "PT",
-          "pattern": "{PREFIX}-{YYYY}{MM}-{SEQ}",
-          "nextNumber": 1,
-          "digits": 4
-        },
-        "PC": {
-          "prefix": "PC",
-          "pattern": "{PREFIX}-{YYYY}{MM}-{SEQ}",
-          "nextNumber": 1,
-          "digits": 4
-        }
-      },
       "printTemplate": {
         "companyHeader": "TẬP ĐOÀN CÔNG NGHỆ & SẢN XUẤT TRẦN THỊNH JSC",
         "companyAddress": "Tầng 18, Tòa nhà S-ERP Tower, Đường Lê Duẩn, Q.1, TP. Hồ Chí Minh",
@@ -3169,215 +3119,8 @@
     },
     "fiscalConfig": {
       "fiscalYear": 2026,
-      "startDate": "2026-01-01",
-      "lockDate": "2025-12-31",
-      "months": [
-        {
-          "month": 1,
-          "year": 2026,
-          "isLocked": true,
-          "lockedBy": "admin",
-          "lockedAt": "2026-02-01 18:00"
-        },
-        {
-          "month": 2,
-          "year": 2026,
-          "isLocked": true,
-          "lockedBy": "admin",
-          "lockedAt": "2026-03-01 18:00"
-        },
-        {
-          "month": 3,
-          "year": 2026,
-          "isLocked": true,
-          "lockedBy": "admin",
-          "lockedAt": "2026-04-01 18:00"
-        },
-        {
-          "month": 4,
-          "year": 2026,
-          "isLocked": true,
-          "lockedBy": "admin",
-          "lockedAt": "2026-05-01 18:00"
-        },
-        {
-          "month": 5,
-          "year": 2026,
-          "isLocked": true,
-          "lockedBy": "admin",
-          "lockedAt": "2026-06-01 18:00"
-        },
-        {
-          "month": 6,
-          "year": 2026,
-          "isLocked": true,
-          "lockedBy": "admin",
-          "lockedAt": "2026-07-01 18:00"
-        },
-        {
-          "month": 7,
-          "year": 2026,
-          "isLocked": true,
-          "lockedBy": "admin",
-          "lockedAt": "2026-08-01 18:00"
-        },
-        {
-          "month": 8,
-          "year": 2026,
-          "isLocked": false
-        },
-        {
-          "month": 9,
-          "year": 2026,
-          "isLocked": false
-        },
-        {
-          "month": 10,
-          "year": 2026,
-          "isLocked": false
-        },
-        {
-          "month": 11,
-          "year": 2026,
-          "isLocked": false
-        },
-        {
-          "month": 12,
-          "year": 2026,
-          "isLocked": false
-        }
-      ]
+      "startDate": "2026-01-01"
     },
-    "currencies": [
-      {
-        "id": "1",
-        "code": "VND",
-        "nameVi": "Việt Nam Đồng",
-        "symbol": "₫",
-        "isBaseCurrency": true,
-        "decimalPlaces": 0,
-        "status": "active"
-      },
-      {
-        "id": "2",
-        "code": "USD",
-        "nameVi": "Đô la Mỹ",
-        "symbol": "$",
-        "isBaseCurrency": false,
-        "decimalPlaces": 2,
-        "status": "active"
-      },
-      {
-        "id": "3",
-        "code": "EUR",
-        "nameVi": "Đồng Euro Châu Âu",
-        "symbol": "€",
-        "isBaseCurrency": false,
-        "decimalPlaces": 2,
-        "status": "active"
-      },
-      {
-        "id": "4",
-        "code": "JPY",
-        "nameVi": "Yên Nhật",
-        "symbol": "¥",
-        "isBaseCurrency": false,
-        "decimalPlaces": 0,
-        "status": "active"
-      },
-      {
-        "id": "5",
-        "code": "CNY",
-        "nameVi": "Nhân Dân Tệ Trung Quốc",
-        "symbol": "¥",
-        "isBaseCurrency": false,
-        "decimalPlaces": 2,
-        "status": "active"
-      },
-      {
-        "id": "6",
-        "code": "SGD",
-        "nameVi": "Đô la Singapore",
-        "symbol": "S$",
-        "isBaseCurrency": false,
-        "decimalPlaces": 2,
-        "status": "active"
-      },
-      {
-        "id": "7",
-        "code": "GBP",
-        "nameVi": "Bảng Anh",
-        "symbol": "£",
-        "isBaseCurrency": false,
-        "decimalPlaces": 2,
-        "status": "active"
-      },
-      {
-        "id": "8",
-        "code": "KRW",
-        "nameVi": "Won Hàn Quốc",
-        "symbol": "₩",
-        "isBaseCurrency": false,
-        "decimalPlaces": 0,
-        "status": "active"
-      }
-    ],
-    "exchangeRates": [
-      {
-        "id": "1",
-        "date": "2026-09-01",
-        "currencyCode": "USD",
-        "buyRate": 25420,
-        "sellRate": 25790,
-        "accountingRate": 25550,
-        "updatedBy": "admin"
-      },
-      {
-        "id": "2",
-        "date": "2026-09-01",
-        "currencyCode": "EUR",
-        "buyRate": 27500,
-        "sellRate": 28050,
-        "accountingRate": 27700,
-        "updatedBy": "admin"
-      },
-      {
-        "id": "3",
-        "date": "2026-09-01",
-        "currencyCode": "JPY",
-        "buyRate": 164.2,
-        "sellRate": 169.5,
-        "accountingRate": 166.5,
-        "updatedBy": "admin"
-      },
-      {
-        "id": "4",
-        "date": "2026-09-01",
-        "currencyCode": "CNY",
-        "buyRate": 3510,
-        "sellRate": 3620,
-        "accountingRate": 3550,
-        "updatedBy": "admin"
-      },
-      {
-        "id": "5",
-        "date": "2026-08-01",
-        "currencyCode": "USD",
-        "buyRate": 25350,
-        "sellRate": 25720,
-        "accountingRate": 25500,
-        "updatedBy": "admin"
-      },
-      {
-        "id": "6",
-        "date": "2026-08-01",
-        "currencyCode": "EUR",
-        "buyRate": 27400,
-        "sellRate": 27950,
-        "accountingRate": 27600,
-        "updatedBy": "admin"
-      }
-    ],
     "companyProfile": {
       "companyName": "Tập Đoàn Công Nghệ & Sản Xuất Trần Thịnh JSC",
       "shortName": "Trần Thịnh Group",
@@ -3388,6 +3131,174 @@
       "website": "https://tranthinh-erp.vn",
       "legalRepresentative": "Trần Văn Thịnh",
       "chiefAccountant": "Nguyễn Thị Bích Mai"
+    },
+    "numberFormat": {
+      "thousandSeparator": ",",
+      "decimalSeparator": ".",
+      "currencySymbol": "VNĐ",
+      "currencyPosition": "suffix",
+      "amountDecimals": 0,
+      "foreignAmountDecimals": 2,
+      "exchangeRateDecimals": 2,
+      "quantityDecimals": 0,
+      "unitPriceDecimals": 0,
+      "percentDecimals": 2,
+      "defaultForeignCurrency": "USD",
+      "defaultExchangeRate": 25450
     }
-  }
+  },
+  "departments": [
+    {
+      "code": "BGD",
+      "name": "Ban Giám Đốc",
+      "note": null,
+      "isActive": true
+    },
+    {
+      "code": "KT",
+      "name": "Phòng Kế Toán",
+      "note": null,
+      "isActive": true
+    },
+    {
+      "code": "KTKV",
+      "name": "Phòng Kế Toán - Kho Vận",
+      "note": null,
+      "isActive": true
+    },
+    {
+      "code": "KD",
+      "name": "Phòng Kinh Doanh",
+      "note": null,
+      "isActive": true
+    },
+    {
+      "code": "KV",
+      "name": "Phòng Kho Vận",
+      "note": null,
+      "isActive": true
+    },
+    {
+      "code": "NS",
+      "name": "Phòng Nhân Sự",
+      "note": null,
+      "isActive": true
+    },
+    {
+      "code": "IT",
+      "name": "Phòng Kỹ Thuật & IT",
+      "note": null,
+      "isActive": true
+    }
+  ],
+  "currencies": [
+    {
+      "code": "VND",
+      "name": "Việt Nam Đồng",
+      "symbol": "₫",
+      "decimalPlaces": 0,
+      "isBase": true,
+      "isActive": true
+    },
+    {
+      "code": "USD",
+      "name": "Đô la Mỹ",
+      "symbol": "$",
+      "decimalPlaces": 2,
+      "isBase": false,
+      "isActive": true
+    },
+    {
+      "code": "EUR",
+      "name": "Euro",
+      "symbol": "€",
+      "decimalPlaces": 2,
+      "isBase": false,
+      "isActive": true
+    },
+    {
+      "code": "JPY",
+      "name": "Yên Nhật",
+      "symbol": "¥",
+      "decimalPlaces": 0,
+      "isBase": false,
+      "isActive": true
+    },
+    {
+      "code": "CNY",
+      "name": "Nhân dân tệ",
+      "symbol": "¥",
+      "decimalPlaces": 2,
+      "isBase": false,
+      "isActive": true
+    },
+    {
+      "code": "SGD",
+      "name": "Đô la Singapore",
+      "symbol": "S$",
+      "decimalPlaces": 2,
+      "isBase": false,
+      "isActive": true
+    },
+    {
+      "code": "GBP",
+      "name": "Bảng Anh",
+      "symbol": "£",
+      "decimalPlaces": 2,
+      "isBase": false,
+      "isActive": true
+    },
+    {
+      "code": "KRW",
+      "name": "Won Hàn Quốc",
+      "symbol": "₩",
+      "decimalPlaces": 0,
+      "isBase": false,
+      "isActive": true
+    }
+  ],
+  "exchangeRates": [
+    {
+      "currencyCode": "USD",
+      "date": "2026-09-01",
+      "buyRate": 25420,
+      "sellRate": 25790,
+      "accountingRate": 25550
+    },
+    {
+      "currencyCode": "EUR",
+      "date": "2026-09-01",
+      "buyRate": 27500,
+      "sellRate": 28050,
+      "accountingRate": 27700
+    },
+    {
+      "currencyCode": "JPY",
+      "date": "2026-09-01",
+      "buyRate": 164.2,
+      "sellRate": 169.5,
+      "accountingRate": 166.5
+    },
+    {
+      "currencyCode": "CNY",
+      "date": "2026-09-01",
+      "buyRate": 3510,
+      "sellRate": 3620,
+      "accountingRate": 3550
+    },
+    {
+      "currencyCode": "USD",
+      "date": "2026-08-01",
+      "buyRate": 25350,
+      "sellRate": 25720,
+      "accountingRate": 25500
+    },
+    {
+      "currencyCode": "EUR",
+      "date": "2026-08-01",
+      "buyRate": 27400,
+      "sellRate": 27950,
+      "accountingRate": 27600
+    }
+  ]
 }

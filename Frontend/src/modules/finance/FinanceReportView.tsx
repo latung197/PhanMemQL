@@ -73,7 +73,7 @@ export const FinanceReportView: React.FC<FinanceReportViewProps> = ({ transactio
               <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis fontSize={11} tickLine={false} axisLine={false} />
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '11px' }} />
-              <Legend wrapperStyle={{ fontSize: '12px', pt: '10px' }} />
+              <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
               <Bar dataKey="Tổng Thu" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={32} />
               <Bar dataKey="Tổng Chi" fill="#f43f5e" radius={[4, 4, 0, 0]} maxBarSize={32} />
             </BarChart>

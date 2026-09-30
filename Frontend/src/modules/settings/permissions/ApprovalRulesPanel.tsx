@@ -10,19 +10,19 @@ import { EmptyState, ErrorState, LoadingState } from '../../../components/common
 import { useConfirm } from '../../../components/common/ConfirmDialog';
 import { CompanyUnit, RoleDefinition, SubMenuKey, UserProfile } from '../../../types';
 import {
-  approvalRulesApi, ApprovalPreview, ApprovalRule, ApproverType, RequesterType, SaveApprovalRuleInput, SpecialRightDef
+  approvalRulesApi, ApprovalPreview, ApprovalRule, ApproverType, Department, RequesterType, SaveApprovalRuleInput, SpecialRightDef
 } from '../../../services/settingsApi';
 import { getErrorMessage } from '../../../services/apiClient';
 import { showToast } from '../../../utils/toast';
 import { cn } from '../../../lib/utils';
 import { FUNCTIONS } from './permissionCatalog';
-import { DEPARTMENTS } from '../UserAccountModals';
 
 interface ApprovalRulesPanelProps {
   users: UserProfile[];
   roles: RoleDefinition[];
   companyUnits: CompanyUnit[];
   rightDefs: SpecialRightDef[];
+  departments: Department[];
   canEdit: boolean;
 }
 
@@ -33,7 +33,7 @@ const REQUESTER_LABELS: Record<RequesterType, string> = {
 const money = (n?: number | null) => n == null ? '' : new Intl.NumberFormat('vi-VN').format(n);
 const functionLabel = (fn: SubMenuKey) => FUNCTIONS.find(f => f.subKey === fn)?.label ?? fn;
 
-export const ApprovalRulesPanel: React.FC<ApprovalRulesPanelProps> = ({ users, roles, companyUnits, rightDefs, canEdit }) => {
+export const ApprovalRulesPanel: React.FC<ApprovalRulesPanelProps> = ({ users, roles, departments, companyUnits, rightDefs, canEdit }) => {
   const confirm = useConfirm();
   const [rules, setRules] = useState<ApprovalRule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +63,7 @@ export const ApprovalRulesPanel: React.FC<ApprovalRulesPanelProps> = ({ users, r
     r.requesterType === 'ANY' ? 'Mọi người lập'
       : r.requesterType === 'USER' ? userName(r.requesterValue)
       : r.requesterType === 'ROLE' ? `Vai trò ${roleName(r.requesterValue)}`
-      : `Phòng ${r.requesterValue}`;
+      : `Phòng ${departments.find(d => d.code === r.requesterValue)?.name ?? r.requesterValue}`;
   const describeApprover = (r: ApprovalRule) => r.approverType === 'ROLE' ? `Vai trò ${roleName(r.approverValue)}` : userName(r.approverValue);
 
   const selectedRules = rules.filter(r => r.function === selected).sort((a, b) => a.level - b.level || Number(a.id) - Number(b.id));
@@ -173,6 +173,7 @@ export const ApprovalRulesPanel: React.FC<ApprovalRulesPanelProps> = ({ users, r
           users={users}
           roles={roles}
           companyUnits={companyUnits}
+          departments={departments}
           onClose={() => setEditing(null)}
           onSaved={(saved) => {
             setRules(prev => editing === 'new' ? [...prev, saved] : prev.map(r => r.id === saved.id ? saved : r));
@@ -251,9 +252,10 @@ const RuleModal: React.FC<{
   users: UserProfile[];
   roles: RoleDefinition[];
   companyUnits: CompanyUnit[];
+  departments: Department[];
   onClose: () => void;
   onSaved: (rule: ApprovalRule) => void;
-}> = ({ rule, fn, users, roles, companyUnits, onClose, onSaved }) => {
+}> = ({ rule, fn, users, roles, companyUnits, departments, onClose, onSaved }) => {
   const [form, setForm] = useState<SaveApprovalRuleInput>(rule ?? {
     function: fn, level: 1, requesterType: 'ANY', requesterValue: null, minAmount: null, unitCode: null,
     approverType: 'ROLE', approverValue: roles.find(r => !r.isSystemRole)?.id ?? '', note: '', isActive: true
@@ -302,10 +304,9 @@ const RuleModal: React.FC<{
                 onChange={(e) => set('requesterValue', e.target.value)} options={roleOptions} />
             )}
             {form.requesterType === 'DEPARTMENT' && (
-              <TextInput label="Phòng ban người lập" required list="approval-departments" value={form.requesterValue ?? ''}
-                onChange={(e) => set('requesterValue', e.target.value)} />
+              <SelectInput label="Phòng ban người lập" required value={form.requesterValue ?? ''} placeholder="— Chọn phòng ban —"
+                onChange={(e) => set('requesterValue', e.target.value)} options={departments.map(d => ({ value: d.code, label: d.name }))} />
             )}
-            <datalist id="approval-departments">{DEPARTMENTS.map(d => <option key={d} value={d} />)}</datalist>
           </div>
         </FormSection>
 

@@ -20,6 +20,7 @@ import { Badge } from '../../../components/common/Badge';
 import { DeleteConfirmModal } from '../../../components/common/DeleteConfirmModal';
 import { UserProfile, SubMenuKey } from '../../../types';
 import { getActionPermission } from '../../../mock/initialRoles';
+import { documentActions, statusFromLabel } from '../../../utils/documentPolicy';
 import { showToast } from '../../../utils/toast';
 import { VoucherMasterModel, VoucherDetailItem, VoucherFilterCriteria } from './types';
 
@@ -109,6 +110,10 @@ export const VoucherFeatureView: React.FC<VoucherFeatureViewProps> = ({
 }) => {
   const currentSubKey: SubMenuKey = (subKey || 'inv_receipt') as SubMenuKey;
   const perms = getActionPermission(currentUser, currentSubKey);
+  // What the user may do with one voucher: same rules as the backend (utils/documentPolicy.ts).
+  // A real voucher module compares the creator's user id instead of the name.
+  const can = (v: VoucherMasterModel) =>
+    documentActions(currentUser, currentSubKey, statusFromLabel(v.status), v.creator === currentUser?.fullName);
 
   const [vouchers, setVouchers] = useState<VoucherMasterModel[]>(initialVouchers);
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
@@ -295,8 +300,9 @@ export const VoucherFeatureView: React.FC<VoucherFeatureViewProps> = ({
 
   // Phê duyệt nhanh chứng từ
   const handleApprove = (v: VoucherMasterModel) => {
-    if (!perms.approve) {
-      showToast.error('Bạn không có quyền phê duyệt chứng từ này!');
+    const decision = can(v).Approve;
+    if (!decision.allowed) {
+      showToast.error(decision.reason ?? 'Bạn không có quyền phê duyệt chứng từ này!');
       return;
     }
     const updated: VoucherMasterModel = { ...v, status: 'Đã phê duyệt' };
@@ -396,7 +402,7 @@ export const VoucherFeatureView: React.FC<VoucherFeatureViewProps> = ({
           >
             <Eye className="h-3.5 w-3.5" />
           </button>
-          {perms.createEdit && it.status !== 'Đã phê duyệt' && (
+          {can(it).Edit.allowed && (
             <button
               onClick={() => handleOpenEdit(it, false)}
               className="p-1 text-slate-500 hover:text-amber-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-[5px]"
@@ -405,7 +411,7 @@ export const VoucherFeatureView: React.FC<VoucherFeatureViewProps> = ({
               <Edit className="h-3.5 w-3.5" />
             </button>
           )}
-          {perms.approve && it.status === 'Chờ duyệt' && (
+          {can(it).Approve.allowed && (
             <button
               onClick={() => handleApprove(it)}
               className="p-1 text-slate-500 hover:text-emerald-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-[5px]"
@@ -414,7 +420,7 @@ export const VoucherFeatureView: React.FC<VoucherFeatureViewProps> = ({
               <CheckCircle2 className="h-3.5 w-3.5" />
             </button>
           )}
-          {perms.delete && it.status !== 'Đã phê duyệt' && (
+          {can(it).Cancel.allowed && (
             <button
               onClick={() => setItemToDelete(it)}
               className="p-1 text-slate-500 hover:text-rose-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-[5px]"
@@ -433,7 +439,7 @@ export const VoucherFeatureView: React.FC<VoucherFeatureViewProps> = ({
       {/* 1. Header Toolbar */}
       <div className="sticky top-0 z-20 w-full min-w-full space-y-2">
         <CategoryHeaderToolbar
-          icon={<FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+          icon={<FileSpreadsheet className="h-4 w-4 text-brand-600 dark:text-brand-400" />}
           title="Nghiệp Vụ Chứng Từ Giao Dịch (Voucher Template)"
           subtitle="Mẫu nghiệp vụ Master-Detail: Lập chứng từ, lưới chi tiết vật tư, duyệt và quản lý trạng thái"
           count={filteredVouchers.length}

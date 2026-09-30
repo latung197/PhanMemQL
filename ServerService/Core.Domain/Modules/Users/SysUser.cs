@@ -19,6 +19,10 @@ public class SysUser : AuditableEntity
 
     [Column("email"), StringLength(150)] public string? Email { get; set; }
     [Column("phone"), StringLength(20)] public string? Phone { get; set; }
+    /// <summary>Department code (sys_department). The link used by approval rules.</summary>
+    [Column("department_code"), StringLength(20)] public string? DepartmentCode { get; set; }
+
+    /// <summary>Department name, kept in step with DepartmentCode for older reports and tools.</summary>
     [Column("department"), StringLength(100)] public string Department { get; set; } = string.Empty;
     [Column("avatar")] public string Avatar { get; set; } = string.Empty;
     [Column("theme_pref"), StringLength(10)] public string ThemePref { get; set; } = "light";

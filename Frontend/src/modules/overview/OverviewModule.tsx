@@ -351,7 +351,7 @@ export const OverviewModule: React.FC<OverviewModuleProps> = ({
             <Button
               variant="outline"
               size="sm"
-              icon={<FileSpreadsheet className="h-4 w-4 text-emerald-600" />}
+              icon={<FileSpreadsheet className="h-4 w-4 text-brand-600" />}
               onClick={() => setShowExecutiveReportModal(true)}
               className="text-xs"
             >
@@ -376,9 +376,9 @@ export const OverviewModule: React.FC<OverviewModuleProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('inventory', 'inv_receipt')}
-            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-xs text-left transition-all group"
+            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-brand-400 dark:hover:border-brand-500 hover:shadow-xs text-left transition-all group"
           >
-            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 group-hover:scale-105 transition-transform">
               <PlusCircle className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -390,9 +390,9 @@ export const OverviewModule: React.FC<OverviewModuleProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('inventory', 'inv_issue')}
-            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-sky-400 dark:hover:border-sky-500 hover:shadow-xs text-left transition-all group"
+            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-brand-400 dark:hover:border-brand-500 hover:shadow-xs text-left transition-all group"
           >
-            <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform">
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 group-hover:scale-105 transition-transform">
               <PackageCheck className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -404,9 +404,9 @@ export const OverviewModule: React.FC<OverviewModuleProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('sales', 'sales_orders')}
-            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-xs text-left transition-all group"
+            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-brand-400 dark:hover:border-brand-500 hover:shadow-xs text-left transition-all group"
           >
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 group-hover:scale-105 transition-transform">
               <ShoppingBag className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -417,10 +417,10 @@ export const OverviewModule: React.FC<OverviewModuleProps> = ({
 
           <button
             type="button"
-            onClick={() => onNavigate('finance', 'fin_cash_receipt')}
-            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-xs text-left transition-all group"
+            onClick={() => onNavigate('finance', 'fin_receipt_voucher')}
+            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-brand-400 dark:hover:border-brand-500 hover:shadow-xs text-left transition-all group"
           >
-            <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform">
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 group-hover:scale-105 transition-transform">
               <Receipt className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -431,10 +431,10 @@ export const OverviewModule: React.FC<OverviewModuleProps> = ({
 
           <button
             type="button"
-            onClick={() => onNavigate('inventory', 'inv_report_inout')}
-            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-xs text-left transition-all group"
+            onClick={() => onNavigate('inventory', 'inv_report_nxt')}
+            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-brand-400 dark:hover:border-brand-500 hover:shadow-xs text-left transition-all group"
           >
-            <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 group-hover:scale-105 transition-transform">
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 group-hover:scale-105 transition-transform">
               <FileText className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -446,9 +446,9 @@ export const OverviewModule: React.FC<OverviewModuleProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('finance', 'fin_report')}
-            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-rose-400 dark:hover:border-rose-500 hover:shadow-xs text-left transition-all group"
+            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-brand-400 dark:hover:border-brand-500 hover:shadow-xs text-left transition-all group"
           >
-            <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 group-hover:scale-105 transition-transform">
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 group-hover:scale-105 transition-transform">
               <Wallet className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -460,9 +460,9 @@ export const OverviewModule: React.FC<OverviewModuleProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('hr', 'hr_resource_booking')}
-            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-xs text-left transition-all group col-span-2 sm:col-span-1"
+            className="flex items-center gap-2 p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-brand-400 dark:hover:border-brand-500 hover:shadow-xs text-left transition-all group col-span-2 sm:col-span-1"
           >
-            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
+            <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 group-hover:scale-105 transition-transform">
               <Calendar className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -953,7 +953,7 @@ export const OverviewModule: React.FC<OverviewModuleProps> = ({
                   </h4>
                   <button
                     type="button"
-                    onClick={() => onNavigate('inventory', 'inv_report_inout')}
+                    onClick={() => onNavigate('inventory', 'inv_report_nxt')}
                     className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
                   >
                     Xem tất cả sổ kho →
