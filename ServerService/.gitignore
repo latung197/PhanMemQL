@@ -1,0 +1,6 @@
+/Core/appsettings.Local.json
+/Core.API/appsettings.Local.json
+/Core.WorkerService/appsettings.Local.json
+/.runtime-check/
+**/bin/
+**/obj/

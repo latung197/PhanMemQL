@@ -1,0 +1,6 @@
+{
+  "name": "Hệ Thống ERP Doanh Nghiệp",
+  "description": "Hệ thống quản lý nguồn lực doanh nghiệp tích hợp quản lý bán hàng, CRM, kho hàng, tài chính và nhân sự.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
