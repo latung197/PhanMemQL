@@ -9,6 +9,7 @@ using Core.Application.Modules.SystemConfig;
 using Core.Domain.Modules.CompanyUnits;
 using Core.Domain.Modules.Currencies;
 using Core.Domain.Modules.Departments;
+using Core.Domain.Modules.Languages;
 using Core.Domain.Modules.Notifications;
 using Core.Domain.Modules.SystemConfig;
 using Core.Domain.Modules.Users;
@@ -43,6 +44,7 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
         await EnsureInitialSpecialRightsAsync(ct);
         await EnsureVoucherNumberingAsync(ct);
         await EnsureBaseCurrencyAsync(ct);
+        await EnsureDefaultLanguageAsync(ct);
         await ResetDevAdminPasswordAsync(ct);
     }
 
@@ -91,6 +93,18 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
         var vnd = await db.Currencies.FirstOrDefaultAsync(x => x.Code == "VND", ct);
         if (vnd is null) db.Currencies.Add(new Currency { Code = "VND", Name = "Việt Nam Đồng", Symbol = "₫", DecimalPlaces = 0, IsBase = true });
         else vnd.IsBase = vnd.IsActive = true;
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Users need a default language; a new database starts with Vietnamese (default) and English.</summary>
+    private async Task EnsureDefaultLanguageAsync(CancellationToken ct)
+    {
+        if (await db.Languages.AnyAsync(x => x.IsDefault, ct)) return;
+        var vi = await db.Languages.FirstOrDefaultAsync(x => x.Code == Language.Vietnamese, ct);
+        if (vi is null) db.Languages.Add(new Language { Code = Language.Vietnamese, Name = "Tiếng Việt", NativeName = "Tiếng Việt", IsDefault = true, SortOrder = 1 });
+        else vi.IsDefault = vi.IsActive = true;
+        if (!await db.Languages.AnyAsync(x => x.Code == "en", ct))
+            db.Languages.Add(new Language { Code = "en", Name = "Tiếng Anh", NativeName = "English", SortOrder = 2 });
         await db.SaveChangesAsync(ct);
     }
 

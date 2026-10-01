@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Core.Domain.Common;
 
 namespace Core.Domain.Modules.Users;
 
@@ -7,6 +8,7 @@ namespace Core.Domain.Modules.Users;
 /// Function catalog row. Permission rows reference it; the codes are the frontend SubMenuKey values.
 /// Other legacy columns of sys_command keep their database defaults.
 /// </summary>
+[NotAudited("Function catalog, written by the seeder from FunctionCatalog.")]
 [Table("sys_command")]
 public class SysCommand
 {

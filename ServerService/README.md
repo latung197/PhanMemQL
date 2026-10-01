@@ -49,7 +49,8 @@ tests/Core.Tests/            Common/ và Modules/ giống cấu trúc trên
 ## Thiết kế database
 
 - **Đặt tên:** `sys_*` cho bảng hệ thống (tài khoản, phân quyền, đơn vị cơ sở, thông báo, cài đặt), `erp_*` cho bảng dữ liệu nghiệp vụ (vật tư, chứng từ, sổ kho, sổ cái…). Tên bảng và cột dùng `snake_case`; test `TablesAndColumnsFollowNamingConvention` kiểm tra quy tắc này.
-- Bảng hệ thống hiện có: `sys_users`, `sys_role`, `sys_user_role`, `sys_command`, `sys_role_command`, `sys_user_command`, `sys_role_right`, `sys_user_right`, `sys_company_unit`, `sys_user_company_unit`, `sys_department`, `sys_notification`, `sys_notification_read`, `sys_setting`, `sys_currency`, `sys_exchange_rate`, `sys_fiscal_period`, `sys_voucher_numbering`, `sys_voucher_sequence`, `sys_approval_rule`, `sys_document_approval`, `sys_migration` (chuyển dữ liệu một lần đã chạy).
+- Bảng hệ thống hiện có: `sys_users`, `sys_role`, `sys_user_role`, `sys_command`, `sys_role_command`, `sys_user_command`, `sys_role_right`, `sys_user_right`, `sys_company_unit`, `sys_user_company_unit`, `sys_department`, `sys_notification`, `sys_notification_read`, `sys_setting`, `sys_currency`, `sys_exchange_rate`, `sys_fiscal_period`, `sys_voucher_numbering`, `sys_voucher_sequence`, `sys_approval_rule`, `sys_document_approval`, `sys_language` (danh mục ngôn ngữ, một ngôn ngữ mặc định), `sys_audit_log` (nhật ký thay đổi của mọi chức năng), `sys_migration` (chuyển dữ liệu một lần đã chạy). Bảng nghiệp vụ hiện có: `erp_uom` (danh mục đơn vị tính).
+- Mọi bảng `erp_*` có 4 cột dấu vết `created_at`, `created_by`, `updated_at`, `updated_by` (`timestamptz` giờ UTC, id người dùng): entity kế thừa `ErpEntity`, `CoreContext` tự điền khi lưu (client gửi lên cũng bị bỏ qua), test `BusinessTablesHaveRecordStamps` bắt buộc. DTO trả về dạng `stamp` (`RecordStampDto`, có tên người tạo / sửa); frontend dùng `recordStampColumns(t)` cho lưới và `<RecordStampLine>` cho form. Bảng `sys_*` cũ vẫn dùng `createtime` / `createid` / `updatetime` / `updateid`. `sys_users.language` là ngôn ngữ riêng của người dùng (null = theo ngôn ngữ mặc định).
 - Cài đặt dạng JSON (`sys_setting`) chỉ dùng cho giá trị không bị dữ liệu khác tham chiếu (tham số mặc định, năm tài chính, hồ sơ doanh nghiệp, định dạng số). Thứ gì được phiếu / người dùng tham chiếu (ngoại tệ, tỷ giá, phòng ban, kỳ khóa sổ, dải số) có bảng riêng. Script 06–08 tự chuyển dữ liệu JSON / chữ cũ sang các bảng này. Các bảng `erp_unit`, `erp_user_unit`, `erp_notification`, `erp_notification_read`, `erp_setting` của phiên bản cũ được script tự đổi tên (giữ nguyên dữ liệu).
 - `00-helpers.sql` có các hàm dùng lại khi viết script: `sys_rename_table`, `sys_rename_column`, `sys_rename_constraint`, `sys_drop_foreign_keys`.
 - **Không dùng khóa ngoại.** Các bảng liên kết với nhau qua trường mã/ID (`user_id`, `role_id`, `menuid0`, `unit_code`, `notification_id`), có index trên các trường này. Service kiểm tra bản ghi liên kết tồn tại trước khi ghi và không cho xóa bản ghi đang được dùng. Các script tự gỡ khóa ngoại còn sót từ phiên bản cũ.
@@ -140,6 +141,7 @@ Mọi API (trừ đăng nhập) nhận `Authorization: Bearer <token>`; lỗi tr
 | SystemConfig | `GET /api/settings/system-config`; `PUT /api/settings/system-config/{section}?unitCode=` (section: `systemDefaults`, `fiscalConfig`, `companyProfile`, `numberFormat`; `unitCode` phải là đơn vị người dùng được vào) | Sửa: `sys_default_config`, `sys_fiscal_year`, `settings_main` theo section |
 | SystemConfig | `GET /api/settings/system-config/backup`, `POST .../restore` (một transaction, chỉ thêm / sửa, không xóa) | Quản trị viên |
 | Departments | `GET /api/settings/departments`; `POST`, `PUT /{code}`, `DELETE /{code}` | Xem: đã đăng nhập; sửa: `sys_departments` |
+| Languages | `GET /api/auth/languages` (ngôn ngữ đang dùng, không cần đăng nhập), `PUT /api/auth/me/language`; `GET/POST /api/settings/languages`, `PUT /{code}`, `DELETE /{code}` | Danh mục: `sys_languages` |
 | Currencies | `GET /api/settings/currencies`; `POST`, `PUT /{code}`, `DELETE /{code}` | Xem: đã đăng nhập; sửa: `sys_currencies` |
 | Currencies | `GET /api/settings/exchange-rates?currency=`, `GET .../rate?currency=&date=`; `POST`, `PUT /{id}`, `DELETE /{id}` | Xem: đã đăng nhập; sửa: `sys_exchange_rates` |
 | Fiscal | `GET /api/settings/fiscal-periods/{year}`, `GET .../check?date=`; `PUT /{year}` `{ months, isLocked }` (đơn vị của phiên) | Xem: đã đăng nhập; khóa / mở: `sys_fiscal_year` |
@@ -147,6 +149,8 @@ Mọi API (trừ đăng nhập) nhận `Authorization: Bearer <token>`; lỗi tr
 | Notifications | `GET /api/notifications`, `PUT /{id}/read`, `PUT /read-all`, `DELETE /{id}` (ẩn một thông báo), `DELETE` (ẩn tất cả), `GET /stream` (sự kiện thời gian thực); `POST` gửi, `GET /send-scope`, `GET /recipients?unitCode=` | Gửi: quản trị viên hoặc quyền `SEND_NOTIFICATION` / `SEND_NOTIFICATION_ALL` |
 | Permissions | `GET /api/settings/permission-catalog` (danh sách quyền đặc biệt) | Đã đăng nhập |
 | Approvals | `GET/POST /api/settings/approval-rules`, `PUT/DELETE .../{id}`, `POST .../preview` | `sys_users` |
+| Inventory | `GET /api/inventory/uoms` (danh mục đơn vị tính); `POST`, `PUT /{code}`, `DELETE /{code}` | Xem: đã đăng nhập; sửa: `inv_uom_cat` |
+| AuditLogs | `GET /api/audit-logs/filters`; `GET /api/audit-logs?functionCode=&objectType=&objectId=&action=&actor=&search=&from=&to=&page=&pageSize=` (mới nhất trước; `actor` / `search` tìm một phần tên, không phân biệt hoa thường; `to` tính cả ngày đó) | Xem: `sys_audit_log` |
 | Approvals | `GET /api/approvals/pending`, `GET /api/approvals/{fn}/{id}`, `POST .../submit`, `.../approve`, `.../reject`, `.../withdraw` | Theo chức năng của phiếu |
 
 ## Thông báo
@@ -156,6 +160,30 @@ Mọi API (trừ đăng nhập) nhận `Authorization: Bearer <token>`; lỗi tr
 - Thời gian thực: `GET /api/notifications/stream` (server-sent events, đọc bằng `fetch` để token nằm trong header). Server chỉ gửi tín hiệu `notification` hoặc `sync`, trình duyệt tự tải lại danh sách qua API thường. Kết nối tự đóng khi token bị thu hồi. `NotificationStream` giữ kết nối trong bộ nhớ, nên chạy nhiều instance API thì cần thêm kênh chung (PostgreSQL LISTEN/NOTIFY hoặc Redis). Frontend vẫn tải định kỳ 3 phút làm dự phòng.
 - Dọn dẹp: `NotificationCleanupService` chạy 12 giờ một lần, xóa thông báo cũ hơn `Notifications:RetentionDays` (mặc định 180 ngày, tối thiểu 7) và thông báo đã hết hạn quá 30 ngày, kèm trạng thái đọc.
 
+## Nhật ký thay đổi
+
+Bảng `sys_audit_log` dùng chung cho mọi chức năng: ai sửa (`actor_id`, tên đăng nhập, họ tên), lúc nào, ở đơn vị nào, từ IP nào, sửa bản ghi nào (`function_code`, `object_type`, `object_id`, `object_label`), hành động gì và các trường đổi trước → sau (`changes`, JSON). Xem tập trung ở **Cài đặt › Nhật ký thay đổi** (chức năng `sys_audit_log`), không hiện trên màn chức năng.
+
+**Tự động (mặc định).** Khi người dùng đã đăng nhập lưu dữ liệu, `CoreContext.SaveChangesAsync` gọi `AuditTrail`: đọc các bản ghi thêm / sửa / xóa của entity có `[Audited]`, so từng cột trước → sau, ghi nhật ký **trong cùng transaction** (lưu lỗi thì không có nhật ký). Seeder và tác vụ nền không ghi. Khai báo trên entity (`Core.Domain/Common/AuditAttributes.cs`):
+
+| Khai báo | Ý nghĩa |
+| --- | --- |
+| `[Audited("mã chức năng", "loại đối tượng", Label = "{Code} - {Name}", SoftDelete = nameof(ValidFlg))]` | Ghi tự động; `Label` là tên hiển thị; `SoftDelete` = cờ xóa mềm (về 0 / false thì ghi là DELETE) |
+| `[NotAudited("lý do / ghi ở đâu")]` | Không ghi tự động (bảng kỹ thuật, hoặc đã ghi tay có nghĩa nghiệp vụ) |
+| `[AuditIgnore]` trên property | Không bao giờ ghi (mật khẩu, `security_version`, tùy chọn cá nhân, cột sao chép) |
+| `[AuditField("tên")]` | Đổi tên trường (cột cũ: `MaDvcs` → `defaultUnit`, `MenuId0` → `function`) |
+| `[AuditJson]` | Cột JSON: ghi từng khóa đổi thành một trường (`sys_setting.value`) |
+| `[AuditedChild(typeof(Cha), nameof(ChaId), "tên trường", nameof(GiáTrị))]` | Bảng con dạng danh sách (đơn vị được vào của người dùng): ghi thành một trường trên bản ghi cha |
+
+Test `AuditDeclarationTests` bắt mọi entity phải có `[Audited]` hoặc `[NotAudited]`, nên thêm bảng mới không thể quên. Cột kiểm toán (`createtime`, `updateid`...) không ghi. Bản ghi mới tạo rồi được sửa tiếp trong cùng request (ví dụ thêm đơn vị sau khi tạo người dùng) gộp vào một dòng CREATE.
+
+**Ghi tay** (`IAuditLog`), chỉ khi EF không thấy hoặc cần nghĩa nghiệp vụ:
+- `Attach(entity, changes)`: thêm trường vào dòng tự động của entity đó (ví dụ tên người duyệt thay cho id, vai trò của tài khoản mới).
+- `RecordAsync(new AuditEntry(...))`: một dòng riêng, gọi trước `SaveChanges`. Đang dùng cho: phân quyền tài khoản (quyền **thực tế** được thêm / bớt, `UserAccessAudit`), ma trận + quyền đặc biệt của vai trò, đưa người dùng về đúng vai trò (`SYNC`), đặt lại / đổi mật khẩu, trình / duyệt / từ chối / rút phiếu (`DocumentApprovalService`), và thay đổi bằng `ExecuteUpdate` (bỏ cờ tiền hạch toán / ngôn ngữ mặc định cũ).
+- SQL thuần (`ISqlExecutor`, ghi sổ) và `ExecuteUpdate` / `ExecuteDelete` **không** đi qua EF: phải ghi tay một dòng tóm tắt.
+
+Quy ước trường (frontend tự hiển thị): trường thường `camelCase` (nhãn `audit.field.<tên>`), `permission:{chức năng}` (các quyền được cấp), `right:{chức năng}:{mã}` (quyền đặc biệt). Bộ lọc của màn lấy từ `GET /api/audit-logs/filters`, nên chức năng mới tự hiện; nhãn `audit.objectType.<loại>` / `audit.action.<HÀNH_ĐỘNG>` là tùy chọn (không có thì hiện mã).
+
 ## Thêm module mới
 
 1. Entity trong `Core.Domain/Modules/<Module>/` (bảng nghiệp vụ đặt tên `erp_*`, cột `snake_case`, không khóa ngoại), bảng trong `sql/postgresql/NN-<module>.sql`, `DbSet` trong `CoreContext`.
@@ -164,6 +192,7 @@ Mọi API (trừ đăng nhập) nhận `Authorization: Bearer <token>`; lỗi tr
 4. Controller kế thừa `ApiControllerBase` trong `Core/Modules/<Module>/`, bảo vệ bằng `RequirePermission`.
 5. Mã chức năng mới: thêm vào `FunctionCatalog` và `SubMenuKey` của frontend.
 6. Phiếu (chứng từ): thêm vào `Common/Documents/VoucherCatalog.cs`; dải số và các quyền đặc biệt của phiếu có sẵn ngay.
+7. Nhật ký: gắn `[Audited("mã chức năng", "loại", Label = ...)]` lên entity (hoặc `[NotAudited(lý do)]`), thêm / sửa / xóa qua EF tự được ghi (xem [Nhật ký thay đổi](#nhật-ký-thay-đổi)).
 
 Mẫu module tham khảo: danh mục đơn giản → `Departments`; danh mục + bảng con có ngày → `Currencies` (ngoại tệ, tỷ giá); số liệu tính bằng SQL thuần → `VoucherNumbering/Sql/NextNumber.sql`.
 
@@ -183,7 +212,7 @@ public async Task<ReceiptDto> CreateAsync(int userId, string unitCode, SaveRecei
         var receipt = new Receipt { /* ... */ ExchangeRate = rate, UnitCode = unitCode, CreatedBy = userId };
         receipt.Number = await numbers.NextAsync("PNK", unitCode, request.Date, token); // không trùng số
         db.Receipts.Add(receipt);
-        await db.SaveChangesAsync(token);
+        await db.SaveChangesAsync(token);       // Receipt có [Audited("inv_receipt", "inv_receipt")]: nhật ký tự ghi
         return ToDto(receipt);
     }, ct);
 }

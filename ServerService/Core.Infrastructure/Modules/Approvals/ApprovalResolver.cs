@@ -1,3 +1,5 @@
+using Core.Application.Common.Localization;
+using Core.Application.Common.Permissions;
 using Core.Application.Modules.Approvals;
 using Core.Application.Modules.Users;
 using Core.Domain.Modules.Approvals;
@@ -14,7 +16,8 @@ public sealed record ApprovalResolution(bool UsesDefaultApprovers, IReadOnlyList
 
 /// <summary>
 /// Turns the rules into concrete approvers for a document. An approver must be active, allowed in the
-/// unit, hold the "Duyệt" right on the function and must not be the requester. Without a matching
+/// unit, hold the "Duyệt" right on the voucher or on its approval screen (PermissionMatrix.CanApprove) and must
+/// not be the requester. Without a matching
 /// rule, every user with the "Duyệt" right in the unit approves (one level).
 /// </summary>
 public sealed class ApprovalResolver(CoreContext db, IPermissionService permissions)
@@ -32,7 +35,7 @@ public sealed class ApprovalResolver(CoreContext db, IPermissionService permissi
         {
             var everyone = await db.Users.AsNoTracking().ActiveUsers().Select(x => x.UserId).ToListAsync(ct);
             return new ApprovalResolution(true,
-                [new ResolvedApprovalLevel(1, "Người có quyền Duyệt chức năng này", await FilterAsync(everyone, function, unitCode, requesterUserId, ct))]);
+                [new ResolvedApprovalLevel(1, Messages.T("approval.defaultApprovers"), await FilterAsync(everyone, function, unitCode, requesterUserId, ct))]);
         }
 
         var result = new List<ResolvedApprovalLevel>();
@@ -46,7 +49,7 @@ public sealed class ApprovalResolver(CoreContext db, IPermissionService permissi
                     candidates.AddRange(await db.UserRoles.ActiveRoles().Where(x => x.RoleId == roleId).Select(x => x.UserId).ToListAsync(ct));
             }
             var label = string.Join(", ", level.Approvers.Select(a => a.Type == ApproverTypes.Role
-                ? $"Vai trò {roleNames.GetValueOrDefault(a.Value, a.Value)}"
+                ? Messages.T("approval.roleLabel", roleNames.GetValueOrDefault(a.Value, a.Value))
                 : userNames.GetValueOrDefault(a.Value, $"#{a.Value}")));
             result.Add(new ResolvedApprovalLevel(level.Level, label, await FilterAsync(candidates.Distinct(), function, unitCode, requesterUserId, ct)));
         }
@@ -64,17 +67,17 @@ public sealed class ApprovalResolver(CoreContext db, IPermissionService permissi
         CancellationToken ct)
     {
         var ids = candidates.Where(id => id != requesterUserId).Distinct().ToList();
-        var active = await db.Users.AsNoTracking().ActiveUsers().Where(x => ids.Contains(x.UserId)).Select(x => x.UserId).ToListAsync(ct);
-        var inUnit = await db.UserCompanyUnits.AsNoTracking().Where(x => ids.Contains(x.UserId) && x.UnitCode == unitCode)
-            .Select(x => x.UserId).ToListAsync(ct);
+        // Rights of every candidate at once (only active users come back), not a few queries per candidate.
+        var matrices = await permissions.GetEffectiveManyAsync(ids, ct);
+        var inUnit = (await db.UserCompanyUnits.AsNoTracking().Where(x => ids.Contains(x.UserId) && x.UnitCode == unitCode)
+            .Select(x => x.UserId).ToListAsync(ct)).ToHashSet();
         var result = new List<int>();
-        foreach (var id in active)
+        foreach (var (id, matrix) in matrices)
         {
-            var isAdmin = await permissions.IsAdminAsync(id, ct);
-            if (!isAdmin && !inUnit.Contains(id)) continue;
-            var matrix = await permissions.GetEffectiveAsync(id, ct);
-            if (matrix.TryGetValue(function, out var actions) && actions.Approve) result.Add(id);
+            // Administrators may work in every unit (cached by GetEffectiveManyAsync, no query).
+            if (!inUnit.Contains(id) && !await permissions.IsAdminAsync(id, ct)) continue;
+            if (PermissionMatrix.CanApprove(matrix, function)) result.Add(id);
         }
-        return result;
+        return result.Order().ToList();
     }
 }

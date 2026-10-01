@@ -58,7 +58,51 @@ public sealed class PermissionMatrixTests
     {
         var matrix = PermissionMatrix.Resolve(false, [], [("sys_users", ViewOnly), ("sys_users", EditOnly)]);
         Assert.Equal(new ActionPermissions(true, true, false, false, false), matrix["sys_users"]);
-        Assert.Equal(ActionPermissions.None, matrix["overview_main"]);
+        Assert.Equal(ActionPermissions.None, matrix["hr_list"]);
+    }
+
+    [Fact]
+    public void LandingPageIsAlwaysViewable()
+    {
+        // Not granted by any role, and even taken away by an own row: still viewable, nothing more.
+        Assert.Equal(ViewOnly, PermissionMatrix.Resolve(false, [], [])["overview_main"]);
+        Assert.Equal(ViewOnly, PermissionMatrix.Resolve(false, [("overview_main", ActionPermissions.None)], [])["overview_main"]);
+        Assert.Equal(ViewOnly, PermissionMatrix.Build([])["overview_main"]);
+    }
+
+    [Fact]
+    public void ApprovalScreensApproveTheirVouchers()
+    {
+        var approve = new ActionPermissions(true, false, false, true, false);
+        var matrix = PermissionMatrix.Resolve(false, [], [("inv_approve_transfer", approve)]);
+        Assert.True(PermissionMatrix.CanApprove(matrix, "inv_transfer_order"));
+        Assert.True(PermissionMatrix.CanApprove(matrix, "inv_transfer_receipt"));
+        Assert.True(PermissionMatrix.CanViewForApproval(matrix, "inv_transfer_issue"));
+        // Another voucher, or a screen that only views, does not approve.
+        Assert.False(PermissionMatrix.CanApprove(matrix, "inv_receipt"));
+        Assert.False(PermissionMatrix.CanApprove(PermissionMatrix.Resolve(false, [], [("inv_approve_receipt", ViewOnly)]), "inv_receipt"));
+        // Vouchers without an approval screen: only "Duyệt" on the voucher itself.
+        Assert.True(PermissionMatrix.CanApprove(PermissionMatrix.Resolve(false, [], [("sales_orders", approve)]), "sales_orders"));
+    }
+
+    [Fact]
+    public void ApprovalScreensPointToCatalogVouchers()
+    {
+        foreach (var (screen, vouchers) in Core.Application.Common.Documents.VoucherCatalog.ApprovalScreens)
+        {
+            Assert.True(FunctionCatalog.IsFunction(screen), screen);
+            Assert.All(vouchers, v => Assert.NotNull(Core.Application.Common.Documents.VoucherCatalog.FindByFunction(v)));
+        }
+    }
+
+    [Fact]
+    public void SpecialRightsCountOnlyOnViewableFunctions()
+    {
+        var matrix = PermissionMatrix.Resolve(false, [], [("inv_receipt", ViewOnly), ("inv_issue", EditOnly)]);
+        var receiptPrice = SpecialRightCatalog.Key("inv_receipt", SpecialRightCatalog.ViewPrice);
+        var issuePrice = SpecialRightCatalog.Key("inv_issue", SpecialRightCatalog.ViewPrice);
+        var send = SpecialRightCatalog.Key(SpecialRightCatalog.NotificationFunction, SpecialRightCatalog.SendNotification);
+        Assert.Equal([receiptPrice, send], PermissionMatrix.VisibleRights([receiptPrice, issuePrice, send, receiptPrice], matrix));
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar, Clock, X } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface DateTimePickerProps {
   label?: string;
@@ -26,7 +27,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   onChange,
   min,
   max,
-  placeholder = 'Chọn thời gian...',
+  placeholder: placeholderProp,
   required = false,
   disabled = false,
   helperText,
@@ -36,6 +37,8 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   labelClassName = '',
   compact = true
 }) => {
+  const { t } = useLanguage();
+  const placeholder = placeholderProp ?? t('controls.dateTime.placeholder');
   const handleShortcut = (preset: 'today' | 'yesterday' | 'tomorrow' | 'startOfMonth' | 'endOfMonth') => {
     const now = new Date();
     let targetDate = new Date();
@@ -110,7 +113,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             type="button"
             onClick={() => onChange('')}
             className={`absolute ${compact ? 'right-1.5' : 'right-2.5'} p-0.5 text-slate-400 hover:text-rose-500 rounded-[5px] hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors`}
-            title="Xóa thời gian"
+            title={t('controls.dateTime.clear')}
           >
             <X className={`${compact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
           </button>
@@ -125,21 +128,21 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             onClick={() => handleShortcut('today')}
             className="px-2 py-0.5 text-[10px] font-semibold rounded-[5px] bg-slate-100 dark:bg-slate-800 hover:bg-indigo-100 hover:text-indigo-700 dark:hover:bg-indigo-950 dark:hover:text-indigo-300 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           >
-            Hôm nay
+            {t('controls.dateTime.today')}
           </button>
           <button
             type="button"
             onClick={() => handleShortcut('yesterday')}
             className="px-2 py-0.5 text-[10px] font-semibold rounded-[5px] bg-slate-100 dark:bg-slate-800 hover:bg-indigo-100 hover:text-indigo-700 dark:hover:bg-indigo-950 dark:hover:text-indigo-300 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           >
-            Hôm qua
+            {t('controls.dateTime.yesterday')}
           </button>
           <button
             type="button"
             onClick={() => handleShortcut('startOfMonth')}
             className="px-2 py-0.5 text-[10px] font-semibold rounded-[5px] bg-slate-100 dark:bg-slate-800 hover:bg-indigo-100 hover:text-indigo-700 dark:hover:bg-indigo-950 dark:hover:text-indigo-300 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           >
-            Đầu tháng
+            {t('controls.dateTime.monthStart')}
           </button>
         </div>
       )}

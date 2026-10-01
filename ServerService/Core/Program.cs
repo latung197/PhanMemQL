@@ -1,3 +1,4 @@
+using Core.Application.Common.Localization;
 using Core.Common.Extensions;
 using Core.Infrastructure;
 using Core.Infrastructure.Common.Seeding;
@@ -27,6 +28,12 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler();
     app.UseHsts();
 }
+// Texts for users (messages, translated names) in the language the browser asks for (Accept-Language).
+app.Use(async (context, next) =>
+{
+    Messages.CurrentLanguage = context.Request.Headers.AcceptLanguage.ToString();
+    await next(context);
+});
 app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();

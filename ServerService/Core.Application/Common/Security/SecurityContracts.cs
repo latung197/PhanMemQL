@@ -38,6 +38,6 @@ public static class PasswordPolicy
     public static void Validate(string? password)
     {
         if (string.IsNullOrWhiteSpace(password) || password.Length < MinLength)
-            throw new BusinessRuleException($"Mật khẩu phải có ít nhất {MinLength} ký tự.");
+            throw new BusinessRuleException("validation.passwordLength", MinLength);
     }
 }

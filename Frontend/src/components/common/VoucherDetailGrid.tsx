@@ -4,6 +4,8 @@ import { VoucherGridInfo, VoucherColumnConfig } from '../../types';
 import { getVoucherGridConfig } from '../../mock/voucherGridConfigs';
 import { Button, QuantityInput, NumberInput, ComboBox, DateTimePicker } from './index';
 import { useNumberFormat } from '../../context/NumberFormatContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { interpolate } from '../../utils/interpolate';
 
 /**
  * PROPS VOUCHER DETAIL GRID CONTROL DÙNG CHUNG
@@ -73,9 +75,9 @@ export interface VoucherDetailGridProps<T = Record<string, any>> {
   hiddenFields?: string[];
 }
 
-export const STANDARD_UOMS = [
-  'Cái', 'Chiếc', 'Thùng', 'Hộp', 'Bộ', 'Kg', 'Mét', 'Thỏi', 'Lô', 
-  'Chai', 'Lọ', 'Cuộn', 'Tấm', 'Bao', 'Gói', 'Kít', 'Thanh', 'Dây'
+const STANDARD_UOMS = [
+  'Cái', 'Chiếc', 'Thùng', 'Hộp', 'Bộ', 'Kg', 'Mét', 'Thỏi', 'Lô',   // i18n-ignore: data
+  'Chai', 'Lọ', 'Cuộn', 'Tấm', 'Bao', 'Gói', 'Kít', 'Thanh', 'Dây'  // i18n-ignore: data
 ];
 
 export function VoucherDetailGrid<T extends Record<string, any>>({
@@ -102,6 +104,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
   showAddButton = true,
   hiddenFields
 }: VoucherDetailGridProps<T>) {
+  const { t } = useLanguage();
   const { formatNumber, formatCurrency } = useNumberFormat();
 
   // Load cấu hình cột từ Bảng Hệ Thống `sys_voucher_grid` (Registry DB Metadata)
@@ -336,7 +339,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
               {/* Action Column */}
               {!readOnly && (
                 <th className="py-2 px-1.5 w-9 text-center">
-                  Xóa
+                  {t('controls.voucherGrid.delete')}
                 </th>
               )}
             </tr>
@@ -350,7 +353,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                   colSpan={gridConfig.columns.length + (readOnly ? 1 : 2)} 
                   className="py-6 text-center text-slate-400 italic font-medium"
                 >
-                  Chưa có dòng dữ liệu nào.
+                  {t('controls.voucherGrid.empty')}
                 </td>
               </tr>
             ) : (
@@ -388,7 +391,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                                 data-grid-row={rowIndex}
                                 data-grid-col={col.field}
                                 disabled={isReadOnlyCol}
-                                placeholder={col.placeholder || 'Mã...'}
+                                placeholder={col.placeholder || t('controls.voucherGrid.codePlaceholder')}
                                 value={value ?? ''}
                                 onChange={(e) => handleCellChange(rowIndex, col.field, e.target.value)}
                                 onKeyDown={(e) => {
@@ -417,7 +420,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                                     onLookupClick(rowIndex, col, row);
                                   }}
                                   className="p-0.5 bg-indigo-50 dark:bg-indigo-950 hover:bg-indigo-100 text-indigo-600 dark:text-indigo-400 rounded border border-indigo-200 dark:border-indigo-800 transition-colors shrink-0 cursor-pointer h-[24px] w-[24px] flex items-center justify-center !px-0"
-                                  title="Tra cứu danh mục (Nhấn F2)"
+                                  title={t('controls.voucherGrid.lookup')}
                                 >
                                   <Search className="h-3 w-3" />
                                 </Button>
@@ -486,7 +489,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                                 }}
                                 className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded px-1 py-0.5 font-bold text-slate-800 dark:text-slate-100 text-[11px] text-center focus:ring-1 focus:ring-indigo-500 h-[24px] cursor-pointer"
                               >
-                                {!value && <option value="">-- ĐVT --</option>}
+                                {!value && <option value="">{t('controls.voucherGrid.uom')}</option>}
                                 {value && !STANDARD_UOMS.includes(value) && (
                                   <option key={value} value={value}>{value}</option>
                                 )}
@@ -659,7 +662,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                             handleDeleteRow(rowIndex);
                           }}
                           className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors cursor-pointer inline-flex items-center justify-center !px-0 !py-0 h-6 w-6"
-                          title="Xóa dòng"
+                          title={t('controls.voucherGrid.deleteRow')}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -697,7 +700,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                   >
                     {idx === 0 && !col.summary ? (
                       <span className="text-slate-600 dark:text-slate-400 font-sans font-extrabold uppercase text-[10px]">
-                        Tổng cộng ({data.length} dòng):
+                        {t('controls.voucherGrid.total', { n: data.length })}
                       </span>
                     ) : (
                       summaryVal !== null ? summaryVal : ''
@@ -717,7 +720,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
       {!readOnly && (
         <div className="flex items-center justify-between pt-1.5 px-1 gap-2">
           <div className="text-[10px] text-slate-500 font-semibold flex items-center gap-2">
-            <span>Mẹo: Nhấn <kbd className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-indigo-600 dark:text-indigo-300 font-mono text-[9px]">F2</kbd> tại ô Mã vật tư để tra cứu danh mục.</span>
+            <span>{interpolate(t('controls.voucherGrid.tip'), { f2: <kbd className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-indigo-600 dark:text-indigo-300 font-mono text-[9px]">F2</kbd> })}</span>
           </div>
           {showAddButton && gridConfig.allowAddRow !== false && (
             <Button
@@ -728,7 +731,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
               icon={<Plus className="h-3.5 w-3.5" />}
               className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 bg-indigo-50 dark:bg-indigo-950/80 hover:bg-indigo-100 dark:hover:bg-indigo-900 border-indigo-200 dark:border-indigo-800 py-1 px-2.5"
             >
-              Thêm Dòng
+              {t('controls.voucherGrid.addRow')}
             </Button>
           )}
         </div>

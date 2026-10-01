@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Core.Domain.Common;
 
 namespace Core.Domain.Modules.Departments;
 
 /// <summary>Phòng ban. Users and approval rules (requester type DEPARTMENT) link to it by code.</summary>
+[Audited("sys_departments", "department", Label = "{Code} - {Name}")]
 [Table("sys_department")]
 public class Department
 {

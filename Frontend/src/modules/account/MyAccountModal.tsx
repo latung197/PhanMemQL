@@ -11,6 +11,7 @@ import { CompanyUnit, UserProfile } from '../../types';
 import { authService } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
 import { saveWithFeedback, showToast } from '../../utils/toast';
+import { useLanguage } from '../../context/LanguageContext';
 
 export type MyAccountTab = 'profile' | 'password';
 
@@ -24,18 +25,19 @@ interface MyAccountModalProps {
 }
 
 export const MyAccountModal: React.FC<MyAccountModalProps> = ({ user, companyUnits, initialTab, onClose, onUserUpdated }) => {
+  const { t } = useLanguage();
   const [tab, setTab] = useState<MyAccountTab>(initialTab);
 
   return (
-    <Modal isOpen onClose={onClose} maxWidth="2xl" title={<><UserRound className="h-5 w-5 text-indigo-600" /> Tài Khoản Của Tôi</>}>
+    <Modal isOpen onClose={onClose} maxWidth="2xl" title={<><UserRound className="h-5 w-5 text-indigo-600" /> {t('account.title')}</>}>
       <div className="space-y-4">
         <AccountSummary user={user} companyUnits={companyUnits} />
         <Tabs
           value={tab}
           onChange={setTab}
           items={[
-            { key: 'profile', label: 'Thông tin tài khoản', icon: <UserRound /> },
-            { key: 'password', label: 'Đổi mật khẩu', icon: <KeyRound /> }
+            { key: 'profile', label: t('account.tabProfile'), icon: <UserRound /> },
+            { key: 'password', label: t('account.tabPassword'), icon: <KeyRound /> }
           ]}
         />
         {tab === 'profile'
@@ -47,6 +49,7 @@ export const MyAccountModal: React.FC<MyAccountModalProps> = ({ user, companyUni
 };
 
 const AccountSummary: React.FC<{ user: UserProfile; companyUnits: CompanyUnit[] }> = ({ user, companyUnits }) => {
+  const { t } = useLanguage();
   const unitName = (code?: string) => companyUnits.find(u => u.code === code)?.shortName || code || '—';
   return (
     <div className="flex items-center gap-3 p-3 rounded-[5px] bg-brand-50 dark:bg-slate-800/60 border border-brand-200 dark:border-slate-700">
@@ -56,14 +59,14 @@ const AccountSummary: React.FC<{ user: UserProfile; companyUnits: CompanyUnit[] 
       <div className="min-w-0 text-xs space-y-0.5">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100">{user.fullName}</span>
-          <Badge variant={user.isSystemAdmin ? 'warning' : 'indigo'} size="sm">{user.role || 'Chưa gán vai trò'}</Badge>
+          <Badge variant={user.isSystemAdmin ? 'warning' : 'indigo'} size="sm">{user.role || t('account.noRole')}</Badge>
         </div>
         <p className="text-slate-500 dark:text-slate-400">
-          @{user.username}{user.employeeCode && <> · Mã NV <span className="font-mono">{user.employeeCode}</span></>}
+          @{user.username}{user.employeeCode && <> · {t('account.employeeCode')} <span className="font-mono">{user.employeeCode}</span></>}
         </p>
         <p className="text-slate-500 dark:text-slate-400 flex items-center gap-1 flex-wrap">
-          <Building2 className="h-3 w-3" /> Đang làm việc tại <strong className="text-slate-700 dark:text-slate-300">{unitName(user.ma_dvcs)}</strong>
-          · Được vào: {(user.ds_ma_dvcs ?? []).map(unitName).join(', ') || '—'}
+          <Building2 className="h-3 w-3" /> {t('account.workingAt')} <strong className="text-slate-700 dark:text-slate-300">{unitName(user.ma_dvcs)}</strong>
+          · {t('account.allowedUnits')} {(user.ds_ma_dvcs ?? []).map(unitName).join(', ') || '—'}
         </p>
       </div>
     </div>
@@ -72,6 +75,7 @@ const AccountSummary: React.FC<{ user: UserProfile; companyUnits: CompanyUnit[] 
 
 const ProfileForm: React.FC<{ user: UserProfile; onSaved: (user: UserProfile) => void }> = ({ user, onSaved }) => {
   const { theme, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const [fullName, setFullName] = useState(user.fullName);
   const [email, setEmail] = useState(user.email);
   const [phone, setPhone] = useState(user.phone);
@@ -84,30 +88,30 @@ const ProfileForm: React.FC<{ user: UserProfile; onSaved: (user: UserProfile) =>
     await saveWithFeedback(authService.updateMyProfile({
       fullName: fullName.trim(), email: email.trim(), phone: phone.trim(),
       avatar: user.avatar, themePref: theme, notificationsEnabled
-    }).then(onSaved), () => showToast.success('Đã cập nhật thông tin tài khoản'));
+    }).then(onSaved), () => showToast.success(t('account.profileSaved')));
     setSaving(false);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <TextInput label="Họ và tên" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
-        <TextInput label="Tên đăng nhập" readOnly value={user.username} hint="Không thể thay đổi" />
-        <TextInput label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <TextInput label="Số điện thoại" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        <TextInput label="Phòng ban" readOnly value={user.department || 'Chưa gán phòng ban'} hint="Do quản trị viên khai báo" />
-        <TextInput label="Vai trò" readOnly value={user.role || 'Chưa gán vai trò'} hint="Do quản trị viên phân quyền" />
+        <TextInput label={t('account.fullName')} required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        <TextInput label={t('account.username')} readOnly value={user.username} hint={t('account.cannotChange')} />
+        <TextInput label={t('account.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <TextInput label={t('account.phone')} value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <TextInput label={t('account.department')} readOnly value={user.department || t('account.noDepartment')} hint={t('account.setByAdmin')} />
+        <TextInput label={t('account.role')} readOnly value={user.role || t('account.noRole')} hint={t('account.setByPermission')} />
       </div>
-      <Checkbox label="Hiện thông báo nổi khi có thông báo mới" checked={notificationsEnabled}
+      <Checkbox label={t('account.popupNotifications')} checked={notificationsEnabled}
         onChange={setNotificationsEnabled}
-        subLabel="Tắt thì thông báo vẫn nằm trong chuông, chỉ không bật lên góc màn hình" />
+        subLabel={t('account.popupNotificationsHint')} />
       <div className="flex items-center justify-between gap-2 pt-1">
         <Button type="button" variant="outline" size="sm" onClick={toggleTheme}
           icon={theme === 'dark' ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5" />}>
-          {theme === 'dark' ? 'Giao diện tối' : 'Giao diện sáng'}
+          {theme === 'dark' ? t('account.darkTheme') : t('account.lightTheme')}
         </Button>
         <Button type="submit" size="sm" disabled={saving} icon={<Save className="h-3.5 w-3.5" />}>
-          {saving ? 'Đang lưu...' : 'Lưu thông tin'}
+          {saving ? t('account.saving') : t('account.saveProfile')}
         </Button>
       </div>
     </form>
@@ -115,6 +119,7 @@ const ProfileForm: React.FC<{ user: UserProfile; onSaved: (user: UserProfile) =>
 };
 
 const PasswordForm: React.FC<{ onChanged: (user: UserProfile) => void }> = ({ onChanged }) => {
+  const { t } = useLanguage();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -126,25 +131,25 @@ const PasswordForm: React.FC<{ onChanged: (user: UserProfile) => void }> = ({ on
     if (mismatch) return;
     setSaving(true);
     await saveWithFeedback(authService.changePassword(currentPassword, newPassword).then(onChanged),
-      () => showToast.success('Đã đổi mật khẩu. Các phiên đăng nhập khác của tài khoản đã bị đăng xuất.'));
+      () => showToast.success(t('account.passwordChanged')));
     setSaving(false);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 max-w-md">
-      <TextInput label="Mật khẩu hiện tại" type="password" required autoComplete="current-password"
+      <TextInput label={t('account.currentPassword')} type="password" required autoComplete="current-password"
         value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-      <TextInput label="Mật khẩu mới" type="password" required minLength={8} autoComplete="new-password"
-        hint="Tối thiểu 8 ký tự" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-      <TextInput label="Nhập lại mật khẩu mới" type="password" required minLength={8} autoComplete="new-password"
+      <TextInput label={t('account.newPassword')} type="password" required minLength={8} autoComplete="new-password"
+        hint={t('account.newPasswordHint')} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+      <TextInput label={t('account.confirmPassword')} type="password" required minLength={8} autoComplete="new-password"
         value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-        error={mismatch ? 'Mật khẩu nhập lại không khớp' : undefined} />
+        error={mismatch ? t('account.passwordMismatch') : undefined} />
       <p className="text-[11px] text-slate-500 dark:text-slate-400">
-        Sau khi đổi, các thiết bị khác đang đăng nhập bằng tài khoản này sẽ phải đăng nhập lại.
+        {t('account.passwordNote')}
       </p>
       <div className="flex justify-end">
         <Button type="submit" size="sm" disabled={saving || mismatch} icon={<Lock className="h-3.5 w-3.5" />}>
-          {saving ? 'Đang đổi...' : 'Đổi mật khẩu'}
+          {saving ? t('account.changing') : t('account.changePassword')}
         </Button>
       </div>
     </form>

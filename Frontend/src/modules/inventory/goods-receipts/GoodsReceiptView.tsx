@@ -47,7 +47,7 @@ import { goodsReceiptItemsGridConfig, goodsReceiptMaterialsGridConfig } from '..
 import { useNumberFormat } from '../../../context/NumberFormatContext';
 import { GoodsVoucher, VoucherItem, Product, Warehouse as WarehouseType, CompanyUnit, UserProfile } from '../../../types';
 import { getActionPermission } from '../../../mock/initialRoles';
-import { hasRight, RIGHTS } from '../../../utils/permissions';
+import { canApproveVoucher, hasRight, RIGHTS } from '../../../utils/permissions';
 import { useOpenDocumentRequest } from '../../../utils/documentLinks';
 import { showToast } from '../../../utils/toast';
 
@@ -154,6 +154,8 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   const [activeRowSearchIdx, setActiveRowSearchIdx] = useState<number | null>(null);
 
   const perm = getActionPermission(currentUser, 'inv_receipt');
+  // "Duyệt" on the voucher or on its approval screen (Phê duyệt nhập / xuất kho), as the backend.
+  const canApprove = canApproveVoucher(currentUser, 'inv_receipt');
   // Quyền đặc biệt "Xem đơn giá & thành tiền": không có thì ẩn mọi cột/ô giá trị trên phiếu.
   const canViewPrice = hasRight(currentUser, 'inv_receipt', RIGHTS.VIEW_PRICE);
   const hiddenPriceFields = canViewPrice ? undefined : ['unitPrice', 'amount'];
@@ -979,7 +981,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
 
   // Status Change Quick Action
   const handleQuickStatusChange = (voucherId: string, newStatus: string) => {
-    if (!perm.approve && (newStatus === 'Đã phê duyệt' || newStatus === 'Chuyển sổ kho')) {
+    if (!canApprove && (newStatus === 'Đã phê duyệt' || newStatus === 'Chuyển sổ kho')) {
       showToast.error('Tài khoản của bạn không có quyền duyệt / chuyển sổ kho!');
       return;
     }
@@ -1202,7 +1204,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
             <Edit3 className="h-4 w-4" />
           </button>
 
-          {v.status === 'Chờ duyệt' && perm.approve && (
+          {v.status === 'Chờ duyệt' && canApprove && (
             <button
               type="button"
               onClick={() => handleQuickStatusChange(v.id, 'Chuyển sổ kho')}

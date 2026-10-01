@@ -380,6 +380,10 @@ export interface UserProfile {
   isActive?: boolean;    // false = tài khoản bị khóa
   /** Quyền đặc biệt "{function}:{code}" (xem giá, sửa phiếu đã duyệt...). */
   specialRights?: string[];
+  /** Ngôn ngữ đang dùng: ngôn ngữ người dùng tự chọn, hoặc ngôn ngữ mặc định của công ty. */
+  language?: string;
+  /** Ngôn ngữ người dùng tự chọn (null = theo mặc định của công ty). */
+  languagePreference?: string | null;
 }
 
 export interface ERPData {
@@ -459,6 +463,8 @@ export type SubMenuKey =
   | 'sys_fiscal_year'           // Khai báo năm làm việc & Ngày nhập liệu
   | 'sys_currencies'            // Danh mục ngoại tệ
   | 'sys_exchange_rates'        // Cập nhật tỷ giá
+  | 'sys_languages'             // Danh mục ngôn ngữ
+  | 'sys_audit_log'             // Nhật ký thay đổi (mọi chức năng)
 
   // Sales submenus
   | 'sales_customers'           // Danh mục khách hàng

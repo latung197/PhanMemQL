@@ -41,13 +41,20 @@ public static partial class VoucherNumberFormat
     public static void Validate(string pattern, string prefix, int digits)
     {
         if (!pattern.Contains("{SEQ}", StringComparison.Ordinal))
-            throw new BusinessRuleException("Mẫu số chứng từ phải có {SEQ} (số thứ tự).");
+            throw new BusinessRuleException("numbering.seqRequired");
         var unknown = TokenPattern().Matches(pattern).Select(m => m.Value).FirstOrDefault(t => !Tokens.Contains(t));
         if (unknown is not null)
-            throw new BusinessRuleException($"Mẫu số chứng từ có ký hiệu không hợp lệ: {unknown}.");
-        if (digits is < 1 or > 10) throw new BusinessRuleException("Số chữ số của số thứ tự phải từ 1 đến 10.");
-        if (prefix.Any(char.IsWhiteSpace)) throw new BusinessRuleException("Tiền tố không được chứa khoảng trắng.");
+            throw new BusinessRuleException("numbering.unknownToken", unknown);
+        if (digits is < 1 or > 10) throw new BusinessRuleException("numbering.digits");
+        if (prefix.Any(char.IsWhiteSpace)) throw new BusinessRuleException("numbering.prefixSpaces");
     }
+
+    /// <summary>
+    /// What tells the numbers of a series apart from another series: the pattern with its prefix filled in. Two
+    /// voucher types with the same series would hand out identical numbers (e.g. both "PXK-{YYYY}{MM}-{SEQ}").
+    /// </summary>
+    public static string Series(string pattern, string prefix) =>
+        pattern.Replace("{PREFIX}", prefix, StringComparison.Ordinal).ToUpperInvariant();
 
     public static string PeriodKey(string pattern, DateOnly date) =>
         pattern.Contains("{DD}") ? date.ToString("yyyyMMdd")

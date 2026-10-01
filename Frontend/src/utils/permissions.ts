@@ -58,6 +58,24 @@ export const RIGHTS = {
   SEND_NOTIFICATION_ALL: 'SEND_NOTIFICATION_ALL'
 } as const;
 
+/**
+ * Approval screens ("Phê duyệt" menu) and the vouchers they approve. Same list as the backend
+ * VoucherCatalog.ApprovalScreens: "Duyệt" on the screen approves those vouchers like "Duyệt" on the voucher.
+ */
+export const APPROVAL_SCREENS: Partial<Record<SubMenuKey, SubMenuKey[]>> = {
+  inv_approve_receipt: ['inv_receipt'],
+  inv_approve_issue: ['inv_issue'],
+  inv_approve_transfer: ['inv_transfer_order', 'inv_transfer_issue', 'inv_transfer_receipt']
+};
+
+const approvalScreensOf = (voucher: SubMenuKey): SubMenuKey[] =>
+  (Object.keys(APPROVAL_SCREENS) as SubMenuKey[]).filter(screen => APPROVAL_SCREENS[screen]!.includes(voucher));
+
+/** "Duyệt" on the voucher or on one of its approval screens (backend PermissionMatrix.CanApprove). */
+export const canApproveVoucher = (user: PermissionHolder, voucher: SubMenuKey): boolean =>
+  getActionPermission(user, voucher).approve
+  || approvalScreensOf(voucher).some(screen => getActionPermission(user, screen).approve);
+
 /** Menu visibility and the screen guard. The overview is the landing page, so it is always visible. */
 export const canView = (user: PermissionHolder, subKey: SubMenuKey): boolean =>
   getActionPermission(user, subKey).view;

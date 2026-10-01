@@ -4,6 +4,7 @@ import { Modal } from './Modal';
 import { Button } from './Button';
 import { Badge } from './Badge';
 import { Pagination } from './Pagination';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface ColumnDef<T> {
   key: string;
@@ -40,19 +41,22 @@ export function MasterLookupModal<T extends Record<string, any>>({
   isOpen,
   onClose,
   title,
-  subtitle = 'Tìm kiếm, lọc danh sách và chọn dữ liệu master data',
+  subtitle: subtitleProp,
   data = [],
   columns,
   idField = 'id',
   displayField = 'name',
   searchFields = ['code', 'name', 'title'],
-  searchPlaceholder = 'Nhập từ khóa tìm kiếm...',
+  searchPlaceholder: searchPlaceholderProp,
   filters = [],
   selectionMode = 'single',
   selectedIds = [],
   onConfirm,
   pageSize: initialPageSize = 8
 }: MasterLookupModalProps<T>) {
+  const { t } = useLanguage();
+  const subtitle = subtitleProp ?? t('controls.masterLookup.subtitle');
+  const searchPlaceholder = searchPlaceholderProp ?? t('controls.masterLookup.search');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const [tempSelectedIds, setTempSelectedIds] = useState<string[]>([]);
@@ -151,7 +155,7 @@ export function MasterLookupModal<T extends Record<string, any>>({
           <div className="flex items-center justify-between gap-2 text-slate-500 dark:text-slate-400 -mt-2">
             <p>{subtitle}</p>
             <span className="text-[11px] text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded font-medium shrink-0">
-              💡 Mẹo: Nhấp đúp dòng để chọn nhanh
+              {t('controls.masterLookup.tip')}
             </span>
           </div>
         )}
@@ -194,7 +198,7 @@ export function MasterLookupModal<T extends Record<string, any>>({
                 }}
                 className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-900 dark:text-slate-200 font-medium"
               >
-                <option value="ALL">{filter.label}: Tất cả</option>
+                <option value="ALL">{t('controls.masterLookup.all', { label: filter.label })}</option>
                 {filter.options.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
@@ -207,7 +211,7 @@ export function MasterLookupModal<T extends Record<string, any>>({
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <Badge variant="indigo" size="sm" className="font-bold">
-              Đã chọn: {tempSelectedIds.length}
+              {t('controls.masterLookup.selected', { n: tempSelectedIds.length })}
             </Badge>
             {tempSelectedIds.length > 0 && (
               <button
@@ -215,7 +219,7 @@ export function MasterLookupModal<T extends Record<string, any>>({
                 onClick={() => setTempSelectedIds([])}
                 className="text-slate-500 hover:text-rose-500 text-[11px] underline cursor-pointer"
               >
-                Bỏ chọn tất cả
+                {t('controls.masterLookup.clearAll')}
               </button>
             )}
           </div>
@@ -227,7 +231,7 @@ export function MasterLookupModal<T extends Record<string, any>>({
               className="text-indigo-600 dark:text-indigo-400 hover:underline text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
             >
               <CheckSquare className="h-3.5 w-3.5" />
-              Chọn tất cả trang này
+              {t('controls.masterLookup.selectPage')}
             </button>
           )}
         </div>
@@ -245,14 +249,14 @@ export function MasterLookupModal<T extends Record<string, any>>({
                     {col.label}
                   </th>
                 ))}
-                <th className="p-2.5 w-24 text-center bg-slate-200/60 dark:bg-slate-800/80">Thao tác</th>
+                <th className="p-2.5 w-24 text-center bg-slate-200/60 dark:bg-slate-800/80">{t('controls.masterLookup.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
               {paginatedData.length === 0 ? (
                 <tr>
                   <td colSpan={columns.length + 2} className="p-8 text-center text-slate-400">
-                    Không tìm thấy dữ liệu phù hợp với điều kiện tra cứu.
+                    {t('controls.masterLookup.noResult')}
                   </td>
                 </tr>
               ) : (
@@ -294,7 +298,7 @@ export function MasterLookupModal<T extends Record<string, any>>({
                           }
                         >
                           <Check className={`h-3 w-3 ${isSelected ? 'block' : 'hidden'}`} />
-                          {isSelected ? 'Đã chọn' : 'Chọn'}
+                          {isSelected ? t('controls.masterLookup.isSelected') : t('controls.masterLookup.select')}
                         </button>
                       </td>
                     </tr>
@@ -321,7 +325,7 @@ export function MasterLookupModal<T extends Record<string, any>>({
         {/* Modal Footer Controls */}
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
           <Button variant="secondary" onClick={onClose} size="sm">
-            Hủy
+            {t('controls.masterLookup.cancel')}
           </Button>
           <Button
             variant="primary"
@@ -331,7 +335,7 @@ export function MasterLookupModal<T extends Record<string, any>>({
             className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
           >
             <Check className="h-4 w-4" />
-            Xác nhận chọn ({tempSelectedIds.length})
+            {t('controls.masterLookup.confirm', { n: tempSelectedIds.length })}
           </Button>
         </div>
       </div>

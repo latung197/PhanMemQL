@@ -4,6 +4,8 @@ import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
 import { CategoryHeaderToolbar } from '../../../components/common/CategoryHeaderToolbar';
 import { showToast } from '../../../utils/toast';
+import { canApproveVoucher } from '../../../utils/permissions';
+import { SubMenuKey, UserProfile } from '../../../types';
 
 interface ApprovalItem {
   id: string;
@@ -20,11 +22,19 @@ interface ApprovalItem {
 
 interface InventoryApprovalViewProps {
   typeFilter?: 'receipt' | 'issue' | 'transfer' | 'all';
+  currentUser?: UserProfile | null;
 }
 
+/** Voucher function of each approval item (the transfer list shows transfer orders). */
+const VOUCHER_OF: Record<ApprovalItem['type'], SubMenuKey> = {
+  RECEIPT: 'inv_receipt', ISSUE: 'inv_issue', TRANSFER: 'inv_transfer_order'
+};
+
 export const InventoryApprovalView: React.FC<InventoryApprovalViewProps> = ({
-  typeFilter = 'all'
+  typeFilter = 'all', currentUser
 }) => {
+  // "Duyệt" on the voucher or on this approval screen, same rule as the backend (display only).
+  const canApprove = (item: ApprovalItem) => canApproveVoucher(currentUser, VOUCHER_OF[item.type]);
   const [items, setItems] = useState<ApprovalItem[]>([
     {
       id: 'APP001',
@@ -187,7 +197,10 @@ export const InventoryApprovalView: React.FC<InventoryApprovalViewProps> = ({
                     )}
                   </td>
                   <td className="py-3 px-4 text-right">
-                    {item.status === 'PENDING' && (
+                    {item.status === 'PENDING' && !canApprove(item) && (
+                      <span className="text-[11px] text-slate-400">Không có quyền duyệt</span>
+                    )}
+                    {item.status === 'PENDING' && canApprove(item) && (
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleApprove(item.id, item.code)}
@@ -199,7 +212,7 @@ export const InventoryApprovalView: React.FC<InventoryApprovalViewProps> = ({
                           onClick={() => handleReject(item.id, item.code)}
                           className="px-2.5 py-1 bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-950/60 dark:text-rose-300 rounded-lg font-bold text-[11px] flex items-center gap-1"
                         >
-                          <XCircle className="h-3.5 w-3.5" /> Tuốit
+                          <XCircle className="h-3.5 w-3.5" /> Từ chối
                         </button>
                       </div>
                     )}

@@ -2,6 +2,7 @@ import React from 'react';
 import { useNumberFormat } from '../../context/NumberFormatContext';
 import { NumberInput } from './NumberInput';
 import { Plus, Minus } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface QuantityInputProps {
   value: number;
@@ -40,6 +41,7 @@ export const QuantityInput: React.FC<QuantityInputProps> = ({
   dataGridRow,
   dataGridCol
 }) => {
+  const { t } = useLanguage();
   const { config } = useNumberFormat();
 
   const handleDecrement = () => {
@@ -77,7 +79,7 @@ export const QuantityInput: React.FC<QuantityInputProps> = ({
             onClick={handleDecrement}
             disabled={min !== undefined && (value || 0) <= min}
             className="h-[26px] w-[26px] flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
-            title="Giảm số lượng"
+            title={t('controls.quantity.decrease')}
           >
             <Minus className="h-3 w-3" />
           </button>
@@ -108,7 +110,7 @@ export const QuantityInput: React.FC<QuantityInputProps> = ({
             onClick={handleIncrement}
             disabled={max !== undefined && (value || 0) >= max}
             className="h-[26px] w-[26px] flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
-            title="Tăng số lượng"
+            title={t('controls.quantity.increase')}
           >
             <Plus className="h-3 w-3" />
           </button>

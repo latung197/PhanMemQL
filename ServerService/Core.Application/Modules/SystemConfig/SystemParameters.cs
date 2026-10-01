@@ -64,22 +64,21 @@ public sealed record SystemParameters(
         if (section == "systemDefaults")
         {
             if (Text(value, "costingMethod") is not { } method || !CostingMethods.All.Contains(method))
-                throw new BusinessRuleException("Phương pháp tính giá xuất kho không hợp lệ.");
-            if (Text(value, "defaultCurrency") is null)
-                throw new BusinessRuleException("Vui lòng chọn đồng tiền hạch toán mặc định.");
+                throw new BusinessRuleException("settings.costingMethod");
+            // defaultCurrency is not checked: it is the base currency of the catalog (SystemConfigSections.BaseCurrencyField).
             if (value.TryGetProperty("defaultVatRate", out _) && (Number(value, "defaultVatRate") is not { } vat || !VatRates.Contains(vat)))
-                throw new BusinessRuleException("Thuế suất GTGT mặc định chỉ được là 0, 5, 8 hoặc 10%.");
+                throw new BusinessRuleException("settings.vatRate");
         }
         EnsureFlagOrNull(value, "allowNegativeStock");
         EnsureFlagOrNull(value, "requireApprovalBeforePosting");
         if (Text(value, "defaultWarehouse") is { Length: > 20 })
-            throw new BusinessRuleException("Mã kho mặc định không được vượt quá 20 ký tự.");
+            throw new BusinessRuleException("settings.warehouseCodeLength");
     }
 
     private static void EnsureFlagOrNull(JsonElement value, string name)
     {
         if (value.TryGetProperty(name, out var p) && p.ValueKind is not (JsonValueKind.True or JsonValueKind.False or JsonValueKind.Null))
-            throw new BusinessRuleException("Dữ liệu cài đặt không đúng định dạng.");
+            throw new BusinessRuleException("settings.invalidFormat");
     }
 
     private static string? Text(JsonElement e, string name) =>

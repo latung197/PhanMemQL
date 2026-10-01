@@ -32,12 +32,14 @@ public sealed class SettingsBackupService(CoreContext db, IUnitOfWork unitOfWork
         {
             using var document = JsonDocument.Parse(setting.Value);
             var value = document.RootElement.Clone();
-            if (setting.Scope == SystemSetting.GlobalScope) sections[keys[setting.Key]] = value;
-            else if (setting.Scope.StartsWith("U:", StringComparison.Ordinal))
+            var section = keys[setting.Key];
+            // Same rule as SystemConfigService: unit-only sections per unit, the others company-wide only.
+            if (setting.Scope == SystemSetting.GlobalScope) { if (!SystemConfigSections.IsUnitOnly(section)) sections[section] = value; }
+            else if (setting.Scope.StartsWith("U:", StringComparison.Ordinal) && SystemConfigSections.IsUnitOnly(section))
             {
                 var unit = setting.Scope[2..];
                 if (!unitSections.TryGetValue(unit, out var own)) unitSections[unit] = own = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-                ((Dictionary<string, JsonElement>)own)[keys[setting.Key]] = value;
+                ((Dictionary<string, JsonElement>)own)[section] = value;
             }
         }
 
@@ -53,7 +55,7 @@ public sealed class SettingsBackupService(CoreContext db, IUnitOfWork unitOfWork
     public async Task RestoreAsync(int userId, string unitCode, SettingsBackup backup, CancellationToken ct)
     {
         if (backup is null || backup.Version is < 3 or > CurrentVersion)
-            throw new BusinessRuleException("File sao lưu không đúng định dạng hoặc được tạo từ phiên bản khác.");
+            throw new BusinessRuleException("settings.backupInvalid");
 
         await unitOfWork.ExecuteAsync(async token =>
         {
@@ -70,14 +72,16 @@ public sealed class SettingsBackupService(CoreContext db, IUnitOfWork unitOfWork
                     await rates.UpdateAsync(userId, long.Parse(found.Id), item, token);
                 else await rates.CreateAsync(userId, item, token);
 
-            foreach (var (section, value) in backup.Sections ?? new Dictionary<string, JsonElement>())
+            // Older backups may hold sections in the wrong scope (e.g. a unit copy of systemDefaults); they are skipped.
+            foreach (var (section, value) in (backup.Sections ?? new Dictionary<string, JsonElement>())
+                         .Where(x => !SystemConfigSections.IsUnitOnly(x.Key)))
                 await config.SaveAsync(userId, section, value, null, token);
 
             // Units that no longer exist are skipped.
             var units = await db.CompanyUnits.AsNoTracking().Select(x => x.Code).ToListAsync(token);
             foreach (var (unit, own) in (backup.UnitSections ?? new Dictionary<string, IReadOnlyDictionary<string, JsonElement>>())
                          .Where(x => units.Contains(x.Key)))
-                foreach (var (section, value) in own)
+                foreach (var (section, value) in own.Where(x => SystemConfigSections.IsUnitOnly(x.Key)))
                     await config.SaveAsync(userId, section, value, unit, token);
 
             var existingDepartments = (await departments.GetAllAsync(token)).Select(x => x.Code).ToHashSet();

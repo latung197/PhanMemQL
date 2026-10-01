@@ -113,11 +113,11 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
 
       // 2. Phê duyệt
       case 'inv_approve_receipt':
-        return <InventoryApprovalView typeFilter="receipt" />;
+        return <InventoryApprovalView typeFilter="receipt" currentUser={currentUser} />;
       case 'inv_approve_issue':
-        return <InventoryApprovalView typeFilter="issue" />;
+        return <InventoryApprovalView typeFilter="issue" currentUser={currentUser} />;
       case 'inv_approve_transfer':
-        return <InventoryApprovalView typeFilter="transfer" />;
+        return <InventoryApprovalView typeFilter="transfer" currentUser={currentUser} />;
 
       // 3. Danh mục
       case 'inv_company_unit_cat':
@@ -135,7 +135,7 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
       case 'inv_material_type_cat':
         return <MaterialTypeCategoryView materialTypes={materialTypes} currentUser={currentUser} />;
       case 'inv_uom_cat':
-        return <UomCategoryView unitsOfMeasure={unitsOfMeasure} currentUser={currentUser} />;
+        return <UomCategoryView currentUser={currentUser} />;
       case 'inv_uom_conversion_cat':
         return <UomConversionCategoryView conversions={uomConversions} products={products} unitsOfMeasure={unitsOfMeasure} currentUser={currentUser} />;
       case 'inv_stock_norm_cat':

@@ -625,6 +625,15 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             icon: 'ShieldCheck',
             orderNo: 10,
             isActive: true
+          },
+          {
+            id: 'MNU_SYS_AUDIT_LOG',
+            subKey: 'sys_audit_log',
+            titleVi: 'Nhật ký thay đổi',
+            titleEn: 'Change Log',
+            icon: 'History',
+            orderNo: 20,
+            isActive: true
           }
         ]
       },
@@ -693,6 +702,15 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleEn: 'Fiscal Year & Entry Start Date',
             icon: 'Calendar',
             orderNo: 20,
+            isActive: true
+          },
+          {
+            id: 'MNU_SYS_LANGUAGES',
+            subKey: 'sys_languages',
+            titleVi: 'Danh mục ngôn ngữ',
+            titleEn: 'Languages',
+            icon: 'Languages',
+            orderNo: 30,
             isActive: true
           }
         ]

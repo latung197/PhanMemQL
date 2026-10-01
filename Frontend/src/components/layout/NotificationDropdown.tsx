@@ -3,6 +3,7 @@ import { Bell, CheckCheck, Trash2, AlertTriangle, Info, CheckCircle2, AlertCircl
 import { SystemNotification } from '../../types';
 import { formatRelativeTime } from '../../services/notificationService';
 import { useConfirm } from '../common/ConfirmDialog';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface NotificationDropdownProps {
   notifications: SystemNotification[];
@@ -39,6 +40,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   onSelectNotification,
   onCompose
 }) => {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const confirm = useConfirm();
 
@@ -54,9 +56,9 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 
   const handleClearAll = async () => {
     const ok = await confirm({
-      title: 'Xóa tất cả thông báo?',
-      message: `${notifications.length} thông báo sẽ bị ẩn khỏi danh sách của bạn. Người khác vẫn nhận được bình thường.`,
-      confirmLabel: 'Xóa tất cả',
+      title: t('layout.notifications.clearAllTitle'),
+      message: t('layout.notifications.clearAllMessage', { n: notifications.length }),
+      confirmLabel: t('layout.notifications.clearAll'),
       tone: 'warning'
     });
     if (ok) onClearAll();
@@ -67,8 +69,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-1.5 rounded-[5px] text-slate-600 dark:text-slate-300 hover:bg-brand-100 dark:hover:bg-slate-700 relative transition-colors focus:outline-hidden cursor-pointer"
-        title={unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Thông báo'}
-        aria-label="Thông báo"
+        title={unreadCount > 0 ? t('layout.notifications.unreadTitle', { n: unreadCount }) : t('layout.notifications.title')}
+        aria-label={t('layout.notifications.title')}
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
@@ -87,7 +89,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               <div className="flex items-center gap-2 min-w-0">
                 <Bell className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                 <h4 className="font-bold text-xs text-slate-900 dark:text-slate-200 truncate">
-                  Thông báo {unreadCount > 0 && <span className="text-rose-600 dark:text-rose-400">({unreadCount} chưa đọc)</span>}
+                  {t('layout.notifications.title')} {unreadCount > 0 && <span className="text-rose-600 dark:text-rose-400">{t('layout.notifications.unread', { n: unreadCount })}</span>}
                 </h4>
               </div>
               <div className="flex items-center gap-3 shrink-0">
@@ -97,7 +99,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                     className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
                   >
                     <Send className="h-3 w-3" />
-                    Gửi
+                    {t('layout.notifications.send')}
                   </button>
                 )}
                 {unreadCount > 0 && (
@@ -106,7 +108,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                     className="text-[11px] text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1 transition-colors cursor-pointer"
                   >
                     <CheckCheck className="h-3 w-3" />
-                    Đọc tất cả
+                    {t('layout.notifications.readAll')}
                   </button>
                 )}
                 {notifications.length > 0 && (
@@ -115,7 +117,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                     className="text-[11px] text-slate-400 hover:text-rose-500 flex items-center gap-1 transition-colors cursor-pointer"
                   >
                     <Trash2 className="h-3 w-3" />
-                    Xóa tất cả
+                    {t('layout.notifications.clearAll')}
                   </button>
                 )}
               </div>
@@ -125,7 +127,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
             <div className="max-h-96 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
               {notifications.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 text-xs">
-                  Không có thông báo nào
+                  {t('layout.notifications.empty')}
                 </div>
               ) : (
                 notifications.map((item) => (
@@ -146,7 +148,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                     <div className="grow min-w-0 text-xs space-y-1">
                       <div className="flex justify-between items-start gap-2">
                         <span className={`font-bold break-words ${!item.read ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400'}`}>
-                          {!item.read && <span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-500 mr-1.5 align-middle" aria-label="Chưa đọc" />}
+                          {!item.read && <span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-500 mr-1.5 align-middle" aria-label={t('layout.notifications.unreadDot')} />}
                           {item.title}
                         </span>
                         <span className="text-[10px] text-slate-400 shrink-0" title={new Date(item.time).toLocaleString('vi-VN')}>
@@ -158,15 +160,15 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                       </p>
                       {(item.sender || item.linkDocumentId) && (
                         <p className="text-[10px] text-slate-400 flex flex-wrap gap-x-2">
-                          {item.sender && <span>Gửi bởi {item.sender}</span>}
-                          {item.linkDocumentId && <span className="text-indigo-500 dark:text-indigo-400 font-semibold">Mở phiếu {item.linkDocumentId} →</span>}
+                          {item.sender && <span>{t('layout.notifications.sentBy', { name: item.sender })}</span>}
+                          {item.linkDocumentId && <span className="text-indigo-500 dark:text-indigo-400 font-semibold">{t('layout.notifications.openDocument', { id: item.linkDocumentId })}</span>}
                         </p>
                       )}
                     </div>
                     <button
                       type="button"
-                      title="Ẩn thông báo này"
-                      aria-label="Ẩn thông báo này"
+                      title={t('layout.notifications.hide')}
+                      aria-label={t('layout.notifications.hide')}
                       onClick={(e) => { e.stopPropagation(); onDismiss(item.id); }}
                       className="absolute top-2.5 right-2 p-0.5 rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer"
                     >

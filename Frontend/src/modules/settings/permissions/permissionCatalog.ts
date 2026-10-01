@@ -3,39 +3,37 @@
 import { ActionPermissions, ModuleCategoryKey, SubMenuKey, UserProfile } from '../../../types';
 import { getActionPermission } from '../../../utils/permissions';
 import { FUNCTION_KEYS, FUNCTION_REGISTRY, FunctionKind } from '../../../config/functions';
+import { translate } from '../../../utils/i18n';
 
-export type ModuleName = 'Kho Hàng' | 'Bán Hàng' | 'Tài Chính' | 'Nhân Sự' | 'Hệ Thống';
+/** Module of the matrix; its name is permissions.module.<key>. */
+export type ModuleName = 'inventory' | 'sales' | 'finance' | 'hr' | 'system';
 export type FunctionGroup = 'danh_muc' | 'chung_tu' | 'bao_cao' | 'he_thong';
 
 export interface FunctionItem {
   subKey: SubMenuKey;
-  label: string;
   module: ModuleName;
   group: FunctionGroup;
 }
 
 export type FullMatrix = Record<SubMenuKey, ActionPermissions>;
 
-export const ACTIONS: { key: keyof ActionPermissions; label: string; short: string }[] = [
-  { key: 'view', label: 'Xem', short: 'Xem' },
-  { key: 'createEdit', label: 'Thêm & Sửa', short: 'Thêm/Sửa' },
-  { key: 'delete', label: 'Xóa', short: 'Xóa' },
-  { key: 'approve', label: 'Phê duyệt', short: 'Duyệt' },
-  { key: 'printExport', label: 'In & Xuất file', short: 'In/Xuất' }
+/** The five actions; names are permissions.action.<key> (label) and permissions.actionShort.<key> (column). */
+export const ACTIONS: { key: keyof ActionPermissions }[] = [
+  { key: 'view' }, { key: 'createEdit' }, { key: 'delete' }, { key: 'approve' }, { key: 'printExport' }
 ];
 
-export const GROUP_LABELS: Record<FunctionGroup, string> = {
-  danh_muc: 'Danh mục',
-  chung_tu: 'Chứng từ',
-  bao_cao: 'Báo cáo',
-  he_thong: 'Hệ thống'
-};
+export const actionLabel = (key: keyof ActionPermissions) => translate(`permissions.action.${key}`);
+export const actionShortLabel = (key: keyof ActionPermissions) => translate(`permissions.actionShort.${key}`);
 
-export const MODULE_NAMES: ModuleName[] = ['Kho Hàng', 'Bán Hàng', 'Tài Chính', 'Nhân Sự', 'Hệ Thống'];
+const GROUP_ORDER: FunctionGroup[] = ['danh_muc', 'chung_tu', 'bao_cao', 'he_thong'];
+export const groupLabel = (group: FunctionGroup) => translate(`permissions.group.${group}`);
+
+export const MODULE_NAMES: ModuleName[] = ['inventory', 'sales', 'finance', 'hr', 'system'];
+export const moduleLabel = (module: ModuleName) => translate(`permissions.module.${module}`);
 
 const MODULE_OF: Record<ModuleCategoryKey, ModuleName> = {
-  inventory: 'Kho Hàng', sales: 'Bán Hàng', finance: 'Tài Chính', hr: 'Nhân Sự',
-  overview: 'Hệ Thống', reports: 'Hệ Thống', ai: 'Hệ Thống', settings: 'Hệ Thống'
+  inventory: 'inventory', sales: 'sales', finance: 'finance', hr: 'hr',
+  overview: 'system', reports: 'system', ai: 'system', settings: 'system'
 };
 
 const GROUP_OF: Record<FunctionKind, FunctionGroup> = {
@@ -47,10 +45,10 @@ export const FUNCTIONS: FunctionItem[] = FUNCTION_KEYS
   .map((subKey): FunctionItem => {
     const def = FUNCTION_REGISTRY[subKey];
     const module = MODULE_OF[def.category];
-    return { subKey, label: def.label, module, group: module === 'Hệ Thống' ? 'he_thong' : GROUP_OF[def.kind] };
+    return { subKey, module, group: module === 'system' ? 'he_thong' : GROUP_OF[def.kind] };
   })
   .sort((a, b) => MODULE_NAMES.indexOf(a.module) - MODULE_NAMES.indexOf(b.module)
-    || Object.keys(GROUP_LABELS).indexOf(a.group) - Object.keys(GROUP_LABELS).indexOf(b.group));
+    || GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group));
 
 const NONE: ActionPermissions = { view: false, createEdit: false, delete: false, approve: false, printExport: false };
 const ALL: ActionPermissions = { view: true, createEdit: true, delete: true, approve: true, printExport: true };
@@ -59,9 +57,10 @@ const ALL: ActionPermissions = { view: true, createEdit: true, delete: true, app
 export const toFullMatrix = (source: Pick<UserProfile, 'isSystemAdmin' | 'permissions'>): FullMatrix =>
   Object.fromEntries(FUNCTIONS.map(fn => [fn.subKey, getActionPermission(source, fn.subKey)])) as FullMatrix;
 
+/** Same value on every function; the landing page stays viewable even with 'none'. */
 export const uniformMatrix = (value: 'none' | 'all' | 'view'): FullMatrix =>
   Object.fromEntries(FUNCTIONS.map(fn => [fn.subKey,
-    value === 'all' ? ALL : value === 'view' ? { ...NONE, view: true } : NONE])) as FullMatrix;
+    value === 'all' ? ALL : value === 'view' || fn.subKey === 'overview_main' ? { ...NONE, view: true } : NONE])) as FullMatrix;
 
 /** Number of checkboxes that differ between two matrices. */
 export const countDifferences = (a: FullMatrix, b: FullMatrix): number =>
@@ -74,6 +73,16 @@ export const countViewable = (m: FullMatrix): number => FUNCTIONS.filter(fn => m
 
 /** Special rights are compared as sets of "{function}:{code}". */
 export const normalizeRights = (rights?: string[]): string[] => [...new Set(rights ?? [])].sort();
+
+/** The landing page: always viewable (backend PermissionMatrix.LandingFunction), so its "view" is locked on. */
+export const LANDING_FUNCTION: SubMenuKey = 'overview_main';
+
+/**
+ * Special rights only count on functions the matrix may view (backend PermissionMatrix.VisibleRights): the profile
+ * leaves the others out, and the backend stores no exception for them, so they keep following the role.
+ */
+export const visibleRights = (rights: string[] | undefined, matrix: FullMatrix): string[] =>
+  normalizeRights((rights ?? []).filter(key => matrix[key.slice(0, key.indexOf(':')) as SubMenuKey]?.view));
 
 export const countRightDifferences = (a: string[], b: string[]): number => {
   const setA = new Set(a);

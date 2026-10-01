@@ -9,6 +9,9 @@ public sealed record ChangePasswordRequest(string CurrentPassword, string NewPas
 public sealed record UpdateMyProfileRequest(string FullName, string? Email, string? Phone,
     string? Avatar, string? ThemePref, bool NotificationsEnabled);
 
+/// <summary>Null = follow the default language of the company.</summary>
+public sealed record SetMyLanguageRequest(string? Language);
+
 public sealed record AuthResult(string Token, DateTime ExpiresAt, UserProfileDto User);
 
 public interface IAuthService
@@ -23,4 +26,7 @@ public interface IAuthService
         CancellationToken ct);
 
     Task<bool> HasUnitAccessAsync(int userId, string unitCode, CancellationToken ct);
+
+    /// <summary>Saves the signed-in user's own language (must be active; null = the company default).</summary>
+    Task<UserProfileDto> SetMyLanguageAsync(int userId, string unitCode, string? language, CancellationToken ct);
 }

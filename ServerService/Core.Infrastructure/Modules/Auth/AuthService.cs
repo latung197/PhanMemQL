@@ -1,3 +1,4 @@
+using Core.Application.Common.Auditing;
 using Core.Application.Common.Exceptions;
 using Core.Application.Common.Security;
 using Core.Application.Common.Validation;
@@ -11,9 +12,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Core.Infrastructure.Modules.Auth;
 
 public sealed class AuthService(CoreContext db, IPasswordService passwords, ITokenService tokens,
-    IPermissionService permissions, UserProfileBuilder profiles) : IAuthService
+    IPermissionService permissions, UserProfileBuilder profiles, UserAccessAudit audit) : IAuthService
 {
-    private const string WrongCredentials = "Tên đăng nhập hoặc mật khẩu không đúng.";
+    private const string WrongCredentials = "auth.wrongCredentials";
 
     // Verified when the username does not exist, so both failures take about the same time.
     private static readonly SysUser TimingDummy = new()
@@ -42,7 +43,7 @@ public sealed class AuthService(CoreContext db, IPasswordService passwords, ITok
 
         var unitCode = request.UnitCode?.Trim() ?? string.Empty;
         if (!await HasUnitAccessAsync(user.UserId, unitCode, ct))
-            throw new AuthenticationFailedException("Tài khoản không được phép truy cập đơn vị cơ sở đã chọn.");
+            throw new AuthenticationFailedException("auth.selectedUnitDenied");
         return await IssueAsync(user, unitCode, ct);
     }
 
@@ -50,7 +51,7 @@ public sealed class AuthService(CoreContext db, IPasswordService passwords, ITok
     {
         var user = await FindActiveAsync(userId, ct);
         if (!await HasUnitAccessAsync(userId, unitCode, ct))
-            throw new ForbiddenException("Tài khoản không được phép truy cập đơn vị cơ sở này.");
+            throw new ForbiddenException("auth.unitDenied");
         return await IssueAsync(user, unitCode, ct);
     }
 
@@ -58,15 +59,15 @@ public sealed class AuthService(CoreContext db, IPasswordService passwords, ITok
         UpdateMyProfileRequest request, CancellationToken ct)
     {
         var user = await FindActiveAsync(userId, ct);
-        user.FullName = Guard.Required(request.FullName, 100, "họ tên");
-        user.Email = Guard.Optional(request.Email, 150, "Email");
-        user.Phone = Guard.Optional(request.Phone, 20, "Số điện thoại");
-        user.Avatar = Guard.Optional(request.Avatar, 2000, "Ảnh đại diện") ?? string.Empty;
+        user.FullName = Guard.Required(request.FullName, 100, "field.fullName");
+        user.Email = Guard.Optional(request.Email, 150, "field.email");
+        user.Phone = Guard.Optional(request.Phone, 20, "field.phone");
+        user.Avatar = Guard.Optional(request.Avatar, 2000, "field.avatar") ?? string.Empty;
         user.ThemePref = request.ThemePref is "dark" ? "dark" : "light";
         user.NotificationsEnabled = request.NotificationsEnabled;
         if (user.Email is { } email && await db.Users.NotDeleted().AnyAsync(x => x.UserId != userId
                 && x.Email != null && x.Email.ToLower() == email.ToLower(), ct))
-            throw new BusinessRuleException("Email đã được dùng cho tài khoản khác.");
+            throw new BusinessRuleException("users.emailTaken");
         await db.SaveChangesAsync(ct);
         return await profiles.BuildAsync(user, unitCode, ct);
     }
@@ -76,12 +77,24 @@ public sealed class AuthService(CoreContext db, IPasswordService passwords, ITok
     {
         var user = await FindActiveAsync(userId, ct);
         if (!passwords.Verify(user, request.CurrentPassword ?? string.Empty, out _))
-            throw new BusinessRuleException("Mật khẩu hiện tại không đúng.");
+            throw new BusinessRuleException("auth.wrongCurrentPassword");
         PasswordPolicy.Validate(request.NewPassword);
         user.PasswordHash = passwords.Hash(user, request.NewPassword);
         user.SecurityVersion++;
+        await audit.RecordActionAsync(user, AuditActions.ChangePassword, ct);
         await db.SaveChangesAsync(ct);
         return await IssueAsync(user, unitCode, ct);
+    }
+
+    public async Task<UserProfileDto> SetMyLanguageAsync(int userId, string unitCode, string? language, CancellationToken ct)
+    {
+        var user = await FindActiveAsync(userId, ct);
+        var code = string.IsNullOrWhiteSpace(language) ? null : language.Trim().ToLowerInvariant();
+        if (code is not null && !await db.Languages.AnyAsync(x => x.Code == code && x.IsActive, ct))
+            throw new BusinessRuleException("language.notAvailable");
+        user.Language = code;
+        await db.SaveChangesAsync(ct);
+        return await profiles.BuildAsync(user, unitCode, ct);
     }
 
     public async Task<bool> HasUnitAccessAsync(int userId, string unitCode, CancellationToken ct)
@@ -95,7 +108,7 @@ public sealed class AuthService(CoreContext db, IPasswordService passwords, ITok
 
     private async Task<SysUser> FindActiveAsync(int userId, CancellationToken ct) =>
         await db.Users.ActiveUsers().FirstOrDefaultAsync(x => x.UserId == userId, ct)
-        ?? throw new AuthenticationFailedException("Tài khoản không tồn tại hoặc đã bị khóa.");
+        ?? throw new AuthenticationFailedException("auth.accountUnavailable");
 
     private async Task<AuthResult> IssueAsync(SysUser user, string unitCode, CancellationToken ct)
     {

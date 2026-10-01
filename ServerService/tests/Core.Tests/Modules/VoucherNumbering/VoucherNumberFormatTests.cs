@@ -11,6 +11,16 @@ public sealed class VoucherNumberFormatTests
     private static readonly DateOnly Date = new(2026, 9, 5);
 
     [Fact]
+    public void SeriesTellsVoucherTypesApart()
+    {
+        // Same prefix and pattern on two voucher types: identical numbers.
+        Assert.Equal(VoucherNumberFormat.Series(VoucherCatalog.DefaultPattern, "PXK"), VoucherNumberFormat.Series(VoucherCatalog.DefaultPattern, "PXK"));
+        // A pattern without {PREFIX} that spells the same text clashes too.
+        Assert.Equal(VoucherNumberFormat.Series("PXK-{YYYY}{MM}-{SEQ}", "XX"), VoucherNumberFormat.Series(VoucherCatalog.DefaultPattern, "PXK"));
+        Assert.NotEqual(VoucherNumberFormat.Series(VoucherCatalog.DefaultPattern, "PXK"), VoucherNumberFormat.Series(VoucherCatalog.DefaultPattern, "PXDC"));
+    }
+
+    [Fact]
     public void FormatsEveryToken()
     {
         Assert.Equal("PNK-202609-0007", VoucherNumberFormat.Format(VoucherCatalog.DefaultPattern, "PNK", 4, "DVCS01", Date, 7));

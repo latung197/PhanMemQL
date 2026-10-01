@@ -100,14 +100,14 @@ public sealed class UserAccessWriter(CoreContext db)
         CancellationToken ct)
     {
         var main = defaultUnit?.Trim();
-        if (string.IsNullOrEmpty(main)) throw new BusinessRuleException("Vui lòng chọn đơn vị cơ sở mặc định.");
+        if (string.IsNullOrEmpty(main)) throw new BusinessRuleException("users.defaultUnitRequired");
         var codes = new[] { main }.Concat((allowed ?? []).Select(x => x.Trim()).Where(x => x.Length > 0))
             .Distinct(StringComparer.Ordinal).ToList();
         var active = await db.CompanyUnits.AsNoTracking()
             .Where(x => codes.Contains(x.Code) && x.IsActive).Select(x => x.Code).ToListAsync(ct);
         var missing = codes.FirstOrDefault(code => !active.Contains(code));
         if (missing is not null)
-            throw new BusinessRuleException($"Đơn vị cơ sở {missing} không tồn tại hoặc đang tạm dừng.");
+            throw new BusinessRuleException("users.unitUnavailable", missing);
         return codes;
     }
 }

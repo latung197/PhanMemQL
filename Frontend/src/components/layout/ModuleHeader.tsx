@@ -1,6 +1,7 @@
 import React from 'react';
 import { Layers } from 'lucide-react';
 import { SubMenuKey, UserProfile } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface ModuleNavItem {
   subKey: SubMenuKey;
@@ -36,6 +37,7 @@ export const ModuleHeader: React.FC<ModuleHeaderProps> = ({
   onSelectSubKey,
   currentUser
 }) => {
+  const { t } = useLanguage();
   // Find current active item title if groups is passed
   let activeItemLabel = '';
   if (groups) {
@@ -69,7 +71,7 @@ export const ModuleHeader: React.FC<ModuleHeaderProps> = ({
         {/* Active Screen Tag */}
         {activeItemLabel && (
           <div className="text-right hidden sm:block shrink-0">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Màn hình hiện tại</span>
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">{t('layout.moduleHeader.current')}</span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               {activeItemLabel}

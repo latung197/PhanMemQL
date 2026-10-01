@@ -10,12 +10,18 @@ import { Department, rolesApi, usersApi } from '../../services/settingsApi';
 import { getErrorMessage } from '../../services/apiClient';
 import { showToast } from '../../utils/toast';
 import { countViewable, toFullMatrix } from './permissions/permissionCatalog';
+import { useLanguage } from '../../context/LanguageContext';
+import { translate } from '../../utils/i18n';
 
 /** Department picker; inactive departments are only listed when already selected. */
-const DepartmentSelect: React.FC<{ departments: Department[]; value: string; onChange: (code: string) => void }> = ({ departments, value, onChange }) => (
-  <SelectInput label="Phòng ban" value={value} onChange={(e) => onChange(e.target.value)} placeholder="— Chưa chọn phòng ban —"
-    options={departments.filter(d => d.isActive || d.code === value).map(d => ({ value: d.code, label: d.name }))} />
-);
+const DepartmentSelect: React.FC<{ departments: Department[]; value: string; onChange: (code: string) => void }> = ({ departments, value, onChange }) => {
+  const { t } = useLanguage();
+  return (
+    <SelectInput label={t('users.form.department')} value={value} onChange={(e) => onChange(e.target.value)}
+      placeholder={t('users.form.noDepartment')}
+      options={departments.filter(d => d.isActive || d.code === value).map(d => ({ value: d.code, label: d.name }))} />
+  );
+};
 
 /** Same rule as the backend (UserService): lowercase letters, digits, ".", "_" or "-". */
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,50}$/;
@@ -24,16 +30,13 @@ const MIN_PASSWORD = 8;
 
 type FieldErrors = Partial<Record<'username' | 'password' | 'confirmPassword' | 'fullName' | 'email' | 'employeeCode' | 'defaultUnit', string>>;
 
+/** Fields a backend message can be about, in the order they are looked for (texts: users.serverField.*). */
+const SERVER_FIELDS: (keyof FieldErrors)[] = ['username', 'password', 'email', 'employeeCode', 'fullName', 'defaultUnit'];
+
 /** Puts a backend message on the field it is about, so it shows next to that input. */
 const fieldOfServerError = (message: string): keyof FieldErrors | null => {
   const m = message.toLowerCase();
-  if (m.includes('tên đăng nhập')) return 'username';
-  if (m.includes('mật khẩu')) return 'password';
-  if (m.includes('email')) return 'email';
-  if (m.includes('mã nhân viên')) return 'employeeCode';
-  if (m.includes('họ tên')) return 'fullName';
-  if (m.includes('đơn vị')) return 'defaultUnit';
-  return null;
+  return SERVER_FIELDS.find(field => m.includes(translate(`users.serverField.${field}`).toLowerCase())) ?? null;
 };
 
 /** Readable random password: no look-alike characters, always a digit and a symbol. */
@@ -61,20 +64,21 @@ const UnitAccessFields: React.FC<{
   onDefaultUnitChange: (code: string) => void;
   onAllowedChange: (codes: string[]) => void;
 }> = ({ units, defaultUnit, allowed, error, onDefaultUnitChange, onAllowedChange }) => {
+  const { t } = useLanguage();
   const selected = new Set([defaultUnit, ...allowed]);
   const allSelected = units.every(u => selected.has(u.code));
   return (
     <div className="space-y-2">
-      <SelectInput label="Đơn vị làm việc mặc định" required value={defaultUnit} error={error}
-        hint="Đơn vị được chọn sẵn khi đăng nhập"
+      <SelectInput label={t('users.form.defaultUnit')} required value={defaultUnit} error={error}
+        hint={t('users.form.defaultUnitHint')}
         onChange={(e) => onDefaultUnitChange(e.target.value)}
         options={units.map(u => ({ value: u.code, label: `${u.code} - ${u.name}` }))} />
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Được phép đăng nhập vào</span>
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('users.form.allowedUnits')}</span>
           <button type="button" className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
             onClick={() => onAllowedChange(allSelected ? [] : units.map(u => u.code))}>
-            {allSelected ? 'Chỉ đơn vị mặc định' : 'Chọn tất cả'}
+            {allSelected ? t('users.form.onlyDefaultUnit') : t('users.form.selectAll')}
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2 rounded-[5px] bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
@@ -84,7 +88,7 @@ const UnitAccessFields: React.FC<{
               checked={selected.has(u.code)}
               disabled={u.code === defaultUnit}
               label={`${u.code} - ${u.shortName || u.name}`}
-              subLabel={u.code === defaultUnit ? 'Đơn vị mặc định' : undefined}
+              subLabel={u.code === defaultUnit ? t('users.form.isDefaultUnit') : undefined}
               onChange={(on) => onAllowedChange(on ? [...allowed, u.code] : allowed.filter(code => code !== u.code))}
             />
           ))}
@@ -96,17 +100,18 @@ const UnitAccessFields: React.FC<{
 
 /** Role select with a short preview of what the role grants. */
 const RolePicker: React.FC<{ roles: RoleDefinition[]; value: string; onChange: (id: string) => void }> = ({ roles, value, onChange }) => {
+  const { t } = useLanguage();
   const role = roles.find(r => r.id === value);
   const viewable = role ? countViewable(toFullMatrix({ isSystemAdmin: role.isSystemRole, permissions: role.permissions })) : 0;
   return (
     <div className="space-y-1.5">
-      <SelectInput label="Vai trò" value={value} onChange={(e) => onChange(e.target.value)}
-        placeholder="— Chưa gán vai trò (không có quyền) —"
+      <SelectInput label={t('users.form.role')} value={value} onChange={(e) => onChange(e.target.value)}
+        placeholder={t('users.form.noRoleNoRights')}
         options={roles.map(r => ({ value: r.id, label: `${r.name} [${r.code}]` }))} />
       <p className="text-[11px] text-slate-500 dark:text-slate-400">
         {role
-          ? <>{role.isSystemRole ? 'Toàn quyền trên mọi chức năng.' : `Được xem ${viewable} chức năng.`} {role.description}</>
-          : 'Tài khoản chưa có quyền nào cho đến khi được gán vai trò hoặc cấp quyền riêng.'}
+          ? <>{role.isSystemRole ? t('users.form.roleAll') : t('users.form.roleViewable', { n: viewable })} {role.description}</>
+          : t('users.form.roleNone')}
       </p>
     </div>
   );
@@ -121,6 +126,7 @@ export const CreateUserModal: React.FC<{
   onClose: () => void;
   onCreated: (user: UserProfile) => void;
 }> = ({ roles, units, departments, defaultUnitCode, suggestedEmployeeCode, onClose, onCreated }) => {
+  const { t } = useLanguage();
   const [form, setForm] = useState({
     username: '', password: '', confirmPassword: '', fullName: '', employeeCode: suggestedEmployeeCode,
     email: '', phone: '', departmentCode: '', roleId: roles.find(r => !r.isSystemRole)?.id || '',
@@ -138,12 +144,12 @@ export const CreateUserModal: React.FC<{
   const validate = (): FieldErrors => {
     const e: FieldErrors = {};
     if (!USERNAME_PATTERN.test(form.username.trim()))
-      e.username = 'Từ 3–50 ký tự, chỉ gồm chữ thường không dấu, số và . _ -';
-    if (form.password.length < MIN_PASSWORD) e.password = `Tối thiểu ${MIN_PASSWORD} ký tự`;
-    if (form.confirmPassword !== form.password) e.confirmPassword = 'Mật khẩu nhập lại không khớp';
-    if (!form.fullName.trim()) e.fullName = 'Vui lòng nhập họ và tên';
-    if (form.email.trim() && !EMAIL_PATTERN.test(form.email.trim())) e.email = 'Email không hợp lệ';
-    if (!form.defaultUnit) e.defaultUnit = 'Vui lòng chọn đơn vị làm việc';
+      e.username = t('users.form.usernameInvalid');
+    if (form.password.length < MIN_PASSWORD) e.password = t('users.form.minPassword', { n: MIN_PASSWORD });
+    if (form.confirmPassword !== form.password) e.confirmPassword = t('users.form.passwordMismatch');
+    if (!form.fullName.trim()) e.fullName = t('users.form.fullNameRequired');
+    if (form.email.trim() && !EMAIL_PATTERN.test(form.email.trim())) e.email = t('users.form.emailInvalid');
+    if (!form.defaultUnit) e.defaultUnit = t('users.form.unitRequired');
     return e;
   };
 
@@ -177,44 +183,44 @@ export const CreateUserModal: React.FC<{
     const password = generatePassword();
     setForm(prev => ({ ...prev, password, confirmPassword: password }));
     setErrors(prev => ({ ...prev, password: undefined, confirmPassword: undefined }));
-    showToast.info('Đã tạo mật khẩu ngẫu nhiên. Bấm biểu tượng con mắt để xem và gửi cho nhân viên.');
+    showToast.info(t('users.form.passwordGenerated'));
   };
 
   return (
-    <Modal isOpen onClose={onClose} maxWidth="3xl" title={<><UserPlus className="h-5 w-5 text-indigo-600" /> Thêm Người Dùng</>}>
+    <Modal isOpen onClose={onClose} maxWidth="3xl" title={<><UserPlus className="h-5 w-5 text-indigo-600" /> {t('users.form.createTitle')}</>}>
       <form onSubmit={handleSubmit} noValidate className="space-y-3">
-        <FormSection icon={<KeyRound />} title="Tài khoản đăng nhập"
-          description="Thông tin nhân viên dùng để đăng nhập hệ thống"
+        <FormSection icon={<KeyRound />} title={t('users.form.loginSection')}
+          description={t('users.form.loginSectionHint')}
           action={<Button type="button" variant="ghost" size="sm" className="h-7 text-[11px]" onClick={fillGeneratedPassword}
-            icon={<Sparkles className="h-3.5 w-3.5 text-indigo-500" />}>Tạo mật khẩu</Button>}>
+            icon={<Sparkles className="h-3.5 w-3.5 text-indigo-500" />}>{t('users.form.generatePassword')}</Button>}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <TextInput label="Tên đăng nhập" required autoFocus autoComplete="off" placeholder="vd: hung.pham"
-              value={form.username} error={errors.username} hint="Chữ thường không dấu, số và . _ -"
+            <TextInput label={t('users.form.username')} required autoFocus autoComplete="off" placeholder={t('users.form.usernamePlaceholder')}
+              value={form.username} error={errors.username} hint={t('users.form.usernameHint')}
               onChange={(e) => set('username', e.target.value.toLowerCase().replace(/\s/g, ''))} />
-            <PasswordInput label="Mật khẩu ban đầu" required autoComplete="new-password"
-              value={form.password} error={errors.password} hint={`Tối thiểu ${MIN_PASSWORD} ký tự`}
+            <PasswordInput label={t('users.form.initialPassword')} required autoComplete="new-password"
+              value={form.password} error={errors.password} hint={t('users.form.minPassword', { n: MIN_PASSWORD })}
               onChange={(e) => set('password', e.target.value)} />
-            <PasswordInput label="Nhập lại mật khẩu" required autoComplete="new-password"
+            <PasswordInput label={t('users.form.confirmPassword')} required autoComplete="new-password"
               value={form.confirmPassword} error={errors.confirmPassword}
               onChange={(e) => set('confirmPassword', e.target.value)} />
           </div>
         </FormSection>
 
-        <FormSection icon={<UserRound />} title="Thông tin nhân viên">
+        <FormSection icon={<UserRound />} title={t('users.form.employeeSection')}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <TextInput label="Họ và tên" required wrapperClassName="md:col-span-2" value={form.fullName} error={errors.fullName}
+            <TextInput label={t('users.form.fullName')} required wrapperClassName="md:col-span-2" value={form.fullName} error={errors.fullName}
               onChange={(e) => set('fullName', e.target.value)} />
-            <TextInput label="Mã nhân viên" className="font-mono" value={form.employeeCode} error={errors.employeeCode}
+            <TextInput label={t('users.form.employeeCode')} className="font-mono" value={form.employeeCode} error={errors.employeeCode}
               onChange={(e) => set('employeeCode', e.target.value.toUpperCase())} />
-            <TextInput label="Email" type="email" value={form.email} error={errors.email}
+            <TextInput label={t('users.form.email')} type="email" value={form.email} error={errors.email}
               onChange={(e) => set('email', e.target.value)} />
-            <TextInput label="Số điện thoại" type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+            <TextInput label={t('users.form.phone')} type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
             <DepartmentSelect departments={departments} value={form.departmentCode} onChange={(code) => set('departmentCode', code)} />
           </div>
         </FormSection>
 
-        <FormSection icon={<ShieldCheck />} title="Phân quyền & đơn vị làm việc"
-          description="Quyền chi tiết có thể tinh chỉnh ở bảng phân quyền sau khi tạo">
+        <FormSection icon={<ShieldCheck />} title={t('users.form.accessSection')}
+          description={t('users.form.accessSectionHint')}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <RolePicker roles={roles} value={form.roleId} onChange={(id) => set('roleId', id)} />
             <UnitAccessFields units={units} defaultUnit={form.defaultUnit} allowed={form.allowedUnits} error={errors.defaultUnit}
@@ -223,9 +229,9 @@ export const CreateUserModal: React.FC<{
         </FormSection>
 
         <div className="flex justify-end gap-2 pt-1">
-          <Button variant="outline" size="sm" type="button" onClick={onClose}>Hủy</Button>
+          <Button variant="outline" size="sm" type="button" onClick={onClose}>{t('users.form.cancel')}</Button>
           <Button type="submit" size="sm" disabled={saving} icon={<Save className="h-3.5 w-3.5" />}>
-            {saving ? 'Đang tạo...' : 'Tạo người dùng'}
+            {saving ? t('users.form.creating') : t('users.form.createUser')}
           </Button>
         </div>
       </form>
@@ -241,6 +247,7 @@ export const EditUserModal: React.FC<{
   onClose: () => void;
   onSaved: (user: UserProfile) => void;
 }> = ({ user, units, departments, isSelf, onClose, onSaved }) => {
+  const { t } = useLanguage();
   const [form, setForm] = useState({
     fullName: user.fullName, employeeCode: user.employeeCode || '', email: user.email, phone: user.phone,
     departmentCode: user.departmentCode ?? '', isActive: user.isActive !== false,
@@ -260,8 +267,8 @@ export const EditUserModal: React.FC<{
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const found: FieldErrors = {};
-    if (!form.fullName.trim()) found.fullName = 'Vui lòng nhập họ và tên';
-    if (form.email.trim() && !EMAIL_PATTERN.test(form.email.trim())) found.email = 'Email không hợp lệ';
+    if (!form.fullName.trim()) found.fullName = t('users.form.fullNameRequired');
+    if (form.email.trim() && !EMAIL_PATTERN.test(form.email.trim())) found.email = t('users.form.emailInvalid');
     setErrors(found);
     if (Object.keys(found).length > 0 || lockingSelf) return;
     setSaving(true);
@@ -288,14 +295,14 @@ export const EditUserModal: React.FC<{
 
   const handleResetPassword = async () => {
     if (newPassword.length < MIN_PASSWORD) {
-      setErrors(prev => ({ ...prev, password: `Tối thiểu ${MIN_PASSWORD} ký tự` }));
+      setErrors(prev => ({ ...prev, password: t('users.form.minPassword', { n: MIN_PASSWORD }) }));
       return;
     }
     setSaving(true);
     try {
       await usersApi.resetPassword(user.id, newPassword);
       setNewPassword('');
-      showToast.success(`Đã đặt lại mật khẩu cho @${user.username}. Các phiên đăng nhập cũ đã bị đăng xuất.`);
+      showToast.success(t('users.form.passwordReset', { username: user.username }));
     } catch (error) {
       onServerError(error);
     } finally {
@@ -304,54 +311,54 @@ export const EditUserModal: React.FC<{
   };
 
   return (
-    <Modal isOpen onClose={onClose} maxWidth="3xl" title={<><UserRound className="h-5 w-5 text-indigo-600" /> Sửa Tài Khoản @{user.username}</>}>
+    <Modal isOpen onClose={onClose} maxWidth="3xl" title={<><UserRound className="h-5 w-5 text-indigo-600" /> {t('users.form.editTitle', { username: user.username })}</>}>
       <div className="space-y-3">
         <form onSubmit={handleSubmit} noValidate className="space-y-3">
-          <FormSection icon={<UserRound />} title="Thông tin nhân viên">
+          <FormSection icon={<UserRound />} title={t('users.form.employeeSection')}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <TextInput label="Họ và tên" required wrapperClassName="md:col-span-2" value={form.fullName} error={errors.fullName}
+              <TextInput label={t('users.form.fullName')} required wrapperClassName="md:col-span-2" value={form.fullName} error={errors.fullName}
                 onChange={(e) => set('fullName', e.target.value)} />
-              <TextInput label="Mã nhân viên" className="font-mono" value={form.employeeCode} error={errors.employeeCode}
+              <TextInput label={t('users.form.employeeCode')} className="font-mono" value={form.employeeCode} error={errors.employeeCode}
                 onChange={(e) => set('employeeCode', e.target.value.toUpperCase())} />
-              <TextInput label="Email" type="email" value={form.email} error={errors.email} onChange={(e) => set('email', e.target.value)} />
-              <TextInput label="Số điện thoại" type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+              <TextInput label={t('users.form.email')} type="email" value={form.email} error={errors.email} onChange={(e) => set('email', e.target.value)} />
+              <TextInput label={t('users.form.phone')} type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
               <DepartmentSelect departments={departments} value={form.departmentCode} onChange={(code) => set('departmentCode', code)} />
             </div>
           </FormSection>
 
-          <FormSection icon={<Building2 />} title="Đơn vị làm việc & trạng thái">
+          <FormSection icon={<Building2 />} title={t('users.form.unitStatusSection')}>
             <UnitAccessFields units={units} defaultUnit={form.defaultUnit} allowed={form.allowedUnits} error={errors.defaultUnit}
               onDefaultUnitChange={(code) => set('defaultUnit', code)} onAllowedChange={(codes) => set('allowedUnits', codes)} />
             <Checkbox
               checked={form.isActive}
               disabled={isSelf}
               onChange={(on) => set('isActive', on)}
-              label="Tài khoản đang hoạt động"
-              subLabel={isSelf ? 'Không thể tự khóa tài khoản đang đăng nhập' : 'Bỏ chọn để khóa: tài khoản sẽ bị đăng xuất và không đăng nhập được'}
+              label={t('users.form.isActive')}
+              subLabel={isSelf ? t('users.form.cannotLockSelf') : t('users.form.isActiveHint')}
             />
           </FormSection>
 
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" type="button" onClick={onClose}>Đóng</Button>
-            <Button type="submit" size="sm" disabled={saving} icon={<Save className="h-3.5 w-3.5" />}>Lưu tài khoản</Button>
+            <Button variant="outline" size="sm" type="button" onClick={onClose}>{t('users.form.close')}</Button>
+            <Button type="submit" size="sm" disabled={saving} icon={<Save className="h-3.5 w-3.5" />}>{t('users.form.saveAccount')}</Button>
           </div>
         </form>
 
         {isSelf ? (
           <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <KeyRound className="h-3.5 w-3.5" /> Đổi mật khẩu của chính bạn tại menu tài khoản › "Đổi mật khẩu".
+            <KeyRound className="h-3.5 w-3.5" /> {t('users.form.selfPasswordHint')}
           </p>
         ) : (
-        <FormSection icon={<KeyRound />} title="Đặt lại mật khẩu"
-          description="Dùng khi nhân viên quên mật khẩu. Các phiên đăng nhập hiện có của tài khoản sẽ bị đăng xuất.">
+        <FormSection icon={<KeyRound />} title={t('users.form.resetSection')}
+          description={t('users.form.resetSectionHint')}>
           <div className="flex flex-col sm:flex-row sm:items-start gap-2">
-            <PasswordInput wrapperClassName="grow" autoComplete="new-password" placeholder={`Mật khẩu mới, tối thiểu ${MIN_PASSWORD} ký tự`}
+            <PasswordInput wrapperClassName="grow" autoComplete="new-password" placeholder={t('users.form.newPasswordPlaceholder', { n: MIN_PASSWORD })}
               value={newPassword} error={errors.password}
               onChange={(e) => { setNewPassword(e.target.value); setErrors(prev => ({ ...prev, password: undefined })); }} />
             <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => setNewPassword(generatePassword())}
-              icon={<Sparkles className="h-3.5 w-3.5 text-indigo-500" />}>Tạo ngẫu nhiên</Button>
+              icon={<Sparkles className="h-3.5 w-3.5 text-indigo-500" />}>{t('users.form.generate')}</Button>
             <Button type="button" variant="outline" size="sm" className="h-8" disabled={saving} onClick={() => void handleResetPassword()}
-              icon={<KeyRound className="h-3.5 w-3.5" />}>Đặt lại</Button>
+              icon={<KeyRound className="h-3.5 w-3.5" />}>{t('users.form.reset')}</Button>
           </div>
         </FormSection>
         )}
@@ -365,6 +372,7 @@ export const CreateRoleModal: React.FC<{
   onClose: () => void;
   onCreated: (role: RoleDefinition) => void;
 }> = ({ roles, onClose, onCreated }) => {
+  const { t } = useLanguage();
   const templates = roles.filter(r => !r.isSystemRole);
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -390,21 +398,21 @@ export const CreateRoleModal: React.FC<{
   };
 
   return (
-    <Modal isOpen onClose={onClose} maxWidth="lg" title={<><ShieldCheck className="h-5 w-5 text-indigo-600" /> Thêm Vai Trò</>}>
+    <Modal isOpen onClose={onClose} maxWidth="lg" title={<><ShieldCheck className="h-5 w-5 text-indigo-600" /> {t('roles.form.createTitle')}</>}>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <TextInput label="Mã vai trò" required autoFocus className="font-mono uppercase" value={code} placeholder="vd: KT_TT"
+          <TextInput label={t('roles.form.code')} required autoFocus className="font-mono uppercase" value={code} placeholder={t('roles.form.codePlaceholder')}
             onChange={(e) => setCode(e.target.value.toUpperCase().replace(/\s/g, '_'))} />
-          <TextInput label="Tên vai trò" required wrapperClassName="sm:col-span-2" value={name} placeholder="vd: Kế toán thanh toán"
+          <TextInput label={t('roles.form.name')} required wrapperClassName="sm:col-span-2" value={name} placeholder={t('roles.form.namePlaceholder')}
             onChange={(e) => setName(e.target.value)} />
         </div>
-        <SelectInput label="Sao chép quyền từ vai trò" value={baseRoleId} onChange={(e) => setBaseRoleId(e.target.value)}
-          placeholder="— Không sao chép (chưa có quyền) —" hint="Có thể chỉnh lại ma trận quyền sau khi tạo"
+        <SelectInput label={t('roles.form.copyFrom')} value={baseRoleId} onChange={(e) => setBaseRoleId(e.target.value)}
+          placeholder={t('roles.form.noCopy')} hint={t('roles.form.copyHint')}
           options={templates.map(r => ({ value: r.id, label: `${r.name} [${r.code}]` }))} />
-        <TextArea label="Mô tả nhiệm vụ" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <TextArea label={t('roles.form.description')} value={description} onChange={(e) => setDescription(e.target.value)} />
         <div className="flex justify-end gap-2 pt-1">
-          <Button variant="outline" size="sm" type="button" onClick={onClose}>Hủy</Button>
-          <Button type="submit" size="sm" disabled={saving} icon={<Save className="h-3.5 w-3.5" />}>Tạo vai trò</Button>
+          <Button variant="outline" size="sm" type="button" onClick={onClose}>{t('users.form.cancel')}</Button>
+          <Button type="submit" size="sm" disabled={saving} icon={<Save className="h-3.5 w-3.5" />}>{t('roles.form.create')}</Button>
         </div>
       </form>
     </Modal>

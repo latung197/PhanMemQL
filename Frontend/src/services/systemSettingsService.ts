@@ -4,6 +4,7 @@
 // Settings with their own tables (currencies, exchange rates, departments, month locks, voucher numbering)
 // are in services/settingsApi.ts.
 import { apiRequest } from './apiClient';
+import { translate } from '../utils/i18n';
 
 export interface PrintSignatureLabels {
   preparedBy: string;
@@ -20,12 +21,10 @@ export interface PrintTemplateConfig {
 
 export type CostingMethod = 'MONTHLY_AVG' | 'INSTANT_AVG' | 'FIFO' | 'SPECIFIC';
 
-export const COSTING_METHOD_LABELS: Record<CostingMethod, string> = {
-  MONTHLY_AVG: 'Bình quân gia quyền cuối tháng',
-  INSTANT_AVG: 'Bình quân di động (tức thời)',
-  FIFO: 'Nhập trước xuất trước (FIFO)',
-  SPECIFIC: 'Đích danh theo lô'
-};
+export const COSTING_METHODS: CostingMethod[] = ['MONTHLY_AVG', 'INSTANT_AVG', 'FIFO', 'SPECIFIC'];
+
+/** Name of a costing method in the user's language (texts: costingMethod.*). */
+export const costingMethodLabel = (method: CostingMethod): string => translate(`costingMethod.${method}`);
 
 export const VAT_RATES = [0, 5, 8, 10] as const;
 
@@ -94,12 +93,12 @@ export const DEFAULT_SYSTEM_CONFIG: SystemDefaultConfig = {
   defaultWarehouse: '',
   allowNegativeStock: false,
   printTemplate: {
-    footerNote: 'Cảm ơn Quý khách hàng & Đối tác đã tin tưởng đồng hành cùng chúng tôi!',
+    footerNote: 'Cảm ơn Quý khách hàng & Đối tác đã tin tưởng đồng hành cùng chúng tôi!',  // i18n-ignore: default data
     signatures: {
-      preparedBy: 'Người lập biểu',
-      storekeeper: 'Thủ kho phụ trách',
-      chiefAccountant: 'Kế toán trưởng',
-      director: 'Giám đốc / Thủ trưởng'
+      preparedBy: 'Người lập biểu',  // i18n-ignore: default data
+      storekeeper: 'Thủ kho phụ trách',  // i18n-ignore: default data
+      chiefAccountant: 'Kế toán trưởng',  // i18n-ignore: default data
+      director: 'Giám đốc / Thủ trưởng'  // i18n-ignore: default data
     }
   }
 };
@@ -110,21 +109,21 @@ export const DEFAULT_FISCAL_CONFIG: FiscalYearConfig = {
 };
 
 export const DEFAULT_COMPANY_PROFILE: CompanyProfileConfig = {
-  companyName: 'Tập Đoàn Công Nghệ & Sản Xuất Trần Thịnh JSC',
-  shortName: 'Trần Thịnh Group',
+  companyName: 'Tập Đoàn Công Nghệ & Sản Xuất Trần Thịnh JSC',  // i18n-ignore: default data
+  shortName: 'Trần Thịnh Group',  // i18n-ignore: default data
   taxCode: '0318899201',
-  address: 'Tầng 18, Tòa nhà S-ERP Tower, Đường Lê Duẩn, Q.1, TP. Hồ Chí Minh',
+  address: 'Tầng 18, Tòa nhà S-ERP Tower, Đường Lê Duẩn, Q.1, TP. Hồ Chí Minh',  // i18n-ignore: default data
   phone: '028 3822 9999',
   email: 'contact@tranthinh-erp.vn',
   website: 'https://tranthinh-erp.vn',
-  legalRepresentative: 'Trần Văn Thịnh',
-  chiefAccountant: 'Nguyễn Thị Bích Mai'
+  legalRepresentative: 'Trần Văn Thịnh',  // i18n-ignore: default data
+  chiefAccountant: 'Nguyễn Thị Bích Mai'  // i18n-ignore: default data
 };
 
 export const DEFAULT_NUMBER_FORMAT_CONFIG: NumberFormatConfig = {
   thousandSeparator: ',',
   decimalSeparator: '.',
-  currencySymbol: 'VNĐ',
+  currencySymbol: 'VNĐ',  // i18n-ignore: default data
   currencyPosition: 'suffix',
   amountDecimals: 0,
   foreignAmountDecimals: 2,
@@ -183,7 +182,22 @@ class SystemSettingsService {
   }
 
   saveSystemDefaults(config: Partial<SystemDefaultConfig>): Promise<SystemDefaultConfig> {
-    return this.save('systemDefaults', { ...this.getSystemDefaults(), ...config });
+    const next = { ...this.getSystemDefaults(), ...config };
+    // Only the fields still in use, so leftovers of older versions (autoNumbering, print header...) are not written
+    // back. defaultCurrency is the base currency of the currency catalog: the backend drops it and fills it in.
+    const value: SystemDefaultConfig = {
+      costingMethod: next.costingMethod,
+      defaultCurrency: next.defaultCurrency,
+      defaultVatRate: next.defaultVatRate,
+      requireApprovalBeforePosting: next.requireApprovalBeforePosting,
+      defaultWarehouse: next.defaultWarehouse,
+      allowNegativeStock: next.allowNegativeStock,
+      printTemplate: {
+        footerNote: next.printTemplate.footerNote,
+        signatures: { ...next.printTemplate.signatures }
+      }
+    };
+    return this.save('systemDefaults', value);
   }
 
   /** Own parameters of the unit of the session (null fields follow the company value). */

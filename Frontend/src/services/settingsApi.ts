@@ -142,6 +142,27 @@ export interface Department {
 
 export type SaveDepartmentInput = Omit<Department, 'userCount'>;
 
+/** Language of the catalog (Settings › Ngôn ngữ). UserCount = accounts that chose it themselves. */
+export interface Language {
+  code: string;
+  name: string;
+  nativeName: string;
+  isActive: boolean;
+  isDefault: boolean;
+  userCount: number;
+}
+
+export type SaveLanguageInput = Omit<Language, 'userCount'>;
+
+export const languagesApi = {
+  getAll: () => apiRequest<Language[]>('GET', '/api/settings/languages'),
+  create: (input: SaveLanguageInput) => apiRequest<Language>('POST', '/api/settings/languages', input),
+  update: (code: string, input: SaveLanguageInput) =>
+    apiRequest<Language>('PUT', `/api/settings/languages/${encodeURIComponent(code)}`, input),
+  /** Refused for the default language and while accounts use it. */
+  remove: (code: string) => apiRequest<void>('DELETE', `/api/settings/languages/${encodeURIComponent(code)}`)
+};
+
 export interface Currency {
   code: string;
   name: string;
@@ -251,4 +272,69 @@ export const settingsBackupApi = {
   export: () => apiRequest<SettingsBackup>('GET', '/api/settings/system-config/backup'),
   /** Adds or updates everything in the file in one transaction; nothing is deleted. */
   restore: (backup: SettingsBackup) => apiRequest<void>('POST', '/api/settings/system-config/restore', backup)
+};
+
+// Settings › Nhật ký thay đổi (sys_audit_log): change log of every function (backend sys_audit_log).
+
+/** One changed field; null = no value. Field conventions: AuditDiff in the backend (permission:…, right:…). */
+export interface AuditChange {
+  field: string;
+  before: string | null;
+  after: string | null;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  /** Local time of the server, "2026-10-01T15:04:45". */
+  time: string;
+  functionCode: SubMenuKey;
+  /** user, role, department... or a function code for its documents (texts audit.objectType.*). */
+  objectType: string;
+  objectId: string;
+  objectLabel: string | null;
+  /** CREATE, UPDATE, DELETE, PERMISSIONS, RESET_PASSWORD, SYNC... (texts audit.action.*). */
+  action: string;
+  changes: AuditChange[];
+  note: string | null;
+  actorId: string | null;
+  actorUsername: string | null;
+  actorName: string | null;
+  unitCode: string | null;
+  ipAddress: string | null;
+}
+
+export interface AuditPage {
+  items: AuditLogEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** All optional. actor: part of the username or name; search: part of the object's name or id; from / to: yyyy-MM-dd, to included. */
+export interface AuditQuery {
+  functionCode?: SubMenuKey | '';
+  objectType?: string;
+  action?: string;
+  actor?: string;
+  search?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/** Functions, object types and actions present in the log (choices of the filters). */
+export interface AuditFilters {
+  functions: SubMenuKey[];
+  objectTypes: string[];
+  actions: string[];
+}
+
+export const auditLogApi = {
+  filters: () => apiRequest<AuditFilters>('GET', '/api/audit-logs/filters'),
+  query: (query: AuditQuery) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== '') params.set(key, String(value));
+    return apiRequest<AuditPage>('GET', `/api/audit-logs?${params}`);
+  }
 };

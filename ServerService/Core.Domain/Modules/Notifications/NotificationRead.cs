@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using Core.Domain.Common;
 
 namespace Core.Domain.Modules.Notifications;
 
 /// <summary>Per-user read state. A dismissed notification is also read and is hidden from the inbox.</summary>
+[NotAudited("Read marks of each user; not a change of data.")]
 [Table("sys_notification_read")]
 public class NotificationRead
 {

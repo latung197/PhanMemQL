@@ -1,4 +1,5 @@
 using Core.Application.Common.Exceptions;
+using Core.Application.Common.Localization;
 using Core.Application.Common.Permissions;
 using Core.Application.Modules.Users;
 using Core.Domain.Modules.Users;
@@ -15,10 +16,11 @@ namespace Core.Infrastructure.Modules.Users;
 /// </summary>
 public sealed class GrantGuard(CoreContext db, IPermissionService permissions)
 {
-    private static readonly (string Name, Func<ActionPermissions, bool> Get)[] Actions =
+    /// <summary>The five actions with the message key of their name (action.*).</summary>
+    private static readonly (string NameKey, Func<ActionPermissions, bool> Get)[] Actions =
     [
-        ("Xem", a => a.View), ("Thêm & Sửa", a => a.CreateEdit), ("Xóa", a => a.Delete),
-        ("Phê duyệt", a => a.Approve), ("In & Xuất file", a => a.PrintExport)
+        ("action.view", a => a.View), ("action.createEdit", a => a.CreateEdit), ("action.delete", a => a.Delete),
+        ("action.approve", a => a.Approve), ("action.printExport", a => a.PrintExport)
     ];
 
     public async Task EnsureCanGrantAsync(int actorUserId,
@@ -33,8 +35,7 @@ public sealed class GrantGuard(CoreContext db, IPermissionService permissions)
             var mine = own.GetValueOrDefault(function);
             foreach (var (name, get) in Actions)
                 if (get(wanted) && !(had is not null && get(had)) && !(mine is not null && get(mine)))
-                    throw new ForbiddenException(
-                        $"Bạn không thể cấp quyền \"{name}\" trên \"{FunctionName(function)}\" vì chính bạn không có quyền này.");
+                    throw new ForbiddenException("grant.action", new Text(name), FunctionCatalog.Name(function));
         }
 
         var ownRights = await permissions.GetRightsAsync(actorUserId, ct);
@@ -44,8 +45,7 @@ public sealed class GrantGuard(CoreContext db, IPermissionService permissions)
         {
             var (function, code) = SpecialRightCatalog.Split(extra);
             var name = SpecialRightCatalog.All.FirstOrDefault(r => r.Function == function && r.Code == code)?.Name ?? code;
-            throw new ForbiddenException(
-                $"Bạn không thể cấp quyền \"{name}\" trên \"{FunctionName(function)}\" vì chính bạn không có quyền này.");
+            throw new ForbiddenException("grant.action", name, FunctionCatalog.Name(function));
         }
     }
 
@@ -59,15 +59,13 @@ public sealed class GrantGuard(CoreContext db, IPermissionService permissions)
         var old = before.ToHashSet(StringComparer.Ordinal);
         var extra = after.FirstOrDefault(code => !old.Contains(code) && !mine.Contains(code));
         if (extra is not null)
-            throw new ForbiddenException($"Bạn không thể cấp quyền vào đơn vị cơ sở {extra} vì chính bạn không được vào đơn vị này.");
+            throw new ForbiddenException("grant.unit", extra);
     }
 
     /// <summary>Only administrators may change their own permissions.</summary>
     public async Task EnsureNotSelfAsync(int actorUserId, int targetUserId, CancellationToken ct)
     {
         if (actorUserId == targetUserId && !await permissions.IsAdminAsync(actorUserId, ct))
-            throw new ForbiddenException("Bạn không thể tự thay đổi quyền của chính mình. Hãy nhờ quản trị viên.");
+            throw new ForbiddenException("grant.self");
     }
-
-    private static string FunctionName(string function) => FunctionCatalog.Functions.GetValueOrDefault(function, function);
 }

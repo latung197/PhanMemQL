@@ -7,6 +7,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<!-- Texts for users per language (Common/Localization/Messages.{code}.json). WithCulture=false: one assembly,
+		     not satellite assemblies, so Messages finds every language by its file name. -->
+		<EmbeddedResource Include="Common\Localization\Messages.*.json" WithCulture="false"
+			LogicalName="Core.Application.Localization.%(Filename)%(Extension)" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Core.Domain\Core.Domain.csproj" />

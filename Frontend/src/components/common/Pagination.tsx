@@ -1,5 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
+import { interpolate } from '../../utils/interpolate';
 
 interface PaginationProps {
   currentPage: number;
@@ -20,6 +22,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   onPageSizeChange,
   pageSizeOptions = [5, 10, 20, 50]
 }) => {
+  const { t } = useLanguage();
   if (totalItems === 0) return null;
 
   const startItem = (currentPage - 1) * pageSize + 1;
@@ -30,11 +33,11 @@ export const Pagination: React.FC<PaginationProps> = ({
       {/* Items range display & Page size selector */}
       <div className="flex items-center gap-2">
         <span>
-          Hiển thị <strong>{startItem} - {endItem}</strong> / <strong>{totalItems}</strong> bản ghi
+          {interpolate(t('controls.pagination.showing'), { range: <strong>{startItem} - {endItem}</strong>, total: <strong>{totalItems}</strong> })}
         </span>
 
         <div className="flex items-center gap-1 ml-1">
-          <span className="text-[10px]">Dòng/trang:</span>
+          <span className="text-[10px]">{t('controls.pagination.perPage')}</span>
           <select
             value={pageSize}
             onChange={(e) => {
@@ -57,7 +60,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           disabled={currentPage === 1}
           onClick={() => onPageChange(1)}
           className="p-1 rounded-[5px] border border-slate-200 dark:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-          title="Trang đầu"
+          title={t('controls.pagination.first')}
         >
           <ChevronsLeft className="h-3.5 w-3.5" />
         </button>
@@ -67,7 +70,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           disabled={currentPage === 1}
           onClick={() => onPageChange(currentPage - 1)}
           className="p-1 rounded-[5px] border border-slate-200 dark:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer flex items-center gap-1"
-          title="Trang trước"
+          title={t('controls.pagination.previous')}
         >
           <ChevronLeft className="h-3.5 w-3.5" />
         </button>
@@ -81,7 +84,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           disabled={currentPage >= totalPages}
           onClick={() => onPageChange(currentPage + 1)}
           className="p-1 rounded-[5px] border border-slate-200 dark:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer flex items-center gap-1"
-          title="Trang tiếp"
+          title={t('controls.pagination.next')}
         >
           <ChevronRight className="h-3.5 w-3.5" />
         </button>
@@ -91,7 +94,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           disabled={currentPage >= totalPages}
           onClick={() => onPageChange(totalPages)}
           className="p-1 rounded-[5px] border border-slate-200 dark:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-          title="Trang cuối"
+          title={t('controls.pagination.last')}
         >
           <ChevronsRight className="h-3.5 w-3.5" />
         </button>

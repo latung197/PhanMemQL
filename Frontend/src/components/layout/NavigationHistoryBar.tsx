@@ -2,6 +2,7 @@ import React from 'react';
 import { History, X, ChevronRight, Home, CheckCircle2, RotateCcw } from 'lucide-react';
 import { ModuleCategoryKey, SubMenuKey } from '../../types';
 import { NavHistoryItem } from '../../utils/navigationHelper';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface NavigationHistoryBarProps {
   history: NavHistoryItem[];
@@ -20,6 +21,7 @@ export const NavigationHistoryBar: React.FC<NavigationHistoryBarProps> = ({
   onRemoveStep,
   onClearHistory
 }) => {
+  const { t } = useLanguage();
   const currentItem = history.find(item => item.subKey === activeSubMenu) || history[0];
 
   return (
@@ -29,7 +31,7 @@ export const NavigationHistoryBar: React.FC<NavigationHistoryBarProps> = ({
       <div className="flex items-center gap-1.5 min-w-0 max-w-full text-slate-500 dark:text-slate-400">
         <span className="flex items-center gap-1 font-semibold text-slate-400 text-[11px]">
           <Home className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-          <span className="hidden sm:inline">Hệ Thống</span> ERP
+          <span className="hidden sm:inline">{t('layout.history.system')}</span> ERP
         </span>
         <ChevronRight className="h-3 w-3 text-slate-300 dark:text-slate-600 shrink-0" />
         {currentItem && (
@@ -50,7 +52,7 @@ export const NavigationHistoryBar: React.FC<NavigationHistoryBarProps> = ({
       <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto custom-scrollbar scroll-smooth py-0.5 grow min-w-0 justify-end">
         <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 hidden xl:flex items-center gap-1 mr-1 shrink-0">
           <History className="h-3 w-3 text-indigo-500" />
-          Đã xem:
+          {t('layout.history.viewed')}
         </span>
 
         {history.map((step) => {
@@ -91,7 +93,7 @@ export const NavigationHistoryBar: React.FC<NavigationHistoryBarProps> = ({
                       ? 'hover:bg-indigo-700 text-indigo-200 hover:text-white'
                       : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                   }`}
-                  title="Xóa khỏi lịch sử"
+                  title={t('layout.history.remove')}
                 >
                   <X className="h-2.5 w-2.5" />
                 </button>
@@ -105,7 +107,7 @@ export const NavigationHistoryBar: React.FC<NavigationHistoryBarProps> = ({
             type="button"
             onClick={onClearHistory}
             className="text-[10px] font-medium text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer shrink-0 ml-1"
-            title="Xóa toàn bộ lịch sử truy cập"
+            title={t('layout.history.clearAll')}
           >
             <RotateCcw className="h-3 w-3" />
           </button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   ChevronDown, 
   ChevronRight, 
@@ -62,6 +62,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     hr: false
   });
 
+  // The menu is the only way into a module's screens (Settings has no tab bar), so the module being viewed is
+  // always opened; other modules keep the state the user left them in.
+  useEffect(() => {
+    setExpandedModules(prev => prev[activeCategory] ? prev : { ...prev, [activeCategory]: true });
+  }, [activeCategory]);
+
   // State for collapsible sub-function groups
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
@@ -122,8 +128,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onCloseMobile();
             }}
             className="flex items-center gap-3 overflow-hidden cursor-pointer rounded-[7px] text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-            aria-label="Về Dashboard"
-            title="Về Dashboard"
+            aria-label={t('layout.sidebar.home')}
+            title={t('layout.sidebar.home')}
           >
             <span className="h-9 w-9 bg-indigo-600 text-white rounded-[7px] flex items-center justify-center font-extrabold text-sm tracking-wider shrink-0 shadow-md ring-2 ring-indigo-400/30">
               S
@@ -134,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   S-ERP System
                 </h2>
                 <span className="text-[10px] uppercase font-bold text-indigo-700 dark:text-indigo-400 tracking-wider">
-                  Doanh Nghiệp ERP
+                  {t('layout.sidebar.tagline')}
                 </span>
               </div>
             )}

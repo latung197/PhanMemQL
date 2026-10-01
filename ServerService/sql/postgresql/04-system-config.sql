@@ -23,3 +23,19 @@ CREATE TABLE IF NOT EXISTS sys_setting (
     updated_by_user_id integer NOT NULL,
     CONSTRAINT ux_sys_setting_key_scope UNIQUE (key, scope)
 );
+
+-- Older versions kept in systemDefaults what now lives elsewhere; the leftovers are removed:
+--   autoNumbering                   -> sys_voucher_numbering (09-voucher-numbering.sql)
+--   qtyDecimalPlaces / priceDecimalPlaces -> numberFormat section
+--   printTemplate.companyHeader ... website -> companyProfile section
+--   defaultCurrency                 -> the base currency of sys_currency (filled in by the API when read)
+UPDATE sys_setting
+SET value = jsonb_set(
+        value::jsonb - 'autoNumbering' - 'qtyDecimalPlaces' - 'priceDecimalPlaces' - 'defaultCurrency',
+        '{printTemplate}',
+        coalesce(value::jsonb -> 'printTemplate', '{}'::jsonb)
+            - 'companyHeader' - 'companyAddress' - 'taxCode' - 'phone' - 'email' - 'website')::text
+WHERE key = 'FRONTEND_SYSTEM_DEFAULTS'
+  AND (value::jsonb ?| array['autoNumbering', 'qtyDecimalPlaces', 'priceDecimalPlaces', 'defaultCurrency']
+       OR coalesce(value::jsonb -> 'printTemplate', '{}'::jsonb)
+          ?| array['companyHeader', 'companyAddress', 'taxCode', 'phone', 'email', 'website']);

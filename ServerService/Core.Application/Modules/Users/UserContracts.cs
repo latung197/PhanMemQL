@@ -27,7 +27,11 @@ public sealed record UserProfileDto(
     string EmployeeCode,
     bool IsActive,
     /// <summary>Granted special rights as "{function}:{code}" (SpecialRightCatalog).</summary>
-    IReadOnlyList<string> SpecialRights);
+    IReadOnlyList<string> SpecialRights,
+    /// <summary>Language the user works in: their own choice when it is active, otherwise the default language.</summary>
+    string Language,
+    /// <summary>The user's own choice (null = follow the default language of the company).</summary>
+    string? LanguagePreference);
 
 public sealed record CreateUserRequest(
     string Username,
@@ -88,6 +92,13 @@ public interface IPermissionService
     /// <summary>One entry per catalog function; admins get full rights everywhere.</summary>
     Task<IReadOnlyDictionary<string, ActionPermissions>> GetEffectiveAsync(int userId, CancellationToken ct = default);
 
+    /// <summary>
+    /// GetEffectiveAsync for many users with a fixed number of queries (e.g. finding approvers). Only active users
+    /// are returned; the results also answer later IsAdminAsync / GetEffectiveAsync calls of this request.
+    /// </summary>
+    Task<IReadOnlyDictionary<int, IReadOnlyDictionary<string, ActionPermissions>>> GetEffectiveManyAsync(
+        IReadOnlyCollection<int> userIds, CancellationToken ct = default);
+
     /// <summary>Special rights as "{function}:{code}"; admins have all of them.</summary>
     Task<IReadOnlySet<string>> GetRightsAsync(int userId, CancellationToken ct = default);
 
@@ -98,4 +109,7 @@ public interface IPermissionService
 
     /// <summary>Throws ForbiddenException when the user is not an administrator.</summary>
     Task EnsureAdminAsync(int userId, CancellationToken ct = default);
+
+    /// <summary>Drops the request cache of a user, e.g. to read their rights again after changing them.</summary>
+    void Forget(int userId);
 }

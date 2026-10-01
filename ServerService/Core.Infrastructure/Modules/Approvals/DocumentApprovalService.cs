@@ -1,5 +1,8 @@
+using Core.Application.Common.Auditing;
 using Core.Application.Common.Exceptions;
+using Core.Application.Common.Localization;
 using Core.Application.Common.Permissions;
+using Core.Application.Common.Persistence;
 using Core.Application.Common.Validation;
 using Core.Application.Modules.Approvals;
 using Core.Application.Modules.Notifications;
@@ -7,6 +10,7 @@ using Core.Application.Modules.Users;
 using Core.Domain.Modules.Approvals;
 using Core.Domain.Modules.Users;
 using Core.Infrastructure.Common.Persistence;
+using Core.Infrastructure.Modules.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Modules.Approvals;
@@ -14,29 +18,29 @@ namespace Core.Infrastructure.Modules.Approvals;
 /// <summary>
 /// Submit → level 1 … level n → approved, or rejected at any level. Each step notifies the people who
 /// have to act. Voucher services call SubmitAsync when a document is sent for approval and read the
-/// result (GetAsync) to set the document status.
+/// result (GetAsync) to set the document status. Each step and its notifications are saved in one transaction.
 /// </summary>
 public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver resolver, IPermissionService permissions,
-    INotificationService notifications) : IDocumentApprovalService
+    INotificationService notifications, IUnitOfWork unitOfWork, IAuditLog auditLog) : IDocumentApprovalService
 {
     public async Task<DocumentApprovalDto> SubmitAsync(int userId, string unitCode, SubmitDocumentRequest request, CancellationToken ct)
     {
         await permissions.EnsureAllowedAsync(userId, request.Function, PermissionAction.CreateEdit, ct);
-        var documentId = Guard.Required(request.DocumentId, 64, "mã chứng từ");
+        var documentId = Guard.Required(request.DocumentId, 64, "field.documentId");
         var steps = await LatestRoundAsync(request.Function, documentId, ct);
         if (steps.Any(x => x.Status is ApprovalStepStatus.Pending or ApprovalStepStatus.Waiting))
-            throw new BusinessRuleException("Chứng từ đang chờ duyệt.");
+            throw new BusinessRuleException("approval.pending");
         if (steps.Count > 0 && steps.All(x => x.Status == ApprovalStepStatus.Approved))
-            throw new BusinessRuleException("Chứng từ đã được duyệt.");
+            throw new BusinessRuleException("approval.alreadyApproved");
 
         var resolution = await resolver.ResolveAsync(request.Function, unitCode, userId, request.Amount, ct);
         var empty = resolution.Levels.FirstOrDefault(x => x.UserIds.Count == 0);
         if (empty is not null)
-            throw new BusinessRuleException($"Cấp duyệt {empty.Level} ({empty.Label}) chưa có người duyệt hợp lệ. Hãy kiểm tra quy trình phê duyệt.");
+            throw new BusinessRuleException("approval.emptyLevel", empty.Level, empty.Label);
 
         var round = steps.Count == 0 ? 1 : steps[0].Round + 1;
         var now = DateTime.UtcNow;
-        var title = Guard.Optional(request.Title, 200, "Tiêu đề");
+        var title = Guard.Optional(request.Title, 200, "field.title");
         var rows = resolution.Levels.Select((level, index) => new DocumentApproval
         {
             MenuId0 = request.Function, DocumentId = documentId, DocumentTitle = title, UnitCode = unitCode,
@@ -45,9 +49,13 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
             Status = index == 0 ? ApprovalStepStatus.Pending : ApprovalStepStatus.Waiting,
             RequestedByUserId = userId, RequestedAtUtc = now
         }).ToList();
-        db.DocumentApprovals.AddRange(rows);
-        await db.SaveChangesAsync(ct);
-        await NotifyApproversAsync(userId, rows[0], ct);
+        await unitOfWork.ExecuteAsync(async token =>
+        {
+            db.DocumentApprovals.AddRange(rows);
+            await RecordAsync(rows[0], AuditActions.Submit, null, rows.Count, token);
+            await db.SaveChangesAsync(token);
+            await NotifyApproversAsync(userId, rows[0], token);
+        }, ct);
         return await GetAsync(userId, unitCode, request.Function, documentId, ct);
     }
 
@@ -58,10 +66,13 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         Act(current, userId, ApprovalStepStatus.Approved, request.Note);
         var next = steps.Where(x => x.Status == ApprovalStepStatus.Waiting).OrderBy(x => x.Level).FirstOrDefault();
         if (next is not null) next.Status = ApprovalStepStatus.Pending;
-        await db.SaveChangesAsync(ct);
-
-        if (next is not null) await NotifyApproversAsync(current.RequestedByUserId, next, ct);
-        else await NotifyRequesterAsync(userId, current, "success", "đã được phê duyệt", request.Note, ct);
+        await unitOfWork.ExecuteAsync(async token =>
+        {
+            await RecordAsync(current, AuditActions.Approve, request.Note, steps.Count, token);
+            await db.SaveChangesAsync(token);
+            if (next is not null) await NotifyApproversAsync(current.RequestedByUserId, next, token);
+            else await NotifyRequesterAsync(userId, current, approved: true, request.Note, token);
+        }, ct);
         return await GetAsync(userId, unitCode, function, documentId, ct);
     }
 
@@ -69,11 +80,15 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         ApprovalActionRequest request, CancellationToken ct)
     {
         var (steps, current) = await CurrentStepForAsync(userId, function, documentId, ct);
-        Guard.Required(request.Note, 1000, "lý do từ chối");
+        Guard.Required(request.Note, 1000, "field.rejectReason");
         Act(current, userId, ApprovalStepStatus.Rejected, request.Note);
         foreach (var waiting in steps.Where(x => x.Status == ApprovalStepStatus.Waiting)) waiting.Status = ApprovalStepStatus.Cancelled;
-        await db.SaveChangesAsync(ct);
-        await NotifyRequesterAsync(userId, current, "danger", "bị từ chối", request.Note, ct);
+        await unitOfWork.ExecuteAsync(async token =>
+        {
+            await RecordAsync(current, AuditActions.Reject, request.Note, steps.Count, token);
+            await db.SaveChangesAsync(token);
+            await NotifyRequesterAsync(userId, current, approved: false, request.Note, token);
+        }, ct);
         return await GetAsync(userId, unitCode, function, documentId, ct);
     }
 
@@ -81,17 +96,28 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
     {
         var steps = await LatestRoundAsync(function, documentId, ct, tracking: true);
         var open = steps.Where(x => x.Status is ApprovalStepStatus.Pending or ApprovalStepStatus.Waiting).ToList();
-        if (open.Count == 0) throw new BusinessRuleException("Chứng từ không ở trạng thái chờ duyệt.");
+        if (open.Count == 0) throw new BusinessRuleException("approval.notPending");
         if (open[0].RequestedByUserId != userId && !await permissions.IsAdminAsync(userId, ct))
-            throw new ForbiddenException("Chỉ người trình duyệt mới được rút lại chứng từ.");
+            throw new ForbiddenException("approval.withdrawOwnOnly");
         foreach (var step in open) step.Status = ApprovalStepStatus.Cancelled;
+        await RecordAsync(open[0], AuditActions.Withdraw, null, steps.Count, ct);
         await db.SaveChangesAsync(ct);
         return await GetAsync(userId, unitCode, function, documentId, ct);
     }
 
+    /// <summary>
+    /// Approval steps are rows of sys_document_approval ([NotAudited]); the log has one entry per action on the
+    /// document, under the document's function: object type = function, id = document id, level of the step.
+    /// </summary>
+    private Task RecordAsync(DocumentApproval step, string action, string? note, int levels, CancellationToken ct) =>
+        auditLog.RecordAsync(new AuditEntry(step.MenuId0, step.MenuId0, step.DocumentId, step.DocumentTitle ?? step.DocumentId,
+            action, [new AuditChange("approvalLevel", null, $"{step.Level}/{levels}")], note), ct);
+
     public async Task<DocumentApprovalDto> GetAsync(int userId, string unitCode, string function, string documentId, CancellationToken ct)
     {
-        await permissions.EnsureAllowedAsync(userId, function, PermissionAction.View, ct);
+        // Seen from the voucher or from its approval screen (Phê duyệt nhập kho...).
+        if (!PermissionMatrix.CanViewForApproval(await permissions.GetEffectiveAsync(userId, ct), function))
+            throw new ForbiddenException("permission.denied");
         var steps = await LatestRoundAsync(function, documentId, ct);
         if (steps.Count == 0)
             return new DocumentApprovalDto(function, documentId, null, "NONE", 0, null, false, null, null, []);
@@ -142,11 +168,13 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
     {
         var steps = await LatestRoundAsync(function, documentId, ct, tracking: true);
         var current = steps.FirstOrDefault(x => x.Status == ApprovalStepStatus.Pending)
-            ?? throw new BusinessRuleException("Chứng từ không ở trạng thái chờ duyệt.");
-        if (current.RequestedByUserId == userId) throw new ForbiddenException("Không được tự duyệt chứng từ do mình trình.");
+            ?? throw new BusinessRuleException("approval.notPending");
+        if (current.RequestedByUserId == userId) throw new ForbiddenException("approval.noSelfApprove");
         if (!current.ApproverIds.Contains(userId))
-            throw new ForbiddenException($"Bạn không phải người duyệt cấp {current.Level} của chứng từ này.");
-        await permissions.EnsureAllowedAsync(userId, function, PermissionAction.Approve, ct);
+            throw new ForbiddenException("approval.notApproverOfLevel", current.Level);
+        // "Duyệt" on the voucher or on its approval screen.
+        if (!PermissionMatrix.CanApprove(await permissions.GetEffectiveAsync(userId, ct), function))
+            throw new ForbiddenException("approval.noApproveRight");
         return (steps, current);
     }
 
@@ -158,25 +186,32 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         step.Note = note?.Trim();
     }
 
+    /// <summary>Each approver gets the notification in their own language.</summary>
     private async Task NotifyApproversAsync(int fromUserId, DocumentApproval step, CancellationToken ct)
     {
+        var languages = await db.LanguagesOfAsync(step.ApproverIds.ToList(), ct);
         foreach (var approverId in step.ApproverIds)
+        {
+            var lang = languages[approverId];
             await notifications.PublishAsync(fromUserId, new PublishNotificationRequest(
-                $"Chờ duyệt: {step.DocumentTitle ?? step.DocumentId}",
-                $"{FunctionName(step.MenuId0)} {step.DocumentId} cần bạn phê duyệt (cấp {step.Level})."
-                + (step.Amount is decimal amount ? $" Giá trị: {amount:N0}." : string.Empty),
+                Messages.Format(lang, "approval.notify.pendingTitle", step.DocumentTitle ?? step.DocumentId),
+                Messages.Format(lang, "approval.notify.pendingBody", FunctionCatalog.Name(step.MenuId0, lang), step.DocumentId, step.Level)
+                + (step.Amount is decimal amount ? Messages.Format(lang, "approval.notify.amount", amount.ToString("N0")) : string.Empty),
                 "warning", ModuleOf(step.MenuId0), step.UnitCode, approverId, null, step.MenuId0, step.DocumentId), ct);
+        }
     }
 
-    private async Task NotifyRequesterAsync(int fromUserId, DocumentApproval step, string type, string result, string? note,
-        CancellationToken ct) =>
+    /// <summary>The requester learns the result (approved at the last level, or rejected) in their own language.</summary>
+    private async Task NotifyRequesterAsync(int fromUserId, DocumentApproval step, bool approved, string? note, CancellationToken ct)
+    {
+        var lang = (await db.LanguagesOfAsync([step.RequestedByUserId], ct))[step.RequestedByUserId];
+        var result = approved ? "approved" : "rejected";
         await notifications.PublishAsync(fromUserId, new PublishNotificationRequest(
-            $"{step.DocumentTitle ?? step.DocumentId} {result}",
-            $"{FunctionName(step.MenuId0)} {step.DocumentId} {result} ở cấp {step.Level}." + (string.IsNullOrWhiteSpace(note) ? string.Empty : $" Ghi chú: {note}"),
-            type, ModuleOf(step.MenuId0), step.UnitCode, step.RequestedByUserId, null, step.MenuId0, step.DocumentId), ct);
-
-    private static string FunctionName(string function) =>
-        FunctionCatalog.Functions.GetValueOrDefault(function, function);
+            Messages.Format(lang, $"approval.notify.{result}Title", step.DocumentTitle ?? step.DocumentId),
+            Messages.Format(lang, $"approval.notify.{result}Body", FunctionCatalog.Name(step.MenuId0, lang), step.DocumentId, step.Level)
+            + (string.IsNullOrWhiteSpace(note) ? string.Empty : Messages.Format(lang, "approval.notify.note", note)),
+            approved ? "success" : "danger", ModuleOf(step.MenuId0), step.UnitCode, step.RequestedByUserId, null, step.MenuId0, step.DocumentId), ct);
+    }
 
     /// <summary>Frontend module of a function code, for the notification link.</summary>
     private static string? ModuleOf(string function) => function.Split('_')[0] switch

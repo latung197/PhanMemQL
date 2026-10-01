@@ -11,6 +11,7 @@ import { showToast } from '../../../utils/toast';
 import { useDraft } from '../../../hooks/useDraft';
 import { PermissionMatrixTable } from './PermissionMatrixTable';
 import { SaveBar } from './SaveBar';
+import { useLanguage } from '../../../context/LanguageContext';
 import {
   countDifferences, countRightDifferences, countViewable, FullMatrix, matrixEquals, normalizeRights, toFullMatrix, uniformMatrix
 } from './permissionCatalog';
@@ -41,6 +42,7 @@ export const RoleDetailPanel: React.FC<RoleDetailPanelProps> = ({
   role, userCount, rightDefs, rightGroupLabels, canEdit, canDelete, onSaved, onDeleted, onSynced, onDirtyChange
 }) => {
   const confirm = useConfirm();
+  const { t } = useLanguage();
   const saved = useMemo<RoleDraft>(() => ({
     code: role.code, name: role.name, description: role.description,
     matrix: toFullMatrix({ isSystemAdmin: role.isSystemRole, permissions: role.permissions }),
@@ -65,8 +67,8 @@ export const RoleDetailPanel: React.FC<RoleDetailPanelProps> = ({
         specialRights: draft.rights
       });
       onSaved(result);
-      showToast.success(`Đã lưu vai trò "${result.name}"`,
-        userCount > 0 ? `${userCount} người giữ vai trò nhận quyền mới ngay, trừ những ô đã chỉnh riêng cho từng người.` : undefined);
+      showToast.success(t('roles.detail.saved', { name: result.name }),
+        userCount > 0 ? t('roles.detail.savedHint', { n: userCount }) : undefined);
     } catch (error) {
       showToast.error(getErrorMessage(error));
     } finally {
@@ -76,15 +78,15 @@ export const RoleDetailPanel: React.FC<RoleDetailPanelProps> = ({
 
   const handleSync = async () => {
     const ok = await confirm({
-      title: `Bỏ quyền chỉnh riêng của ${userCount} người giữ vai trò "${role.name}"?`,
-      message: 'Các ô quyền đã chỉnh riêng cho từng người (khác với vai trò) sẽ bị xóa; họ dùng đúng quyền của vai trò.',
-      confirmLabel: 'Bỏ quyền chỉnh riêng',
+      title: t('roles.detail.syncTitle', { n: userCount, name: role.name }),
+      message: t('roles.detail.syncMessage'),
+      confirmLabel: t('roles.detail.syncConfirm'),
       tone: 'warning'
     });
     if (!ok) return;
     try {
       const count = await rolesApi.syncUsers(role.id);
-      showToast.success(`${count} người dùng đã về đúng quyền của vai trò`);
+      showToast.success(t('roles.detail.synced', { n: count }));
       onSynced();
     } catch (error) {
       showToast.error(getErrorMessage(error));
@@ -93,15 +95,15 @@ export const RoleDetailPanel: React.FC<RoleDetailPanelProps> = ({
 
   const handleDelete = async () => {
     const ok = await confirm({
-      title: `Xóa vai trò "${role.name}"?`,
-      message: 'Vai trò và bộ quyền của nó sẽ bị xóa hẳn, không khôi phục được. Quyền riêng của các tài khoản không bị ảnh hưởng.',
-      confirmLabel: 'Xóa vai trò',
+      title: t('roles.detail.deleteTitle', { name: role.name }),
+      message: t('roles.detail.deleteMessage'),
+      confirmLabel: t('roles.detail.deleteConfirm'),
       tone: 'danger'
     });
     if (!ok) return;
     try {
       await rolesApi.remove(role.id);
-      showToast.success(`Đã xóa vai trò "${role.name}"`);
+      showToast.success(t('roles.detail.deleted', { name: role.name }));
       onDeleted(role);
     } catch (error) {
       showToast.error(getErrorMessage(error));
@@ -114,40 +116,40 @@ export const RoleDetailPanel: React.FC<RoleDetailPanelProps> = ({
         <div>
           <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{role.name}</h3>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            {userCount} người dùng · được xem {countViewable(draft.matrix)} chức năng
+            {t('roles.detail.summary', { users: userCount, n: countViewable(draft.matrix) })}
           </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {canEdit && !role.isSystemRole && (
             <Button variant="outline" size="sm" className="h-7" disabled={dirty || userCount === 0}
-              title={dirty ? 'Lưu vai trò trước' : 'Xóa các quyền chỉnh riêng của người giữ vai trò này'}
+              title={dirty ? t('roles.detail.saveFirst') : t('roles.detail.syncHint')}
               onClick={() => void handleSync()} icon={<RefreshCcw className="h-3.5 w-3.5" />}>
-              Đưa {userCount} người về đúng vai trò
+              {t('roles.detail.sync', { n: userCount })}
             </Button>
           )}
           {canDelete && !role.isSystemRole && (
             <Button variant="outline" size="sm" className="h-7 text-rose-600 dark:text-rose-400" disabled={userCount > 0}
-              title={userCount > 0 ? `Đang có ${userCount} người dùng giữ vai trò này; hãy chuyển họ sang vai trò khác trước` : undefined}
+              title={userCount > 0 ? t('roles.detail.inUse', { n: userCount }) : undefined}
               onClick={() => void handleDelete()} icon={<Trash2 className="h-3.5 w-3.5" />}>
-              Xóa
+              {t('roles.detail.delete')}
             </Button>
           )}
         </div>
       </div>
 
       <fieldset disabled={readOnly} className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <TextInput label="Mã vai trò" required className="font-mono uppercase" value={draft.code}
+        <TextInput label={t('roles.form.code')} required className="font-mono uppercase" value={draft.code}
           onChange={(e) => setDraft({ ...draft, code: e.target.value })} />
-        <TextInput label="Tên vai trò" required wrapperClassName="md:col-span-2" value={draft.name}
+        <TextInput label={t('roles.form.name')} required wrapperClassName="md:col-span-2" value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
-        <TextArea label="Mô tả nhiệm vụ" rows={2} wrapperClassName="md:col-span-3" value={draft.description}
+        <TextArea label={t('roles.form.description')} rows={2} wrapperClassName="md:col-span-3" value={draft.description}
           onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
       </fieldset>
 
       {role.isSystemRole && (
         <div className="flex items-center gap-2 p-2.5 rounded-[5px] border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 text-xs">
           <ShieldAlert className="h-4 w-4 shrink-0" />
-          Vai trò quản trị hệ thống luôn có toàn quyền và không chỉnh sửa được.
+          {t('roles.detail.systemRole')}
         </div>
       )}
 
@@ -162,7 +164,7 @@ export const RoleDetailPanel: React.FC<RoleDetailPanelProps> = ({
       />
 
       <SaveBar changes={dirty ? Math.max(changes, 1) : 0} saving={saving} onSave={() => void handleSave()}
-        onDiscard={() => reset()} saveLabel="Lưu vai trò" />
+        onDiscard={() => reset()} saveLabel={t('roles.detail.save')} />
     </div>
   );
 };

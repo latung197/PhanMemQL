@@ -1,4 +1,5 @@
 // HTTP client for the ERP backend (ServerService). Every backend call goes through apiRequest.
+import { storedLanguage, translate } from '../utils/i18n';
 
 // import.meta.env is missing outside Vite (e.g. scripts/export-seed.ts run by tsx).
 const API_URL = (import.meta.env?.VITE_API_URL || 'http://localhost:2512').replace(/\/$/, '');
@@ -41,11 +42,12 @@ export const tokenStore = {
   }
 };
 
+/** Messages for answers without a { message } body (texts: locales/<lang>/common.json, section api). */
 const STATUS_MESSAGES: Record<number, string> = {
-  401: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
-  403: 'Tài khoản của bạn không có quyền thực hiện thao tác này.',
-  404: 'Không tìm thấy dữ liệu yêu cầu.',
-  429: 'Bạn thao tác quá nhiều lần. Vui lòng thử lại sau.'
+  401: 'api.sessionExpired',
+  403: 'api.forbidden',
+  404: 'api.notFound',
+  429: 'api.tooManyRequests'
 };
 
 export async function apiRequest<T>(
@@ -54,7 +56,8 @@ export async function apiRequest<T>(
   body?: unknown,
   options: { anonymous?: boolean } = {}
 ): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  // The backend answers (messages, translated names) in the user's language.
+  const headers: Record<string, string> = { Accept: 'application/json', 'Accept-Language': storedLanguage() };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const token = tokenStore.get();
   if (token && !options.anonymous) headers.Authorization = `Bearer ${token}`;
@@ -67,11 +70,12 @@ export async function apiRequest<T>(
       body: body === undefined ? undefined : JSON.stringify(body)
     });
   } catch {
-    throw new ApiError(0, 'Không kết nối được máy chủ. Kiểm tra backend và cấu hình VITE_API_URL.');
+    throw new ApiError(0, translate('api.connectionFailed'));
   }
 
   if (!response.ok) {
-    let message = STATUS_MESSAGES[response.status] || `Máy chủ trả về lỗi ${response.status}.`;
+    let message = STATUS_MESSAGES[response.status]
+      ? translate(STATUS_MESSAGES[response.status]) : translate('api.serverError', { status: response.status });
     try {
       const data = await response.json();
       if (data && typeof data.message === 'string') message = data.message;
@@ -91,4 +95,4 @@ export async function apiRequest<T>(
 
 /** Message to show in a toast for any error thrown by an API call. */
 export const getErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : 'Đã xảy ra lỗi không xác định.';
+  error instanceof Error ? error.message : translate('api.unknownError');

@@ -1,7 +1,9 @@
-import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
+import React, { useCallback, useContext, useRef, useState } from 'react';
 import { AlertTriangle, HelpCircle, Trash2 } from 'lucide-react';
 import { Modal } from './Modal';
 import { Button } from './Button';
+import { useLanguage } from '../../context/LanguageContext';
+import { ConfirmContext, ConfirmFn } from './confirmContextValue';
 
 export interface ConfirmOptions {
   title: React.ReactNode;
@@ -32,8 +34,10 @@ const TONE_BOX = {
 
 /** Confirmation popup. Prefer the useConfirm() hook, which renders this for you. */
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
-  isOpen, title, message, confirmLabel = 'Xác nhận', cancelLabel = 'Hủy bỏ', tone = 'primary', onConfirm, onCancel
-}) => (
+  isOpen, title, message, confirmLabel, cancelLabel, tone = 'primary', onConfirm, onCancel
+}) => {
+  const { t } = useLanguage();
+  return (
   <Modal isOpen={isOpen} onClose={onCancel} title={title}>
     <div className="space-y-4 text-xs">
       {message && (
@@ -43,18 +47,15 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         </div>
       )}
       <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={onCancel}>{cancelLabel}</Button>
+        <Button variant="outline" size="sm" onClick={onCancel}>{cancelLabel ?? t('controls.confirm.cancel')}</Button>
         <Button variant={tone === 'danger' ? 'danger' : 'primary'} size="sm" onClick={onConfirm} autoFocus>
-          {confirmLabel}
+          {confirmLabel ?? t('controls.confirm.confirm')}
         </Button>
       </div>
     </div>
   </Modal>
-);
-
-type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
-
-const ConfirmContext = createContext<ConfirmFn | null>(null);
+  );
+};
 
 /** Mount once near the root (App). Enables useConfirm() everywhere below it. */
 export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -87,6 +88,6 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
  */
 export const useConfirm = (): ConfirmFn => {
   const confirm = useContext(ConfirmContext);
-  if (!confirm) throw new Error('useConfirm() cần ConfirmProvider ở cấp trên (App).');
+  if (!confirm) throw new Error('useConfirm() needs a ConfirmProvider above it (App).');
   return confirm;
 };

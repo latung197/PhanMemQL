@@ -1,4 +1,5 @@
 using Core.Application.Common.Exceptions;
+using Core.Application.Common.Persistence;
 using Core.Application.Common.Validation;
 using Core.Application.Modules.Departments;
 using Core.Domain.Modules.Approvals;
@@ -9,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Core.Infrastructure.Modules.Departments;
 
 /// <summary>Danh mục phòng ban: a plain catalog (code + name) and the model for new catalogs.</summary>
-public sealed class DepartmentService(CoreContext db) : IDepartmentService
+public sealed class DepartmentService(CoreContext db, IUnitOfWork unitOfWork) : IDepartmentService
 {
     public async Task<IReadOnlyList<DepartmentDto>> GetAllAsync(CancellationToken ct)
     {
@@ -22,9 +23,9 @@ public sealed class DepartmentService(CoreContext db) : IDepartmentService
 
     public async Task<DepartmentDto> CreateAsync(SaveDepartmentRequest request, CancellationToken ct)
     {
-        var code = Guard.Code(request.Code, 20, "Mã phòng ban");
+        var code = Guard.Code(request.Code, 20, "field.departmentCode");
         if (await db.Departments.AnyAsync(x => x.Code == code, ct))
-            throw new BusinessRuleException($"Mã phòng ban {code} đã tồn tại.");
+            throw new BusinessRuleException("department.codeExists", code);
         var department = new Department
         {
             Code = code,
@@ -40,10 +41,13 @@ public sealed class DepartmentService(CoreContext db) : IDepartmentService
     {
         var department = await FindAsync(code, ct);
         await ApplyAsync(department, request, ct);
-        await db.SaveChangesAsync(ct);
-        // Users keep the department name next to the code; copy a renamed department to them.
-        await db.Users.Where(x => x.DepartmentCode == department.Code && x.Department != department.Name)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Department, department.Name), ct);
+        await unitOfWork.ExecuteAsync(async token =>
+        {
+            await db.SaveChangesAsync(token);
+            // Users keep the department name next to the code; copy a renamed department to them.
+            await db.Users.Where(x => x.DepartmentCode == department.Code && x.Department != department.Name)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.Department, department.Name), token);
+        }, ct);
         var users = await db.Users.CountAsync(x => x.ValidFlg == 1 && x.DepartmentCode == department.Code, ct);
         return ToDto(department, users);
     }
@@ -55,24 +59,24 @@ public sealed class DepartmentService(CoreContext db) : IDepartmentService
         var users = await db.Users.CountAsync(x => x.ValidFlg == 1 && x.DepartmentCode == department.Code, ct);
         if (users > 0)
             throw new BusinessRuleException(
-                $"Phòng ban \"{department.Name}\" đang có {users} người dùng. Hãy chuyển họ sang phòng khác hoặc đặt phòng ban ngừng sử dụng.");
+                "department.hasUsers", department.Name, users);
         if (await db.ApprovalRules.AnyAsync(x => x.RequesterType == RequesterTypes.Department && x.RequesterValue == department.Code, ct))
-            throw new BusinessRuleException($"Phòng ban \"{department.Name}\" đang được dùng trong quy trình phê duyệt.");
+            throw new BusinessRuleException("department.inApprovalRules", department.Name);
         db.Departments.Remove(department);
         await db.SaveChangesAsync(ct);
     }
 
     private async Task<Department> FindAsync(string code, CancellationToken ct) =>
         await db.Departments.FirstOrDefaultAsync(x => x.Code == code, ct)
-        ?? throw new NotFoundException("Phòng ban không tồn tại.");
+        ?? throw new NotFoundException("department.notFound");
 
     private async Task ApplyAsync(Department department, SaveDepartmentRequest request, CancellationToken ct)
     {
-        var name = Guard.Required(request.Name, 100, "tên phòng ban");
+        var name = Guard.Required(request.Name, 100, "field.departmentName");
         if (await db.Departments.AnyAsync(x => x.Code != department.Code && x.Name.ToLower() == name.ToLower(), ct))
-            throw new BusinessRuleException($"Tên phòng ban \"{name}\" đã tồn tại.");
+            throw new BusinessRuleException("department.nameExists", name);
         department.Name = name;
-        department.Note = Guard.Optional(request.Note, 300, "Ghi chú");
+        department.Note = Guard.Optional(request.Note, 300, "field.note");
         department.IsActive = request.IsActive;
     }
 

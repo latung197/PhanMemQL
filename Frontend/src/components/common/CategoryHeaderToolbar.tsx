@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Filter, RefreshCw, Download, Upload, Plus, X } from 'lucide-react';
 import { Button } from './Button';
 import { SearchInput } from './SearchInput';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface CategoryHeaderToolbarProps {
   /** Title block; screens that only need a search / action bar leave it out. */
@@ -46,12 +47,12 @@ export const CategoryHeaderToolbar: React.FC<CategoryHeaderToolbarProps> = ({
   icon,
   title,
   count,
-  countLabel = 'Mục',
+  countLabel: countLabelProp,
   subtitle,
   totalItems,
   searchValue,
   onSearchChange,
-  searchPlaceholder = 'Tìm kiếm...',
+  searchPlaceholder: searchPlaceholderProp,
   showAdvancedFilter = false,
   onToggleAdvancedFilter,
   activeFilterCount = 0,
@@ -66,6 +67,9 @@ export const CategoryHeaderToolbar: React.FC<CategoryHeaderToolbarProps> = ({
   onClearFilter,
   extraActions
 }) => {
+  const { t } = useLanguage();
+  const countLabel = countLabelProp ?? t('controls.toolbar.count');
+  const searchPlaceholder = searchPlaceholderProp ?? t('controls.toolbar.search');
   // The search box keeps its own text when the screen only listens to changes.
   const [ownSearch, setOwnSearch] = useState('');
   const shownCount = count ?? totalItems;
@@ -115,7 +119,7 @@ export const CategoryHeaderToolbar: React.FC<CategoryHeaderToolbarProps> = ({
               }`}
               icon={<Filter className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />}
             >
-              Bộ Lọc
+              {t('controls.toolbar.filter')}
               {activeFilterCount > 0 && (
                 <span className="ml-1 px-1.5 py-0.2 bg-indigo-600 text-white text-[9px] rounded-full font-bold">
                   {activeFilterCount}
@@ -132,7 +136,7 @@ export const CategoryHeaderToolbar: React.FC<CategoryHeaderToolbarProps> = ({
               className="h-7 px-2.5 text-[11px] font-semibold text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
               icon={<RefreshCw className="h-3.5 w-3.5 text-indigo-500" />}
             >
-              Nạp Lại
+              {t('controls.toolbar.reload')}
             </Button>
           )}
 
@@ -144,7 +148,7 @@ export const CategoryHeaderToolbar: React.FC<CategoryHeaderToolbarProps> = ({
               className="h-7 px-2.5 text-[11px] font-semibold text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
               icon={<Upload className="h-3.5 w-3.5 text-brand-500" />}
             >
-              Nhập Excel
+              {t('controls.toolbar.import')}
             </Button>
           )}
 
@@ -156,7 +160,7 @@ export const CategoryHeaderToolbar: React.FC<CategoryHeaderToolbarProps> = ({
               className="h-7 px-2.5 text-[11px] font-semibold text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
               icon={<Download className="h-3.5 w-3.5 text-brand-500" />}
             >
-              Xuất Excel
+              {t('controls.toolbar.export')}
             </Button>
           )}
 
@@ -184,12 +188,12 @@ export const CategoryHeaderToolbar: React.FC<CategoryHeaderToolbarProps> = ({
             <div className="flex justify-end gap-2 pt-1.5 border-t border-slate-200 dark:border-slate-800">
               {onClearFilter && (
                 <Button size="sm" variant="outline" onClick={onClearFilter} className="h-7 px-2.5 text-[11px] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">
-                  <X className="h-3.5 w-3.5 mr-1" /> Xóa bộ lọc
+                  <X className="h-3.5 w-3.5 mr-1" /> {t('controls.toolbar.clearFilter')}
                 </Button>
               )}
               {onApplyFilter && (
                 <Button size="sm" onClick={onApplyFilter} className="h-7 px-3 text-[11px] font-bold bg-indigo-600 text-white" icon={<Filter className="h-3.5 w-3.5" />}>
-                  Áp Dụng Lọc
+                  {t('controls.toolbar.applyFilter')}
                 </Button>
               )}
             </div>

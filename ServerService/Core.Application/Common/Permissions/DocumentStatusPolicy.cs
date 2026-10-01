@@ -1,3 +1,4 @@
+using Core.Application.Common.Localization;
 using Core.Domain.Modules.Users;
 
 namespace Core.Application.Common.Permissions;
@@ -24,32 +25,57 @@ public enum DocumentAction
     Cancel
 }
 
-/// <summary>Rights of one user on one voucher function, plus whether they created the document.</summary>
-public sealed record DocumentActor(ActionPermissions Actions, IReadOnlySet<string> Rights, bool IsOwner)
+/// <summary>
+/// Rights of one user on one voucher function, plus whether they created the document. ApproveOnScreen = the
+/// "Duyệt" right on an approval screen of the voucher (VoucherCatalog.ApprovalScreens).
+/// </summary>
+public sealed record DocumentActor(ActionPermissions Actions, IReadOnlySet<string> Rights, bool IsOwner,
+    bool ApproveOnScreen = false)
 {
     public bool Has(string rightCode) => Rights.Contains(rightCode);
+
+    public bool CanApprove => Actions.Approve || ApproveOnScreen;
+
+    /// <summary>The actor as voucher services build it: matrix and special rights from IPermissionService.</summary>
+    public static DocumentActor For(IReadOnlyDictionary<string, ActionPermissions> matrix, IReadOnlySet<string> rights,
+        string function, bool isOwner)
+    {
+        var actions = matrix.GetValueOrDefault(function) ?? ActionPermissions.None;
+        var prefix = function + ":";
+        var codes = rights.Where(x => x.StartsWith(prefix, StringComparison.Ordinal)).Select(x => x[prefix.Length..])
+            .ToHashSet(StringComparer.Ordinal);
+        return new DocumentActor(actions, codes, isOwner,
+            !actions.Approve && PermissionMatrix.CanApprove(matrix, function));
+    }
 }
 
 public sealed record PolicyDecision(bool Allowed, string? Reason = null)
 {
     public static PolicyDecision Allow { get; } = new(true);
-    public static PolicyDecision Deny(string reason) => new(false, reason);
+    /// <summary>Refusal with the reason in the language of the request (<paramref name="reasonKey"/>: policy.* message).</summary>
+    public static PolicyDecision Deny(string reasonKey) => new(false, Messages.T(reasonKey));
 }
 
 /// <summary>
 /// Which document actions are allowed in which status. Voucher services call Check before changing a
 /// document; the frontend mirrors these rules to enable buttons (Frontend/src/utils/documentPolicy.ts,
 /// keep both in step). Enum names travel as strings in JSON ("Draft", "Pending"...).
-/// Approve / Reject also require the user to be an approver of the current level (ApprovalService).
+/// Approve / Reject also require the user to be an approver of the current level (DocumentApprovalService); they
+/// need neither "Xem" on the voucher nor VIEW_ALL, so an approver working from an approval screen can act.
 /// </summary>
 public static class DocumentStatusPolicy
 {
     public static PolicyDecision Check(DocumentAction action, DocumentStatus status, DocumentActor actor)
     {
         var a = actor.Actions;
-        if (!a.View) return PolicyDecision.Deny("Không có quyền xem chức năng này.");
+        if (action is DocumentAction.Approve or DocumentAction.Reject)
+            return status != DocumentStatus.Pending ? PolicyDecision.Deny("policy.notPending")
+                : actor.IsOwner ? PolicyDecision.Deny("policy.ownVoucher")
+                : actor.CanApprove ? PolicyDecision.Allow : PolicyDecision.Deny("policy.noApproveRight");
+
+        if (!a.View) return PolicyDecision.Deny("policy.noViewRight");
         if (!actor.IsOwner && !actor.Has(SpecialRightCatalog.ViewAll))
-            return PolicyDecision.Deny("Chỉ được thao tác trên phiếu do mình lập.");
+            return PolicyDecision.Deny("policy.ownOnly");
 
         return action switch
         {
@@ -57,38 +83,33 @@ public static class DocumentStatusPolicy
 
             DocumentAction.Edit => status switch
             {
-                DocumentStatus.Draft => a.CreateEdit ? PolicyDecision.Allow : PolicyDecision.Deny("Không có quyền sửa phiếu."),
+                DocumentStatus.Draft => a.CreateEdit ? PolicyDecision.Allow : PolicyDecision.Deny("policy.noEditRight"),
                 DocumentStatus.Pending => a.CreateEdit && actor.Has(SpecialRightCatalog.EditPending)
-                    ? PolicyDecision.Allow : PolicyDecision.Deny("Phiếu đang chờ duyệt; cần quyền \"Sửa phiếu đang chờ duyệt\"."),
+                    ? PolicyDecision.Allow : PolicyDecision.Deny("policy.editPending"),
                 DocumentStatus.Approved => a.CreateEdit && actor.Has(SpecialRightCatalog.EditApproved)
-                    ? PolicyDecision.Allow : PolicyDecision.Deny("Phiếu đã duyệt; cần quyền \"Sửa phiếu đã duyệt\"."),
-                DocumentStatus.Posted => PolicyDecision.Deny("Phiếu đã ghi sổ; phải bỏ ghi sổ trước khi sửa."),
-                _ => PolicyDecision.Deny("Phiếu đã hủy.")
+                    ? PolicyDecision.Allow : PolicyDecision.Deny("policy.editApproved"),
+                DocumentStatus.Posted => PolicyDecision.Deny("policy.postedNoEdit"),
+                _ => PolicyDecision.Deny("policy.cancelled")
             },
 
             DocumentAction.Submit => status == DocumentStatus.Draft && a.CreateEdit
-                ? PolicyDecision.Allow : PolicyDecision.Deny("Chỉ trình duyệt được phiếu đang lập."),
-
-            DocumentAction.Approve or DocumentAction.Reject => status != DocumentStatus.Pending
-                ? PolicyDecision.Deny("Phiếu không ở trạng thái chờ duyệt.")
-                : actor.IsOwner ? PolicyDecision.Deny("Không được tự duyệt phiếu do mình lập.")
-                : a.Approve ? PolicyDecision.Allow : PolicyDecision.Deny("Không có quyền phê duyệt."),
+                ? PolicyDecision.Allow : PolicyDecision.Deny("policy.submitDraftOnly"),
 
             DocumentAction.Post => status == DocumentStatus.Approved && actor.Has(SpecialRightCatalog.Post)
-                ? PolicyDecision.Allow : PolicyDecision.Deny("Chỉ ghi sổ phiếu đã duyệt; cần quyền \"Ghi sổ\"."),
+                ? PolicyDecision.Allow : PolicyDecision.Deny("policy.postApprovedOnly"),
 
             DocumentAction.Unpost => status == DocumentStatus.Posted && actor.Has(SpecialRightCatalog.Unpost)
-                ? PolicyDecision.Allow : PolicyDecision.Deny("Cần quyền \"Bỏ ghi sổ\"."),
+                ? PolicyDecision.Allow : PolicyDecision.Deny("policy.unpostRight"),
 
             DocumentAction.Cancel => status switch
             {
-                DocumentStatus.Posted => PolicyDecision.Deny("Phiếu đã ghi sổ; phải bỏ ghi sổ trước khi hủy."),
-                DocumentStatus.Cancelled => PolicyDecision.Deny("Phiếu đã hủy."),
+                DocumentStatus.Posted => PolicyDecision.Deny("policy.postedNoCancel"),
+                DocumentStatus.Cancelled => PolicyDecision.Deny("policy.cancelled"),
                 DocumentStatus.Draft when actor.IsOwner && a.Delete => PolicyDecision.Allow,
-                _ => actor.Has(SpecialRightCatalog.Cancel) ? PolicyDecision.Allow : PolicyDecision.Deny("Cần quyền \"Hủy phiếu\".")
+                _ => actor.Has(SpecialRightCatalog.Cancel) ? PolicyDecision.Allow : PolicyDecision.Deny("policy.cancelRight")
             },
 
-            _ => PolicyDecision.Deny("Thao tác không hợp lệ.")
+            _ => PolicyDecision.Deny("policy.invalidAction")
         };
     }
 }

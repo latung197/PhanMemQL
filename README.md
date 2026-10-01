@@ -98,8 +98,10 @@ Trình duyệt ── fetch + Bearer token ──► ServerService (Core, contro
 | Tham số mặc định, năm tài chính, hồ sơ doanh nghiệp, định dạng số (JSON trong `sys_setting`), sao lưu / phục hồi cài đặt | **Backend** |
 | Thông báo (gửi, đọc, thời gian thực, tự dọn) | **Backend** |
 | Quy tắc phê duyệt (Cài đặt › Phân quyền › Quy trình phê duyệt) | **Backend** |
+| Nhật ký thay đổi (Cài đặt › Nhật ký thay đổi) | **Backend** |
+| Kho › Danh mục đơn vị tính (`erp_uom`) | **Backend** |
 | API trình / duyệt / từ chối phiếu (`/api/approvals/...`) | Backend đã có, **frontend chưa gọi** |
-| Vật tư, kho, phiếu nhập / xuất, bán hàng, tài chính, nhân sự, báo cáo | **Dữ liệu mẫu trong trình duyệt** (`Frontend/src/mock`, `localStorage['s_erp_database_state']`) |
+| Vật tư, kho, quy đổi đơn vị tính, phiếu nhập / xuất, bán hàng, tài chính, nhân sự, báo cáo | **Dữ liệu mẫu trong trình duyệt** (`Frontend/src/mock`, `localStorage['s_erp_database_state']`) |
 
 Khi làm một nghiệp vụ thật (ví dụ phiếu nhập kho), làm theo quy trình bên dưới rồi bỏ dữ liệu mẫu của màn đó.
 
@@ -139,9 +141,13 @@ Mỗi chức năng có một **mã** (ví dụ `inv_supplier_cat`) và thuộc m
 
 ### Danh mục
 
+Hướng dẫn từng bước, từng file (lấy danh mục đơn vị tính làm mẫu): **[docs/them-danh-muc.md](docs/them-danh-muc.md)**.
+
+
 - Backend: làm theo mẫu **Phòng ban** (`Core.Infrastructure/Modules/Departments/DepartmentService.cs`): kiểm tra dữ liệu bằng `Guard`, không trùng mã, không xóa bản ghi đang được dùng (tự kiểm tra vì không có khóa ngoại), cho phép "ngừng sử dụng".
 - Frontend: copy **`modules/settings/DepartmentCategoryView.tsx`**. Hook `useCatalog(api, ...)` lo phần tải, thêm, sửa, xóa kèm thông báo; màn hình chỉ khai báo cột (`GridView`) và form (`Modal` + `TextInput`, `SelectInput`, `Checkbox`).
 - Danh mục mà màn khác cần tra cứu thì cho `GET` không cần quyền riêng (chỉ cần đăng nhập), như phòng ban, ngoại tệ.
+- Nhật ký thay đổi: gắn `[Audited("mã", "loại", Label = "{Code} - {Name}")]` lên entity là thêm / sửa / xóa tự được ghi (ai, lúc nào, trước → sau). Xem tập trung ở **Cài đặt › Nhật ký thay đổi** (`sys_audit_log`), không hiện trên màn chức năng. Chi tiết: [ServerService/README.md](ServerService/README.md#nhật-ký-thay-đổi).
 
 ### Phiếu (chứng từ)
 
@@ -156,6 +162,7 @@ Mỗi chức năng có một **mã** (ví dụ `inv_supplier_cat`) và thuộc m
   | Thao tác nào được phép theo trạng thái phiếu | `DocumentStatusPolicy.Check(...)` |
   | Trình duyệt / duyệt / từ chối | `IDocumentApprovalService` (`/api/approvals/...`) |
   | Ghi sổ kho / sổ cái | SQL trong `Modules/<Module>/Sql/*.sql` qua `ISqlExecutor`, cùng transaction |
+  | Nhật ký ai sửa gì | `[Audited]` trên entity (tự động); trình / duyệt / ghi sổ bằng SQL thì ghi tay `IAuditLog.RecordAsync`; xem ở Cài đặt › Nhật ký thay đổi |
 
 - Frontend: copy `modules/_templates/voucher-feature-template/`. Số phiếu hiển thị trước khi lưu lấy bằng `voucherNumberingApi.preview(loại)`; số thật do backend cấp lúc lưu. Kiểm tra ngày bằng `fiscalPeriodsApi.check(ngày)`. Mở đúng phiếu từ thông báo bằng `useOpenDocumentRequest('mã', id => ...)`.
 

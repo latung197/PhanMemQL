@@ -1,3 +1,4 @@
+using Core.Application.Common.Localization;
 using Core.Application.Common.Permissions;
 using Core.Common.Controllers;
 using Microsoft.AspNetCore.Mvc;
@@ -17,10 +18,10 @@ public sealed class PermissionCatalogController : ApiControllerBase
         }),
         Groups = new Dictionary<string, string>
         {
-            [SpecialRightGroups.Data] = "Dữ liệu được xem",
-            [SpecialRightGroups.Scope] = "Phạm vi chứng từ",
-            [SpecialRightGroups.Status] = "Trạng thái chứng từ",
-            [SpecialRightGroups.Feature] = "Chức năng mở rộng"
+            [SpecialRightGroups.Data] = Messages.T("rightGroup.data"),
+            [SpecialRightGroups.Scope] = Messages.T("rightGroup.scope"),
+            [SpecialRightGroups.Status] = Messages.T("rightGroup.status"),
+            [SpecialRightGroups.Feature] = Messages.T("rightGroup.feature")
         }
     });
 }

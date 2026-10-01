@@ -32,9 +32,15 @@ public sealed class VoucherNumberService(CoreContext db, ISqlExecutor sql) : IVo
         string unitCode, CancellationToken ct)
     {
         var rule = await FindAsync(voucherType, ct);
-        var prefix = Guard.Required(request.Prefix, 20, "tiền tố").ToUpperInvariant();
-        var pattern = Guard.Required(request.Pattern, 100, "mẫu số chứng từ");
+        var prefix = Guard.Required(request.Prefix, 20, "field.prefix").ToUpperInvariant();
+        var pattern = Guard.Required(request.Pattern, 100, "field.numberPattern");
         VoucherNumberFormat.Validate(pattern, prefix, request.Digits);
+        // Counters are kept per voucher type, so two types sharing a series would issue the same numbers.
+        var series = VoucherNumberFormat.Series(pattern, prefix);
+        var others = await db.VoucherNumberingRules.AsNoTracking().Where(x => x.VoucherType != rule.VoucherType).ToListAsync(ct);
+        if (others.FirstOrDefault(x => VoucherNumberFormat.Series(x.Pattern, x.Prefix) == series) is { } clash)
+            throw new BusinessRuleException(
+                "numbering.clash", VoucherCatalog.DisplayName(clash.VoucherType, clash.Name), clash.Prefix, clash.Pattern);
         rule.Prefix = prefix;
         rule.Pattern = pattern;
         rule.Digits = (short)request.Digits;
@@ -72,9 +78,9 @@ public sealed class VoucherNumberService(CoreContext db, ISqlExecutor sql) : IVo
     {
         var code = voucherType?.Trim().ToUpperInvariant() ?? string.Empty;
         return await db.VoucherNumberingRules.FirstOrDefaultAsync(x => x.VoucherType == code, ct)
-            ?? throw new NotFoundException($"Loại chứng từ {code} không tồn tại.");
+            ?? throw new NotFoundException("numbering.notFound", code);
     }
 
     private static VoucherNumberingDto ToDto(VoucherNumberingRule x, string next) =>
-        new(x.VoucherType, x.MenuId0, x.Name, x.Prefix, x.Pattern, x.Digits, next);
+        new(x.VoucherType, x.MenuId0, VoucherCatalog.DisplayName(x.VoucherType, x.Name), x.Prefix, x.Pattern, x.Digits, next);
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface ModalProps {
 }
 
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, headerActions, children, maxWidth = 'md', fullScreen = false }) => {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   const widthClasses = {
@@ -42,7 +44,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, headerActi
                 type="button"
                 onClick={onClose}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-[5px] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-hidden cursor-pointer"
-                title="Đóng (Esc)"
+                title={t('controls.modal.closeEsc')}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -67,7 +69,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, headerActi
               type="button"
               onClick={onClose}
               className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-[5px] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-hidden cursor-pointer"
-              title="Đóng"
+              title={t('controls.modal.close')}
             >
               <X className="h-5 w-5" />
             </button>

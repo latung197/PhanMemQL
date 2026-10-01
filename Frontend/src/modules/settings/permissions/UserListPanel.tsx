@@ -3,6 +3,7 @@ import { Search, ShieldCheck } from 'lucide-react';
 import { RoleDefinition, UserProfile } from '../../../types';
 import { cn } from '../../../lib/utils';
 import { EmptyState } from '../../../components/common/StateViews';
+import { useLanguage } from '../../../context/LanguageContext';
 
 interface UserListPanelProps {
   users: UserProfile[];
@@ -18,6 +19,7 @@ export const initials = (name: string) =>
 
 /** Searchable list of accounts, filterable by role and status. */
 export const UserListPanel: React.FC<UserListPanelProps> = ({ users, roles, selectedId, onSelect }) => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'locked'>('all');
@@ -38,26 +40,26 @@ export const UserListPanel: React.FC<UserListPanelProps> = ({ users, roles, sele
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm tên, tài khoản, email, mã NV..."
+            placeholder={t('users.list.search')}
             className="h-7 w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[5px] pl-8 pr-2 text-xs focus:outline-hidden focus:border-indigo-500"
           />
         </div>
         <div className="flex gap-1.5">
           <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className={cn(selectClass, 'flex-1 min-w-0')}>
-            <option value="">Tất cả vai trò</option>
+            <option value="">{t('users.list.allRoles')}</option>
             {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-            <option value="-">Chưa gán vai trò</option>
+            <option value="-">{t('users.noRole')}</option>
           </select>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className={selectClass}>
-            <option value="all">Mọi trạng thái</option>
-            <option value="active">Hoạt động</option>
-            <option value="locked">Đã khóa</option>
+            <option value="all">{t('users.list.allStatuses')}</option>
+            <option value="active">{t('users.active')}</option>
+            <option value="locked">{t('users.locked')}</option>
           </select>
         </div>
       </div>
 
       <div className="overflow-y-auto grow custom-scrollbar">
-        {filtered.length === 0 && <EmptyState title="Không tìm thấy người dùng" className="py-6" />}
+        {filtered.length === 0 && <EmptyState title={t('users.list.notFound')} className="py-6" />}
         {filtered.map(u => {
           const active = u.id === selectedId;
           return (
@@ -79,20 +81,20 @@ export const UserListPanel: React.FC<UserListPanelProps> = ({ users, roles, sele
                   <span className={cn('text-xs font-bold truncate', active ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-slate-100')}>
                     {u.fullName}
                   </span>
-                  {u.isSystemAdmin && <ShieldCheck className="h-3.5 w-3.5 text-amber-500 shrink-0" aria-label="Quản trị viên" />}
+                  {u.isSystemAdmin && <ShieldCheck className="h-3.5 w-3.5 text-amber-500 shrink-0" aria-label={t('users.admin')} />}
                 </span>
                 <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                  @{u.username} · {u.role || 'Chưa gán vai trò'}
+                  @{u.username} · {u.role || t('users.noRole')}
                 </span>
               </span>
               <span className={cn('h-2 w-2 rounded-full shrink-0', u.isActive === false ? 'bg-rose-500' : 'bg-emerald-500')}
-                title={u.isActive === false ? 'Đã khóa' : 'Hoạt động'} />
+                title={u.isActive === false ? t('users.locked') : t('users.active')} />
             </button>
           );
         })}
       </div>
       <div className="px-3 py-1.5 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500">
-        {filtered.length} / {users.length} người dùng
+        {t('users.list.count', { shown: filtered.length, total: users.length })}
       </div>
     </div>
   );

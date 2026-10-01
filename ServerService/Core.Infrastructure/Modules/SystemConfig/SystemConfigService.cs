@@ -22,8 +22,9 @@ public sealed class SystemConfigService(CoreContext db, ILogger<SystemConfigServ
         var result = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
         foreach (var (section, key) in SystemConfigSections.Keys)
         {
-            var setting = settings.FirstOrDefault(x => x.Key == key && x.Scope == unitScope)
-                ?? settings.FirstOrDefault(x => x.Key == key);
+            // Unit-only sections come from the unit, the others from the company (never a unit copy of them).
+            var scope = SystemConfigSections.IsUnitOnly(section) ? unitScope : SystemSetting.GlobalScope;
+            var setting = settings.FirstOrDefault(x => x.Key == key && x.Scope == scope);
             if (setting is null) continue;
             try
             {
@@ -36,6 +37,16 @@ public sealed class SystemConfigService(CoreContext db, ILogger<SystemConfigServ
                 logger.LogWarning(ex, "Setting {Key} ({Scope}) is not valid JSON", setting.Key, setting.Scope);
             }
         }
+
+        // The accounting currency is the base currency of the currency catalog, never a stored copy.
+        var baseCurrency = await db.Currencies.AsNoTracking().Where(x => x.IsBase).Select(x => x.Code).FirstOrDefaultAsync(ct);
+        if (baseCurrency is not null)
+        {
+            using var empty = JsonDocument.Parse("{}");
+            result["systemDefaults"] = SystemConfigSections.WithField(
+                result.TryGetValue("systemDefaults", out var defaults) ? defaults : empty.RootElement,
+                SystemConfigSections.BaseCurrencyField, baseCurrency);
+        }
         return result;
     }
 
@@ -45,17 +56,17 @@ public sealed class SystemConfigService(CoreContext db, ILogger<SystemConfigServ
         var scope = SystemSetting.GlobalScope;
         if (!string.IsNullOrWhiteSpace(unitCode))
         {
+            if (!SystemConfigSections.IsUnitOnly(name))
+                throw new BusinessRuleException("settings.companyWideOnly");
             if (!await db.CompanyUnits.AnyAsync(x => x.Code == unitCode, ct))
-                throw new BusinessRuleException("Đơn vị cơ sở không tồn tại.");
+                throw new BusinessRuleException("companyUnit.notFound");
             scope = SystemSetting.UnitScope(unitCode);
         }
         else if (SystemConfigSections.IsUnitOnly(name))
-            throw new BusinessRuleException("Tham số theo đơn vị phải được lưu cho một đơn vị cơ sở.");
+            throw new BusinessRuleException("settings.unitRequired");
 
-        // References to other catalogs (no foreign keys): the accounting currency must be an active currency.
-        if (name == "systemDefaults" && value.TryGetProperty("defaultCurrency", out var currency)
-            && !await db.Currencies.AnyAsync(x => x.Code == currency.GetString() && x.IsActive, ct))
-            throw new BusinessRuleException($"Đồng tiền {currency.GetString()} không có trong danh mục ngoại tệ hoặc đã ngừng sử dụng.");
+        // The accounting currency is chosen in the currency catalog (Tiền hạch toán); a copy here could disagree with it.
+        if (name == "systemDefaults") value = SystemConfigSections.WithField(value, SystemConfigSections.BaseCurrencyField, null);
 
         var key = SystemConfigSections.Keys[name];
         var setting = await db.SystemSettings.FirstOrDefaultAsync(x => x.Key == key && x.Scope == scope, ct);

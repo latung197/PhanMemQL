@@ -16,6 +16,13 @@ interface AuthResult {
   user: UserProfile;
 }
 
+/** Active language for the language picker (backend sys_language). */
+export interface LanguageOption {
+  code: string;
+  nativeName: string;
+  isDefault: boolean;
+}
+
 export interface UpdateMyProfileInput {
   fullName: string;
   email?: string;
@@ -41,6 +48,12 @@ export const authService = {
   },
 
   getMe: () => apiRequest<UserProfile>('GET', '/api/auth/me'),
+
+  /** Also before login (language picker of the login screen). */
+  getLanguages: () => apiRequest<LanguageOption[]>('GET', '/api/auth/languages', undefined, { anonymous: true }),
+
+  /** The user's own language; null = the default language of the company. */
+  setMyLanguage: (language: string | null) => apiRequest<UserProfile>('PUT', '/api/auth/me/language', { language }),
 
   async switchUnit(unitCode: string): Promise<UserProfile> {
     return acceptSession(await apiRequest<AuthResult>('POST', '/api/auth/switch-unit', { unitCode }));

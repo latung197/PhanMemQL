@@ -21,6 +21,12 @@
     { "name": "approve own voucher", "action": "Approve", "status": "Pending", "isOwner": true, "actions": ["view", "approve"], "rights": [], "allowed": false },
     { "name": "approve a draft", "action": "Approve", "status": "Draft", "isOwner": false, "actions": ["view", "approve"], "rights": ["VIEW_ALL"], "allowed": false },
     { "name": "reject without approve right", "action": "Reject", "status": "Pending", "isOwner": false, "actions": ["view"], "rights": ["VIEW_ALL"], "allowed": false },
+    { "name": "approve other's pending without VIEW_ALL", "action": "Approve", "status": "Pending", "isOwner": false, "actions": ["approve"], "rights": [], "allowed": true },
+    { "name": "approve from the approval screen only", "action": "Approve", "status": "Pending", "isOwner": false, "actions": [], "screenActions": ["view", "approve"], "rights": [], "allowed": true },
+    { "name": "reject from the approval screen only", "action": "Reject", "status": "Pending", "isOwner": false, "actions": [], "screenActions": ["approve"], "rights": [], "allowed": true },
+    { "name": "approval screen without approve right", "action": "Approve", "status": "Pending", "isOwner": false, "actions": ["view"], "screenActions": ["view"], "rights": ["VIEW_ALL"], "allowed": false },
+    { "name": "approval screen does not approve own voucher", "action": "Approve", "status": "Pending", "isOwner": true, "actions": [], "screenActions": ["approve"], "rights": [], "allowed": false },
+    { "name": "approval screen does not edit", "action": "Edit", "status": "Draft", "isOwner": false, "actions": [], "screenActions": ["view", "createEdit", "approve"], "rights": [], "allowed": false },
 
     { "name": "post approved", "action": "Post", "status": "Approved", "isOwner": true, "actions": ["view"], "rights": ["POST"], "allowed": true },
     { "name": "post without POST", "action": "Post", "status": "Approved", "isOwner": true, "actions": ["view", "createEdit", "approve"], "rights": [], "allowed": false },

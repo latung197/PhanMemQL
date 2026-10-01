@@ -23,7 +23,7 @@ export const i18nDbService = {
    * Get dynamic resource dictionary payload matching C# Web API response:
    * GET /api/v1/i18n/resources?culture=en-US
    */
-  getDictionaryByCulture(culture: 'vi' | 'en' | 'vi-VN' | 'en-US'): CSharpI18nResponse {
+  getDictionaryByCulture(culture: string): CSharpI18nResponse {
     const allResources = this.getSysResources();
     const isEn = culture === 'en' || culture === 'en-US';
     const targetCulture = isEn ? 'en' : 'vi';

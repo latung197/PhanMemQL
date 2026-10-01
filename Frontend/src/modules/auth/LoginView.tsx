@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ShieldCheck, Lock, User, Eye, EyeOff, AlertCircle, Building2
+  ShieldCheck, Lock, User, Eye, EyeOff, AlertCircle, Building2, Globe
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { authService, LoginUnitOption } from '../../services/authService';
 import { getErrorMessage } from '../../services/apiClient';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface LoginViewProps {
   onLoginSuccess: (user: UserProfile) => void;
@@ -30,6 +31,7 @@ const getRememberedLogin = (): { username: string; unitCode?: string } | null =>
 
 export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const [rememberedLogin] = useState(getRememberedLogin);
+  const { language, setLanguage, languages, t } = useLanguage();
   const [username, setUsername] = useState(rememberedLogin?.username || '');
   const [password, setPassword] = useState('');
   const [rememberUsername, setRememberUsername] = useState(Boolean(rememberedLogin));
@@ -56,13 +58,17 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUnitCode) {
-      setErrorMsg('Vui lòng chọn đơn vị cơ sở.');
+      setErrorMsg(t('auth.selectUnit'));
       return;
     }
     setErrorMsg('');
     setIsLoading(true);
     try {
-      const user = await authService.login(username.trim(), password, selectedUnitCode);
+      let user = await authService.login(username.trim(), password, selectedUnitCode);
+      // A language picked on this screen becomes the user's own choice.
+      if (language !== user.language) {
+        try { user = await authService.setMyLanguage(language); } catch { /* keep the profile language */ }
+      }
       try {
         if (rememberUsername) {
           localStorage.setItem(rememberedLoginKey, JSON.stringify({ username: username.trim(), unitCode: selectedUnitCode }));
@@ -96,7 +102,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
             S-ERP & MES Enterprise
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Hệ thống Quản trị Sản Xuất & Doanh Nghiệp
+            {t('auth.subtitle')}
           </p>
         </div>
 
@@ -111,7 +117,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
         {/* Username and password login */}
         <form onSubmit={handleLogin} className="space-y-3.5">
             <div className="space-y-1">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Tên Đăng Nhập</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('auth.username')}</label>
               <div className="relative">
                 <User className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
                 <input
@@ -120,14 +126,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Tên đăng nhập..."
+                  placeholder={t('auth.usernamePlaceholder')}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-750 focus:border-indigo-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden transition-colors font-medium"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Mật Khẩu</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('auth.password')}</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
                 <input
@@ -136,12 +142,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Nhập mật khẩu..."
+                  placeholder={t('auth.passwordPlaceholder')}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-750 focus:border-indigo-500 rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden transition-colors font-medium"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                   className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -150,7 +157,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Đơn vị cơ sở</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('auth.unit')}</label>
               <div className="relative">
                 <Building2 className="absolute left-3.5 top-3 h-4 w-4 text-indigo-500 dark:text-indigo-400" />
                 <select
@@ -158,7 +165,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                   onChange={(e) => setSelectedUnitCode(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-750 focus:border-indigo-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden transition-colors font-medium cursor-pointer"
                 >
-                  {companyUnits.length === 0 && <option value="">Đang tải đơn vị cơ sở...</option>}
+                  {companyUnits.length === 0 && <option value="">{t('auth.loadingUnits')}</option>}
                   {companyUnits.map(unit => (
                     <option key={unit.id} value={unit.code}>
                       {unit.code} - {unit.name}
@@ -175,7 +182,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                 onChange={(e) => setRememberUsername(e.target.checked)}
                 className="h-4 w-4 rounded border-slate-300 text-indigo-600 accent-indigo-600 cursor-pointer"
               />
-              Ghi nhớ tên đăng nhập
+              {t('auth.rememberUsername')}
             </label>
 
             <button
@@ -188,7 +195,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               ) : (
                 <>
                   <ShieldCheck className="h-4 w-4" />
-                  Đăng Nhập
+                  {t('auth.login')}
                 </>
               )}
             </button>
@@ -196,7 +203,16 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
         {/* Footer info */}
         <div className="border-t border-slate-200 dark:border-slate-800 pt-3 text-center text-[10px] text-slate-500 space-y-1">
-          <p>© 2026 S-ERP Enterprise Solution. Bảo mật dữ liệu doanh nghiệp.</p>
+          {languages.length > 1 && (
+            <label className="inline-flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+              <Globe className="h-3.5 w-3.5 text-indigo-500" />
+              <select value={language} onChange={(e) => setLanguage(e.target.value)} aria-label="Ngôn ngữ / Language"  // i18n-ignore
+                className="bg-transparent outline-hidden cursor-pointer">
+                {languages.map(l => <option key={l.code} value={l.code}>{l.nativeName}</option>)}
+              </select>
+            </label>
+          )}
+          <p>{t('auth.footer')}</p>
         </div>
 
       </div>

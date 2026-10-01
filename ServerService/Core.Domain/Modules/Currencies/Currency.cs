@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Core.Domain.Common;
 
 namespace Core.Domain.Modules.Currencies;
 
 /// <summary>Currency (ngoại tệ). Exactly one currency is the base (hạch toán) currency.</summary>
+[Audited("sys_currencies", "currency", Label = "{Code} - {Name}")]
 [Table("sys_currency")]
 public class Currency
 {
@@ -17,6 +19,7 @@ public class Currency
 }
 
 /// <summary>Rates of one currency on one day, against the base currency.</summary>
+[Audited("sys_exchange_rates", "exchangeRate", Label = "{CurrencyCode} {RateDate}")]
 [Table("sys_exchange_rate")]
 public class ExchangeRate
 {
@@ -27,6 +30,6 @@ public class ExchangeRate
     [Column("sell_rate", TypeName = "numeric(18,6)")] public decimal SellRate { get; set; }
     /// <summary>Rate used for bookkeeping (tỷ giá hạch toán).</summary>
     [Column("accounting_rate", TypeName = "numeric(18,6)")] public decimal AccountingRate { get; set; }
-    [Column("updated_at_utc")] public DateTime UpdatedAtUtc { get; set; }
-    [Column("updated_by_user_id")] public int UpdatedByUserId { get; set; }
+    [AuditIgnore, Column("updated_at_utc")] public DateTime UpdatedAtUtc { get; set; }
+    [AuditIgnore, Column("updated_by_user_id")] public int UpdatedByUserId { get; set; }
 }

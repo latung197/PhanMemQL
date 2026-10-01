@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Search, X, Check } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface ComboBoxOption {
   value: string;
@@ -32,7 +33,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
   options,
   value,
   onChange,
-  placeholder = 'Chọn một tùy chọn...',
+  placeholder: placeholderProp,
   required = false,
   disabled = false,
   searchable = true,
@@ -43,6 +44,8 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
   labelClassName = '',
   compact = true
 }) => {
+  const { t } = useLanguage();
+  const placeholder = placeholderProp ?? t('controls.combo.placeholder');
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -158,7 +161,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm kiếm tùy chọn..."
+                placeholder={t('controls.combo.search')}
                 className="w-full bg-transparent border-none text-xs focus:outline-hidden text-slate-800 dark:text-slate-100 placeholder-slate-400"
               />
               {searchTerm && (
@@ -213,7 +216,7 @@ export const ComboBox: React.FC<ComboBoxProps> = ({
               })
             ) : (
               <div className="p-4 text-center text-slate-400 dark:text-slate-500 text-xs">
-                Không tìm thấy kết quả phù hợp
+                {t('controls.combo.noResult')}
               </div>
             )}
           </div>

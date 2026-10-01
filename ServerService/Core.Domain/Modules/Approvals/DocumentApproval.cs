@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Core.Domain.Common;
 
 namespace Core.Domain.Modules.Approvals;
 
@@ -19,6 +20,7 @@ public static class ApprovalStepStatus
 /// One approval level of one submission of a document. The approvers are resolved from the rules when
 /// the document is submitted and kept here, so later rule changes do not affect running approvals.
 /// </summary>
+[NotAudited("Logged on the document as SUBMIT / APPROVE / REJECT / WITHDRAW (DocumentApprovalService).")]
 [Table("sys_document_approval")]
 public class DocumentApproval
 {

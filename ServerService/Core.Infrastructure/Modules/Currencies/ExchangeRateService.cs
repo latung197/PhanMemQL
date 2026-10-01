@@ -29,7 +29,7 @@ public sealed class ExchangeRateService(CoreContext db) : IExchangeRateService
     public async Task<ExchangeRateDto> UpdateAsync(int userId, long id, SaveExchangeRateRequest request, CancellationToken ct)
     {
         var rate = await db.ExchangeRates.FirstOrDefaultAsync(x => x.Id == id, ct)
-            ?? throw new NotFoundException("Tỷ giá không tồn tại.");
+            ?? throw new NotFoundException("exchangeRate.notFound");
         await ApplyAsync(rate, userId, request, ct);
         await db.SaveChangesAsync(ct);
         return ToDto(rate, await UserNamesAsync([userId], ct));
@@ -38,7 +38,7 @@ public sealed class ExchangeRateService(CoreContext db) : IExchangeRateService
     public async Task DeleteAsync(long id, CancellationToken ct)
     {
         var rate = await db.ExchangeRates.FirstOrDefaultAsync(x => x.Id == id, ct)
-            ?? throw new NotFoundException("Tỷ giá không tồn tại.");
+            ?? throw new NotFoundException("exchangeRate.notFound");
         db.ExchangeRates.Remove(rate);
         await db.SaveChangesAsync(ct);
     }
@@ -46,24 +46,24 @@ public sealed class ExchangeRateService(CoreContext db) : IExchangeRateService
     public async Task<decimal> GetRateAsync(string currencyCode, DateOnly date, CancellationToken ct)
     {
         var currency = await db.Currencies.AsNoTracking().FirstOrDefaultAsync(x => x.Code == currencyCode, ct)
-            ?? throw new BusinessRuleException($"Ngoại tệ {currencyCode} không tồn tại.");
+            ?? throw new BusinessRuleException("currency.notFoundCode", currencyCode);
         if (currency.IsBase) return 1;
         var rate = await db.ExchangeRates.AsNoTracking()
             .Where(x => x.CurrencyCode == currencyCode && x.RateDate <= date)
             .OrderByDescending(x => x.RateDate).Select(x => (decimal?)x.AccountingRate).FirstOrDefaultAsync(ct);
-        return rate ?? throw new BusinessRuleException($"Chưa có tỷ giá {currencyCode} đến ngày {date:dd/MM/yyyy}.");
+        return rate ?? throw new BusinessRuleException("exchangeRate.missing", currencyCode, date.ToString("dd/MM/yyyy"));
     }
 
     private async Task ApplyAsync(ExchangeRate rate, int userId, SaveExchangeRateRequest request, CancellationToken ct)
     {
         var code = request.CurrencyCode?.Trim().ToUpperInvariant() ?? string.Empty;
         var currency = await db.Currencies.AsNoTracking().FirstOrDefaultAsync(x => x.Code == code, ct)
-            ?? throw new BusinessRuleException("Ngoại tệ không tồn tại.");
-        if (currency.IsBase) throw new BusinessRuleException("Đồng tiền hạch toán không cần khai báo tỷ giá.");
-        if (request.AccountingRate <= 0) throw new BusinessRuleException("Tỷ giá hạch toán phải lớn hơn 0.");
-        if (request.BuyRate < 0 || request.SellRate < 0) throw new BusinessRuleException("Tỷ giá mua / bán không được âm.");
+            ?? throw new BusinessRuleException("currency.notFound");
+        if (currency.IsBase) throw new BusinessRuleException("exchangeRate.baseCurrency");
+        if (request.AccountingRate <= 0) throw new BusinessRuleException("exchangeRate.accountingPositive");
+        if (request.BuyRate < 0 || request.SellRate < 0) throw new BusinessRuleException("exchangeRate.notNegative");
         if (await db.ExchangeRates.AnyAsync(x => x.Id != rate.Id && x.CurrencyCode == code && x.RateDate == request.Date, ct))
-            throw new BusinessRuleException($"Ngày {request.Date:dd/MM/yyyy} đã có tỷ giá {code}. Hãy sửa dòng tỷ giá đó.");
+            throw new BusinessRuleException("exchangeRate.dayExists", request.Date.ToString("dd/MM/yyyy"), code);
 
         rate.CurrencyCode = code;
         rate.RateDate = request.Date;

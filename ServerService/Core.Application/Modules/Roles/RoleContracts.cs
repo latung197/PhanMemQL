@@ -16,8 +16,11 @@ public interface IRoleService
     Task<RoleDto> CreateAsync(int actorUserId, SaveRoleRequest request, CancellationToken ct);
     Task<RoleDto> UpdateAsync(int actorUserId, int roleId, SaveRoleRequest request, CancellationToken ct);
 
-    /// <summary>Removes the individual exceptions of every holder of the role; returns the user count.</summary>
-    Task<int> SyncUsersAsync(int roleId, CancellationToken ct);
+    /// <summary>
+    /// Removes the individual exceptions of every holder of the role; returns the user count. A non-administrator
+    /// may only do it when no holder would gain a right the actor lacks, and not for administrator accounts.
+    /// </summary>
+    Task<int> SyncUsersAsync(int actorUserId, int roleId, CancellationToken ct);
 
     /// <summary>
     /// Deletes the role and its permissions. Refused for the ADMIN role, for a role still assigned to an

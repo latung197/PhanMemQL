@@ -2,6 +2,8 @@ import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { Modal } from './Modal';
 import { Button } from './Button';
+import { useLanguage } from '../../context/LanguageContext';
+import { interpolate } from '../../utils/interpolate';
 
 export interface DeleteConfirmModalProps {
   isOpen: boolean;
@@ -27,11 +29,12 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   bulkCount = 0,
   message
 }) => {
+  const { t } = useLanguage();
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={title || (isBulk ? 'Xác nhận xóa hàng loạt' : 'Xác nhận xóa dữ liệu')}
+      title={title || (isBulk ? t('controls.deleteConfirm.titleBulk') : t('controls.deleteConfirm.title'))}
       maxWidth="sm"
     >
       <div className="space-y-4 pt-1">
@@ -39,26 +42,28 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           <Trash2 className="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
           <div className="text-xs space-y-1">
             <p className="font-bold text-sm text-rose-800 dark:text-rose-200">
-              {isBulk ? `Xóa ${bulkCount} mục đã chọn?` : 'Bạn có chắc chắn muốn xóa?'}
+              {isBulk ? t('controls.deleteConfirm.questionBulk', { n: bulkCount }) : t('controls.deleteConfirm.question')}
             </p>
             {message ? <p>{message}</p> : isBulk ? (
-              <p>Toàn bộ các mục đã chọn sẽ bị gỡ bỏ khỏi hệ thống.</p>
+              <p>{t('controls.deleteConfirm.bulkInfo')}</p>
             ) : (
               <p>
-                Dữ liệu <span className="font-bold text-slate-900 dark:text-white">"{itemName || 'Mục này'}"</span>
-                {itemCode && (
-                  <> (Mã: <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{itemCode}</span>)</>
-                )} sẽ bị gỡ bỏ khỏi hệ thống.
+                {interpolate(t('controls.deleteConfirm.item'), {
+                  name: <span className="font-bold text-slate-900 dark:text-white">"{itemName || t('controls.deleteConfirm.itemFallback')}"</span>,
+                  code: itemCode ? interpolate(t('controls.deleteConfirm.code'), {
+                    code: <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{itemCode}</span>
+                  }) : ''
+                })}
               </p>
             )}
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
           <Button variant="outline" size="sm" onClick={onClose}>
-            Hủy
+            {t('controls.deleteConfirm.cancel')}
           </Button>
           <Button variant="danger" size="sm" onClick={onConfirm}>
-            <Trash2 className="h-4 w-4 mr-1" /> Xác Nhận Xóa {isBulk && bulkCount > 0 ? `(${bulkCount})` : ''}
+            <Trash2 className="h-4 w-4 mr-1" /> {t('controls.deleteConfirm.confirm')} {isBulk && bulkCount > 0 ? `(${bulkCount})` : ''}
           </Button>
         </div>
       </div>

@@ -11,6 +11,7 @@ import {
   PercentageInput 
 } from '../../components/common';
 import { saveWithFeedback, showToast } from '../../utils/toast';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import { Calculator, Save, RotateCcw, CheckCircle2, Sparkles, Sliders } from 'lucide-react';
 
 /** Company-wide number format (section numberFormat); every user sees numbers this way. */
@@ -36,7 +37,16 @@ export const NumberFormatSettings: React.FC<{ canEdit: boolean }> = ({ canEdit }
   };
 
   const handleSave = () => persist(formConfig, 'Đã lưu định dạng số & tiền tệ cho toàn công ty');
-  const handleReset = () => persist(DEFAULT_NUMBER_FORMAT_CONFIG, 'Đã khôi phục định dạng số & tiền tệ mặc định');
+  const confirm = useConfirm();
+  const handleReset = async () => {
+    if (!(await confirm({
+      title: 'Khôi phục định dạng số mặc định?',
+      message: 'Dấu phân cách, ký hiệu tiền và số chữ số thập phân sẽ về giá trị ban đầu cho mọi người dùng của công ty.',
+      confirmLabel: 'Khôi phục',
+      tone: 'warning'
+    }))) return;
+    persist(DEFAULT_NUMBER_FORMAT_CONFIG, 'Đã khôi phục định dạng số & tiền tệ mặc định');
+  };
 
   return (
     <div className="space-y-6">
@@ -61,7 +71,7 @@ export const NumberFormatSettings: React.FC<{ canEdit: boolean }> = ({ canEdit }
           </div>
           {canEdit && (
             <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-              <Button variant="outline" size="sm" onClick={handleReset} icon={<RotateCcw className="h-3.5 w-3.5" />}>
+              <Button variant="outline" size="sm" onClick={() => void handleReset()} icon={<RotateCcw className="h-3.5 w-3.5" />}>
                 Mặc Định
               </Button>
               <Button size="sm" onClick={handleSave} icon={<Save className="h-3.5 w-3.5" />} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
@@ -74,7 +84,8 @@ export const NumberFormatSettings: React.FC<{ canEdit: boolean }> = ({ canEdit }
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Form Settings Controls */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* Read-only for users without the edit right (the backend refuses their save anyway). */}
+        <fieldset disabled={!canEdit} className="lg:col-span-7 space-y-6 min-w-0">
           
           {/* Card 1: Separators & Local Currency */}
           <Card title="1. Dấu Phân Cách & Ký Hiệu Tiền Tệ Nội Tệ">
@@ -93,7 +104,8 @@ export const NumberFormatSettings: React.FC<{ canEdit: boolean }> = ({ canEdit }
                       setFormConfig(prev => ({
                         ...prev,
                         thousandSeparator: val,
-                        decimalSeparator: val === '.' ? ',' : '.'
+                        // Keep the decimal mark unless it is the same one (e.g. space + comma is allowed).
+                        decimalSeparator: prev.decimalSeparator === val ? (val === '.' ? ',' : '.') : prev.decimalSeparator
                       }));
                     }}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 font-medium"
@@ -116,7 +128,7 @@ export const NumberFormatSettings: React.FC<{ canEdit: boolean }> = ({ canEdit }
                       setFormConfig(prev => ({
                         ...prev,
                         decimalSeparator: val,
-                        thousandSeparator: val === '.' ? ',' : '.'
+                        thousandSeparator: prev.thousandSeparator === val ? (val === '.' ? ',' : '.') : prev.thousandSeparator
                       }));
                     }}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 font-medium"
@@ -258,7 +270,7 @@ export const NumberFormatSettings: React.FC<{ canEdit: boolean }> = ({ canEdit }
           {/* Save Action Footer */}
           {canEdit && (
             <div className="flex items-center justify-end gap-3 pt-2">
-              <Button variant="secondary" onClick={handleReset}>
+              <Button variant="secondary" onClick={() => void handleReset()}>
                 Khôi Phục Ban Đầu
               </Button>
               <Button onClick={handleSave} icon={<Save className="h-4 w-4" />} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
@@ -266,7 +278,7 @@ export const NumberFormatSettings: React.FC<{ canEdit: boolean }> = ({ canEdit }
               </Button>
             </div>
           )}
-        </div>
+        </fieldset>
 
         {/* Right Column: Interactive Live Demonstration & Controls Test */}
         <div className="lg:col-span-5 space-y-6">

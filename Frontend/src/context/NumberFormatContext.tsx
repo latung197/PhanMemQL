@@ -1,5 +1,6 @@
-import React, { createContext, useCallback, useContext, useState, ReactNode } from 'react';
+import React, { useCallback, useContext, useState, ReactNode } from 'react';
 import { DEFAULT_NUMBER_FORMAT_CONFIG, NumberFormatConfig } from '../services/systemSettingsService';
+import { NumberFormatContext, NumberFormatContextType } from './numberFormatContextValue';
 
 // The format is a company setting (systemSettingsService, section numberFormat). App applies it after
 // login with applyConfig; the settings screen previews edits with updateConfig and saves them to the backend.
@@ -8,23 +9,6 @@ export type { NumberFormatConfig };
 
 // Older versions kept the format per browser.
 try { localStorage.removeItem('erp_number_format_config'); } catch { /* storage unavailable */ }
-
-interface NumberFormatContextType {
-  config: NumberFormatConfig;
-  /** Replaces the whole format (values loaded from the backend). */
-  applyConfig: (config: NumberFormatConfig) => void;
-  updateConfig: (newConfig: Partial<NumberFormatConfig>) => void;
-  resetConfig: () => void;
-  formatNumber: (val: number | string | undefined | null, decimals?: number) => string;
-  formatCurrency: (val: number | string | undefined | null, showSymbol?: boolean) => string;
-  formatForeignCurrency: (val: number | string | undefined | null, symbol?: string, decimals?: number) => string;
-  formatQuantity: (val: number | string | undefined | null) => string;
-  formatUnitPrice: (val: number | string | undefined | null) => string;
-  formatPercent: (val: number | string | undefined | null) => string;
-  parseFormattedNumber: (valStr: string) => number;
-}
-
-const NumberFormatContext = createContext<NumberFormatContextType | undefined>(undefined);
 
 export const NumberFormatProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [config, setConfig] = useState<NumberFormatConfig>(DEFAULT_NUMBER_FORMAT_CONFIG);

@@ -49,6 +49,35 @@ public sealed class PermissionService(CoreContext db) : IPermissionService
             fromRoles.Select(x => (x.MenuId0, x.ToActions())));
     }
 
+    public async Task<IReadOnlyDictionary<int, IReadOnlyDictionary<string, ActionPermissions>>> GetEffectiveManyAsync(
+        IReadOnlyCollection<int> userIds, CancellationToken ct = default)
+    {
+        var ids = userIds.Distinct().ToList();
+        var users = await db.Users.AsNoTracking().ActiveUsers().Where(x => ids.Contains(x.UserId))
+            .Select(x => new { x.UserId, x.AuthFl }).ToListAsync(ct);
+        var missing = users.Where(x => !_matrixCache.ContainsKey(x.UserId)).ToList();
+        if (missing.Count > 0)
+        {
+            var missingIds = missing.Select(x => x.UserId).ToList();
+            var userRoles = await db.UserRoles.AsNoTracking().ActiveRoles().Where(x => missingIds.Contains(x.UserId))
+                .Select(x => new { x.UserId, x.RoleId, x.Role.RoleCode }).ToListAsync(ct);
+            var roleIds = userRoles.Select(x => x.RoleId).Distinct().ToList();
+            var roleRows = await db.RoleCommands.AsNoTracking().Where(x => x.Status == "1" && roleIds.Contains(x.RoleId)).ToListAsync(ct);
+            var ownRows = await db.UserCommands.AsNoTracking().Where(x => x.Status == "1" && missingIds.Contains(x.UserId)).ToListAsync(ct);
+            foreach (var user in missing)
+            {
+                var roles = userRoles.Where(x => x.UserId == user.UserId).ToList();
+                // Same rule as IsAdminAsync: legacy flag or the ADMIN role.
+                var isAdmin = UserQueries.IsLegacyAdmin(user.AuthFl) || roles.Any(x => x.RoleCode == SysRole.AdminCode);
+                _adminCache[user.UserId] = isAdmin;
+                _matrixCache[user.UserId] = PermissionMatrix.Resolve(isAdmin,
+                    ownRows.Where(x => x.UserId == user.UserId).Select(x => (x.MenuId0, x.ToActions())).ToList(),
+                    roleRows.Where(x => roles.Any(r => r.RoleId == x.RoleId)).Select(x => (x.MenuId0, x.ToActions())));
+            }
+        }
+        return users.ToDictionary(x => x.UserId, x => _matrixCache[x.UserId]);
+    }
+
     public async Task<IReadOnlySet<string>> GetRightsAsync(int userId, CancellationToken ct = default)
     {
         if (_rightsCache.TryGetValue(userId, out var cached)) return cached;
@@ -60,12 +89,9 @@ public sealed class PermissionService(CoreContext db) : IPermissionService
         var fromRoles = await db.RoleRights.AsNoTracking()
             .Where(x => x.Status == "1" && roleIds.Contains(x.RoleId))
             .Select(x => x.MenuId0 + ":" + x.RightCode).ToListAsync(ct);
-        // A special right only counts on a function the user may view (same rule as the permission screen).
-        var matrix = await GetEffectiveAsync(userId, ct);
         var rights = PermissionMatrix.ResolveRights(false, fromRoles,
             own.Where(x => x.IsGranted).Select(x => x.Key), own.Where(x => !x.IsGranted).Select(x => x.Key));
-        return _rightsCache[userId] = rights
-            .Where(key => matrix.TryGetValue(SpecialRightCatalog.Split(key).Function, out var a) && a.View)
+        return _rightsCache[userId] = PermissionMatrix.VisibleRights(rights, await GetEffectiveAsync(userId, ct))
             .ToHashSet(StringComparer.Ordinal);
     }
 
@@ -77,12 +103,19 @@ public sealed class PermissionService(CoreContext db) : IPermissionService
     {
         var matrix = await GetEffectiveAsync(userId, ct);
         if (!matrix.TryGetValue(function, out var actions) || !actions.Allows(action))
-            throw new ForbiddenException("Tài khoản của bạn không có quyền thực hiện thao tác này.");
+            throw new ForbiddenException("permission.denied");
+    }
+
+    public void Forget(int userId)
+    {
+        _adminCache.Remove(userId);
+        _matrixCache.Remove(userId);
+        _rightsCache.Remove(userId);
     }
 
     public async Task EnsureAdminAsync(int userId, CancellationToken ct = default)
     {
         if (!await IsAdminAsync(userId, ct))
-            throw new ForbiddenException("Chỉ quản trị viên mới được thực hiện thao tác này.");
+            throw new ForbiddenException("permission.adminOnly");
     }
 }

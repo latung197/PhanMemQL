@@ -16,18 +16,25 @@ interface PolicyCase {
   status: DocumentStatus;
   isOwner: boolean;
   actions: (keyof ActionPermissions)[];
+  /** Actions on the approval screen of the voucher (inv_approve_receipt). */
+  screenActions?: (keyof ActionPermissions)[];
   rights: string[];
   allowed: boolean;
 }
+
+const toActions = (keys: (keyof ActionPermissions)[] = []): ActionPermissions => {
+  const permissions: ActionPermissions = { view: false, createEdit: false, delete: false, approve: false, printExport: false };
+  keys.forEach(a => { permissions[a] = true; });
+  return permissions;
+};
 
 const file = resolve(dirname(fileURLToPath(import.meta.url)), '../../ServerService/tests/Core.Tests/Common/DocumentPolicyCases.json');
 const { cases } = JSON.parse(readFileSync(file, 'utf8')) as { cases: PolicyCase[] };
 const fn = 'inv_receipt';
 
 const failures = cases.filter(c => {
-  const permissions: ActionPermissions = { view: false, createEdit: false, delete: false, approve: false, printExport: false };
-  c.actions.forEach(a => { permissions[a] = true; });
-  const user = { isSystemAdmin: false, permissions: { [fn]: permissions }, specialRights: c.rights.map(r => `${fn}:${r}`) };
+  const permissions = { [fn]: toActions(c.actions), inv_approve_receipt: toActions(c.screenActions) };
+  const user = { isSystemAdmin: false, permissions, specialRights: c.rights.map(r => `${fn}:${r}`) };
   return checkDocumentAction(user, fn, c.action, c.status, c.isOwner).allowed !== c.allowed;
 });
 

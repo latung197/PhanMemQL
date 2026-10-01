@@ -22,6 +22,9 @@ import { useConfirm } from '../common/ConfirmDialog';
 import { MyAccountModal, MyAccountTab } from '../../modules/account/MyAccountModal';
 import { SystemNotification, UserProfile, CompanyUnit } from '../../types';
 import { hasRight, RIGHTS } from '../../utils/permissions';
+import { authService } from '../../services/authService';
+import { getErrorMessage } from '../../services/apiClient';
+import { showToast } from '../../utils/toast';
 
 interface HeaderProps {
   user: UserProfile;
@@ -68,7 +71,13 @@ export const Header: React.FC<HeaderProps> = ({
   onUserUpdated
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, languages, t } = useLanguage();
+
+  /** Switches at once and saves the choice to the profile, so it follows the user to other devices. */
+  const changeLanguage = (code: string) => {
+    setLanguage(code);
+    authService.setMyLanguage(code).then(onUserUpdated).catch(error => showToast.error(getErrorMessage(error)));
+  };
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [isPublishOpen, setIsPublishOpen] = useState(false);
   const [accountTab, setAccountTab] = useState<MyAccountTab | null>(null);
@@ -123,15 +132,17 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        {/* Multi-language Selector Toggle */}
-        <button
-          onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
-          className="px-2 py-1 rounded-[5px] text-xs font-extrabold bg-white dark:bg-slate-900 hover:bg-brand-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1 cursor-pointer border border-brand-200 dark:border-slate-700/60 shadow-2xs"
-          title={language === 'vi' ? t('common.switchToEnglish') : t('common.switchToVietnamese')}
-        >
-          <Globe className="h-3.5 w-3.5 text-indigo-500" />
-          <span>{language === 'vi' ? '🇻🇳 VN' : '🇬🇧 EN'}</span>
-        </button>
+        {/* Language picker: the active languages of Settings › Ngôn ngữ */}
+        {languages.length > 1 && (
+          <label className="px-2 py-1 rounded-[5px] text-xs font-extrabold bg-white dark:bg-slate-900 hover:bg-brand-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1 cursor-pointer border border-brand-200 dark:border-slate-700/60 shadow-2xs"
+            title={t('common.language')}>
+            <Globe className="h-3.5 w-3.5 text-indigo-500" />
+            <select value={language} onChange={(e) => changeLanguage(e.target.value)} aria-label={t('common.language')}
+              className="bg-transparent outline-hidden cursor-pointer uppercase">
+              {languages.map(l => <option key={l.code} value={l.code}>{l.code.toUpperCase()} · {l.nativeName}</option>)}
+            </select>
+          </label>
+        )}
         
         {/* Theme Toggle Button */}
         <button
@@ -208,7 +219,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-brand-100 dark:hover:bg-slate-800 rounded-[5px] transition-colors text-left font-semibold cursor-pointer"
                 >
                   <UserRound className="h-4 w-4 text-slate-400" />
-                  Thông tin tài khoản
+                  {t('layout.header.accountInfo')}
                 </button>
 
                 <button
@@ -219,7 +230,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-brand-100 dark:hover:bg-slate-800 rounded-[5px] transition-colors text-left font-semibold cursor-pointer"
                 >
                   <KeyRound className="h-4 w-4 text-slate-400" />
-                  Đổi mật khẩu
+                  {t('layout.header.changePassword')}
                 </button>
 
                 {onResetData && (
@@ -227,9 +238,9 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={async () => {
                       setUserDropdownOpen(false);
                       const ok = await confirm({
-                        title: 'Khôi phục dữ liệu mẫu?',
-                        message: 'Dữ liệu demo của các phân hệ trong trình duyệt sẽ được nạp lại từ đầu.',
-                        confirmLabel: 'Khôi phục',
+                        title: t('layout.header.resetDemoTitle'),
+                        message: t('layout.header.resetDemoMessage'),
+                        confirmLabel: t('layout.header.resetDemoConfirm'),
                         tone: 'warning'
                       });
                       if (ok) onResetData();
@@ -237,7 +248,7 @@ export const Header: React.FC<HeaderProps> = ({
                     className="w-full flex items-center gap-2 px-3 py-2 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-[5px] transition-colors text-left font-semibold cursor-pointer"
                   >
                     <RotateCcw className="h-4 w-4" />
-                    Khôi Phục Dữ Liệu Mẫu
+                    {t('layout.header.resetDemo')}
                   </button>
                 )}
 

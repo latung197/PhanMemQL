@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useConfirm } from '../components/common/ConfirmDialog';
 import { getErrorMessage } from '../services/apiClient';
 import { showToast } from '../utils/toast';
+import { useLanguage } from '../context/LanguageContext';
 
 export interface CatalogApi<T, TInput> {
   getAll: () => Promise<T[]>;
@@ -23,6 +24,7 @@ export interface CatalogOptions<T> {
 
 export function useCatalog<T, TInput>(api: CatalogApi<T, TInput>, options: CatalogOptions<T>) {
   const confirm = useConfirm();
+  const { t } = useLanguage();
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -48,7 +50,7 @@ export function useCatalog<T, TInput>(api: CatalogApi<T, TInput>, options: Catal
     try {
       if (existing) await api.update(keyOf(existing), input);
       else await api.create(input);
-      showToast.success(existing ? `Đã lưu ${noun}` : `Đã thêm ${noun}`);
+      showToast.success(t(existing ? 'catalog.saved' : 'catalog.added', { noun }));
       // Reload: a save may change other rows too (e.g. a new base currency).
       await reload();
       return true;
@@ -60,15 +62,15 @@ export function useCatalog<T, TInput>(api: CatalogApi<T, TInput>, options: Catal
 
   const remove = async (item: T): Promise<void> => {
     const ok = await confirm({
-      title: `Xóa ${noun} ${describe(item)}?`,
-      message: 'Dữ liệu bị xóa không khôi phục được.',
-      confirmLabel: 'Xóa',
+      title: t('catalog.deleteTitle', { noun, item: describe(item) }),
+      message: t('catalog.deleteMessage'),
+      confirmLabel: t('catalog.delete'),
       tone: 'danger'
     });
     if (!ok) return;
     try {
       await api.remove(keyOf(item));
-      showToast.success(`Đã xóa ${noun} ${describe(item)}`);
+      showToast.success(t('catalog.deleted', { noun, item: describe(item) }));
       await reload();
     } catch (e) {
       showToast.error(getErrorMessage(e));

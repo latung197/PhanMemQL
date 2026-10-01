@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, X, Check } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface LookupFieldProps {
   label: string;
@@ -17,7 +18,7 @@ export interface LookupFieldProps {
 export const LookupField: React.FC<LookupFieldProps> = ({
   label,
   value,
-  placeholder = 'Bấm Tra cứu để chọn...',
+  placeholder: placeholderProp,
   required = false,
   disabled = false,
   selectedCount = 0,
@@ -26,6 +27,8 @@ export const LookupField: React.FC<LookupFieldProps> = ({
   helperText,
   className = ''
 }) => {
+  const { t } = useLanguage();
+  const placeholder = placeholderProp ?? t('controls.lookup.placeholder');
   return (
     <div className={`space-y-1 text-xs ${className}`}>
       <div className="flex items-center justify-between">
@@ -35,7 +38,7 @@ export const LookupField: React.FC<LookupFieldProps> = ({
         </label>
         {selectedCount > 1 && (
           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-            {selectedCount} lựa chọn
+            {t('controls.lookup.selected', { n: selectedCount })}
           </span>
         )}
       </div>
@@ -60,7 +63,7 @@ export const LookupField: React.FC<LookupFieldProps> = ({
                 e.stopPropagation();
                 onClear();
               }}
-              title="Xóa lựa chọn"
+              title={t('controls.lookup.clear')}
               className="p-1 text-slate-400 hover:text-rose-500 rounded-[5px] hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="h-3.5 w-3.5" />
@@ -74,7 +77,7 @@ export const LookupField: React.FC<LookupFieldProps> = ({
             className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-[5px] text-[11px] transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
           >
             <Search className="h-3 w-3" />
-            <span>Tra cứu</span>
+            <span>{t('controls.lookup.search')}</span>
           </button>
         </div>
       </div>

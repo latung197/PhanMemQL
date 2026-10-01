@@ -1,3 +1,5 @@
+using Core.Application.Common.Localization;
+
 namespace Core.Application.Common.Documents;
 
 /// <summary>A voucher function and the code of its number series (e.g. inv_receipt → PNK).</summary>
@@ -28,8 +30,27 @@ public static class VoucherCatalog
         new("fin_payment_voucher", "PC", "Phiếu chi")
     ];
 
+    /// <summary>
+    /// Approval screens of the "Phê duyệt" menu and the vouchers they approve. The "Duyệt" right on such a screen
+    /// approves those vouchers just like the "Duyệt" right on the voucher itself (Frontend utils/permissions.ts
+    /// APPROVAL_SCREENS mirrors this list).
+    /// </summary>
+    public static IReadOnlyDictionary<string, string[]> ApprovalScreens { get; } = new Dictionary<string, string[]>(StringComparer.Ordinal)
+    {
+        ["inv_approve_receipt"] = ["inv_receipt"],
+        ["inv_approve_issue"] = ["inv_issue"],
+        ["inv_approve_transfer"] = ["inv_transfer_order", "inv_transfer_issue", "inv_transfer_receipt"]
+    };
+
+    public static IEnumerable<string> ApprovalScreensOf(string voucherFunction) =>
+        ApprovalScreens.Where(x => x.Value.Contains(voucherFunction)).Select(x => x.Key);
+
     public static VoucherDefinition? FindByType(string voucherType) =>
         All.FirstOrDefault(x => string.Equals(x.VoucherType, voucherType, StringComparison.OrdinalIgnoreCase));
 
     public static VoucherDefinition? FindByFunction(string function) => All.FirstOrDefault(x => x.Function == function);
+
+    /// <summary>Voucher name in the language of the request (Messages "voucher.{type}"), else <paramref name="fallback"/>.</summary>
+    public static string DisplayName(string voucherType, string fallback) =>
+        Messages.Find(Messages.CurrentLanguage, $"voucher.{voucherType.ToUpperInvariant()}") ?? fallback;
 }

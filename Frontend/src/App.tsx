@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './context/ThemeContext';
-import { LanguageProvider } from './context/LanguageContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { useAppRouter } from './hooks/useAppRouter';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
@@ -45,6 +45,7 @@ import { Lock, ShieldAlert, ArrowLeft, KeyRound } from 'lucide-react';
 import { Button } from './components/common/Button';
 import { ConfirmProvider } from './components/common/ConfirmDialog';
 import { NumberFormatProvider, useNumberFormat } from './context/NumberFormatContext';
+import { interpolate } from './utils/interpolate';
 
 // The realtime stream delivers new notifications at once; polling is only the fallback.
 const NOTIFICATION_POLL_MS = 180_000;
@@ -68,6 +69,7 @@ const loadDemoData = (): ERPData => {
 const ERPAppContent: React.FC = () => {
   const [erpData, setErpData] = useState<ERPData>(loadDemoData);
   const { applyConfig: applyNumberFormat } = useNumberFormat();
+  const { setLanguage, t } = useLanguage();
 
   // Signed-in user from the backend; null shows the login screen.
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -174,7 +176,7 @@ const ERPAppContent: React.FC = () => {
         const show = first.type === 'danger' ? showToast.error : first.type === 'warning' ? showToast.warning
           : first.type === 'success' ? showToast.success : showToast.info;
         if (fresh.length === 1) show(first.title, first.message);
-        else showToast.info(`Bạn có ${fresh.length} thông báo mới`, first.title);
+        else showToast.info(t('app.newNotifications', { n: fresh.length }), first.title);
       }
     } catch {
       // The bell keeps the last list; the next poll retries.
@@ -192,14 +194,15 @@ const ERPAppContent: React.FC = () => {
   /** Loads everything that depends on the session (and on its company unit). */
   const startSession = useCallback(async (user: UserProfile) => {
     setCurrentUser(user);
+    if (user.language) setLanguage(user.language);
     try {
       await systemSettingsService.load();
     } catch (error) {
-      showToast.warning('Không tải được cài đặt hệ thống, đang dùng giá trị mặc định.', getErrorMessage(error));
+      showToast.warning(t('app.settingsLoadFailed'), getErrorMessage(error));
     }
     applyNumberFormat(systemSettingsService.getNumberFormat());
     await Promise.all([refreshCompanyUnits(), refreshNotifications()]);
-  }, [refreshCompanyUnits, refreshNotifications, applyNumberFormat]);
+  }, [refreshCompanyUnits, refreshNotifications, applyNumberFormat, setLanguage]);
 
   const handleLogout = useCallback(() => {
     authService.logout();
@@ -224,7 +227,7 @@ const ERPAppContent: React.FC = () => {
   useEffect(() => {
     const onUnauthorized = () => {
       handleLogout();
-      showToast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      showToast.warning(t('app.sessionExpired'));
     };
     window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
@@ -263,7 +266,7 @@ const ERPAppContent: React.FC = () => {
     try {
       const user = await authService.switchUnit(unitCode);
       await startSession(user);
-      showToast.success(`Đã chuyển sang đơn vị cơ sở ${unitCode}`);
+      showToast.success(t('app.unitSwitched', { unit: unitCode }));
     } catch (error) {
       showToast.error(getErrorMessage(error));
     }
@@ -342,7 +345,7 @@ const ERPAppContent: React.FC = () => {
       voucher.items.forEach(item => {
         const prodIndex = updatedProducts.findIndex(p => p.name === item.productName);
         if (prodIndex !== -1) {
-          const delta = voucher.type === 'Nhập kho' ? item.quantity : -item.quantity;
+          const delta = voucher.type === 'Nhập kho' ? item.quantity : -item.quantity;  // i18n-ignore: stored demo value
           updatedProducts[prodIndex] = {
             ...updatedProducts[prodIndex],
             quantity: Math.max(0, updatedProducts[prodIndex].quantity + delta)
@@ -418,7 +421,7 @@ const ERPAppContent: React.FC = () => {
     const fn = notification.linkFunction;
     if (fn) {
       if (!canView(currentUser, fn)) {
-        showToast.warning('Bạn không có quyền xem chức năng này.');
+        showToast.warning(t('app.noViewRight'));
         return;
       }
       openFunction(fn);
@@ -461,14 +464,14 @@ const ERPAppContent: React.FC = () => {
     const { users: _seedUsers, ...freshData } = getInitialERPData();
     setErpData(freshData);
     localStorage.removeItem('s_erp_database_state');
-    showToast.success('Đã khởi tạo & tái tạo lại toàn bộ dữ liệu mẫu ERP thành công!');
+    showToast.success(t('app.demoReset'));
   };
 
   if (isRestoringSession) {
     return (
       <div className="h-dvh w-full flex items-center justify-center bg-background text-xs text-slate-500">
         <span className="inline-block animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full mr-3"></span>
-        Đang khôi phục phiên đăng nhập...
+        {t('app.restoringSession')}
       </div>
     );
   }
@@ -486,29 +489,13 @@ const ERPAppContent: React.FC = () => {
 
   // Calculate badges
   const lowStockCount = erpData.products.filter(p => p.quantity <= p.minThreshold).length;
-  const pendingOrderCount = erpData.orders.filter(o => o.status === 'Chờ xử lý' || o.status === 'Đang giao').length;
+  const pendingOrderCount = erpData.orders.filter(o => o.status === 'Chờ xử lý' || o.status === 'Đang giao').length;  // i18n-ignore: stored demo value
 
-  // Title translation map
+  // Module title and subtitle in the user's language (texts: app.headers.<module>).
   const getSubTitleText = (): { title: string; subtitle: string } => {
-    switch (activeCategory) {
-      case 'inventory':
-        return { title: 'Phân Hệ Quản Lý Kho Hàng', subtitle: 'Danh mục vật tư, Quản lý kho, Phiếu Nhập - Xuất và Báo cáo NXT' };
-      case 'sales':
-        return { title: 'Phân Hệ Bán Hàng & CRM', subtitle: 'Khách hàng, Hóa đơn đơn hàng, Vận chuyển và Báo cáo Doanh số' };
-      case 'finance':
-        return { title: 'Phân Hệ Kế Toán & Tài Chính', subtitle: 'Danh mục quỹ, Chứng từ Phiếu Thu/Chi và Báo cáo Sổ quỹ P&L' };
-      case 'hr':
-        return { title: 'Phân Hệ Quản Lý Nhân Sự & Lương', subtitle: 'Danh sách cán bộ nhân sự, Bảng chấm công quỹ lương và Báo cáo biến động' };
-      case 'reports':
-        return { title: 'Trung Tâm Báo Cáo Doanh Nghiệp', subtitle: 'Tổng hợp số liệu xuất tồn, doanh số và cân đối tài chính' };
-      case 'ai':
-        return { title: 'Trợ Lý AI Gemini Consultant 3.5 Flash', subtitle: 'Cố vấn kiểm toán tự động 24/7' };
-      case 'settings':
-        return { title: 'Cài Đặt Hệ Thống & Quản Lý Phân Quyền User', subtitle: 'Phân quyền từng chức năng cho từng nhân viên & cấu hình doanh nghiệp' };
-      case 'overview':
-      default:
-        return { title: 'Bàn Điều Hành ERP Doanh Nghiệp', subtitle: 'Trực quan hóa toàn bộ chỉ số vận hành real-time' };
-    }
+    const withHeader = ['inventory', 'sales', 'finance', 'hr', 'reports', 'ai', 'settings'];
+    const key = withHeader.includes(activeCategory) ? activeCategory : 'overview';
+    return { title: t(`app.headers.${key}.title`), subtitle: t(`app.headers.${key}.subtitle`) };
   };
 
   const pageHeaders = getSubTitleText();
@@ -539,7 +526,7 @@ const ERPAppContent: React.FC = () => {
           activeTitle={pageHeaders.title}
           activeSubtitle={pageHeaders.subtitle}
           notifications={notifications}
-          companyUnits={companyUnits.filter(u => u.status === 'Hoạt động'
+          companyUnits={companyUnits.filter(u => u.status === 'Hoạt động'  // i18n-ignore: stored demo value
             && (currentUser.isSystemAdmin || currentUser.ds_ma_dvcs?.includes(u.code)))}
           activeCompanyUnitCode={activeCompanyUnitCode}
           onSelectCompanyUnit={handleSelectCompanyUnit}
@@ -578,21 +565,26 @@ const ERPAppContent: React.FC = () => {
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
-                    Truy Cập Bị Khóa Do Phân Quyền Nâng Cao
+                    {t('app.denied.title')}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-md mx-auto">
-                    Tài khoản hiện tại <strong className="text-indigo-600 dark:text-indigo-400">@{currentUser.username}</strong> ({currentUser.fullName} - {currentUser.role}) chưa được cấp quyền truy cập vào chức năng <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-rose-600 font-bold">[{activeSubMenu}]</span>.
+                    {interpolate(t('app.denied.message'), {
+                      user: <strong className="text-indigo-600 dark:text-indigo-400">@{currentUser.username}</strong>,
+                      name: currentUser.fullName,
+                      role: currentUser.role,
+                      function: <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-rose-600 font-bold">[{activeSubMenu}]</span>
+                    })}
                   </p>
                 </div>
 
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl text-left border border-slate-150 dark:border-slate-700 text-xs space-y-2">
                   <p className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                     <ShieldAlert className="h-4 w-4 text-amber-500" />
-                    Hướng dẫn xử lý mở khóa:
+                    {t('app.denied.howTo')}
                   </p>
                   <ul className="list-disc list-inside text-slate-500 space-y-1 pl-1 text-[11px]">
-                    <li>Liên hệ quản trị viên để được cấp quyền chức năng này cho tài khoản <strong>@{currentUser.username}</strong>.</li>
-                    <li>Quản trị viên cấp quyền trong mục <strong>Cài đặt › Phân Quyền & User</strong>; bạn chỉ cần tải lại trang.</li>
+                    <li>{interpolate(t('app.denied.step1'), { user: <strong>@{currentUser.username}</strong> })}</li>
+                    <li>{interpolate(t('app.denied.step2'), { path: <strong>{t('app.denied.path')}</strong> })}</li>
                   </ul>
                 </div>
 
@@ -602,13 +594,13 @@ const ERPAppContent: React.FC = () => {
                     icon={<ArrowLeft className="h-4 w-4" />}
                     onClick={() => openFunction('overview_main')}
                   >
-                    Về Bàn Điều Hành
+                    {t('app.denied.home')}
                   </Button>
                   <Button
                     icon={<KeyRound className="h-4 w-4" />}
                     onClick={handleLogout}
                   >
-                    Đăng Nhập Tài Khoản Khác
+                    {t('app.denied.otherAccount')}
                   </Button>
                 </div>
               </div>
@@ -699,7 +691,6 @@ const ERPAppContent: React.FC = () => {
                     user={currentUser}
                     companyUnits={companyUnits}
                     warehouses={erpData.warehouses}
-                    onSelectSubKey={openFunction}
                     onAddCompanyUnit={handleAddCompanyUnit}
                     onUpdateCompanyUnit={handleUpdateCompanyUnit}
                     onDeleteCompanyUnit={handleDeleteCompanyUnit}

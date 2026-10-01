@@ -1,6 +1,9 @@
 /Core/appsettings.Local.json
-/Core.API/appsettings.Local.json
-/Core.WorkerService/appsettings.Local.json
-/.runtime-check/
 **/bin/
 **/obj/
+
+# Visual Studio / Rider per-user state
+.vs/
+*.suo
+*.user
+.idea/

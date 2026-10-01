@@ -47,6 +47,21 @@ public sealed class CoreContextModelTests
         }
     }
 
+    /// <summary>Every business table (erp_*) has created_at / created_by / updated_at / updated_by (ErpEntity, UTC).</summary>
+    [Fact]
+    public void BusinessTablesHaveRecordStamps()
+    {
+        using var context = CreateContext();
+        foreach (var entity in context.Model.GetEntityTypes().Where(e => e.GetTableName()!.StartsWith("erp_")))
+        {
+            Assert.True(typeof(Core.Domain.Common.ErpEntity).IsAssignableFrom(entity.ClrType),
+                $"{entity.ClrType.Name} ({entity.GetTableName()}) must inherit ErpEntity");
+            foreach (var column in new[] { "created_at", "created_by", "updated_at", "updated_by" })
+                Assert.Contains(entity.GetProperties(), p => p.GetColumnName() == column);
+            Assert.Equal("timestamp with time zone", entity.FindProperty("CreatedAt")!.GetColumnType());
+        }
+    }
+
     /// <summary>The sys_* audit columns are "timestamp" in SQL; timestamptz would reject local times.</summary>
     [Theory]
     [InlineData(typeof(SysUser))]

@@ -30,10 +30,10 @@ public sealed class SystemConfigController(ISystemConfigService config, IPermiss
         [FromQuery] string? unitCode, CancellationToken ct)
     {
         if (!SystemConfigSections.Functions.TryGetValue(section, out var function))
-            throw new BusinessRuleException("Nhóm cài đặt không hợp lệ.");
+            throw new BusinessRuleException("settings.invalidSection");
         await permissions.EnsureAllowedAsync(CurrentUserId, function, PermissionAction.CreateEdit, ct);
         if (!string.IsNullOrWhiteSpace(unitCode) && !await auth.HasUnitAccessAsync(CurrentUserId, unitCode, ct))
-            throw new ForbiddenException("Bạn không được làm việc với đơn vị cơ sở này.");
+            throw new ForbiddenException("settings.unitNotAllowed");
         await config.SaveAsync(CurrentUserId, section, value, unitCode, ct);
         return NoContent();
     }

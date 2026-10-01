@@ -3,6 +3,7 @@ import { Search, ShieldCheck } from 'lucide-react';
 import { RoleDefinition } from '../../../types';
 import { cn } from '../../../lib/utils';
 import { EmptyState } from '../../../components/common/StateViews';
+import { useLanguage } from '../../../context/LanguageContext';
 
 interface RoleListPanelProps {
   roles: RoleDefinition[];
@@ -12,6 +13,7 @@ interface RoleListPanelProps {
 }
 
 export const RoleListPanel: React.FC<RoleListPanelProps> = ({ roles, userCounts, selectedId, onSelect }) => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -26,13 +28,13 @@ export const RoleListPanel: React.FC<RoleListPanelProps> = ({ roles, userCounts,
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm mã hoặc tên vai trò..."
+            placeholder={t('roles.list.search')}
             className="h-7 w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[5px] pl-8 pr-2 text-xs focus:outline-hidden focus:border-indigo-500"
           />
         </div>
       </div>
       <div className="overflow-y-auto grow custom-scrollbar">
-        {filtered.length === 0 && <EmptyState title="Không tìm thấy vai trò" className="py-6" />}
+        {filtered.length === 0 && <EmptyState title={t('roles.list.notFound')} className="py-6" />}
         {filtered.map(r => {
           const active = r.id === selectedId;
           return (
@@ -51,7 +53,7 @@ export const RoleListPanel: React.FC<RoleListPanelProps> = ({ roles, userCounts,
                   <span className={cn('text-xs font-bold truncate', active ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-slate-100')}>{r.name}</span>
                   {r.isSystemRole && <ShieldCheck className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
                 </span>
-                <span className="text-[10px] text-slate-500 shrink-0">{userCounts[r.id] ?? 0} người</span>
+                <span className="text-[10px] text-slate-500 shrink-0">{t('roles.list.people', { n: userCounts[r.id] ?? 0 })}</span>
               </span>
               {r.description && <span className="block text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{r.description}</span>}
             </button>
@@ -59,7 +61,7 @@ export const RoleListPanel: React.FC<RoleListPanelProps> = ({ roles, userCounts,
         })}
       </div>
       <div className="px-3 py-1.5 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500">
-        {filtered.length} / {roles.length} vai trò
+        {t('roles.list.count', { shown: filtered.length, total: roles.length })}
       </div>
     </div>
   );

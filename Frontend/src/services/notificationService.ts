@@ -1,5 +1,6 @@
 // Header notification bell (backend: /api/notifications).
 import { apiRequest } from './apiClient';
+import { storedLanguage, translate } from '../utils/i18n';
 import { ModuleCategoryKey, SystemNotification } from '../types';
 
 export interface PublishNotificationInput {
@@ -34,16 +35,16 @@ export const notificationService = {
     apiRequest<NotificationRecipient[]>('GET', `/api/notifications/recipients${unitCode ? `?unitCode=${encodeURIComponent(unitCode)}` : ''}`)
 };
 
-/** "5 phút trước" style label for the notification time (ISO string from the backend). */
+/** "5 phút trước" style label for the notification time (ISO string from the backend), in the user's language. */
 export const formatRelativeTime = (iso: string): string => {
   const time = new Date(iso).getTime();
   if (Number.isNaN(time)) return iso;
   const minutes = Math.floor((Date.now() - time) / 60000);
-  if (minutes < 1) return 'Vừa xong';
-  if (minutes < 60) return `${minutes} phút trước`;
+  if (minutes < 1) return translate('time.justNow');
+  if (minutes < 60) return translate('time.minutesAgo', { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} giờ trước`;
+  if (hours < 24) return translate('time.hoursAgo', { n: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} ngày trước`;
-  return new Date(iso).toLocaleDateString('vi-VN');
+  if (days < 7) return translate('time.daysAgo', { n: days });
+  return new Date(iso).toLocaleDateString(storedLanguage());
 };

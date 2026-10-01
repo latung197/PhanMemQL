@@ -3,6 +3,7 @@
 // mock/initialMenuData.ts and the backend FunctionCatalog.cs). Typed as Record<SubMenuKey, ...>, so a
 // code added to SubMenuKey without an entry here is a compile error.
 import { ModuleCategoryKey, SubMenuKey } from '../types';
+import { translate } from '../utils/i18n';
 
 /** What the function is; drives the grouping of the permission matrix. */
 export type FunctionKind = 'catalog' | 'voucher' | 'report' | 'process' | 'system';
@@ -77,7 +78,9 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
   sys_default_config: fn('settings', '/settings/defaults', 'Tham số mặc định & đánh số chứng từ', 'system'),
   sys_fiscal_year: fn('settings', '/settings/fiscal-year', 'Năm tài chính & khóa sổ', 'system'),
   sys_currencies: fn('settings', '/settings/currencies', 'Ngoại tệ', 'system'),
-  sys_exchange_rates: fn('settings', '/settings/exchange-rates', 'Tỷ giá', 'system')
+  sys_exchange_rates: fn('settings', '/settings/exchange-rates', 'Tỷ giá', 'system'),
+  sys_languages: fn('settings', '/settings/languages', 'Ngôn ngữ', 'system'),
+  sys_audit_log: fn('settings', '/settings/audit-log', 'Nhật ký thay đổi', 'system')
 };
 
 /** Function codes in declaration order. */
@@ -92,6 +95,12 @@ export const CATEGORY_NAMES: Record<ModuleCategoryKey, string> = {
   reports: 'Báo Cáo',
   ai: 'Trợ Lý AI',
   settings: 'Cài Đặt'
+};
+
+/** Name of a function in the user's language (texts: function.<code>); the Vietnamese label above when untranslated. */
+export const functionLabel = (key: SubMenuKey): string => {
+  const text = translate(`function.${key}`);
+  return text === `function.${key}` ? FUNCTION_REGISTRY[key]?.label ?? key : text;
 };
 
 export const getFunction = (key: SubMenuKey): FunctionDef => FUNCTION_REGISTRY[key] ?? FUNCTION_REGISTRY.overview_main;

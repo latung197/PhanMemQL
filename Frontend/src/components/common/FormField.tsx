@@ -1,6 +1,7 @@
 import React, { useId, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useLanguage } from '../../context/LanguageContext';
 
 /** Shared look of every text-like control (input, select, textarea). */
 export const fieldControlClass = (hasError?: boolean, className?: string) => cn(
@@ -134,6 +135,7 @@ export type PasswordInputProps = Omit<TextInputProps, 'type'>;
 export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
   ({ label, hint, error, wrapperClassName, className, required, ...props }, ref) => {
     const [visible, setVisible] = useState(false);
+    const { t } = useLanguage();
     return (
       <FormField label={label} required={required} hint={hint} error={error} className={wrapperClassName}>
         {(id) => (
@@ -151,7 +153,7 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputPro
               type="button"
               tabIndex={-1}
               onClick={() => setVisible(v => !v)}
-              title={visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+              title={visible ? t('controls.password.hide') : t('controls.password.show')}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
             >
               {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

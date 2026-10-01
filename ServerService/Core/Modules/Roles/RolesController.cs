@@ -26,7 +26,7 @@ public sealed class RolesController(IRoleService roles) : ApiControllerBase
     /// <summary>Copies the role matrix to all users holding the role.</summary>
     [HttpPost("{roleId:int}/sync-users"), RequirePermission(Function, PermissionAction.CreateEdit)]
     public async Task<IActionResult> SyncUsers(int roleId, CancellationToken ct) =>
-        Ok(new { count = await roles.SyncUsersAsync(roleId, ct) });
+        Ok(new { count = await roles.SyncUsersAsync(CurrentUserId, roleId, ct) });
 
     [HttpDelete("{roleId:int}"), RequirePermission(Function, PermissionAction.Delete)]
     public async Task<IActionResult> Delete(int roleId, CancellationToken ct)

@@ -23,3 +23,5 @@ export * from './Tabs';
 export * from './ConfirmDialog';
 export * from './StateViews';
 export * from './DeleteConfirmModal';
+export * from './RecordStamp';
+export * from './recordStampColumns';

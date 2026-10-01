@@ -11,6 +11,7 @@ import { Department, departmentsApi, PermissionCatalog, permissionCatalogApi, ro
 import { CompanyUnit, RoleDefinition, UserProfile } from '../../types';
 import { getActionPermission } from '../../utils/permissions';
 import { CreateRoleModal, CreateUserModal, EditUserModal } from './UserAccountModals';
+import { useLanguage } from '../../context/LanguageContext';
 import { UserListPanel } from './permissions/UserListPanel';
 import { UserDetailPanel } from './permissions/UserDetailPanel';
 import { RoleListPanel } from './permissions/RoleListPanel';
@@ -28,6 +29,7 @@ const panelClass = 'bg-white dark:bg-slate-900 border border-slate-200/90 dark:b
 
 export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ currentUser, companyUnits }) => {
   const confirm = useConfirm();
+  const { t } = useLanguage();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [roles, setRoles] = useState<RoleDefinition[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -41,7 +43,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
   const [modal, setModal] = useState<'createUser' | 'createRole' | 'editUser' | null>(null);
 
   const perms = getActionPermission(currentUser, 'sys_users');
-  const activeUnits = companyUnits.filter(u => u.status === 'Hoạt động');
+  const activeUnits = companyUnits.filter(u => u.status === 'Hoạt động');  // i18n-ignore: stored status
 
   const loadData = useCallback(async () => {
     try {
@@ -71,9 +73,9 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
   /** Asks before leaving a record with unsaved edits. */
   const leave = async (action: () => void) => {
     if (isDirty && !(await confirm({
-      title: 'Bỏ các thay đổi chưa lưu?',
-      message: 'Các quyền vừa chỉnh sửa chưa được lưu và sẽ bị bỏ.',
-      confirmLabel: 'Bỏ thay đổi',
+      title: t('users.leave.title'),
+      message: t('users.leave.message'),
+      confirmLabel: t('users.leave.confirm'),
       tone: 'warning'
     }))) return;
     setIsDirty(false);
@@ -85,9 +87,9 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
 
   const handleDeleteUser = async (user: UserProfile) => {
     const ok = await confirm({
-      title: `Xóa tài khoản @${user.username}?`,
-      message: 'Tài khoản sẽ không thể đăng nhập nữa. Lịch sử chứng từ của tài khoản vẫn được giữ lại.',
-      confirmLabel: 'Xóa tài khoản',
+      title: t('users.delete.title', { username: user.username }),
+      message: t('users.delete.message'),
+      confirmLabel: t('users.delete.confirm'),
       tone: 'danger'
     });
     if (!ok) return;
@@ -95,13 +97,13 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
       await usersApi.remove(user.id);
       setUsers(prev => prev.filter(u => u.id !== user.id));
       setSelectedUserId('');
-      showToast.success(`Đã xóa tài khoản @${user.username}`);
+      showToast.success(t('users.delete.done', { username: user.username }));
     } catch (error) {
       showToast.error(getErrorMessage(error));
     }
   };
 
-  if (isLoading) return <div className={panelClass}><LoadingState label="Đang tải người dùng và vai trò..." /></div>;
+  if (isLoading) return <div className={panelClass}><LoadingState label={t('users.loading')} /></div>;
   if (loadError) {
     return (
       <div className={panelClass}>
@@ -120,30 +122,30 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h2 className="font-extrabold text-sm tracking-tight text-slate-900 dark:text-slate-100">Người Dùng & Phân Quyền</h2>
+              <h2 className="font-extrabold text-sm tracking-tight text-slate-900 dark:text-slate-100">{t('users.title')}</h2>
               <span className="px-1.5 bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80 text-[10px] rounded-full font-bold">
-                {users.length} người · {roles.length} vai trò
+                {t('users.summary', { users: users.length, roles: roles.length })}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Gán vai trò cho tài khoản rồi tinh chỉnh quyền Xem / Thêm-Sửa / Xóa / Duyệt / In-Xuất theo từng chức năng.
+              {t('users.description')}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
           <Button variant="outline" size="sm" className="h-7 px-2.5 text-[11px]" icon={<RefreshCw className="h-3.5 w-3.5 text-indigo-500" />}
             onClick={() => void leave(() => { setIsLoading(true); void loadData(); })}>
-            Nạp lại
+            {t('users.reload')}
           </Button>
           {perms.createEdit && view !== 'approvals' && (view === 'users' ? (
             <Button size="sm" className="h-7 px-2.5 text-[11px]" icon={<UserPlus className="h-3.5 w-3.5" />}
               onClick={() => void leave(() => setModal('createUser'))}>
-              Thêm người dùng
+              {t('users.addUser')}
             </Button>
           ) : (
             <Button size="sm" className="h-7 px-2.5 text-[11px]" icon={<Plus className="h-3.5 w-3.5" />}
               onClick={() => void leave(() => setModal('createRole'))}>
-              Thêm vai trò
+              {t('users.addRole')}
             </Button>
           ))}
         </div>
@@ -153,9 +155,9 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
         value={view}
         onChange={(next) => void leave(() => setView(next))}
         items={[
-          { key: 'users', label: `Người dùng (${users.length})`, icon: <Users /> },
-          { key: 'roles', label: `Vai trò (${roles.length})`, icon: <Briefcase /> },
-          { key: 'approvals', label: 'Quy trình phê duyệt', icon: <GitBranch /> }
+          { key: 'users', label: t('users.tabUsers', { n: users.length }), icon: <Users /> },
+          { key: 'roles', label: t('users.tabRoles', { n: roles.length }), icon: <Briefcase /> },
+          { key: 'approvals', label: t('users.tabApprovals'), icon: <GitBranch /> }
         ]}
       />
 
@@ -196,7 +198,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
               onDelete={() => void handleDeleteUser(selectedUser)}
               onDirtyChange={handleDirtyChange}
             />
-          ) : <EmptyState title="Chưa có người dùng" />)}
+          ) : <EmptyState title={t('users.noUsers')} />)}
 
           {view === 'roles' && (selectedRole ? (
             <RoleDetailPanel
@@ -212,7 +214,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
               onSynced={() => void loadData()}
               onDirtyChange={handleDirtyChange}
             />
-          ) : <EmptyState title="Chưa có vai trò" />)}
+          ) : <EmptyState title={t('users.noRoles')} />)}
         </div>
       </div>}
 
@@ -228,7 +230,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
             setUsers(prev => [...prev, user].sort((a, b) => a.username.localeCompare(b.username)));
             setSelectedUserId(user.id);
             setModal(null);
-            showToast.success(`Đã tạo tài khoản @${user.username}`);
+            showToast.success(t('users.created', { username: user.username }));
           }}
         />
       )}
@@ -241,7 +243,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
             setRoles(prev => [...prev, role]);
             setSelectedRoleId(role.id);
             setModal(null);
-            showToast.success(`Đã tạo vai trò "${role.name}"`);
+            showToast.success(t('roles.created', { name: role.name }));
           }}
         />
       )}
@@ -256,7 +258,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
           onSaved={(user) => {
             replaceUser(user);
             setModal(null);
-            showToast.success(`Đã cập nhật tài khoản @${user.username}`);
+            showToast.success(t('users.updated', { username: user.username }));
           }}
         />
       )}

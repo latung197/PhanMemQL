@@ -5,6 +5,7 @@ using Core.Domain.Common;
 namespace Core.Domain.Modules.Users;
 
 /// <summary>Special right granted to a role (row present = granted).</summary>
+[NotAudited("Logged as PERMISSIONS on the role (RoleService).")]
 [Table("sys_role_right")]
 public class SysRoleRight : AuditableEntity
 {
@@ -17,6 +18,7 @@ public class SysRoleRight : AuditableEntity
 /// Exception to the role's special rights for one user: IsGranted = true adds the right, false takes it
 /// away. Rights without a row follow the roles.
 /// </summary>
+[NotAudited("Logged as PERMISSIONS on the user: the rights gained or lost (UserAccessAudit).")]
 [Table("sys_user_right")]
 public class SysUserRight : AuditableEntity
 {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, X } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
   value: string;
@@ -11,10 +12,12 @@ interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
 export const SearchInput: React.FC<SearchInputProps> = ({
   value,
   onChange,
-  placeholder = 'Tìm kiếm dữ liệu...',
+  placeholder: placeholderProp,
   className = '',
   ...props
 }) => {
+  const { t } = useLanguage();
+  const placeholder = placeholderProp ?? t('controls.search.placeholder');
   return (
     <div className={`relative grow ${className}`}>
       <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -29,7 +32,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       {value && (
         <button
           type="button"
-          title="Xóa tìm kiếm"
+          title={t('controls.search.clear')}
           onClick={() => onChange('')}
           className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
         >

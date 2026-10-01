@@ -1,5 +1,6 @@
 using Core.Application.Common.Exceptions;
 using Core.Application.Common.Permissions;
+using Core.Application.Common.Persistence;
 using Core.Application.Common.Validation;
 using Core.Application.Modules.Notifications;
 using Core.Application.Modules.Users;
@@ -10,8 +11,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Modules.Notifications;
 
-public sealed class NotificationService(CoreContext db, IPermissionService permissions, INotificationStream stream)
-    : INotificationService
+public sealed class NotificationService(CoreContext db, IPermissionService permissions, INotificationStream stream,
+    IUnitOfWork unitOfWork) : INotificationService
 {
     private const int InboxSize = 100;
 
@@ -33,7 +34,7 @@ public sealed class NotificationService(CoreContext db, IPermissionService permi
     public async Task MarkReadAsync(int userId, string unitCode, long notificationId, CancellationToken ct)
     {
         if (!await (await VisibleAsync(userId, unitCode, ct)).AnyAsync(x => x.Id == notificationId, ct))
-            throw new NotFoundException("Thông báo không tồn tại.");
+            throw new NotFoundException("notification.notFound");
         if (await db.NotificationReads.AnyAsync(x => x.NotificationId == notificationId && x.UserId == userId, ct))
             return;
         db.NotificationReads.Add(new NotificationRead
@@ -62,7 +63,7 @@ public sealed class NotificationService(CoreContext db, IPermissionService permi
     public async Task DismissAsync(int userId, string unitCode, long notificationId, CancellationToken ct)
     {
         if (!await (await VisibleAsync(userId, unitCode, ct)).AnyAsync(x => x.Id == notificationId, ct))
-            throw new NotFoundException("Thông báo không tồn tại.");
+            throw new NotFoundException("notification.notFound");
         var now = DateTime.UtcNow;
         var read = await db.NotificationReads.FirstOrDefaultAsync(x => x.NotificationId == notificationId && x.UserId == userId, ct);
         if (read is null)
@@ -103,33 +104,33 @@ public sealed class NotificationService(CoreContext db, IPermissionService permi
         CancellationToken ct)
     {
         var type = string.IsNullOrWhiteSpace(request.Type) ? "info" : request.Type.Trim();
-        if (!Notification.Types.Contains(type)) throw new BusinessRuleException("Loại thông báo không hợp lệ.");
-        var linkModule = Guard.Optional(request.LinkModule, 64, "Phân hệ liên kết");
+        if (!Notification.Types.Contains(type)) throw new BusinessRuleException("notification.invalidType");
+        var linkModule = Guard.Optional(request.LinkModule, 64, "field.linkModule");
         if (linkModule is not null && !FunctionCatalog.ModuleKeys.Contains(linkModule))
-            throw new BusinessRuleException("Phân hệ liên kết không hợp lệ.");
-        var linkFunction = Guard.Optional(request.LinkFunction, 64, "Chức năng liên kết");
+            throw new BusinessRuleException("notification.invalidModule");
+        var linkFunction = Guard.Optional(request.LinkFunction, 64, "field.linkFunction");
         if (linkFunction is not null && !FunctionCatalog.IsFunction(linkFunction))
-            throw new BusinessRuleException("Chức năng liên kết không hợp lệ.");
-        var linkDocumentId = linkFunction is null ? null : Guard.Optional(request.LinkDocumentId, 64, "Mã chứng từ liên kết");
+            throw new BusinessRuleException("notification.invalidFunction");
+        var linkDocumentId = linkFunction is null ? null : Guard.Optional(request.LinkDocumentId, 64, "field.linkDocument");
         var expiresAt = request.ExpiresAt?.ToUniversalTime();
-        if (expiresAt <= DateTime.UtcNow) throw new BusinessRuleException("Thời điểm hết hạn phải ở tương lai.");
+        if (expiresAt <= DateTime.UtcNow) throw new BusinessRuleException("notification.expiryInPast");
 
-        var unitCode = Guard.Optional(request.UnitCode, 20, "Đơn vị cơ sở");
+        var unitCode = Guard.Optional(request.UnitCode, 20, "field.unit");
         if (unitCode is not null && !await db.CompanyUnits.AnyAsync(x => x.Code == unitCode, ct))
-            throw new BusinessRuleException("Đơn vị cơ sở không tồn tại.");
+            throw new BusinessRuleException("companyUnit.notFound");
         if (request.RecipientUserId is int recipient)
         {
             if (!await db.Users.NotDeleted().AnyAsync(x => x.UserId == recipient, ct))
-                throw new BusinessRuleException("Người nhận không tồn tại.");
+                throw new BusinessRuleException("notification.recipientNotFound");
             if (unitCode is not null && !await permissions.IsAdminAsync(recipient, ct)
                 && !await db.UserCompanyUnits.AnyAsync(x => x.UserId == recipient && x.UnitCode == unitCode, ct))
-                throw new BusinessRuleException("Người nhận không thuộc đơn vị cơ sở đã chọn.");
+                throw new BusinessRuleException("notification.recipientNotInUnit");
         }
 
         var notification = new Notification
         {
-            Title = Guard.Required(request.Title, 200, "tiêu đề"),
-            Body = Guard.Required(request.Message, 10_000, "nội dung"),
+            Title = Guard.Required(request.Title, 200, "field.title"),
+            Body = Guard.Required(request.Message, 10_000, "field.content"),
             Type = type,
             LinkModule = linkModule,
             LinkFunction = linkFunction,
@@ -142,7 +143,8 @@ public sealed class NotificationService(CoreContext db, IPermissionService permi
         };
         db.Notifications.Add(notification);
         await db.SaveChangesAsync(ct);
-        stream.Publish(notification.UnitCode, notification.RecipientUserId);
+        // Inside a caller's transaction (e.g. an approval step) the tabs reload only once the row is visible.
+        unitOfWork.AfterCommit(() => stream.Publish(notification.UnitCode, notification.RecipientUserId));
         var sender = await db.Users.AsNoTracking().Where(u => u.UserId == publisherUserId).Select(u => u.FullName).FirstOrDefaultAsync(ct);
         return ToDto(notification, false, sender);
     }
@@ -160,12 +162,12 @@ public sealed class NotificationService(CoreContext db, IPermissionService permi
         PublishNotificationRequest request, CancellationToken ct)
     {
         var scope = await GetSendScopeAsync(senderUserId, senderUnitCode, ct);
-        if (!scope.CanSend) throw new ForbiddenException("Bạn không có quyền gửi thông báo.");
+        if (!scope.CanSend) throw new ForbiddenException("notification.noSendRight");
         if (!scope.AllUnits)
         {
             // Unit-only senders always send inside the unit they are working in.
             if (!string.IsNullOrWhiteSpace(request.UnitCode) && request.UnitCode.Trim() != senderUnitCode)
-                throw new ForbiddenException("Bạn chỉ được gửi thông báo trong đơn vị cơ sở đang làm việc.");
+                throw new ForbiddenException("notification.ownUnitOnly");
             request = request with { UnitCode = senderUnitCode };
         }
         return await PublishAsync(senderUserId, request, ct);
@@ -175,8 +177,8 @@ public sealed class NotificationService(CoreContext db, IPermissionService permi
         string? unitCode, CancellationToken ct)
     {
         var scope = await GetSendScopeAsync(senderUserId, senderUnitCode, ct);
-        if (!scope.CanSend) throw new ForbiddenException("Bạn không có quyền gửi thông báo.");
-        var target = scope.AllUnits ? Guard.Optional(unitCode, 20, "Đơn vị cơ sở") : senderUnitCode;
+        if (!scope.CanSend) throw new ForbiddenException("notification.noSendRight");
+        var target = scope.AllUnits ? Guard.Optional(unitCode, 20, "field.unit") : senderUnitCode;
         var users = db.Users.AsNoTracking().NotDeleted().Where(x => x.IsActive);
         if (target is not null)
             users = users.Where(x => db.UserCompanyUnits.Any(u => u.UserId == x.UserId && u.UnitCode == target));

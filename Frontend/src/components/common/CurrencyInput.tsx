@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNumberFormat } from '../../context/NumberFormatContext';
 import { NumberInput } from './NumberInput';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface CurrencyInputProps {
   value: number;
@@ -29,6 +30,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
   id,
   label
 }) => {
+  const { t } = useLanguage();
   const { config, formatCurrency } = useNumberFormat();
 
   const handleAddAmount = (addValue: number) => {
@@ -66,7 +68,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
 
       {showQuickButtons && !disabled && !readOnly && (
         <div className="flex items-center gap-1 pt-1 overflow-x-auto">
-          <span className="text-[10px] text-slate-400 font-medium shrink-0">Cộng nhanh:</span>
+          <span className="text-[10px] text-slate-400 font-medium shrink-0">{t('controls.currency.quickAdd')}</span>
           <button
             type="button"
             onClick={() => handleAddAmount(100000)}
@@ -93,7 +95,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
             onClick={() => onChange(0)}
             className="px-1.5 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 rounded text-[10px] font-bold transition-colors cursor-pointer ml-auto"
           >
-            Xóa
+            {t('controls.currency.clear')}
           </button>
         </div>
       )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNumberFormat } from '../../context/NumberFormatContext';
 import { NumberInput } from './NumberInput';
 import { DollarSign, ArrowRightLeft, Coins } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface ForeignCurrencyInputProps {
   foreignAmount: number;
@@ -17,13 +18,13 @@ export interface ForeignCurrencyInputProps {
 }
 
 const COMMON_CURRENCIES = [
-  { code: 'USD', name: 'Đô la Mỹ ($)', defaultRate: 25450 },
+  { code: 'USD', name: 'Đô la Mỹ ($)', defaultRate: 25450 },  // i18n-ignore: data
   { code: 'EUR', name: 'Euros (€)', defaultRate: 27800 },
-  { code: 'JPY', name: 'Yên Nhật (¥)', defaultRate: 165 },
-  { code: 'CNY', name: 'Tân Nhân dân tệ (¥)', defaultRate: 3520 },
-  { code: 'GBP', name: 'Bảng Anh (£)', defaultRate: 32500 },
-  { code: 'SGD', name: 'Đô la Singapore ($)', defaultRate: 18900 },
-  { code: 'AUD', name: 'Đô la Úc ($)', defaultRate: 16700 },
+  { code: 'JPY', name: 'Yên Nhật (¥)', defaultRate: 165 },  // i18n-ignore: data
+  { code: 'CNY', name: 'Tân Nhân dân tệ (¥)', defaultRate: 3520 },  // i18n-ignore: data
+  { code: 'GBP', name: 'Bảng Anh (£)', defaultRate: 32500 },  // i18n-ignore: data
+  { code: 'SGD', name: 'Đô la Singapore ($)', defaultRate: 18900 },  // i18n-ignore: data
+  { code: 'AUD', name: 'Đô la Úc ($)', defaultRate: 16700 },  // i18n-ignore: data
 ];
 
 export const ForeignCurrencyInput: React.FC<ForeignCurrencyInputProps> = ({
@@ -35,9 +36,11 @@ export const ForeignCurrencyInput: React.FC<ForeignCurrencyInputProps> = ({
   onCurrencyCodeChange,
   onVndAmountChange,
   disabled = false,
-  label = 'Tiền Ngoại Tệ & Quy Đổi Tỷ Giá',
+  label: labelProp,
   showConvertedVnd = true
 }) => {
+  const { t } = useLanguage();
+  const label = labelProp ?? t('controls.foreignCurrency.label');
   const { config, formatCurrency, formatForeignCurrency, formatNumber } = useNumberFormat();
 
   const [activeCurrency, setActiveCurrency] = useState<string>(
@@ -98,7 +101,7 @@ export const ForeignCurrencyInput: React.FC<ForeignCurrencyInputProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
         {/* Currency Code Selector */}
         <div className="sm:col-span-3">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Loại Ngoại Tệ</label>
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t('controls.foreignCurrency.currency')}</label>
           <select
             value={activeCurrency}
             onChange={(e) => handleSelectCurrency(e.target.value)}
@@ -115,7 +118,7 @@ export const ForeignCurrencyInput: React.FC<ForeignCurrencyInputProps> = ({
 
         {/* Foreign Amount Input */}
         <div className="sm:col-span-5">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Số Tiền Ngoại Tệ</label>
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t('controls.foreignCurrency.amount')}</label>
           <div className="mt-1">
             <NumberInput
               value={foreignAmount}
@@ -130,7 +133,7 @@ export const ForeignCurrencyInput: React.FC<ForeignCurrencyInputProps> = ({
 
         {/* Exchange Rate Input */}
         <div className="sm:col-span-4">
-          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Tỷ Giá Hối Đoái</label>
+          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{t('controls.foreignCurrency.rate')}</label>
           <div className="mt-1">
             <NumberInput
               value={activeRate}
@@ -149,7 +152,7 @@ export const ForeignCurrencyInput: React.FC<ForeignCurrencyInputProps> = ({
         <div className="flex items-center justify-between p-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs mt-1">
           <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-medium text-[11px]">
             <ArrowRightLeft className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Thành tiền quy đổi ({config.currencySymbol}):</span>
+            <span>{t('controls.foreignCurrency.converted', { symbol: config.currencySymbol })}</span>
           </div>
           <div className="font-mono font-extrabold text-emerald-700 dark:text-emerald-300 text-sm">
             {formatCurrency(convertedVnd)}

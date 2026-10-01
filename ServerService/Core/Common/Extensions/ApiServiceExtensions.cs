@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Core.Application.Common.Localization;
 using Core.Application.Common.Security;
 using Core.Application.Modules.Users;
 using Core.Common.Authorization;
@@ -25,7 +26,7 @@ public static class ApiServiceExtensions
             // Enums travel as their names ("Draft", "Pending"...), as the frontend types spell them.
             .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
             .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = _ =>
-                ErrorResponse.Create(StatusCodes.Status400BadRequest, "Dữ liệu gửi lên không hợp lệ."));
+                ErrorResponse.Create(StatusCodes.Status400BadRequest, Messages.T("api.invalidInput")));
 
         services.AddJwtAuthentication(JwtOptions.FromConfiguration(configuration));
         services.AddPermissionAuthorization();
@@ -89,7 +90,7 @@ public static class ApiServiceExtensions
             {
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                 await context.HttpContext.Response.WriteAsJsonAsync(
-                    new { message = "Bạn thử quá nhiều lần. Vui lòng đợi 1 phút rồi thử lại." }, ct);
+                    new { message = Messages.T("api.tooManyAttempts") }, ct);
             };
             o.AddPolicy(LoginRateLimit, context => RateLimitPartition.GetFixedWindowLimiter(
                 context.Connection.RemoteIpAddress?.ToString() ?? "unknown",

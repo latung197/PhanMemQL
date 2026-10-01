@@ -18,6 +18,8 @@ import { Badge } from './Badge';
 import { SearchInput } from './SearchInput';
 import { Pagination } from './Pagination';
 import { Checkbox } from './Checkbox';
+import { useLanguage } from '../../context/LanguageContext';
+import { interpolate } from '../../utils/interpolate';
 
 export interface GridViewColumn<T> {
   key: string;
@@ -136,7 +138,7 @@ export function GridView<T extends Record<string, any>>({
   searchable = true,
   searchValue: controlledSearchValue,
   onSearchChange: controlledOnSearchChange,
-  searchPlaceholder = 'Tìm kiếm dữ liệu...',
+  searchPlaceholder: searchPlaceholderProp,
   toolbarFilters,
   toolbarActions,
 
@@ -160,12 +162,12 @@ export function GridView<T extends Record<string, any>>({
   showIndex = true,
   indexHeader = 'STT',
   actions,
-  actionsHeader = 'Thao Tác',
+  actionsHeader: actionsHeaderProp,
   onRowClick,
   rowClassName,
 
   loading = false,
-  emptyText = 'Chưa có dữ liệu. Hãy thêm mới hoặc thay đổi bộ lọc.',
+  emptyText: emptyTextProp,
   emptyIcon,
   emptyAction,
   dense = false,
@@ -173,6 +175,10 @@ export function GridView<T extends Record<string, any>>({
   striped = false,
   className = ''
 }: GridViewProps<T>) {
+  const { t } = useLanguage();
+  const searchPlaceholder = searchPlaceholderProp ?? t('controls.grid.searchPlaceholder');
+  const actionsHeader = actionsHeaderProp ?? t('controls.grid.actions');
+  const emptyText = emptyTextProp ?? t('controls.grid.empty');
   const getItemId = customGetItemId || keyExtractor || ((item: any, index: number) => item?.id ?? item?.code ?? index);
 
   // Local states for uncontrolled usage
@@ -410,14 +416,14 @@ export function GridView<T extends Record<string, any>>({
               <div className="flex items-center gap-2 font-medium">
                 <CheckSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <span>
-                  Đã chọn <strong>{selectedIds.length}</strong> dòng
+                  {interpolate(t('controls.grid.selected'), { n: <strong>{selectedIds.length}</strong> })}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleSelectionChange([])}
                   className="text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-200 ml-2"
                 >
-                  Bỏ chọn tất cả
+                  {t('controls.grid.clearSelection')}
                 </button>
               </div>
 
@@ -446,7 +452,7 @@ export function GridView<T extends Record<string, any>>({
               <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xs z-20 flex items-center justify-center">
                 <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-[8px] shadow-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200">
                   <RefreshCw className="w-4 h-4 animate-spin text-indigo-600" />
-                  <span>Đang tải dữ liệu...</span>
+                  <span>{t('controls.grid.loading')}</span>
                 </div>
               </div>
             )}

@@ -1,11 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Core.Domain.Common;
 
 namespace Core.Domain.Modules.Notifications;
 
 /// <summary>
 /// System notification. A null UnitCode or RecipientUserId means "everyone" for that dimension.
 /// </summary>
+[NotAudited("The notification is itself the record of who sent what, when and to whom.")]
 [Table("sys_notification")]
 public class Notification
 {

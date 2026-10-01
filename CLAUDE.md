@@ -14,6 +14,8 @@ S-ERP: a Vietnamese ERP made of two apps plus user docs.
 
 UI text, error messages (`{ message }` from the API) and docs are written in **Vietnamese**.
 
+Multi-language: languages are the backend catalog `sys_language` (Settings › Ngôn ngữ), each user has an own language (`sys_users.language`, null = default) and the frontend sends it as `Accept-Language`. Backend user texts live in `ServerService/Core.Application/Common/Localization/Messages.{vi,en}.json`: throw `new BusinessRuleException("module.key", args)` (never a sentence), Guard labels are `field.*` keys, and `MessagesTests` fails on a missing key or a Vietnamese sentence in a `throw`. Missing texts fall back to Vietnamese. Only the shared parts and Settings are being translated for now (Inventory later, when it is redeveloped).
+
 ## Commands
 
 Frontend (run in `Frontend/`; there is no JS test runner or linter beyond `tsc`):
@@ -47,8 +49,8 @@ Database: run every script in `ServerService/sql/postgresql/` **in filename orde
 
 ### Frontend ↔ backend split (what is real vs. mock)
 
-- **Backend-backed:** login/JWT, users, roles, permission matrix, special rights, company units (DVCS), departments, currencies + exchange rates, month locks per unit, voucher number series, JSON settings (defaults, fiscal year, company profile, number format) with backup/restore, notifications (incl. SSE realtime), approval rules.
-- **Still browser mock data:** materials, warehouses, goods receipts/issues, sales, finance, HR, reports. Lives in `Frontend/src/mock/` and is persisted to `localStorage['s_erp_database_state']`, loaded in `App.tsx`.
+- **Backend-backed:** login/JWT, users, roles, permission matrix, special rights, company units (DVCS), departments, currencies + exchange rates, month locks per unit, voucher number series, JSON settings (defaults, fiscal year, company profile, number format) with backup/restore, notifications (incl. SSE realtime), approval rules, change log, inventory unit of measure catalog (`erp_uom`, `modules/inventory/uom`).
+- **Still browser mock data:** materials, warehouses, unit conversions (still read the mock unit list), goods receipts/issues, sales, finance, HR, reports. Lives in `Frontend/src/mock/` and is persisted to `localStorage['s_erp_database_state']`, loaded in `App.tsx`.
 - Approval workflow endpoints (`/api/approvals/{fn}/{id}/submit|approve|reject|withdraw`) exist on the backend but the frontend does not call them yet.
 
 When turning a mock feature into a real one, add the backend module, add `api.ts` in the feature folder calling `apiRequest`, and remove that screen's mock data.
@@ -56,7 +58,7 @@ When turning a mock feature into a real one, add the backend module, add `api.ts
 ### Function codes tie everything together
 
 A `SubMenuKey` (e.g. `inv_receipt`) is the shared key for menu, route, permissions, notifications and approvals. A new function is declared in:
-- Frontend: `src/types/index.ts` (`SubMenuKey`) and **`src/config/functions.ts`** (`FUNCTION_REGISTRY`: category, hash path, label, kind — typed `Record<SubMenuKey, …>`, so a missing entry is a compile error). Routes (`config/router.ts`), breadcrumbs (`utils/navigationHelper.ts`) and the permission matrix (`permissions/permissionCatalog.ts`) are derived from it. Then a sidebar item in `src/mock/initialMenuData.ts` (static, not cached) and a `case` in the parent `*Module.tsx` (Settings: `TABS` + `renderScreen` in `SettingsModule.tsx`).
+- Frontend: `src/types/index.ts` (`SubMenuKey`) and **`src/config/functions.ts`** (`FUNCTION_REGISTRY`: category, hash path, label, kind — typed `Record<SubMenuKey, …>`, so a missing entry is a compile error). Routes (`config/router.ts`), breadcrumbs (`utils/navigationHelper.ts`) and the permission matrix (`permissions/permissionCatalog.ts`) are derived from it. Then a sidebar item in `src/mock/initialMenuData.ts` (static, not cached) and a `case` in the parent `*Module.tsx` (Settings: `renderScreen` in `SettingsModule.tsx`; settings screens are opened from the sidebar only, no tab bar).
 - Backend: `Core.Application/Common/Permissions/FunctionCatalog.cs` (API auto-inserts missing codes into `sys_command` on startup). Vouchers also go in `Common/Documents/VoucherCatalog.cs`, which gives them a number series, the voucher special rights and a place in approval rules.
 - Always navigate with `navigateTo` / `openFunction` in `App.tsx` (keeps the URL hash in sync); never set the active sub-menu state directly.
 
@@ -100,10 +102,13 @@ Data access rules:
 
 Database conventions (enforced by `TablesAndColumnsFollowNamingConvention` test):
 - `sys_*` for system tables, `erp_*` for business tables; `snake_case` table/column names.
+- Every `erp_*` entity inherits `ErpEntity` (`created_at`, `created_by`, `updated_at`, `updated_by`; timestamptz UTC, user ids), filled by `CoreContext` on save, never by callers; test `BusinessTablesHaveRecordStamps`. DTOs carry them as `stamp` (`RecordStampDto` via `RecordStamps.ForAsync`, names looked up in one query); frontend `recordStampColumns(t)` / `<RecordStampLine>` (`components/common`). Legacy `sys_*` tables keep `createtime` / `createid` / `updatetime` / `updateid`.
 - **No foreign keys.** Link by indexed code/ID columns; services validate references and block deleting in-use rows. Relationships in `CoreContext` exist only for EF joins.
 - `00-helpers.sql` provides `sys_rename_table`, `sys_rename_column`, `sys_rename_constraint`, `sys_drop_foreign_keys` for migration-style scripts.
 
 Seeding: every startup inserts missing function codes, number series for new `VoucherCatalog` entries and a base currency (VND) if none. With an empty `sys_users`, `Seed:DemoData=true` loads `Core/SeedData/seed.json` (exported from the frontend mocks via `npm run export-seed`, incl. `mock/initialSettingsData.ts`); otherwise `Bootstrap:AdminPassword` (≥12 chars) creates only the admin and one unit.
+
+Change log: `sys_audit_log` is shared by every function and filled **automatically**: `CoreContext.SaveChangesAsync` runs `AuditTrail`, which logs every insert / update / delete of an entity marked `[Audited(function, objectType, Label = "...", SoftDelete = ...)]` (field before → after, same transaction; only for a signed-in user). Every entity must say `[Audited]` or `[NotAudited(reason)]` (`AuditDeclarationTests`); use `[AuditIgnore]` for secrets / preferences, `[AuditField]` to rename legacy columns, `[AuditJson]` for JSON columns, `[AuditedChild]` for list tables. By hand via `IAuditLog` only for what EF cannot see or needs business meaning: `Attach(entity, changes)` (e.g. names for ids), `RecordAsync(AuditEntry)` for permissions (effective rights, `UserAccessAudit`), password reset/change, approval actions, raw SQL / `ExecuteUpdate`. Shown only on Settings › Nhật ký thay đổi (`sys_audit_log`, `modules/settings/AuditLogView.tsx`, filters from `GET /api/audit-logs/filters`), never on the functions' screens; labels `audit.*`.
 
 Notifications: `NotificationStream` keeps SSE connections in memory (single-instance only); the server only sends `notification`/`sync` signals and the client refetches. Frontend also polls every 3 minutes. `NotificationCleanupService` purges old rows every 12h.
 

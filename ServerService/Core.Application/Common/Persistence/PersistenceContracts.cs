@@ -21,4 +21,11 @@ public interface IUnitOfWork
 {
     Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct = default);
     Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct = default);
+
+    /// <summary>
+    /// Runs <paramref name="action"/> once the current <see cref="ExecuteAsync"/> transaction commits (dropped if it
+    /// rolls back), or right away when none is running. For side effects outside the database, e.g. realtime
+    /// signals, that must not announce data other connections cannot read yet.
+    /// </summary>
+    void AfterCommit(Action action);
 }

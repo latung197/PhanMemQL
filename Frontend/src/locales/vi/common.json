@@ -1,0 +1,626 @@
+{
+  "common": {
+    "appName": "S-ERP Doanh Nghiệp",
+    "systemTitle": "Hệ Thống ERP",
+    "search": "Tìm kiếm...",
+    "searchPlaceholder": "Nhập từ khóa, mã, tên...",
+    "filter": "Lọc dữ liệu",
+    "advancedFilter": "Bộ lọc nâng cao",
+    "add": "Thêm mới",
+    "edit": "Chỉnh sửa",
+    "delete": "Xóa",
+    "save": "Lưu dữ liệu",
+    "cancel": "Hủy bỏ",
+    "confirm": "Xác nhận",
+    "exportExcel": "Xuất Excel",
+    "importExcel": "Nhập Excel",
+    "print": "In chứng từ",
+    "refresh": "Làm mới",
+    "actions": "Thao tác",
+    "status": "Trạng thái",
+    "active": "Đang hoạt động",
+    "inactive": "Tạm dừng",
+    "all": "Tất cả",
+    "selected": "Đã chọn",
+    "clearAll": "Xóa chọn",
+    "selectAll": "Chọn tất cả",
+    "copyCodes": "Sao chép mã",
+    "codesCopied": "Đã sao chép các mã vào khay nhớ tạm",
+    "close": "Đóng",
+    "back": "Quay lại",
+    "loading": "Đang tải dữ liệu...",
+    "noData": "Không có dữ liệu phù hợp",
+    "bulkDelete": "Xóa hàng loạt",
+    "confirmDeleteTitle": "Xác nhận xóa dữ liệu",
+    "confirmDeleteMsg": "Bạn có chắc chắn muốn xóa bản ghi này?",
+    "cannotUndo": "Lưu ý: Thao tác này không thể hoàn tác.",
+    "permissionDeniedDelete": "Tài khoản của bạn KHÔNG CÓ QUYỀN XÓA dữ liệu!",
+    "permissionDeniedEdit": "Tài khoản của bạn KHÔNG CÓ QUYỀN CHỈNH SỬA dữ liệu!",
+    "permissionDeniedCreate": "Tài khoản của bạn KHÔNG CÓ QUYỀN THÊM MỚI dữ liệu!",
+    "deleteSuccess": "Đã xóa dữ liệu thành công!",
+    "saveSuccess": "Đã lưu dữ liệu thành công!",
+    "multiCodeSearchTitle": "Tra cứu đa mã (Chọn nhiều mã cùng lúc)",
+    "multiCodePlaceholder": "Nhập các mã phân cách bằng dấu phẩy, khoảng trắng hoặc xuống dòng...",
+    "applyFilter": "Áp dụng lọc",
+    "codesSelectedCount": "Đã chọn {count} mã",
+    "enterOrSelectCodes": "Nhập hoặc chọn danh sách mã cần lọc:",
+    "workingCompanyUnit": "Đơn vị cơ sở đang làm việc",
+    "switchToDark": "Chuyển sang Giao diện Tối",
+    "switchToLight": "Chuyển sang Giao diện Sáng",
+    "switchToEnglish": "Chuyển sang Tiếng Anh (English)",
+    "switchToVietnamese": "Chuyển sang Tiếng Việt",
+    "accountSettings": "Cài đặt tài khoản & Hệ thống",
+    "logout": "Đăng xuất (Logout)",
+    "language": "Ngôn ngữ"
+  },
+  "navigation": {
+    "overview": "Bàn Tổng Quan",
+    "inventory": "Phân Hệ Kho Hàng",
+    "sales": "Bán Hàng & CRM",
+    "finance": "Phân Hệ Tài Chính",
+    "hr": "Nhân Sự & Quỹ Lương",
+    "reports": "Báo Cáo Tổng Hợp",
+    "ai": "Trợ Lý AI Cố Vấn",
+    "settings": "Cài Đặt Hệ Thống",
+    "history": "Đã xem",
+    "clearHistory": "Xóa lịch sử",
+    "notifications": "Thông báo",
+    "profile": "Hồ sơ cá nhân",
+    "logout": "Đăng xuất",
+    "language": "Ngôn ngữ",
+    "collapseSidebar": "Thu gọn sidebar",
+    "expandSidebar": "Mở rộng sidebar",
+    "groups": {
+      "categories": "Danh Mục",
+      "vouchers": "Chứng Từ",
+      "inventoryReports": "Báo Cáo Kho",
+      "salesReports": "Báo Cáo Doanh Số",
+      "fundReports": "Báo Cáo Qũy",
+      "hrVouchers": "Chứng Từ & Lương",
+      "hrReports": "Báo Cáo HR"
+    },
+    "subMenus": {
+      "overview_main": "Tổng quan Dashboard",
+      "inv_company_unit_cat": "Danh mục Đơn vị cơ sở",
+      "inv_material_cat": "Khai báo vật tư & Sản phẩm",
+      "inv_warehouse_cat": "Khai báo danh mục kho",
+      "inv_material_type_cat": "Danh mục Loại vật tư",
+      "inv_uom_cat": "Danh mục Đơn vị tính",
+      "inv_uom_conversion_cat": "Danh mục Quy đổi ĐVT",
+      "inv_stock_norm_cat": "Danh mục Định mức tồn kho",
+      "inv_lot_cat": "Danh mục Lô & Hạn sử dụng",
+      "inv_location_cat": "Danh mục Vị trí kho (Bin/Rack)",
+      "inv_receipt": "Phiếu Nhập kho",
+      "inv_issue": "Phiếu Xuất kho",
+      "inv_report_stock": "Báo cáo Tồn kho hiện tại",
+      "inv_report_nxt": "Báo cáo Tổng hợp Nhập-Xuất-Tồn (NXT)",
+      "sales_customers": "Danh mục Khách hàng & Phân nhóm",
+      "sales_orders": "Hóa đơn & Đơn bán hàng",
+      "sales_delivery": "Phiếu giao hàng / Vận chuyển",
+      "sales_report": "Báo cáo Doanh số & Công nợ",
+      "fin_categories": "Khai báo khoản mục Thu Chi",
+      "fin_receipt_voucher": "Lập Phiếu Thu tiền",
+      "fin_payment_voucher": "Lập Phiếu Chi tiền",
+      "fin_report": "Báo cáo Sổ quỹ & Lợi nhuận",
+      "hr_list": "Danh sách Cán bộ Nhân sự",
+      "hr_payroll": "Bảng Chấm công & Quỹ lương",
+      "hr_report": "Báo cáo Biến động Nhân sự",
+      "reports_main": "Báo cáo tổng hợp doanh nghiệp",
+      "ai_main": "Cố vấn Gemini AI",
+      "settings_main": "Cài đặt & Phân quyền"
+    },
+    "aiAdvisor": "Cố vấn Gemini AI",
+    "aiSubtext": "Hỗ trợ kiểm toán 24/7"
+  },
+  "api": {
+    "connectionFailed": "Không kết nối được máy chủ. Kiểm tra backend và cấu hình VITE_API_URL.",
+    "sessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+    "forbidden": "Tài khoản của bạn không có quyền thực hiện thao tác này.",
+    "notFound": "Không tìm thấy dữ liệu yêu cầu.",
+    "tooManyRequests": "Bạn thao tác quá nhiều lần. Vui lòng thử lại sau.",
+    "serverError": "Máy chủ trả về lỗi {status}.",
+    "unknownError": "Đã xảy ra lỗi không xác định."
+  },
+  "documentPolicy": {
+    "status": {
+      "Draft": "Lập chứng từ",
+      "Pending": "Chờ duyệt",
+      "Approved": "Đã duyệt",
+      "Posted": "Đã ghi sổ",
+      "Cancelled": "Đã hủy"
+    },
+    "deny": {
+      "notPending": "Phiếu không ở trạng thái chờ duyệt.",
+      "ownVoucher": "Không được tự duyệt phiếu do mình lập.",
+      "noApproveRight": "Không có quyền phê duyệt.",
+      "noViewRight": "Không có quyền xem chức năng này.",
+      "ownOnly": "Chỉ được thao tác trên phiếu do mình lập.",
+      "noEditRight": "Không có quyền sửa phiếu.",
+      "editPending": "Phiếu đang chờ duyệt; cần quyền \"Sửa phiếu đang chờ duyệt\".",
+      "editApproved": "Phiếu đã duyệt; cần quyền \"Sửa phiếu đã duyệt\".",
+      "postedNoEdit": "Phiếu đã ghi sổ; phải bỏ ghi sổ trước khi sửa.",
+      "cancelled": "Phiếu đã hủy.",
+      "submitDraftOnly": "Chỉ trình duyệt được phiếu đang lập.",
+      "postApprovedOnly": "Chỉ ghi sổ phiếu đã duyệt; cần quyền \"Ghi sổ\".",
+      "unpostRight": "Cần quyền \"Bỏ ghi sổ\".",
+      "postedNoCancel": "Phiếu đã ghi sổ; phải bỏ ghi sổ trước khi hủy.",
+      "cancelRight": "Cần quyền \"Hủy phiếu\".",
+      "invalidAction": "Thao tác không hợp lệ."
+    }
+  },
+  "time": {
+    "justNow": "Vừa xong",
+    "minutesAgo": "{n} phút trước",
+    "hoursAgo": "{n} giờ trước",
+    "daysAgo": "{n} ngày trước"
+  },
+  "costingMethod": {
+    "MONTHLY_AVG": "Bình quân gia quyền cuối tháng",
+    "INSTANT_AVG": "Bình quân di động (tức thời)",
+    "FIFO": "Nhập trước xuất trước (FIFO)",
+    "SPECIFIC": "Đích danh theo lô"
+  },
+  "catalog": {
+    "saved": "Đã lưu {noun}",
+    "added": "Đã thêm {noun}",
+    "deleteTitle": "Xóa {noun} {item}?",
+    "deleteMessage": "Dữ liệu bị xóa không khôi phục được.",
+    "delete": "Xóa",
+    "deleted": "Đã xóa {noun} {item}"
+  },
+  "controls": {
+    "grid": {
+      "searchPlaceholder": "Tìm kiếm dữ liệu...",
+      "actions": "Thao Tác",
+      "empty": "Chưa có dữ liệu. Hãy thêm mới hoặc thay đổi bộ lọc.",
+      "selected": "Đã chọn {n} dòng",
+      "clearSelection": "Bỏ chọn tất cả",
+      "loading": "Đang tải dữ liệu..."
+    },
+    "pagination": {
+      "showing": "Hiển thị {range} / {total} bản ghi",
+      "perPage": "Dòng/trang:",
+      "first": "Trang đầu",
+      "previous": "Trang trước",
+      "next": "Trang tiếp",
+      "last": "Trang cuối"
+    },
+    "toolbar": {
+      "count": "Mục",
+      "search": "Tìm kiếm...",
+      "filter": "Bộ Lọc",
+      "reload": "Nạp Lại",
+      "import": "Nhập Excel",
+      "export": "Xuất Excel",
+      "clearFilter": "Xóa bộ lọc",
+      "applyFilter": "Áp Dụng Lọc"
+    },
+    "deleteConfirm": {
+      "titleBulk": "Xác nhận xóa hàng loạt",
+      "title": "Xác nhận xóa dữ liệu",
+      "questionBulk": "Xóa {n} mục đã chọn?",
+      "question": "Bạn có chắc chắn muốn xóa?",
+      "bulkInfo": "Toàn bộ các mục đã chọn sẽ bị gỡ bỏ khỏi hệ thống.",
+      "item": "Dữ liệu {name}{code} sẽ bị gỡ bỏ khỏi hệ thống.",
+      "itemFallback": "Mục này",
+      "code": " (Mã: {code})",
+      "cancel": "Hủy",
+      "confirm": "Xác Nhận Xóa"
+    },
+    "dateTime": {
+      "placeholder": "Chọn thời gian...",
+      "clear": "Xóa thời gian",
+      "today": "Hôm nay",
+      "yesterday": "Hôm qua",
+      "monthStart": "Đầu tháng"
+    },
+    "state": {
+      "loading": "Đang tải",
+      "loadingData": "Đang tải dữ liệu...",
+      "empty": "Chưa có dữ liệu",
+      "loadFailed": "Không tải được dữ liệu",
+      "retry": "Thử lại"
+    },
+    "lookup": {
+      "placeholder": "Bấm Tra cứu để chọn...",
+      "selected": "{n} lựa chọn",
+      "clear": "Xóa lựa chọn",
+      "search": "Tra cứu"
+    },
+    "combo": {
+      "placeholder": "Chọn một tùy chọn...",
+      "search": "Tìm kiếm tùy chọn...",
+      "noResult": "Không tìm thấy kết quả phù hợp"
+    },
+    "confirm": {
+      "confirm": "Xác nhận",
+      "cancel": "Hủy bỏ"
+    },
+    "currency": {
+      "quickAdd": "Cộng nhanh:",
+      "clear": "Xóa"
+    },
+    "modal": {
+      "closeEsc": "Đóng (Esc)",
+      "close": "Đóng"
+    },
+    "quantity": {
+      "decrease": "Giảm số lượng",
+      "increase": "Tăng số lượng"
+    },
+    "search": {
+      "placeholder": "Tìm kiếm dữ liệu...",
+      "clear": "Xóa tìm kiếm"
+    },
+    "password": {
+      "hide": "Ẩn mật khẩu",
+      "show": "Hiện mật khẩu"
+    },
+    "masterLookup": {
+      "subtitle": "Tìm kiếm, lọc danh sách và chọn dữ liệu master data",
+      "search": "Nhập từ khóa tìm kiếm...",
+      "tip": "💡 Mẹo: Nhấp đúp dòng để chọn nhanh",
+      "all": "{label}: Tất cả",
+      "selected": "Đã chọn: {n}",
+      "clearAll": "Bỏ chọn tất cả",
+      "selectPage": "Chọn tất cả trang này",
+      "actions": "Thao tác",
+      "noResult": "Không tìm thấy dữ liệu phù hợp với điều kiện tra cứu.",
+      "isSelected": "Đã chọn",
+      "select": "Chọn",
+      "cancel": "Hủy",
+      "confirm": "Xác nhận chọn ({n})"
+    },
+    "foreignCurrency": {
+      "label": "Tiền Ngoại Tệ & Quy Đổi Tỷ Giá",
+      "currency": "Loại Ngoại Tệ",
+      "amount": "Số Tiền Ngoại Tệ",
+      "rate": "Tỷ Giá Hối Đoái",
+      "converted": "Thành tiền quy đổi ({symbol}):"
+    },
+    "voucherGrid": {
+      "delete": "Xóa",
+      "empty": "Chưa có dòng dữ liệu nào.",
+      "codePlaceholder": "Mã...",
+      "lookup": "Tra cứu danh mục (Nhấn F2)",
+      "uom": "-- ĐVT --",
+      "deleteRow": "Xóa dòng",
+      "total": "Tổng cộng ({n} dòng):",
+      "tip": "Mẹo: Nhấn {f2} tại ô Mã vật tư để tra cứu danh mục.",
+      "addRow": "Thêm Dòng"
+    }
+  },
+  "layout": {
+    "moduleHeader": {
+      "current": "Màn hình hiện tại"
+    },
+    "history": {
+      "system": "Hệ Thống",
+      "viewed": "Đã xem:",
+      "remove": "Xóa khỏi lịch sử",
+      "clearAll": "Xóa toàn bộ lịch sử truy cập"
+    },
+    "sidebar": {
+      "home": "Về Dashboard",
+      "tagline": "Doanh Nghiệp ERP"
+    },
+    "header": {
+      "accountInfo": "Thông tin tài khoản",
+      "changePassword": "Đổi mật khẩu",
+      "resetDemoTitle": "Khôi phục dữ liệu mẫu?",
+      "resetDemoMessage": "Dữ liệu demo của các phân hệ trong trình duyệt sẽ được nạp lại từ đầu.",
+      "resetDemoConfirm": "Khôi phục",
+      "resetDemo": "Khôi Phục Dữ Liệu Mẫu"
+    },
+    "notifications": {
+      "clearAllTitle": "Xóa tất cả thông báo?",
+      "clearAllMessage": "{n} thông báo sẽ bị ẩn khỏi danh sách của bạn. Người khác vẫn nhận được bình thường.",
+      "clearAll": "Xóa tất cả",
+      "unreadTitle": "{n} thông báo chưa đọc",
+      "title": "Thông báo",
+      "unread": "({n} chưa đọc)",
+      "send": "Gửi",
+      "readAll": "Đọc tất cả",
+      "empty": "Không có thông báo nào",
+      "unreadDot": "Chưa đọc",
+      "sentBy": "Gửi bởi {name}",
+      "openDocument": "Mở phiếu {id} →",
+      "hide": "Ẩn thông báo này"
+    },
+    "publish": {
+      "title": "Gửi Thông Báo",
+      "sent": "Đã gửi thông báo!",
+      "subject": "Tiêu đề",
+      "message": "Nội dung",
+      "level": "Mức độ",
+      "module": "Phân hệ liên kết",
+      "noModule": "— Không liên kết —",
+      "unit": "Gửi tới đơn vị",
+      "allUnits": "Tất cả đơn vị cơ sở",
+      "ownUnitOnly": "Bạn chỉ được gửi trong đơn vị đang làm việc",
+      "recipient": "Người nhận",
+      "everyoneInUnit": "Mọi người trong đơn vị",
+      "everyone": "Mọi người dùng",
+      "cancel": "Hủy",
+      "types": {
+        "info": "Thông tin",
+        "success": "Thành công",
+        "warning": "Cảnh báo",
+        "danger": "Khẩn cấp"
+      }
+    }
+  },
+  "modules": {
+    "overview": "Tổng quan",
+    "inventory": "Kho hàng",
+    "sales": "Bán hàng",
+    "finance": "Tài chính",
+    "hr": "Nhân sự",
+    "reports": "Báo cáo",
+    "ai": "Trợ lý AI",
+    "settings": "Cài đặt"
+  },
+  "app": {
+    "newNotifications": "Bạn có {n} thông báo mới",
+    "settingsLoadFailed": "Không tải được cài đặt hệ thống, đang dùng giá trị mặc định.",
+    "sessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+    "unitSwitched": "Đã chuyển sang đơn vị cơ sở {unit}",
+    "noViewRight": "Bạn không có quyền xem chức năng này.",
+    "demoReset": "Đã khởi tạo & tái tạo lại toàn bộ dữ liệu mẫu ERP thành công!",
+    "restoringSession": "Đang khôi phục phiên đăng nhập...",
+    "headers": {
+      "inventory": {
+        "title": "Phân Hệ Quản Lý Kho Hàng",
+        "subtitle": "Danh mục vật tư, Quản lý kho, Phiếu Nhập - Xuất và Báo cáo NXT"
+      },
+      "sales": {
+        "title": "Phân Hệ Bán Hàng & CRM",
+        "subtitle": "Khách hàng, Hóa đơn đơn hàng, Vận chuyển và Báo cáo Doanh số"
+      },
+      "finance": {
+        "title": "Phân Hệ Kế Toán & Tài Chính",
+        "subtitle": "Danh mục quỹ, Chứng từ Phiếu Thu/Chi và Báo cáo Sổ quỹ P&L"
+      },
+      "hr": {
+        "title": "Phân Hệ Quản Lý Nhân Sự & Lương",
+        "subtitle": "Danh sách cán bộ nhân sự, Bảng chấm công quỹ lương và Báo cáo biến động"
+      },
+      "reports": {
+        "title": "Trung Tâm Báo Cáo Doanh Nghiệp",
+        "subtitle": "Tổng hợp số liệu xuất tồn, doanh số và cân đối tài chính"
+      },
+      "ai": {
+        "title": "Trợ Lý AI Gemini Consultant 3.5 Flash",
+        "subtitle": "Cố vấn kiểm toán tự động 24/7"
+      },
+      "settings": {
+        "title": "Cài Đặt Hệ Thống & Quản Lý Phân Quyền User",
+        "subtitle": "Phân quyền từng chức năng cho từng nhân viên & cấu hình doanh nghiệp"
+      },
+      "overview": {
+        "title": "Bàn Điều Hành ERP Doanh Nghiệp",
+        "subtitle": "Trực quan hóa toàn bộ chỉ số vận hành real-time"
+      }
+    },
+    "denied": {
+      "title": "Truy Cập Bị Khóa Do Phân Quyền Nâng Cao",
+      "message": "Tài khoản hiện tại {user} ({name} - {role}) chưa được cấp quyền xem chức năng {function}.",
+      "howTo": "Hướng dẫn xử lý mở khóa:",
+      "step1": "Liên hệ quản trị viên để được cấp quyền chức năng này cho tài khoản {user}.",
+      "step2": "Quản trị viên cấp quyền trong mục {path}; bạn chỉ cần tải lại trang.",
+      "path": "Cài đặt › Phân Quyền & User",
+      "home": "Về Bàn Điều Hành",
+      "otherAccount": "Đăng Nhập Tài Khoản Khác"
+    }
+  },
+  "auth": {
+    "subtitle": "Hệ thống Quản trị Sản Xuất & Doanh Nghiệp",
+    "username": "Tên đăng nhập",
+    "usernamePlaceholder": "Tên đăng nhập...",
+    "password": "Mật khẩu",
+    "passwordPlaceholder": "Nhập mật khẩu...",
+    "showPassword": "Hiện mật khẩu",
+    "hidePassword": "Ẩn mật khẩu",
+    "unit": "Đơn vị cơ sở",
+    "loadingUnits": "Đang tải đơn vị cơ sở...",
+    "selectUnit": "Vui lòng chọn đơn vị cơ sở.",
+    "rememberUsername": "Ghi nhớ tên đăng nhập",
+    "login": "Đăng nhập",
+    "footer": "© 2026 S-ERP Enterprise Solution. Bảo mật dữ liệu doanh nghiệp."
+  },
+  "account": {
+    "title": "Tài khoản của tôi",
+    "tabProfile": "Thông tin tài khoản",
+    "tabPassword": "Đổi mật khẩu",
+    "noRole": "Chưa gán vai trò",
+    "noDepartment": "Chưa gán phòng ban",
+    "employeeCode": "Mã NV",
+    "workingAt": "Đang làm việc tại",
+    "allowedUnits": "Được vào:",
+    "fullName": "Họ và tên",
+    "username": "Tên đăng nhập",
+    "cannotChange": "Không thể thay đổi",
+    "email": "Email",
+    "phone": "Số điện thoại",
+    "department": "Phòng ban",
+    "setByAdmin": "Do quản trị viên khai báo",
+    "role": "Vai trò",
+    "setByPermission": "Do quản trị viên phân quyền",
+    "popupNotifications": "Hiện thông báo nổi khi có thông báo mới",
+    "popupNotificationsHint": "Tắt thì thông báo vẫn nằm trong chuông, chỉ không bật lên góc màn hình",
+    "darkTheme": "Giao diện tối",
+    "lightTheme": "Giao diện sáng",
+    "saving": "Đang lưu...",
+    "saveProfile": "Lưu thông tin",
+    "profileSaved": "Đã cập nhật thông tin tài khoản",
+    "currentPassword": "Mật khẩu hiện tại",
+    "newPassword": "Mật khẩu mới",
+    "newPasswordHint": "Tối thiểu 8 ký tự",
+    "confirmPassword": "Nhập lại mật khẩu mới",
+    "passwordMismatch": "Mật khẩu nhập lại không khớp",
+    "passwordNote": "Sau khi đổi, các thiết bị khác đang đăng nhập bằng tài khoản này sẽ phải đăng nhập lại.",
+    "changing": "Đang đổi...",
+    "changePassword": "Đổi mật khẩu",
+    "passwordChanged": "Đã đổi mật khẩu. Các phiên đăng nhập khác của tài khoản đã bị đăng xuất."
+  },
+  "audit": {
+    "title": "Nhật ký thay đổi",
+    "loading": "Đang tải lịch sử...",
+    "empty": "Chưa có thay đổi nào được ghi lại",
+    "emptyHint": "Các thay đổi từ nay sẽ được ghi: ai sửa, lúc nào, sửa gì.",
+    "more": "và {n} mục khác",
+    "system": "Hệ thống",
+    "yes": "Có",
+    "no": "Không",
+    "permissionOf": "Quyền: {name}",
+    "action": {
+      "CREATE": "Tạo mới",
+      "UPDATE": "Sửa",
+      "DELETE": "Xóa",
+      "PERMISSIONS": "Phân quyền",
+      "RESET_PASSWORD": "Đặt lại mật khẩu",
+      "SYNC": "Đưa về đúng vai trò",
+      "CHANGE_PASSWORD": "Đổi mật khẩu",
+      "SUBMIT": "Trình duyệt",
+      "APPROVE": "Duyệt",
+      "REJECT": "Từ chối",
+      "WITHDRAW": "Rút lại"
+    },
+    "note": {
+      "default": "Ghi chú: {note}",
+      "user": {
+        "SYNC": "Theo vai trò: {note}"
+      },
+      "role": {
+        "SYNC": "{note} người dùng được đưa về đúng quyền của vai trò"
+      }
+    },
+    "field": {
+      "username": "Tên đăng nhập",
+      "fullName": "Họ và tên",
+      "employeeCode": "Mã nhân viên",
+      "email": "Email",
+      "phone": "Số điện thoại",
+      "department": "Phòng ban",
+      "defaultUnit": "Đơn vị mặc định",
+      "units": "Được vào đơn vị",
+      "isActive": "Đang hoạt động",
+      "role": "Vai trò",
+      "code": "Mã",
+      "name": "Tên",
+      "description": "Mô tả",
+      "function": "Chức năng",
+      "level": "Cấp duyệt",
+      "unit": "Đơn vị",
+      "minAmount": "Giá trị từ",
+      "requesterType": "Áp dụng cho",
+      "requester": "Người lập",
+      "approverType": "Người duyệt là",
+      "approver": "Người duyệt",
+      "note": "Ghi chú",
+      "userName": "Tên đăng nhập",
+      "legacyRights": "Cờ quyền cũ (auth_fl)",
+      "sortOrder": "Thứ tự",
+      "symbol": "Ký hiệu",
+      "decimalPlaces": "Số chữ số lẻ",
+      "isBase": "Tiền hạch toán",
+      "isDefault": "Mặc định",
+      "currencyCode": "Mã ngoại tệ",
+      "rateDate": "Ngày tỷ giá",
+      "buyRate": "Tỷ giá mua",
+      "sellRate": "Tỷ giá bán",
+      "accountingRate": "Tỷ giá hạch toán",
+      "unitCode": "Đơn vị",
+      "year": "Năm",
+      "month": "Tháng",
+      "isLocked": "Đã khóa sổ",
+      "nativeName": "Tên bằng chính ngôn ngữ đó",
+      "shortName": "Tên viết tắt",
+      "address": "Địa chỉ",
+      "taxCode": "Mã số thuế",
+      "voucherType": "Loại chứng từ",
+      "prefix": "Tiền tố",
+      "pattern": "Mẫu số",
+      "digits": "Số chữ số",
+      "key": "Khóa",
+      "scope": "Phạm vi",
+      "isPublic": "Công khai",
+      "approvalLevel": "Cấp duyệt",
+      "companyName": "Tên công ty",
+      "website": "Website",
+      "legalRepresentative": "Người đại diện",
+      "chiefAccountant": "Kế toán trưởng",
+      "logoUrl": "Logo",
+      "costingMethod": "Phương pháp tính giá",
+      "defaultCurrency": "Tiền tệ mặc định",
+      "defaultVatRate": "Thuế GTGT mặc định",
+      "requireApprovalBeforePosting": "Phải duyệt trước khi ghi sổ",
+      "defaultWarehouse": "Kho mặc định",
+      "allowNegativeStock": "Cho phép xuất âm",
+      "fiscalYear": "Năm làm việc",
+      "startDate": "Ngày bắt đầu nhập liệu",
+      "thousandSeparator": "Dấu phân cách hàng nghìn",
+      "decimalSeparator": "Dấu thập phân",
+      "currencySymbol": "Ký hiệu tiền",
+      "currencyPosition": "Vị trí ký hiệu tiền",
+      "amountDecimals": "Số lẻ số tiền",
+      "foreignAmountDecimals": "Số lẻ tiền ngoại tệ",
+      "exchangeRateDecimals": "Số lẻ tỷ giá",
+      "quantityDecimals": "Số lẻ số lượng",
+      "unitPriceDecimals": "Số lẻ đơn giá",
+      "percentDecimals": "Số lẻ phần trăm",
+      "defaultForeignCurrency": "Ngoại tệ mặc định",
+      "defaultExchangeRate": "Tỷ giá mặc định"
+    },
+    "description": "Ai sửa gì, lúc nào, ở đơn vị nào trên mọi chức năng có ghi nhật ký. Bấm vào một dòng để xem chi tiết trước → sau.",
+    "reload": "Nạp lại",
+    "emptyFiltered": "Không có thay đổi nào khớp bộ lọc.",
+    "source": "Đơn vị: {unit} · IP: {ip} · Mã đối tượng: {id}",
+    "filter": {
+      "function": "Chức năng",
+      "allFunctions": "Tất cả chức năng",
+      "objectType": "Loại đối tượng",
+      "action": "Hành động",
+      "all": "Tất cả",
+      "actor": "Người sửa",
+      "actorPlaceholder": "Tên hoặc tài khoản...",
+      "search": "Đối tượng",
+      "searchPlaceholder": "Tên hoặc mã...",
+      "from": "Từ ngày",
+      "to": "Đến ngày",
+      "clear": "Xóa bộ lọc"
+    },
+    "col": {
+      "time": "Thời gian",
+      "actor": "Người sửa",
+      "function": "Chức năng",
+      "object": "Đối tượng",
+      "action": "Hành động",
+      "changes": "Nội dung thay đổi",
+      "field": "Trường",
+      "before": "Trước",
+      "after": "Sau"
+    },
+    "objectType": {
+      "user": "Tài khoản",
+      "role": "Vai trò",
+      "approvalRule": "Quy tắc phê duyệt",
+      "department": "Phòng ban",
+      "currency": "Ngoại tệ",
+      "exchangeRate": "Tỷ giá",
+      "fiscalPeriod": "Kỳ kế toán (khóa sổ)",
+      "language": "Ngôn ngữ",
+      "companyUnit": "Đơn vị cơ sở",
+      "voucherNumbering": "Đánh số chứng từ",
+      "setting": "Tham số hệ thống",
+      "uom": "Đơn vị tính"
+    }
+  },
+  "recordStamp": {
+    "created": "Người tạo",
+    "updated": "Người sửa",
+    "createdLine": "Tạo: {name} · {time}",
+    "updatedLine": "Sửa: {name} · {time}",
+    "system": "Hệ thống"
+  }
+}

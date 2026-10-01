@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Core.Domain.Common;
 
 namespace Core.Domain.Modules.CompanyUnits;
 
 /// <summary>Đơn vị cơ sở (ma_dvcs). Matches Frontend CompanyUnit.</summary>
+[Audited("inv_company_unit_cat", "companyUnit", Label = "{Code} - {Name}")]
 [Table("sys_company_unit")]
 public class CompanyUnit
 {

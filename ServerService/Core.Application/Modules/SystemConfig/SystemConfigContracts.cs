@@ -47,7 +47,7 @@ public static class SystemConfigSections
     private static readonly IReadOnlyDictionary<string, string[]> RequiredFields =
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            ["systemDefaults"] = ["costingMethod", "defaultCurrency"],
+            ["systemDefaults"] = ["costingMethod"],
             ["fiscalConfig"] = ["fiscalYear", "startDate"],
             ["companyProfile"] = ["companyName", "taxCode", "address"],
             ["numberFormat"] = ["thousandSeparator", "decimalSeparator"]
@@ -57,19 +57,72 @@ public static class SystemConfigSections
     public static string Validate(string section, JsonElement value)
     {
         var name = Keys.Keys.FirstOrDefault(k => k.Equals(section, StringComparison.OrdinalIgnoreCase))
-            ?? throw new BusinessRuleException("Nhóm cài đặt không hợp lệ.");
+            ?? throw new BusinessRuleException("settings.invalidSection");
         if (value.ValueKind != JsonValueKind.Object)
-            throw new BusinessRuleException("Dữ liệu cài đặt không đúng định dạng.");
+            throw new BusinessRuleException("settings.invalidFormat");
         if (RequiredFields.TryGetValue(name, out var fields)
             && fields.Any(field => !value.TryGetProperty(field, out _)))
-            throw new BusinessRuleException("Thiếu trường bắt buộc của cài đặt.");
+            throw new BusinessRuleException("settings.missingField");
         if (JsonSerializer.SerializeToUtf8Bytes(value).Length > MaxBytes)
-            throw new BusinessRuleException("Dữ liệu cài đặt quá lớn.");
+            throw new BusinessRuleException("settings.tooLarge");
         if (name is "systemDefaults" or "unitDefaults") SystemParameters.ValidateSection(name, value);
+        if (name == "numberFormat") ValidateNumberFormat(value);
         return name;
     }
 
-    /// <summary>Sections that only exist per company unit (saved with ?unitCode=).</summary>
+    /// <summary>
+    /// systemDefaults.defaultCurrency (đồng tiền hạch toán) is the base currency of the currency catalog
+    /// (sys_currency.is_base), the one exchange rates are quoted against. It is not stored in the section: saving
+    /// drops it and reading fills it in, so the two can never disagree.
+    /// </summary>
+    public const string BaseCurrencyField = "defaultCurrency";
+
+    /// <summary>Copy of a JSON object with one string field set (or removed when <paramref name="value"/> is null).</summary>
+    public static JsonElement WithField(JsonElement section, string name, string? value)
+    {
+        var node = System.Text.Json.Nodes.JsonNode.Parse(section.GetRawText())!.AsObject();
+        if (value is null) node.Remove(name);
+        else node[name] = value;
+        using var document = JsonDocument.Parse(node.ToJsonString());
+        return document.RootElement.Clone();
+    }
+
+    private static readonly string[] ThousandSeparators = [",", ".", " ", ""];
+    private static readonly string[] DecimalSeparators = [".", ","];
+    private static readonly string[] DecimalFields =
+        ["amountDecimals", "foreignAmountDecimals", "exchangeRateDecimals", "quantityDecimals", "unitPriceDecimals", "percentDecimals"];
+
+    /// <summary>
+    /// The number format is applied to every screen of every user, so a bad value would break them all:
+    /// known separators that differ, a known symbol position, 0–6 decimals.
+    /// </summary>
+    private static void ValidateNumberFormat(JsonElement value)
+    {
+        static string? Text(JsonElement e, string name) =>
+            e.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
+
+        var thousand = Text(value, "thousandSeparator");
+        var decimalSeparator = Text(value, "decimalSeparator");
+        if (thousand is null || !ThousandSeparators.Contains(thousand))
+            throw new BusinessRuleException("settings.thousandSeparator");
+        if (decimalSeparator is null || !DecimalSeparators.Contains(decimalSeparator))
+            throw new BusinessRuleException("settings.decimalSeparator");
+        if (thousand == decimalSeparator)
+            throw new BusinessRuleException("settings.separatorsDiffer");
+        if (value.TryGetProperty("currencyPosition", out _) && Text(value, "currencyPosition") is not ("prefix" or "suffix"))
+            throw new BusinessRuleException("settings.currencyPosition");
+        if (Text(value, "currencySymbol") is { Length: > 10 })
+            throw new BusinessRuleException("settings.currencySymbolLength");
+        foreach (var field in DecimalFields)
+            if (value.TryGetProperty(field, out var p)
+                && (p.ValueKind != JsonValueKind.Number || !p.TryGetInt32(out var digits) || digits is < 0 or > 6))
+                throw new BusinessRuleException("settings.decimals");
+    }
+
+    /// <summary>
+    /// Sections that only exist per company unit (saved with ?unitCode=). The others are company-wide only: a unit
+    /// copy of them would silently override the company value for that unit, so it is neither saved nor read.
+    /// </summary>
     public static bool IsUnitOnly(string section) => section.Equals("unitDefaults", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>fiscalConfig.startDate: vouchers dated before it are refused (null when not set).</summary>

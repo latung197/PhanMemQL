@@ -1,10 +1,13 @@
 using Core.Application.Common.Security;
+using Core.Infrastructure.Common.Auditing;
 using Core.Domain.Common;
 using Core.Domain.Modules.Approvals;
 using Core.Domain.Modules.CompanyUnits;
 using Core.Domain.Modules.Currencies;
 using Core.Domain.Modules.Departments;
 using Core.Domain.Modules.Fiscal;
+using Core.Domain.Modules.Inventory;
+using Core.Domain.Modules.Languages;
 using Core.Domain.Modules.Notifications;
 using Core.Domain.Modules.SystemConfig;
 using Core.Domain.Modules.Users;
@@ -18,8 +21,8 @@ namespace Core.Infrastructure.Common.Persistence;
 /// (there are no EF migrations). The database has no foreign keys: the relationships below only let
 /// EF join tables through their link columns; services check that linked records exist.
 /// </summary>
-public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentUser? currentUser = null)
-    : DbContext(options)
+public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentUser? currentUser = null,
+    AuditTrail? auditTrail = null) : DbContext(options)
 {
     // Users & permissions
     public DbSet<SysUser> Users => Set<SysUser>();
@@ -54,6 +57,15 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<VoucherNumberingRule> VoucherNumberingRules => Set<VoucherNumberingRule>();
     public DbSet<VoucherSequence> VoucherSequences => Set<VoucherSequence>();
 
+    // Languages
+    public DbSet<Language> Languages => Set<Language>();
+
+    // Inventory
+    public DbSet<Uom> Uoms => Set<Uom>();
+
+    // Change log (all functions)
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<SysUserRole>().HasKey(x => new { x.UserId, x.RoleId });
@@ -82,15 +94,66 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<VoucherSequence>().HasKey(x => new { x.VoucherType, x.UnitCode, x.PeriodKey });
     }
 
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Saves and writes the change log of [Audited] entities (AuditTrail) in the same transaction: the changes are read
+    /// before saving, the log rows (with generated ids) are added and saved right after. Without an open transaction one
+    /// is opened for the two saves.
+    /// </summary>
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         StampAuditFields();
-        return base.SaveChangesAsync(cancellationToken);
+        var batch = auditTrail is { Enabled: true } ? auditTrail.Collect(ChangeTracker) : null;
+        if (batch is null || batch.IsEmpty) return await base.SaveChangesAsync(cancellationToken);
+
+        var own = Database.CurrentTransaction is null ? await Database.BeginTransactionAsync(cancellationToken) : null;
+        try
+        {
+            var saved = await base.SaveChangesAsync(cancellationToken);
+            await auditTrail!.WriteAsync(this, batch, cancellationToken);
+            await base.SaveChangesAsync(cancellationToken);
+            if (own is not null) await own.CommitAsync(cancellationToken);
+            return saved;
+        }
+        finally
+        {
+            if (own is not null) await own.DisposeAsync();
+        }
     }
 
+    /// <summary>Not used by the services (they save asynchronously); kept without change log on purpose.</summary>
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        StampAuditFields();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    /// <summary>
+    /// Fills the record stamps: createtime / updateid... of the legacy sys_* tables (local time, user id as text) and
+    /// created_at / updated_by... of the erp_* tables (ErpEntity, UTC, user id). What a request sends is ignored.
+    /// </summary>
     private void StampAuditFields()
     {
-        var actor = currentUser is { IsAuthenticated: true } ? currentUser.UserId.ToString() : null;
+        int? actorId = currentUser is { IsAuthenticated: true } ? currentUser.UserId : null;
+        var utcNow = DateTime.UtcNow;
+        foreach (var entry in ChangeTracker.Entries<ErpEntity>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.CreatedAt = utcNow;
+                entry.Entity.CreatedBy = actorId;
+                entry.Entity.UpdatedAt = null;
+                entry.Entity.UpdatedBy = null;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Property(x => x.CreatedAt).IsModified = false;
+                entry.Property(x => x.CreatedBy).IsModified = false;
+                entry.Entity.UpdatedAt = utcNow;
+                entry.Entity.UpdatedBy = actorId;
+            }
+        }
+
+        var actor = actorId?.ToString();
         var now = DateTime.Now;
         foreach (var entry in ChangeTracker.Entries<IAuditable>())
         {

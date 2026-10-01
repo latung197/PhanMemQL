@@ -1,4 +1,5 @@
 using Core.Application.Common.Documents;
+using Core.Application.Common.Localization;
 
 namespace Core.Application.Common.Permissions;
 
@@ -15,7 +16,15 @@ public static class SpecialRightGroups
     public const string Feature = "feature";
 }
 
-public sealed record SpecialRightDefinition(string Function, string Code, string Name, string Group, string Description);
+/// <summary>
+/// One special right. Its name and description are texts "right.{TextKey}.name" / ".description" of
+/// Common/Localization/Messages.*.json, in the language of the request.
+/// </summary>
+public sealed record SpecialRightDefinition(string Function, string Code, string TextKey, string Group)
+{
+    public string Name => Messages.T($"right.{TextKey}.name");
+    public string Description => Messages.T($"right.{TextKey}.description");
+}
 
 /// <summary>
 /// Special rights on top of the five standard actions, declared per function. The frontend loads this
@@ -54,29 +63,23 @@ public static class SpecialRightCatalog
         var list = new List<SpecialRightDefinition>();
         foreach (var fn in Vouchers)
         {
-            list.Add(new(fn, ViewPrice, "Xem đơn giá & thành tiền", SpecialRightGroups.Data,
-                "Không có quyền này thì đơn giá, thành tiền và tổng tiền trên phiếu bị ẩn."));
+            list.Add(new(fn, ViewPrice, "voucherViewPrice", SpecialRightGroups.Data));
             if (fn is "inv_issue" or "inv_transfer_issue" or "sales_orders" or "sales_delivery")
-                list.Add(new(fn, ViewCost, "Xem giá vốn", SpecialRightGroups.Data, "Xem giá vốn xuất kho và lãi gộp."));
-            list.Add(new(fn, ViewAll, "Xem phiếu của người khác", SpecialRightGroups.Scope,
-                "Không có quyền này thì chỉ thấy phiếu do chính mình lập."));
-            list.Add(new(fn, EditPending, "Sửa phiếu đang chờ duyệt", SpecialRightGroups.Status,
-                "Sửa phiếu đã trình duyệt mà chưa được duyệt."));
-            list.Add(new(fn, EditApproved, "Sửa phiếu đã duyệt", SpecialRightGroups.Status,
-                "Sửa phiếu đã được phê duyệt nhưng chưa ghi sổ."));
-            list.Add(new(fn, Post, "Ghi sổ", SpecialRightGroups.Status, "Ghi phiếu đã duyệt vào sổ kho / sổ cái."));
-            list.Add(new(fn, Unpost, "Bỏ ghi sổ", SpecialRightGroups.Status, "Hủy ghi sổ để sửa lại phiếu."));
-            list.Add(new(fn, Cancel, "Hủy phiếu", SpecialRightGroups.Status, "Hủy phiếu chưa ghi sổ (kể cả phiếu người khác lập)."));
+                list.Add(new(fn, ViewCost, "voucherViewCost", SpecialRightGroups.Data));
+            list.Add(new(fn, ViewAll, "viewAll", SpecialRightGroups.Scope));
+            list.Add(new(fn, EditPending, "editPending", SpecialRightGroups.Status));
+            list.Add(new(fn, EditApproved, "editApproved", SpecialRightGroups.Status));
+            list.Add(new(fn, Post, "post", SpecialRightGroups.Status));
+            list.Add(new(fn, Unpost, "unpost", SpecialRightGroups.Status));
+            list.Add(new(fn, Cancel, "cancel", SpecialRightGroups.Status));
         }
         foreach (var fn in PricedCatalogsAndReports)
         {
-            list.Add(new(fn, ViewPrice, "Xem giá bán & giá trị", SpecialRightGroups.Data, "Xem giá bán, doanh thu và giá trị hàng."));
-            list.Add(new(fn, ViewCost, "Xem giá vốn", SpecialRightGroups.Data, "Xem giá mua, giá vốn và giá trị tồn."));
+            list.Add(new(fn, ViewPrice, "catalogViewPrice", SpecialRightGroups.Data));
+            list.Add(new(fn, ViewCost, "catalogViewCost", SpecialRightGroups.Data));
         }
-        list.Add(new(NotificationFunction, SendNotification, "Gửi thông báo trong đơn vị", SpecialRightGroups.Feature,
-            "Gửi thông báo cho mọi người hoặc một người thuộc đơn vị cơ sở đang làm việc."));
-        list.Add(new(NotificationFunction, SendNotificationAll, "Gửi thông báo toàn hệ thống", SpecialRightGroups.Feature,
-            "Gửi thông báo tới mọi đơn vị cơ sở hoặc một đơn vị bất kỳ."));
+        list.Add(new(NotificationFunction, SendNotification, "sendNotification", SpecialRightGroups.Feature));
+        list.Add(new(NotificationFunction, SendNotificationAll, "sendNotificationAll", SpecialRightGroups.Feature));
         return list;
     }
 

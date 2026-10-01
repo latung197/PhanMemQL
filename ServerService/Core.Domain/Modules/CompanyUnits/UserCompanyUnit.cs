@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Core.Domain.Common;
 
 namespace Core.Domain.Modules.CompanyUnits;
 
 /// <summary>Company unit a user may sign in to (ds_ma_dvcs).</summary>
+[AuditedChild(typeof(Users.SysUser), nameof(UserId), "units", nameof(UnitCode))]
 [Table("sys_user_company_unit")]
 public class UserCompanyUnit
 {

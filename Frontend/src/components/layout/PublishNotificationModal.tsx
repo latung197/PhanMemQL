@@ -6,6 +6,7 @@ import { CompanyUnit, ModuleCategoryKey, SystemNotification } from '../../types'
 import { NotificationRecipient, notificationService } from '../../services/notificationService';
 import { saveWithFeedback, showToast } from '../../utils/toast';
 import { TextInput, SelectInput, TextArea } from '../common/FormField';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface PublishNotificationModalProps {
   isOpen: boolean;
@@ -17,23 +18,10 @@ interface PublishNotificationModalProps {
   onPublished: () => void;
 }
 
-const MODULE_OPTIONS: { value: ModuleCategoryKey | ''; label: string }[] = [
-  { value: '', label: '— Không liên kết —' },
-  { value: 'overview', label: 'Tổng quan' },
-  { value: 'inventory', label: 'Kho hàng' },
-  { value: 'sales', label: 'Bán hàng' },
-  { value: 'finance', label: 'Tài chính' },
-  { value: 'hr', label: 'Nhân sự' },
-  { value: 'reports', label: 'Báo cáo' },
-  { value: 'settings', label: 'Cài đặt' }
-];
+/** Modules a notification can link to (names: modules.*). */
+const MODULES: ModuleCategoryKey[] = ['overview', 'inventory', 'sales', 'finance', 'hr', 'reports', 'settings'];
 
-const TYPE_OPTIONS = [
-  { value: 'info', label: 'Thông tin' },
-  { value: 'success', label: 'Thành công' },
-  { value: 'warning', label: 'Cảnh báo' },
-  { value: 'danger', label: 'Khẩn cấp' }
-];
+const TYPES: SystemNotification['type'][] = ['info', 'success', 'warning', 'danger'];
 
 /** Form to send a notification to a unit (or every unit) or to one person. */
 export const PublishNotificationModal: React.FC<PublishNotificationModalProps> = ({
@@ -44,6 +32,7 @@ export const PublishNotificationModal: React.FC<PublishNotificationModalProps> =
   currentUnitCode,
   onPublished
 }) => {
+  const { t } = useLanguage();
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [type, setType] = useState<SystemNotification['type']>('info');
@@ -83,7 +72,7 @@ export const PublishNotificationModal: React.FC<PublishNotificationModalProps> =
       linkModule: linkModule || null,
       unitCode: targetUnit || null,
       recipientUserId: recipientId ? Number(recipientId) : null
-    }), () => showToast.success('Đã gửi thông báo!'));
+    }), () => showToast.success(t('layout.publish.sent')));
     setIsSending(false);
     if (!sent) return;
     setTitle('');
@@ -94,34 +83,34 @@ export const PublishNotificationModal: React.FC<PublishNotificationModalProps> =
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Gửi Thông Báo" maxWidth="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('layout.publish.title')} maxWidth="lg">
       <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-        <TextInput label="Tiêu đề" required maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} />
-        <TextArea label="Nội dung" required rows={4} value={message} onChange={(e) => setMessage(e.target.value)} />
+        <TextInput label={t('layout.publish.subject')} required maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} />
+        <TextArea label={t('layout.publish.message')} required rows={4} value={message} onChange={(e) => setMessage(e.target.value)} />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <SelectInput label="Mức độ" value={type} onChange={(e) => setType(e.target.value as SystemNotification['type'])}
-            options={TYPE_OPTIONS} />
-          <SelectInput label="Phân hệ liên kết" value={linkModule}
+          <SelectInput label={t('layout.publish.level')} value={type} onChange={(e) => setType(e.target.value as SystemNotification['type'])}
+            options={TYPES.map(value => ({ value, label: t(`layout.publish.types.${value}`) }))} />
+          <SelectInput label={t('layout.publish.module')} value={linkModule}
             onChange={(e) => setLinkModule(e.target.value as ModuleCategoryKey | '')}
-            options={MODULE_OPTIONS} />
+            options={[{ value: '', label: t('layout.publish.noModule') }, ...MODULES.map(value => ({ value, label: t(`modules.${value}`) }))]} />
           {allUnits ? (
-            <SelectInput label="Gửi tới đơn vị" value={unitCode} onChange={(e) => setUnitCode(e.target.value)}
-              placeholder="Tất cả đơn vị cơ sở"
+            <SelectInput label={t('layout.publish.unit')} value={unitCode} onChange={(e) => setUnitCode(e.target.value)}
+              placeholder={t('layout.publish.allUnits')}
               options={companyUnits.map(u => ({ value: u.code, label: unitLabel(u.code) }))} />
           ) : (
-            <TextInput label="Gửi tới đơn vị" value={unitLabel(currentUnitCode)} disabled
-              hint="Bạn chỉ được gửi trong đơn vị đang làm việc" />
+            <TextInput label={t('layout.publish.unit')} value={unitLabel(currentUnitCode)} disabled
+              hint={t('layout.publish.ownUnitOnly')} />
           )}
-          <SelectInput label="Người nhận" value={recipientId} onChange={(e) => setRecipientId(e.target.value)}
-            placeholder={targetUnit ? 'Mọi người trong đơn vị' : 'Mọi người dùng'}
+          <SelectInput label={t('layout.publish.recipient')} value={recipientId} onChange={(e) => setRecipientId(e.target.value)}
+            placeholder={targetUnit ? t('layout.publish.everyoneInUnit') : t('layout.publish.everyone')}
             options={recipients.map(r => ({
               value: String(r.id), label: `${r.fullName} (@${r.userName})${r.department ? ` · ${r.department}` : ''}`
             }))} />
         </div>
         <div className="pt-2 flex justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>Hủy</Button>
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>{t('layout.publish.cancel')}</Button>
           <Button type="submit" size="sm" disabled={isSending} icon={<Send className="h-3.5 w-3.5" />}>
-            Gửi Thông Báo
+            {t('layout.publish.title')}
           </Button>
         </div>
       </form>

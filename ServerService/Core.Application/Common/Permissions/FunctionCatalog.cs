@@ -1,3 +1,5 @@
+using Core.Application.Common.Localization;
+
 namespace Core.Application.Common.Permissions;
 
 /// <summary>
@@ -42,6 +44,8 @@ public static class FunctionCatalog
             ["sys_fiscal_year"] = "Năm làm việc và khóa sổ",
             ["sys_currencies"] = "Ngoại tệ",
             ["sys_exchange_rates"] = "Tỷ giá",
+            ["sys_languages"] = "Ngôn ngữ",
+            ["sys_audit_log"] = "Nhật ký thay đổi",
             ["sales_customers"] = "Khách hàng",
             ["sales_orders"] = "Đơn hàng",
             ["sales_delivery"] = "Giao hàng",
@@ -65,4 +69,11 @@ public static class FunctionCatalog
     };
 
     public static bool IsFunction(string code) => Functions.ContainsKey(code);
+
+    /// <summary>
+    /// Name in the language of the request (Messages "function.{code}"); the Vietnamese name above when the language
+    /// has none. The Vietnamese names stay here because sys_command is filled from them.
+    /// </summary>
+    public static string Name(string code, string? language = null) =>
+        Messages.Find(language ?? Messages.CurrentLanguage, $"function.{code}") ?? Functions.GetValueOrDefault(code, code);
 }
