@@ -1,3 +1,7 @@
+using Core.Infrastructure.Common.Catalogs;
+using Core.Application.Common.Catalogs;
+using Core.Infrastructure.Common.Caching;
+using Core.Application.Common.Caching;
 using Core.Application.Common.Exceptions;
 using Core.Application.Common.Persistence;
 using Core.Application.Common.Validation;
@@ -9,9 +13,13 @@ using Microsoft.EntityFrameworkCore;
 namespace Core.Infrastructure.Modules.Inventory;
 
 /// <summary>Danh mục đơn vị tính (same model as the department catalog). Changes are logged automatically ([Audited]).</summary>
-public sealed class UomService(CoreContext db) : IUomService
+public sealed class UomService(CoreContext db, IAppCache cache, CatalogBatch batch) : IUomService
 {
-    public async Task<IReadOnlyList<UomDto>> GetAllAsync(CancellationToken ct)
+    /// <summary>Read by every screen with a unit field; cached until the catalog (or a user name in the stamps) changes.</summary>
+    public Task<IReadOnlyList<UomDto>> GetAllAsync(CancellationToken ct) =>
+        db.CachedAsync(cache, "uoms:all", ["erp_uom", "sys_users"], LoadAllAsync, ct);
+
+    private async Task<IReadOnlyList<UomDto>> LoadAllAsync(CancellationToken ct)
     {
         var uoms = await db.Uoms.AsNoTracking().OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync(ct);
         var stamp = await RecordStamps.ForAsync(db, uoms, ct);
@@ -33,6 +41,7 @@ public sealed class UomService(CoreContext db) : IUomService
     public async Task<UomDto> UpdateAsync(string code, SaveUomRequest request, CancellationToken ct)
     {
         var uom = await FindAsync(code, ct);
+        db.ExpectVersion(uom, request.Version);
         await ApplyAsync(uom, request, ct);
         await db.SaveChangesAsync(ct);
         return ToDto(uom, await RecordStamps.OfAsync(db, uom, ct));
@@ -46,6 +55,15 @@ public sealed class UomService(CoreContext db) : IUomService
         db.Uoms.Remove(uom);
         await db.SaveChangesAsync(ct);
     }
+
+    public Task<ImportResult> ImportAsync(ImportRequest<SaveUomRequest> request, CancellationToken ct) =>
+        batch.ImportAsync(request, row => (row.Code ?? string.Empty).Trim().ToUpperInvariant(),
+            (code, token) => db.Uoms.AnyAsync(x => x.Code == code, token),
+            (row, token) => CreateAsync(row, token),
+            (code, row, token) => UpdateAsync(code, row with { Version = null }, token), ct);
+
+    public Task<DeleteManyResult> DeleteManyAsync(DeleteManyRequest request, CancellationToken ct) =>
+        batch.DeleteManyAsync(request, DeleteAsync, ct);
 
     private async Task<Uom> FindAsync(string code, CancellationToken ct) =>
         await db.Uoms.FirstOrDefaultAsync(x => x.Code == code, ct) ?? throw new NotFoundException("uom.notFound");
@@ -61,5 +79,5 @@ public sealed class UomService(CoreContext db) : IUomService
         uom.IsActive = request.IsActive;
     }
 
-    private static UomDto ToDto(Uom x, RecordStampDto stamp) => new(x.Code, x.Name, x.Symbol, x.Note, x.IsActive, stamp);
+    private static UomDto ToDto(Uom x, RecordStampDto stamp) => new(x.Code, x.Name, x.Symbol, x.Note, x.IsActive, stamp, x.Version);
 }

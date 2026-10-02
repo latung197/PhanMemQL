@@ -64,7 +64,7 @@ export const RoleDetailPanel: React.FC<RoleDetailPanelProps> = ({
     try {
       const result = await rolesApi.update(role.id, {
         code: draft.code.trim(), name: draft.name.trim(), description: draft.description.trim(), permissions: draft.matrix,
-        specialRights: draft.rights
+        specialRights: draft.rights, version: role.version
       });
       onSaved(result);
       showToast.success(t('roles.detail.saved', { name: result.name }),

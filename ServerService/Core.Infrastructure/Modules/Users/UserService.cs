@@ -69,6 +69,8 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
         CancellationToken ct)
     {
         var user = await FindAsync(userId, ct);
+        // touch: the units are child rows; the user's version moves even when only they change.
+        db.ExpectVersion(user, request.Version, touch: true);
         await EnsureActorMayManageAsync(actorUserId, userId, null, ct);
         if (!request.IsActive && user.IsActive)
         {
@@ -99,6 +101,8 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
         SetUserPermissionsRequest request, CancellationToken ct)
     {
         var user = await FindAsync(userId, ct);
+        // touch: role and permissions are child rows; the user's version moves with every permission save.
+        db.ExpectVersion(user, request.Version, touch: true);
         var role = await FindRoleAsync(request.RoleId, ct);
         await EnsureActorMayManageAsync(actorUserId, userId, role, ct);
         await grants.EnsureNotSelfAsync(actorUserId, userId, ct);

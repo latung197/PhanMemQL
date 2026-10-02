@@ -83,16 +83,16 @@ public static class DocumentStatusPolicy
 
             DocumentAction.Edit => status switch
             {
-                DocumentStatus.Draft => a.CreateEdit ? PolicyDecision.Allow : PolicyDecision.Deny("policy.noEditRight"),
-                DocumentStatus.Pending => a.CreateEdit && actor.Has(SpecialRightCatalog.EditPending)
+                DocumentStatus.Draft => a.Edit ? PolicyDecision.Allow : PolicyDecision.Deny("policy.noEditRight"),
+                DocumentStatus.Pending => a.Edit && actor.Has(SpecialRightCatalog.EditPending)
                     ? PolicyDecision.Allow : PolicyDecision.Deny("policy.editPending"),
-                DocumentStatus.Approved => a.CreateEdit && actor.Has(SpecialRightCatalog.EditApproved)
+                DocumentStatus.Approved => a.Edit && actor.Has(SpecialRightCatalog.EditApproved)
                     ? PolicyDecision.Allow : PolicyDecision.Deny("policy.editApproved"),
                 DocumentStatus.Posted => PolicyDecision.Deny("policy.postedNoEdit"),
                 _ => PolicyDecision.Deny("policy.cancelled")
             },
 
-            DocumentAction.Submit => status == DocumentStatus.Draft && a.CreateEdit
+            DocumentAction.Submit => status == DocumentStatus.Draft && (a.Create || a.Edit)
                 ? PolicyDecision.Allow : PolicyDecision.Deny("policy.submitDraftOnly"),
 
             DocumentAction.Post => status == DocumentStatus.Approved && actor.Has(SpecialRightCatalog.Post)

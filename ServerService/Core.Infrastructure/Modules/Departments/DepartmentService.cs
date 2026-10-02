@@ -40,6 +40,7 @@ public sealed class DepartmentService(CoreContext db, IUnitOfWork unitOfWork) : 
     public async Task<DepartmentDto> UpdateAsync(string code, SaveDepartmentRequest request, CancellationToken ct)
     {
         var department = await FindAsync(code, ct);
+        db.ExpectVersion(department, request.Version);
         await ApplyAsync(department, request, ct);
         await unitOfWork.ExecuteAsync(async token =>
         {
@@ -81,5 +82,5 @@ public sealed class DepartmentService(CoreContext db, IUnitOfWork unitOfWork) : 
     }
 
     private static DepartmentDto ToDto(Department x, int userCount) =>
-        new(x.Code, x.Name, x.Note, x.IsActive, userCount);
+        new(x.Code, x.Name, x.Note, x.IsActive, userCount, x.Version);
 }

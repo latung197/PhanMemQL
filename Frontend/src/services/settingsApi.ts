@@ -31,6 +31,8 @@ export interface UpdateUserInput {
   isActive: boolean;
   ma_dvcs: string;
   ds_ma_dvcs: string[];
+  /** UserProfile.version of the record being edited. */
+  version?: number;
 }
 
 export interface SaveRoleInput {
@@ -39,6 +41,8 @@ export interface SaveRoleInput {
   description?: string;
   permissions: PermissionMatrix;
   specialRights?: string[];
+  /** RoleDefinition.version of the role being edited. */
+  version?: number;
 }
 
 /** One special right of the backend catalog (GET /api/settings/permission-catalog). */
@@ -71,6 +75,8 @@ export interface ApprovalRule {
   approverValue: string;
   note?: string | null;
   isActive: boolean;
+  /** Row version from the backend; sent back when saving so a change made meanwhile by someone else is not overwritten. */
+  version?: number;
 }
 
 export type SaveApprovalRuleInput = Omit<ApprovalRule, 'id'>;
@@ -89,8 +95,9 @@ export const usersApi = {
   create: (input: CreateUserInput) => apiRequest<UserProfile>('POST', '/api/settings/users', input),
   update: (id: string, input: UpdateUserInput) => apiRequest<UserProfile>('PUT', `/api/settings/users/${id}`, input),
   /** Assigns the role (null = none) and replaces the user's permission matrix and special rights. */
-  setPermissions: (id: string, roleId: string | null | undefined, permissions: PermissionMatrix, specialRights?: string[]) =>
-    apiRequest<UserProfile>('PUT', `/api/settings/users/${id}/permissions`, { roleId: roleId ?? null, permissions, specialRights }),
+  setPermissions: (id: string, roleId: string | null | undefined, permissions: PermissionMatrix, specialRights?: string[],
+    version?: number) =>
+    apiRequest<UserProfile>('PUT', `/api/settings/users/${id}/permissions`, { roleId: roleId ?? null, permissions, specialRights, version }),
   resetPassword: (id: string, newPassword: string) =>
     apiRequest<void>('PUT', `/api/settings/users/${id}/password`, { newPassword }),
   remove: (id: string) => apiRequest<void>('DELETE', `/api/settings/users/${id}`)
@@ -138,6 +145,8 @@ export interface Department {
   isActive: boolean;
   /** Accounts in the department. */
   userCount: number;
+  /** Row version from the backend; sent back when saving so a change made meanwhile by someone else is not overwritten. */
+  version?: number;
 }
 
 export type SaveDepartmentInput = Omit<Department, 'userCount'>;
@@ -150,6 +159,8 @@ export interface Language {
   isActive: boolean;
   isDefault: boolean;
   userCount: number;
+  /** Row version from the backend; sent back when saving so a change made meanwhile by someone else is not overwritten. */
+  version?: number;
 }
 
 export type SaveLanguageInput = Omit<Language, 'userCount'>;
@@ -171,6 +182,8 @@ export interface Currency {
   /** The accounting (base) currency; exactly one. */
   isBase: boolean;
   isActive: boolean;
+  /** Row version from the backend; sent back when saving so a change made meanwhile by someone else is not overwritten. */
+  version?: number;
 }
 
 export interface ExchangeRate {
@@ -183,9 +196,11 @@ export interface ExchangeRate {
   accountingRate: number;
   updatedBy?: string | null;
   updatedAt: string;
+  /** Row version from the backend; sent back when saving so a change made meanwhile by someone else is not overwritten. */
+  version?: number;
 }
 
-export type SaveExchangeRateInput = Pick<ExchangeRate, 'currencyCode' | 'date' | 'buyRate' | 'sellRate' | 'accountingRate'>;
+export type SaveExchangeRateInput = Pick<ExchangeRate, 'currencyCode' | 'date' | 'buyRate' | 'sellRate' | 'accountingRate' | 'version'>;
 
 export interface FiscalMonth {
   year: number;
@@ -204,9 +219,11 @@ export interface VoucherNumbering {
   digits: number;
   /** Number the next voucher of the current unit would get today. */
   nextNumber: string;
+  /** Row version from the backend; sent back when saving so a change made meanwhile by someone else is not overwritten. */
+  version?: number;
 }
 
-export type SaveVoucherNumberingInput = Pick<VoucherNumbering, 'prefix' | 'pattern' | 'digits'>;
+export type SaveVoucherNumberingInput = Pick<VoucherNumbering, 'prefix' | 'pattern' | 'digits' | 'version'>;
 
 export const departmentsApi = {
   getAll: () => apiRequest<Department[]>('GET', '/api/settings/departments'),
@@ -330,8 +347,13 @@ export interface AuditFilters {
   actions: string[];
 }
 
+/** How long the change log is kept; older rows are deleted automatically (0 = forever). */
+export interface AuditLogSettings { retentionMonths: number }
+
 export const auditLogApi = {
   filters: () => apiRequest<AuditFilters>('GET', '/api/audit-logs/filters'),
+  settings: () => apiRequest<AuditLogSettings>('GET', '/api/audit-logs/settings'),
+  saveSettings: (settings: AuditLogSettings) => apiRequest<AuditLogSettings>('PUT', '/api/audit-logs/settings', settings),
   query: (query: AuditQuery) => {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== '') params.set(key, String(value));

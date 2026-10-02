@@ -1,9 +1,9 @@
 namespace Core.Application.Modules.Currencies;
 
-public sealed record CurrencyDto(string Code, string Name, string Symbol, int DecimalPlaces, bool IsBase, bool IsActive);
+public sealed record CurrencyDto(string Code, string Name, string Symbol, int DecimalPlaces, bool IsBase, bool IsActive, uint Version);
 
 public sealed record SaveCurrencyRequest(string Code, string Name, string? Symbol, int DecimalPlaces, bool IsBase,
-    bool IsActive = true);
+    bool IsActive = true, uint? Version = null);
 
 public interface ICurrencyService
 {
@@ -18,10 +18,10 @@ public interface ICurrencyService
 }
 
 public sealed record ExchangeRateDto(string Id, string CurrencyCode, DateOnly Date, decimal BuyRate, decimal SellRate,
-    decimal AccountingRate, string? UpdatedBy, DateTime UpdatedAt);
+    decimal AccountingRate, string? UpdatedBy, DateTime UpdatedAt, uint Version);
 
 public sealed record SaveExchangeRateRequest(string CurrencyCode, DateOnly Date, decimal BuyRate, decimal SellRate,
-    decimal AccountingRate);
+    decimal AccountingRate, uint? Version = null);
 
 public interface IExchangeRateService
 {

@@ -151,7 +151,7 @@ export const CustomerCategoryView: React.FC<CustomerCategoryViewProps> = ({
 
   // Import Excel
   const handleImportExcel = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Tài khoản của bạn không có quyền NHẬP DỮ LIỆU Khách hàng!');
       return;
     }
@@ -169,7 +169,7 @@ export const CustomerCategoryView: React.FC<CustomerCategoryViewProps> = ({
 
   // Open Handlers
   const handleOpenAdd = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Tài khoản của bạn KHÔNG CÓ QUYỀN KHAI BÁO KHÁCH HÀNG!');
       return;
     }
@@ -182,7 +182,7 @@ export const CustomerCategoryView: React.FC<CustomerCategoryViewProps> = ({
   };
 
   const handleOpenEdit = (c: Customer) => {
-    if (!perms.createEdit) {
+    if (!perms.edit) {
       showToast.error('Tài khoản của bạn KHÔNG CÓ QUYỀN SỬA KHÁCH HÀNG!');
       return;
     }
@@ -383,10 +383,10 @@ export const CustomerCategoryView: React.FC<CustomerCategoryViewProps> = ({
           setLocalCustomers([...initialCustomers]);
           showToast.info('Đã tải lại danh sách Khách hàng!');
         }}
-        onExportExcel={handleExportExcel}
-        onImportExcel={handleImportExcel}
+        onExportExcel={perms.export ? handleExportExcel : undefined}
+        onImportExcel={perms.create ? handleImportExcel : undefined}
         addLabel="Khai Báo KH Mới"
-        canCreate={perms.createEdit}
+        canCreate={perms.create}
         onOpenAdd={handleOpenAdd}
         filterPanelContent={
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">

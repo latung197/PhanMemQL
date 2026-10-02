@@ -55,6 +55,8 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
     public async Task<RoleDto> UpdateAsync(int actorUserId, int roleId, SaveRoleRequest request, CancellationToken ct)
     {
         var role = await FindAsync(roleId, ct);
+        // touch: a save that only changes the permission rows still moves the role's version.
+        db.ExpectVersion(role, request.Version, touch: true);
         if (role.IsAdmin || string.Equals(request.Code?.Trim(), SysRole.AdminCode, StringComparison.OrdinalIgnoreCase))
             await permissions.EnsureAdminAsync(actorUserId, ct);
         if (role.IsAdmin && !string.Equals(request.Code?.Trim(), SysRole.AdminCode, StringComparison.OrdinalIgnoreCase))
@@ -219,5 +221,5 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
         role.RoleName, role.Description ?? string.Empty, role.IsAdmin,
         role.IsAdmin ? PermissionMatrix.Uniform(ActionPermissions.Full)
             : PermissionMatrix.Build(role.Permissions.Where(x => x.Status == "1").Select(x => (x.MenuId0, x.ToActions()))),
-        (role.IsAdmin ? SpecialRightCatalog.Keys : rights).OrderBy(x => x, StringComparer.Ordinal).ToList());
+        (role.IsAdmin ? SpecialRightCatalog.Keys : rights).OrderBy(x => x, StringComparer.Ordinal).ToList(), role.Version);
 }

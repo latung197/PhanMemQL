@@ -40,8 +40,10 @@ public sealed class SeedDataFileTests
     public void SystemConfigSectionsAreValid()
     {
         var seed = Load();
-        // Every company-wide section; unit-only sections (unitDefaults) are not seeded.
-        Assert.Equal(SystemConfigSections.Keys.Keys.Count(k => !SystemConfigSections.IsUnitOnly(k)), seed.SystemConfig.Count);
+        // Every company-wide section; unit-only sections (unitDefaults) are not seeded, nor the change-log retention
+        // (missing = kept forever).
+        Assert.Equal(SystemConfigSections.Keys.Keys.Count(k => !SystemConfigSections.IsUnitOnly(k) && k != AuditLogRetention.Section),
+            seed.SystemConfig.Count);
         foreach (var (section, value) in seed.SystemConfig) SystemConfigSections.Validate(section, value);
     }
 

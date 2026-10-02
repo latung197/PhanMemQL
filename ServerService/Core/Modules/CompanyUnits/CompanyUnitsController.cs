@@ -16,11 +16,11 @@ public sealed class CompanyUnitsController(ICompanyUnitService units) : ApiContr
     [HttpGet]
     public Task<IReadOnlyList<CompanyUnitDto>> GetAll(CancellationToken ct) => units.GetAllAsync(false, ct);
 
-    [HttpPost, RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPost, RequirePermission(Function, PermissionAction.Create)]
     public Task<CompanyUnitDto> Create(SaveCompanyUnitRequest request, CancellationToken ct) =>
         units.CreateAsync(request, ct);
 
-    [HttpPut("{code}"), RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPut("{code}"), RequirePermission(Function, PermissionAction.Edit)]
     public Task<CompanyUnitDto> Update(string code, SaveCompanyUnitRequest request, CancellationToken ct) =>
         units.UpdateAsync(code, request, ct);
 

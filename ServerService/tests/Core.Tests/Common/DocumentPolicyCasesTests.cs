@@ -33,8 +33,8 @@ public sealed class DocumentPolicyCasesTests
     public void MatchesTheSharedCase(string name)
     {
         var c = Load().Single(x => x.Name == name);
-        static ActionPermissions Of(string[] a) => new(a.Contains("view"), a.Contains("createEdit"),
-            a.Contains("delete"), a.Contains("approve"), a.Contains("printExport"));
+        static ActionPermissions Of(string[] a) => new(a.Contains("view"), a.Contains("create"),
+            a.Contains("edit"), a.Contains("delete"), a.Contains("approve"), a.Contains("print"), a.Contains("export"));
         var matrix = PermissionMatrix.Resolve(false, [], [("inv_receipt", Of(c.Actions)), ("inv_approve_receipt", Of(c.ScreenActions ?? []))]);
         var rights = c.Rights.Select(r => SpecialRightCatalog.Key("inv_receipt", r)).ToHashSet(StringComparer.Ordinal);
         // Built the way voucher services build it.

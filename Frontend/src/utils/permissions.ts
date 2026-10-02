@@ -3,20 +3,15 @@
 import { ActionPermissions, SubMenuKey, UserProfile } from '../types';
 
 export const FULL_ACTIONS: ActionPermissions = {
-  view: true,
-  createEdit: true,
-  delete: true,
-  approve: true,
-  printExport: true
+  view: true, create: true, edit: true, delete: true, approve: true, print: true, export: true
 };
 
 export const FORBIDDEN_ACTIONS: ActionPermissions = {
-  view: false,
-  createEdit: false,
-  delete: false,
-  approve: false,
-  printExport: false
+  view: false, create: false, edit: false, delete: false, approve: false, print: false, export: false
 };
+
+/** Data saved before Thêm/Sửa and In/Xuất were split (mock data in localStorage) has createEdit / printExport. */
+type LegacyActions = Partial<ActionPermissions> & { createEdit?: boolean; printExport?: boolean };
 
 type PermissionHolder = Pick<UserProfile, 'isSystemAdmin' | 'permissions'> | null | undefined;
 
@@ -26,12 +21,15 @@ export function getActionPermission(user: PermissionHolder, subKey: SubMenuKey):
   const perm = user.permissions?.[subKey];
   if (perm === true) return FULL_ACTIONS;
   if (!perm) return subKey === 'overview_main' ? { ...FORBIDDEN_ACTIONS, view: true } : FORBIDDEN_ACTIONS;
+  const p = perm as LegacyActions;
   return {
-    view: !!perm.view || subKey === 'overview_main',
-    createEdit: !!perm.createEdit,
-    delete: !!perm.delete,
-    approve: !!perm.approve,
-    printExport: !!perm.printExport
+    view: !!p.view || subKey === 'overview_main',
+    create: !!(p.create ?? p.createEdit),
+    edit: !!(p.edit ?? p.createEdit),
+    delete: !!p.delete,
+    approve: !!p.approve,
+    print: !!(p.print ?? p.printExport),
+    export: !!(p.export ?? p.printExport)
   };
 }
 

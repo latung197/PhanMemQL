@@ -137,7 +137,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
             onClick={() => void leave(() => { setIsLoading(true); void loadData(); })}>
             {t('users.reload')}
           </Button>
-          {perms.createEdit && view !== 'approvals' && (view === 'users' ? (
+          {perms.create && view !== 'approvals' && (view === 'users' ? (
             <Button size="sm" className="h-7 px-2.5 text-[11px]" icon={<UserPlus className="h-3.5 w-3.5" />}
               onClick={() => void leave(() => setModal('createUser'))}>
               {t('users.addUser')}
@@ -164,7 +164,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
       {view === 'approvals' && (
         <div className={`${panelClass} lg:h-[calc(100vh-250px)]`}>
           <ApprovalRulesPanel users={users} roles={roles} departments={departments} companyUnits={activeUnits} rightDefs={catalog.specialRights}
-            canEdit={perms.createEdit} />
+            canCreate={perms.create} canEdit={perms.edit} canDelete={perms.delete} />
         </div>
       )}
 
@@ -191,7 +191,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
               rightGroupLabels={catalog.groups}
               isSelf={selectedUser.id === currentUser.id}
               actorIsAdmin={!!currentUser.isSystemAdmin}
-              canEdit={perms.createEdit}
+              canEdit={perms.edit}
               canDelete={perms.delete}
               onSaved={replaceUser}
               onEditAccount={() => setModal('editUser')}
@@ -207,7 +207,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
               userCount={userCounts[selectedRole.id] ?? 0}
               rightDefs={catalog.specialRights}
               rightGroupLabels={catalog.groups}
-              canEdit={perms.createEdit}
+              canEdit={perms.edit}
               canDelete={perms.delete}
               onSaved={(role) => setRoles(prev => prev.map(r => r.id === role.id ? role : r))}
               onDeleted={(role) => { setIsDirty(false); setRoles(prev => prev.filter(r => r.id !== role.id)); setSelectedRoleId(''); }}

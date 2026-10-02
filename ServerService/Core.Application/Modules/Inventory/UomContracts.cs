@@ -1,10 +1,11 @@
+using Core.Application.Common.Catalogs;
 using Core.Application.Common.Persistence;
 
 namespace Core.Application.Modules.Inventory;
 
-public sealed record UomDto(string Code, string Name, string Symbol, string? Note, bool IsActive, RecordStampDto Stamp);
+public sealed record UomDto(string Code, string Name, string Symbol, string? Note, bool IsActive, RecordStampDto Stamp, uint Version);
 
-public sealed record SaveUomRequest(string Code, string Name, string? Symbol, string? Note, bool IsActive = true);
+public sealed record SaveUomRequest(string Code, string Name, string? Symbol, string? Note, bool IsActive = true, uint? Version = null);
 
 public interface IUomService
 {
@@ -16,4 +17,8 @@ public interface IUomService
 
     /// <summary>Refused while other data uses the unit (set it inactive instead).</summary>
     Task DeleteAsync(string code, CancellationToken ct);
+
+    /// <summary>Nhập Excel: every row checked like the form, all saved or none (CatalogBatch).</summary>
+    Task<ImportResult> ImportAsync(ImportRequest<SaveUomRequest> request, CancellationToken ct);
+    Task<DeleteManyResult> DeleteManyAsync(DeleteManyRequest request, CancellationToken ct);
 }

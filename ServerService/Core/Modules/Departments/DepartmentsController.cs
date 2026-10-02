@@ -16,11 +16,11 @@ public sealed class DepartmentsController(IDepartmentService departments) : ApiC
     [HttpGet]
     public Task<IReadOnlyList<DepartmentDto>> GetAll(CancellationToken ct) => departments.GetAllAsync(ct);
 
-    [HttpPost, RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPost, RequirePermission(Function, PermissionAction.Create)]
     public Task<DepartmentDto> Create(SaveDepartmentRequest request, CancellationToken ct) =>
         departments.CreateAsync(request, ct);
 
-    [HttpPut("{code}"), RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPut("{code}"), RequirePermission(Function, PermissionAction.Edit)]
     public Task<DepartmentDto> Update(string code, SaveDepartmentRequest request, CancellationToken ct) =>
         departments.UpdateAsync(code, request, ct);
 

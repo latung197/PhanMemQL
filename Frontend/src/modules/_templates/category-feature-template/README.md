@@ -68,6 +68,6 @@ Xong! Chức năng mới đã có đầy đủ:
 - Nút Thêm mới, Nạp lại, Xuất Excel, Nhập Excel
 - Bộ lọc nâng cao đóng/mở được, màu sáng chuẩn
 - Bảng GridView phân trang, tìm kiếm, sắp xếp cột
-- Phân quyền (Xem, Thêm/Sửa, Xóa) tự động áp dụng theo User
+- Phân quyền (Xem, Thêm, Sửa, Xóa, Xuất Excel) tự động áp dụng theo User
 - Modal Thêm/Sửa kiểm tra dữ liệu
 - Modal Xác nhận xóa từng dòng hoặc xóa hàng loạt.

@@ -1,8 +1,12 @@
 using Core.Application.Common.Localization;
 using Core.Common.Extensions;
+using Core.Common.Monitoring;
 using Core.Infrastructure;
 using Core.Infrastructure.Common.Seeding;
 using Microsoft.Extensions.Hosting.WindowsServices;
+
+// A Windows service starts in System32: relative paths (logs/) are next to the program.
+if (WindowsServiceHelpers.IsWindowsService()) Directory.SetCurrentDirectory(AppContext.BaseDirectory);
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -14,6 +18,7 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables().AddCommandLine(args);
 builder.Host.UseWindowsService();
+builder.AddMonitoring();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApi(builder.Configuration);
@@ -34,9 +39,11 @@ app.Use(async (context, next) =>
     Messages.CurrentLanguage = context.Request.Headers.AcceptLanguage.ToString();
     await next(context);
 });
+app.UseMonitoring();
 app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapMonitoring();
 app.Run();

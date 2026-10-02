@@ -87,7 +87,7 @@ export const StockNormCategoryView: React.FC<StockNormCategoryViewProps> = ({
   const paginatedList = filteredNorms.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const handleOpenAddModal = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       alert('Bạn không có quyền THÊM định mức tồn kho!');
       return;
     }
@@ -109,7 +109,7 @@ export const StockNormCategoryView: React.FC<StockNormCategoryViewProps> = ({
   };
 
   const handleOpenEditModal = (n: StockNorm) => {
-    if (!perms.createEdit) {
+    if (!perms.edit) {
       alert('Bạn không có quyền CHỈNH SỬA định mức tồn kho!');
       return;
     }
@@ -206,11 +206,11 @@ export const StockNormCategoryView: React.FC<StockNormCategoryViewProps> = ({
             setLocalNorms([...initialNorms]);
             showToast.info('Đã tải lại danh mục định mức tồn!');
           }}
-          onExportExcel={() => showToast.success('Đã xuất Excel danh mục định mức tồn!')}
-          onImportExcel={() => showToast.info('Tính năng nhập Excel đang xử lý!')}
+          onExportExcel={perms.export ? () => showToast.success('Đã xuất Excel danh mục định mức tồn!') : undefined}
+          onImportExcel={perms.create ? () => showToast.info('Tính năng nhập Excel đang xử lý!') : undefined}
           addLabel="Thêm Định Mức Tồn"
           onOpenAdd={handleOpenAddModal}
-          canCreate={perms.createEdit}
+          canCreate={perms.create}
           filterPanelContent={
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
               <div>
@@ -371,7 +371,7 @@ export const StockNormCategoryView: React.FC<StockNormCategoryViewProps> = ({
                       </td>
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {perms.createEdit && (
+                          {perms.edit && (
                             <button
                               onClick={() => handleOpenEditModal(n)}
                               className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950 rounded-lg transition-colors cursor-pointer"

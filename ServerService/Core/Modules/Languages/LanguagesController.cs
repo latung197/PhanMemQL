@@ -15,10 +15,10 @@ public sealed class LanguagesController(ILanguageService languages) : ApiControl
     [HttpGet, RequirePermission(Function, PermissionAction.View)]
     public Task<IReadOnlyList<LanguageDto>> GetAll(CancellationToken ct) => languages.GetAllAsync(ct);
 
-    [HttpPost, RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPost, RequirePermission(Function, PermissionAction.Create)]
     public Task<LanguageDto> Create(SaveLanguageRequest request, CancellationToken ct) => languages.CreateAsync(request, ct);
 
-    [HttpPut("{code}"), RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPut("{code}"), RequirePermission(Function, PermissionAction.Edit)]
     public Task<LanguageDto> Update(string code, SaveLanguageRequest request, CancellationToken ct) =>
         languages.UpdateAsync(code, request, ct);
 

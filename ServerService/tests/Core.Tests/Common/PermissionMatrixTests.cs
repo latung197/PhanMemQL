@@ -7,8 +7,8 @@ namespace Core.Tests.Common;
 
 public sealed class PermissionMatrixTests
 {
-    private static readonly ActionPermissions ViewOnly = new(true, false, false, false, false);
-    private static readonly ActionPermissions EditOnly = new(false, true, false, false, false);
+    private static readonly ActionPermissions ViewOnly = new(true, false, false, false, false, false, false);
+    private static readonly ActionPermissions EditOnly = new(false, true, true, false, false, false, false);
 
     [Fact]
     public void AdminGetsFullRightsForEveryFunction()
@@ -57,7 +57,7 @@ public sealed class PermissionMatrixTests
     public void RolesAreCombined()
     {
         var matrix = PermissionMatrix.Resolve(false, [], [("sys_users", ViewOnly), ("sys_users", EditOnly)]);
-        Assert.Equal(new ActionPermissions(true, true, false, false, false), matrix["sys_users"]);
+        Assert.Equal(new ActionPermissions(true, true, true, false, false, false, false), matrix["sys_users"]);
         Assert.Equal(ActionPermissions.None, matrix["hr_list"]);
     }
 
@@ -73,7 +73,7 @@ public sealed class PermissionMatrixTests
     [Fact]
     public void ApprovalScreensApproveTheirVouchers()
     {
-        var approve = new ActionPermissions(true, false, false, true, false);
+        var approve = new ActionPermissions(true, false, false, false, true, false, false);
         var matrix = PermissionMatrix.Resolve(false, [], [("inv_approve_transfer", approve)]);
         Assert.True(PermissionMatrix.CanApprove(matrix, "inv_transfer_order"));
         Assert.True(PermissionMatrix.CanApprove(matrix, "inv_transfer_receipt"));

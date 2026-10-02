@@ -135,14 +135,16 @@ Mọi chức năng đều có thể tự động kiểm tra quyền của tài k
 import { getActionPermission } from '../../../mock/initialRoles';
 
 const perms = getActionPermission(currentUser, 'mã_chức_năng');
-// perms.view       -> boolean: Có quyền xem chức năng này hay không
-// perms.createEdit -> boolean: Có quyền Thêm / Sửa hay không
-// perms.delete     -> boolean: Có quyền Xóa hay không
-// perms.approve    -> boolean: Có quyền Duyệt chứng từ hay không
-// perms.export     -> boolean: Có quyền Xuất Excel hay không
+// perms.view    -> Xem chức năng
+// perms.create  -> Thêm mới (cả sao chép, nhập từ Excel): nút Thêm, Nhập Excel
+// perms.edit    -> Sửa bản ghi đã lưu: nút Sửa, lưu form đang sửa
+// perms.delete  -> Xóa
+// perms.approve -> Duyệt chứng từ
+// perms.print   -> In phiếu / báo cáo
+// perms.export  -> Xuất dữ liệu ra file (Excel): chỉ truyền onExportExcel khi có quyền
 ```
 
-Chỉ cần gán các cờ này vào nút tương ứng (ví dụ: `disabled={!perms.createEdit}`) là hệ thống tự động bảo vệ dữ liệu theo đúng phân quyền admin/nhân viên!
+Chỉ cần gán các cờ này vào nút tương ứng (ví dụ: `canCreate={perms.create}`, `onExportExcel={perms.export ? handleExport : undefined}`) là hệ thống tự động bảo vệ dữ liệu theo đúng phân quyền admin/nhân viên!
 
 ## Control dùng chung (components/common)
 

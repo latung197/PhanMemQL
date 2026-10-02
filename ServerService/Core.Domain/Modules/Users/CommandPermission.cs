@@ -5,7 +5,7 @@ namespace Core.Domain.Modules.Users;
 
 /// <summary>
 /// Permission row of sys_role_command / sys_user_command. The table keeps eleven legacy flags;
-/// the frontend works with five actions, so both directions are mapped here.
+/// the frontend works with seven actions, so both directions are mapped here (copy and import count as adding).
 /// </summary>
 public abstract class CommandPermission : AuditableEntity
 {
@@ -22,15 +22,16 @@ public abstract class CommandPermission : AuditableEntity
     [Column("can_copy")] public bool CanCopy { get; set; }
     [Column("can_approve")] public bool CanApprove { get; set; }
 
-    public ActionPermissions ToActions() => new(CanView, CanAdd || CanEdit, CanDelete,
-        CanApprove, CanPrint || CanExport);
+    public ActionPermissions ToActions() => new(CanView, CanAdd, CanEdit, CanDelete, CanApprove, CanPrint, CanExport);
 
     public void SetActions(ActionPermissions actions)
     {
         CanView = CanSearch = CanReload = actions.View;
-        CanAdd = CanEdit = CanCopy = CanImport = actions.CreateEdit;
+        CanAdd = CanCopy = CanImport = actions.Create;
+        CanEdit = actions.Edit;
         CanDelete = actions.Delete;
         CanApprove = actions.Approve;
-        CanPrint = CanExport = actions.PrintExport;
+        CanPrint = actions.Print;
+        CanExport = actions.Export;
     }
 }

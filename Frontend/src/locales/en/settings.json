@@ -22,7 +22,7 @@
   "users": {
     "title": "Users & Permissions",
     "summary": "{users} users · {roles} roles",
-    "description": "Give each account a role, then fine-tune View / Add-Edit / Delete / Approve / Print-Export per function.",
+    "description": "Give each account a role, then fine-tune View / Add / Edit / Delete / Approve / Print / Export per function.",
     "loading": "Loading users and roles...",
     "reload": "Reload",
     "addUser": "Add user",
@@ -183,17 +183,25 @@
   "permissions": {
     "action": {
       "view": "View",
+      "create": "Add",
+      "edit": "Edit",
       "createEdit": "Add & Edit",
       "delete": "Delete",
       "approve": "Approve",
-      "printExport": "Print & Export"
+      "printExport": "Print & Export",
+      "print": "Print",
+      "export": "Export"
     },
     "actionShort": {
       "view": "View",
+      "create": "Add",
+      "edit": "Edit",
       "createEdit": "Add/Edit",
       "delete": "Delete",
       "approve": "Approve",
-      "printExport": "Print/Export"
+      "printExport": "Print/Export",
+      "print": "Print",
+      "export": "Export"
     },
     "group": {
       "danh_muc": "Catalog",

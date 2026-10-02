@@ -54,318 +54,408 @@
       "permissions": {
         "inv_receipt": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_issue": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_transfer_order": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_transfer_issue": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_transfer_receipt": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_audit_count": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_calc_monthly_cost": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_calc_instant_stock": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_approve_receipt": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_approve_issue": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_approve_transfer": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_type_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_warehouse_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_location_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_uom_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_uom_conversion_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_stock_norm_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_lot_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_inward": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_outward": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_stock": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_nxt": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_aging": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sys_users": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_company_unit_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sys_default_config": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sys_fiscal_year": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sys_currencies": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sys_exchange_rates": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_customers": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_orders": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_delivery": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_report": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_categories": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_receipt_voucher": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_payment_voucher": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_report": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_list": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_payroll": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_report": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "overview_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "reports_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "ai_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "settings_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         }
       }
     },
@@ -377,318 +467,408 @@
       "permissions": {
         "inv_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_order": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_audit_count": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_calc_monthly_cost": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_calc_instant_stock": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_transfer": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_material_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_material_type_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_warehouse_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_location_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_uom_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_uom_conversion_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_stock_norm_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_lot_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_inward": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_outward": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_stock": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_nxt": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_aging": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_users": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_company_unit_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_default_config": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_fiscal_year": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_currencies": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_exchange_rates": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_customers": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_orders": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_delivery": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_report": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_categories": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_receipt_voucher": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_payment_voucher": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_report": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_list": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_payroll": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "overview_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "reports_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "ai_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "settings_main": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         }
       }
     },
@@ -700,318 +880,408 @@
       "permissions": {
         "inv_receipt": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_issue": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_transfer_order": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_audit_count": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_calc_monthly_cost": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_calc_instant_stock": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_transfer": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_material_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_type_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_warehouse_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_location_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_uom_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_uom_conversion_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_stock_norm_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_lot_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_inward": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_outward": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_stock": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_nxt": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_aging": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_users": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_company_unit_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_default_config": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_fiscal_year": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_currencies": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_exchange_rates": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_customers": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_orders": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_delivery": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_categories": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_receipt_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_payment_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_list": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_payroll": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "overview_main": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "reports_main": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "ai_main": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "settings_main": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         }
       }
     },
@@ -1023,318 +1293,408 @@
       "permissions": {
         "inv_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_order": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_audit_count": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_calc_monthly_cost": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_calc_instant_stock": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_transfer": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_material_cat": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_type_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_warehouse_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_location_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_uom_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_uom_conversion_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_stock_norm_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_lot_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_inward": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_outward": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_stock": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_nxt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_aging": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_users": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_company_unit_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_default_config": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_fiscal_year": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_currencies": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_exchange_rates": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_customers": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_orders": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_delivery": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_report": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_categories": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_receipt_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_payment_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_list": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_payroll": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "overview_main": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "reports_main": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "ai_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "settings_main": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         }
       }
     },
@@ -1346,318 +1706,408 @@
       "permissions": {
         "inv_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_order": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_audit_count": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_calc_monthly_cost": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_calc_instant_stock": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_transfer": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_material_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_material_type_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_warehouse_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_location_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_uom_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_uom_conversion_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_stock_norm_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_lot_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_inward": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_outward": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_stock": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_nxt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_aging": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_users": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_company_unit_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_default_config": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_fiscal_year": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_currencies": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_exchange_rates": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_customers": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_orders": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_delivery": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_categories": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_receipt_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_payment_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_list": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_payroll": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": false,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_report": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "overview_main": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "reports_main": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "ai_main": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "settings_main": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         }
       }
     },
@@ -1669,318 +2119,408 @@
       "permissions": {
         "inv_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_order": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_transfer_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_audit_count": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_calc_monthly_cost": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_calc_instant_stock": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_approve_transfer": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_material_cat": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_type_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_warehouse_cat": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_location_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_uom_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_uom_conversion_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_stock_norm_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_lot_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_inward": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_outward": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_stock": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_nxt": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_aging": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_users": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_company_unit_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_default_config": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_fiscal_year": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_currencies": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sys_exchange_rates": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_customers": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_orders": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_delivery": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_report": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_categories": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_receipt_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_payment_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_report": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_list": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_payroll": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_report": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "overview_main": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "reports_main": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "ai_main": {
           "view": true,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "settings_main": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         }
       }
     }
@@ -2019,199 +2559,255 @@
       "permissions": {
         "overview_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_company_unit_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_type_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_uom_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_uom_conversion_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_stock_norm_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_lot_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_location_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_warehouse_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_receipt": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_issue": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_stock": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_nxt": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_customers": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_orders": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_delivery": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_categories": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_receipt_voucher": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_payment_voucher": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_report": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_list": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_payroll": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "reports_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "ai_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "settings_main": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         }
       },
       "ma_dvcs": null,
@@ -2233,199 +2829,255 @@
       "permissions": {
         "overview_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_company_unit_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_type_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_uom_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_uom_conversion_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_stock_norm_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_lot_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_location_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_warehouse_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_stock": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_nxt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_customers": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_orders": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_delivery": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_report": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_categories": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_receipt_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_payment_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_list": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_payroll": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "reports_main": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "ai_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "settings_main": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         }
       },
       "ma_dvcs": null,
@@ -2447,199 +3099,255 @@
       "permissions": {
         "overview_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_company_unit_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_type_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_uom_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_uom_conversion_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_stock_norm_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_lot_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_location_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_warehouse_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_receipt": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_issue": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_stock": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_nxt": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_customers": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_orders": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_delivery": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_report": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_categories": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_receipt_voucher": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_payment_voucher": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "fin_report": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_list": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_payroll": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_report": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "reports_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "ai_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "settings_main": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         }
       },
       "ma_dvcs": null,
@@ -2661,199 +3369,255 @@
       "permissions": {
         "overview_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_company_unit_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_material_type_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_uom_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_uom_conversion_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_stock_norm_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_lot_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_location_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_warehouse_cat": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_receipt": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_issue": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_stock": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_report_nxt": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_customers": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_orders": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_delivery": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "sales_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_categories": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_receipt_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_payment_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_list": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_payroll": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "reports_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "ai_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "settings_main": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         }
       },
       "ma_dvcs": null,
@@ -2875,199 +3639,255 @@
       "permissions": {
         "overview_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "inv_company_unit_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_material_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_material_type_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_uom_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_uom_conversion_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_stock_norm_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_lot_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_location_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_warehouse_cat": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_receipt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_issue": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_stock": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "inv_report_nxt": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_customers": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_orders": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_delivery": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "sales_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_categories": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_receipt_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_payment_voucher": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "fin_report": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         },
         "hr_list": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_payroll": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "hr_report": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "reports_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "ai_main": {
           "view": true,
-          "createEdit": true,
+          "create": true,
+          "edit": true,
           "delete": true,
           "approve": true,
-          "printExport": true
+          "print": true,
+          "export": true
         },
         "settings_main": {
           "view": false,
-          "createEdit": false,
+          "create": false,
+          "edit": false,
           "delete": false,
           "approve": false,
-          "printExport": false
+          "print": false,
+          "export": false
         }
       },
       "ma_dvcs": null,
@@ -3096,18 +3916,13 @@
   ],
   "systemConfig": {
     "systemDefaults": {
-      "defaultWarehouse": "WH01",
       "costingMethod": "MONTHLY_AVG",
       "defaultCurrency": "VND",
-      "qtyDecimalPlaces": 2,
-      "priceDecimalPlaces": 0,
+      "defaultVatRate": 10,
+      "requireApprovalBeforePosting": true,
+      "defaultWarehouse": "",
+      "allowNegativeStock": false,
       "printTemplate": {
-        "companyHeader": "TẬP ĐOÀN CÔNG NGHỆ & SẢN XUẤT TRẦN THỊNH JSC",
-        "companyAddress": "Tầng 18, Tòa nhà S-ERP Tower, Đường Lê Duẩn, Q.1, TP. Hồ Chí Minh",
-        "taxCode": "0318899201",
-        "phone": "028 3822 9999",
-        "email": "contact@tranthinh-erp.vn",
-        "website": "https://tranthinh-erp.vn",
         "footerNote": "Cảm ơn Quý khách hàng & Đối tác đã tin tưởng đồng hành cùng chúng tôi!",
         "signatures": {
           "preparedBy": "Người lập biểu",

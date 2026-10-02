@@ -15,20 +15,20 @@ public sealed class UsersController(IUserService users) : ApiControllerBase
     [HttpGet, RequirePermission(Function, PermissionAction.View)]
     public Task<IReadOnlyList<UserProfileDto>> GetAll(CancellationToken ct) => users.GetAllAsync(ct);
 
-    [HttpPost, RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPost, RequirePermission(Function, PermissionAction.Create)]
     public Task<UserProfileDto> Create(CreateUserRequest request, CancellationToken ct) =>
         users.CreateAsync(CurrentUserId, request, ct);
 
-    [HttpPut("{userId:int}"), RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPut("{userId:int}"), RequirePermission(Function, PermissionAction.Edit)]
     public Task<UserProfileDto> Update(int userId, UpdateUserRequest request, CancellationToken ct) =>
         users.UpdateAsync(CurrentUserId, userId, request, ct);
 
     /// <summary>Assigns the role and saves the user's permission matrix.</summary>
-    [HttpPut("{userId:int}/permissions"), RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPut("{userId:int}/permissions"), RequirePermission(Function, PermissionAction.Edit)]
     public Task<UserProfileDto> SetPermissions(int userId, SetUserPermissionsRequest request, CancellationToken ct) =>
         users.SetPermissionsAsync(CurrentUserId, userId, request, ct);
 
-    [HttpPut("{userId:int}/password"), RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPut("{userId:int}/password"), RequirePermission(Function, PermissionAction.Edit)]
     public async Task<IActionResult> ResetPassword(int userId, ResetPasswordRequest request, CancellationToken ct)
     {
         await users.ResetPasswordAsync(CurrentUserId, userId, request, ct);

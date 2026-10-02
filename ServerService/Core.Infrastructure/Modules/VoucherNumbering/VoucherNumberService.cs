@@ -32,6 +32,7 @@ public sealed class VoucherNumberService(CoreContext db, ISqlExecutor sql) : IVo
         string unitCode, CancellationToken ct)
     {
         var rule = await FindAsync(voucherType, ct);
+        db.ExpectVersion(rule, request.Version);
         var prefix = Guard.Required(request.Prefix, 20, "field.prefix").ToUpperInvariant();
         var pattern = Guard.Required(request.Pattern, 100, "field.numberPattern");
         VoucherNumberFormat.Validate(pattern, prefix, request.Digits);
@@ -82,5 +83,5 @@ public sealed class VoucherNumberService(CoreContext db, ISqlExecutor sql) : IVo
     }
 
     private static VoucherNumberingDto ToDto(VoucherNumberingRule x, string next) =>
-        new(x.VoucherType, x.MenuId0, VoucherCatalog.DisplayName(x.VoucherType, x.Name), x.Prefix, x.Pattern, x.Digits, next);
+        new(x.VoucherType, x.MenuId0, VoucherCatalog.DisplayName(x.VoucherType, x.Name), x.Prefix, x.Pattern, x.Digits, next, x.Version);
 }

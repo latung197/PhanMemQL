@@ -14,7 +14,7 @@ import { SettingsViewProps } from './settingsTypes';
 
 const EMPTY: SaveDepartmentInput = { code: '', name: '', note: '', isActive: true };
 
-export const DepartmentCategoryView: React.FC<SettingsViewProps> = ({ canEdit, canDelete }) => {
+export const DepartmentCategoryView: React.FC<SettingsViewProps> = ({ canCreate, canEdit, canDelete }) => {
   const catalog = useCatalog(departmentsApi, { keyOf: d => d.code, noun: 'phòng ban', describe: d => `${d.code} - ${d.name}` });
   // null = form closed; `editing` undefined = new record.
   const [form, setForm] = useState<SaveDepartmentInput | null>(null);
@@ -58,7 +58,7 @@ export const DepartmentCategoryView: React.FC<SettingsViewProps> = ({ canEdit, c
         getItemId={d => d.code}
         loading={catalog.loading}
         searchPlaceholder="Tìm mã hoặc tên phòng ban..."
-        primaryAction={canEdit ? { label: 'Thêm phòng ban', icon: <Plus className="h-3.5 w-3.5" />, onClick: () => open() } : undefined}
+        primaryAction={canCreate ? { label: 'Thêm phòng ban', icon: <Plus className="h-3.5 w-3.5" />, onClick: () => open() } : undefined}
         actions={(canEdit || canDelete) ? d => (
           <div className="flex justify-end gap-1">
             {canEdit && <Button variant="ghost" size="sm" title="Sửa" onClick={() => open(d)} icon={<Edit2 className="h-3.5 w-3.5" />} />}

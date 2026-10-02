@@ -65,7 +65,7 @@ public sealed class UserProfileBuilder(CoreContext db)
                 signedInUnit ?? user.MaDvcs, units, user.EmployeeCode, user.IsActive,
                 rights.OrderBy(x => x, StringComparer.Ordinal).ToList(),
                 // A language set inactive later falls back to the default one.
-                languages.Any(x => x.Code == user.Language) ? user.Language! : defaultLanguage, user.Language);
+                languages.Any(x => x.Code == user.Language) ? user.Language! : defaultLanguage, user.Language, user.Version);
         }).ToList();
     }
 }

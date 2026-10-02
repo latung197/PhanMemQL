@@ -168,7 +168,7 @@ export const EmployeeCategoryView: React.FC<EmployeeCategoryViewProps> = ({
 
   // Import Excel
   const handleImportExcel = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Tài khoản của bạn không có quyền NHẬP DỮ LIỆU Nhân sự!');
       return;
     }
@@ -186,7 +186,7 @@ export const EmployeeCategoryView: React.FC<EmployeeCategoryViewProps> = ({
 
   // Open Handlers
   const handleOpenAdd = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Tài khoản của bạn KHÔNG CÓ QUYỀN KHAI BÁO HỒ SƠ NHÂN VIÊN!');
       return;
     }
@@ -201,7 +201,7 @@ export const EmployeeCategoryView: React.FC<EmployeeCategoryViewProps> = ({
   };
 
   const handleOpenEdit = (emp: Employee) => {
-    if (!perms.createEdit) {
+    if (!perms.edit) {
       showToast.error('Tài khoản của bạn KHÔNG CÓ QUYỀN SỬA HỒ SƠ NHÂN VIÊN!');
       return;
     }
@@ -420,10 +420,10 @@ export const EmployeeCategoryView: React.FC<EmployeeCategoryViewProps> = ({
           setLocalEmployees([...initialEmployees]);
           showToast.info('Đã tải lại danh sách Nhân sự!');
         }}
-        onExportExcel={handleExportExcel}
-        onImportExcel={handleImportExcel}
+        onExportExcel={perms.export ? handleExportExcel : undefined}
+        onImportExcel={perms.create ? handleImportExcel : undefined}
         addLabel="Khai Báo NV Mới"
-        canCreate={perms.createEdit}
+        canCreate={perms.create}
         onOpenAdd={handleOpenAdd}
         filterPanelContent={
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">

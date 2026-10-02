@@ -22,5 +22,8 @@ public sealed class NotFoundException(string key, params object?[] args) : AppEx
 /// <summary>Wrong credentials or an unusable account (HTTP 401).</summary>
 public sealed class AuthenticationFailedException(string key, params object?[] args) : AppException(key, args);
 
+/// <summary>The record was changed or deleted by someone else after it was loaded (HTTP 409).</summary>
+public sealed class ConflictException(string key, params object?[] args) : AppException(key, args);
+
 /// <summary>The user is signed in but may not perform the action (HTTP 403).</summary>
 public sealed class ForbiddenException(string key, params object?[] args) : AppException(key, args);

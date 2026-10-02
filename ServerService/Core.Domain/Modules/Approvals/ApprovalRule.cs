@@ -24,8 +24,11 @@ public static class RequesterTypes
 /// </summary>
 [Audited("sys_users", "approvalRule", Label = "{MenuId0} #{Level}")]
 [Table("sys_approval_rule")]
-public class ApprovalRule
+public class ApprovalRule : IVersioned
 {
+    /// <summary>Row version (xmin) against lost updates; see IVersioned.</summary>
+    public uint Version { get; set; }
+
     [Key, Column("id"), DatabaseGenerated(DatabaseGeneratedOption.Identity)] public long Id { get; set; }
 
     /// <summary>Voucher function (SubMenuKey), e.g. inv_receipt.</summary>

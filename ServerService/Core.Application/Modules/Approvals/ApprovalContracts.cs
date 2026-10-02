@@ -3,10 +3,10 @@ namespace Core.Application.Modules.Approvals;
 // ----- Rules (Settings › Quy trình phê duyệt) -----
 
 public sealed record ApprovalRuleDto(string Id, string Function, string? UnitCode, int Level, string RequesterType,
-    string? RequesterValue, decimal? MinAmount, string ApproverType, string ApproverValue, string? Note, bool IsActive);
+    string? RequesterValue, decimal? MinAmount, string ApproverType, string ApproverValue, string? Note, bool IsActive, uint Version);
 
 public sealed record SaveApprovalRuleRequest(string Function, string? UnitCode, int Level, string RequesterType,
-    string? RequesterValue, decimal? MinAmount, string ApproverType, string ApproverValue, string? Note, bool IsActive = true);
+    string? RequesterValue, decimal? MinAmount, string ApproverType, string ApproverValue, string? Note, bool IsActive = true, uint? Version = null);
 
 public sealed record ApproverUserDto(string Id, string Username, string FullName);
 

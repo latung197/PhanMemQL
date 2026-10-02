@@ -26,7 +26,9 @@ interface ApprovalRulesPanelProps {
   companyUnits: CompanyUnit[];
   rightDefs: SpecialRightDef[];
   departments: Department[];
+  canCreate: boolean;
   canEdit: boolean;
+  canDelete: boolean;
 }
 
 const REQUESTER_TYPES: RequesterType[] = ['ANY', 'USER', 'ROLE', 'DEPARTMENT'];
@@ -37,7 +39,7 @@ const money = (n?: number | null) => n == null ? '' : new Intl.NumberFormat('vi-
 /** Amount with the company's currency symbol (Settings › Định dạng số). */
 const moneyWithSymbol = (n: number) => `${money(n)} ${systemSettingsService.getNumberFormat().currencySymbol}`;
 
-export const ApprovalRulesPanel: React.FC<ApprovalRulesPanelProps> = ({ users, roles, departments, companyUnits, rightDefs, canEdit }) => {
+export const ApprovalRulesPanel: React.FC<ApprovalRulesPanelProps> = ({ users, roles, departments, companyUnits, rightDefs, canCreate, canEdit, canDelete }) => {
   const confirm = useConfirm();
   const { t } = useLanguage();
   const [rules, setRules] = useState<ApprovalRule[]>([]);
@@ -126,7 +128,7 @@ export const ApprovalRulesPanel: React.FC<ApprovalRulesPanelProps> = ({ users, r
               {t('approvalRules.description')}
             </p>
           </div>
-          {canEdit && (
+          {canCreate && (
             <Button size="sm" className="h-7 shrink-0" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setEditing('new')}>{t('approvalRules.add')}</Button>
           )}
         </div>
@@ -144,7 +146,7 @@ export const ApprovalRulesPanel: React.FC<ApprovalRulesPanelProps> = ({ users, r
                   <th className="px-3 py-2 text-left w-28">{t('approvalRules.col.unit')}</th>
                   <th className="px-3 py-2 text-left">{t('approvalRules.col.approver')}</th>
                   <th className="px-3 py-2 text-left w-24">{t('approvalRules.col.status')}</th>
-                  {canEdit && <th className="px-3 py-2 w-20"></th>}
+                  {(canEdit || canDelete) && <th className="px-3 py-2 w-20"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -159,10 +161,10 @@ export const ApprovalRulesPanel: React.FC<ApprovalRulesPanelProps> = ({ users, r
                     <td className="px-3 py-1.5">{r.unitCode ?? t('approvalRules.allUnits')}</td>
                     <td className="px-3 py-1.5 font-bold text-indigo-700 dark:text-indigo-300">{describeApprover(r)}</td>
                     <td className="px-3 py-1.5">{r.isActive ? <Badge variant="success" size="sm">{t('approvalRules.active')}</Badge> : <Badge variant="slate" size="sm">{t('approvalRules.inactive')}</Badge>}</td>
-                    {canEdit && (
+                    {(canEdit || canDelete) && (
                       <td className="px-3 py-1.5 text-right whitespace-nowrap">
-                        <button type="button" className="p-1 text-slate-500 hover:text-indigo-600 cursor-pointer" title={t('approvalRules.edit')} onClick={() => setEditing(r)}><Edit3 className="h-3.5 w-3.5" /></button>
-                        <button type="button" className="p-1 text-slate-500 hover:text-rose-600 cursor-pointer" title={t('approvalRules.delete')} onClick={() => void handleDelete(r)}><Trash2 className="h-3.5 w-3.5" /></button>
+                        {canEdit && <button type="button" className="p-1 text-slate-500 hover:text-indigo-600 cursor-pointer" title={t('approvalRules.edit')} onClick={() => setEditing(r)}><Edit3 className="h-3.5 w-3.5" /></button>}
+                        {canDelete && <button type="button" className="p-1 text-slate-500 hover:text-rose-600 cursor-pointer" title={t('approvalRules.delete')} onClick={() => void handleDelete(r)}><Trash2 className="h-3.5 w-3.5" /></button>}
                       </td>
                     )}
                   </tr>

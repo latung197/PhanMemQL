@@ -20,7 +20,7 @@ public sealed class FiscalPeriodsController(IFiscalPeriodService periods) : ApiC
     public Task<IReadOnlyList<FiscalMonthDto>> GetYear(int year, CancellationToken ct) =>
         periods.GetYearAsync(CurrentUnitCode, year, ct);
 
-    [HttpPut("{year:int}"), RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPut("{year:int}"), RequirePermission(Function, PermissionAction.Edit)]
     public Task<IReadOnlyList<FiscalMonthDto>> SetLock(int year, SetFiscalLockRequest request, CancellationToken ct) =>
         periods.SetLockAsync(CurrentUserId, CurrentUnitCode, year, request, ct);
 

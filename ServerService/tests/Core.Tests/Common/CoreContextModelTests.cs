@@ -62,6 +62,29 @@ public sealed class CoreContextModelTests
         }
     }
 
+    /// <summary>
+    /// Records edited in forms carry PostgreSQL's row version (xmin) as concurrency token, so a save over a newer
+    /// version fails (record.changed) instead of overwriting someone else's change. Every business table has it.
+    /// </summary>
+    [Fact]
+    public void VersionedRecordsUseXminAsConcurrencyToken()
+    {
+        using var context = CreateContext();
+        var versioned = context.Model.GetEntityTypes()
+            .Where(e => typeof(Core.Domain.Common.IVersioned).IsAssignableFrom(e.ClrType)).ToList();
+        Assert.Contains(versioned, e => e.ClrType == typeof(SysUser));
+        foreach (var entity in versioned)
+        {
+            var version = entity.FindProperty(nameof(Core.Domain.Common.IVersioned.Version))!;
+            Assert.Equal("xmin", version.GetColumnName());
+            Assert.Equal("xid", version.GetColumnType());
+            Assert.True(version.IsConcurrencyToken, $"{entity.ClrType.Name}.Version must be a concurrency token");
+            Assert.Equal(Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.OnAddOrUpdate, version.ValueGenerated);
+        }
+        foreach (var entity in context.Model.GetEntityTypes().Where(e => e.GetTableName()!.StartsWith("erp_")))
+            Assert.Contains(entity, versioned);
+    }
+
     /// <summary>The sys_* audit columns are "timestamp" in SQL; timestamptz would reject local times.</summary>
     [Theory]
     [InlineData(typeof(SysUser))]

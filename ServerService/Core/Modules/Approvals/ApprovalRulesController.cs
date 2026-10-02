@@ -16,11 +16,11 @@ public sealed class ApprovalRulesController(IApprovalRuleService rules) : ApiCon
     public Task<IReadOnlyList<ApprovalRuleDto>> GetAll([FromQuery] string? function, CancellationToken ct) =>
         rules.GetAllAsync(function, ct);
 
-    [HttpPost, RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPost, RequirePermission(Function, PermissionAction.Create)]
     public Task<ApprovalRuleDto> Create(SaveApprovalRuleRequest request, CancellationToken ct) =>
         rules.CreateAsync(CurrentUserId, request, ct);
 
-    [HttpPut("{id:long}"), RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPut("{id:long}"), RequirePermission(Function, PermissionAction.Edit)]
     public Task<ApprovalRuleDto> Update(long id, SaveApprovalRuleRequest request, CancellationToken ct) =>
         rules.UpdateAsync(CurrentUserId, id, request, ct);
 

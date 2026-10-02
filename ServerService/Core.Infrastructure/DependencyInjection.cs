@@ -1,3 +1,8 @@
+using Core.Infrastructure.Common.Lookups;
+using Core.Infrastructure.Common.Layouts;
+using Core.Application.Common.Lookups;
+using Core.Application.Common.Layouts;
+using Core.Infrastructure.Common.Catalogs;
 using Core.Application.Common.Auditing;
 using Core.Application.Common.Persistence;
 using Core.Application.Common.Security;
@@ -32,7 +37,10 @@ using Core.Infrastructure.Modules.Roles;
 using Core.Infrastructure.Modules.SystemConfig;
 using Core.Infrastructure.Modules.Users;
 using Core.Infrastructure.Modules.VoucherNumbering;
+using Core.Application.Common.Caching;
+using Core.Infrastructure.Common.Caching;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -43,7 +51,16 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // Common
-        services.AddDbContext<CoreContext>(o => o.UseNpgsql(configuration.GetConnectionString("CoreContext")));
+        // IncludeErrorDetail: a duplicate value can be named in the message (DatabaseErrors).
+        var connectionString = new NpgsqlConnectionStringBuilder(configuration.GetConnectionString("CoreContext"))
+            { IncludeErrorDetail = true }.ConnectionString;
+        // Shared cache, kept in step with every write CoreContext makes (CacheInvalidationInterceptor).
+        services.AddMemoryCache();
+        services.AddSingleton<IAppCache, MemoryAppCache>();
+        services.AddSingleton<CacheInvalidationInterceptor>();
+        services.AddSingleton<SlowQueryInterceptor>();
+        services.AddDbContext<CoreContext>((sp, o) => o.UseNpgsql(connectionString)
+            .AddInterceptors(sp.GetRequiredService<CacheInvalidationInterceptor>(), sp.GetRequiredService<SlowQueryInterceptor>()));
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -54,6 +71,13 @@ public static class DependencyInjection
         services.AddSingleton(JwtOptions.FromConfiguration(configuration));
         services.AddSingleton<ITokenService, JwtTokenService>();
         services.AddScoped<DatabaseSeeder>();
+        services.AddScoped<CatalogBatch>();
+        services.AddScoped<IGridLayoutService, GridLayoutService>();
+        services.AddScoped<ILookupService, LookupService>();
+
+        // Lookups (ô chọn mã + F2): one line per catalog, see docs/them-danh-muc.md.
+        services.AddLookup(new LookupDefinition("uoms", db => db.Uoms.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.Symbol }), "symbol"));
 
         // Modules
         services.AddScoped<UserProfileBuilder>();
@@ -68,6 +92,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<INotificationStream, NotificationStream>();
         services.AddHostedService<NotificationCleanupService>();
+        services.AddHostedService<AuditLogCleanupService>();
         services.AddScoped<ISystemConfigService, SystemConfigService>();
         services.AddScoped<ApprovalResolver>();
         services.AddScoped<IApprovalRuleService, ApprovalRuleService>();

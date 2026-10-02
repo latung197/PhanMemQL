@@ -25,7 +25,8 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
 {
     public async Task<DocumentApprovalDto> SubmitAsync(int userId, string unitCode, SubmitDocumentRequest request, CancellationToken ct)
     {
-        await permissions.EnsureAllowedAsync(userId, request.Function, PermissionAction.CreateEdit, ct);
+        // Whoever may add or change the document may send it (same rule as DocumentStatusPolicy Submit).
+        await permissions.EnsureAnyAllowedAsync(userId, request.Function, [PermissionAction.Create, PermissionAction.Edit], ct);
         var documentId = Guard.Required(request.DocumentId, 64, "field.documentId");
         var steps = await LatestRoundAsync(request.Function, documentId, ct);
         if (steps.Any(x => x.Status is ApprovalStepStatus.Pending or ApprovalStepStatus.Waiting))

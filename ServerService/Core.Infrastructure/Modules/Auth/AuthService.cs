@@ -97,14 +97,8 @@ public sealed class AuthService(CoreContext db, IPasswordService passwords, ITok
         return await profiles.BuildAsync(user, unitCode, ct);
     }
 
-    public async Task<bool> HasUnitAccessAsync(int userId, string unitCode, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(unitCode)
-            || !await db.CompanyUnits.AnyAsync(x => x.Code == unitCode && x.IsActive, ct))
-            return false;
-        return await permissions.IsAdminAsync(userId, ct)
-            || await db.UserCompanyUnits.AnyAsync(x => x.UserId == userId && x.UnitCode == unitCode, ct);
-    }
+    public Task<bool> HasUnitAccessAsync(int userId, string unitCode, CancellationToken ct) =>
+        permissions.HasUnitAccessAsync(userId, unitCode, ct);
 
     private async Task<SysUser> FindActiveAsync(int userId, CancellationToken ct) =>
         await db.Users.ActiveUsers().FirstOrDefaultAsync(x => x.UserId == userId, ct)

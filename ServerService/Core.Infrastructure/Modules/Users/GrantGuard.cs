@@ -16,11 +16,12 @@ namespace Core.Infrastructure.Modules.Users;
 /// </summary>
 public sealed class GrantGuard(CoreContext db, IPermissionService permissions)
 {
-    /// <summary>The five actions with the message key of their name (action.*).</summary>
+    /// <summary>The seven actions with the message key of their name (action.*).</summary>
     private static readonly (string NameKey, Func<ActionPermissions, bool> Get)[] Actions =
     [
-        ("action.view", a => a.View), ("action.createEdit", a => a.CreateEdit), ("action.delete", a => a.Delete),
-        ("action.approve", a => a.Approve), ("action.printExport", a => a.PrintExport)
+        ("action.view", a => a.View), ("action.create", a => a.Create), ("action.edit", a => a.Edit),
+        ("action.delete", a => a.Delete), ("action.approve", a => a.Approve), ("action.print", a => a.Print),
+        ("action.export", a => a.Export)
     ];
 
     public async Task EnsureCanGrantAsync(int actorUserId,

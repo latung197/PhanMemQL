@@ -4,10 +4,10 @@ namespace Core.Application.Modules.Roles;
 
 /// <summary>Same shape as Frontend RoleDefinition.</summary>
 public sealed record RoleDto(string Id, string Code, string Name, string Description,
-    bool IsSystemRole, IReadOnlyDictionary<string, ActionPermissions> Permissions, IReadOnlyList<string> SpecialRights);
+    bool IsSystemRole, IReadOnlyDictionary<string, ActionPermissions> Permissions, IReadOnlyList<string> SpecialRights, uint Version);
 
 public sealed record SaveRoleRequest(string Code, string Name, string? Description,
-    IReadOnlyDictionary<string, ActionPermissions>? Permissions, IReadOnlyList<string>? SpecialRights = null);
+    IReadOnlyDictionary<string, ActionPermissions>? Permissions, IReadOnlyList<string>? SpecialRights = null, uint? Version = null);
 
 public interface IRoleService
 {

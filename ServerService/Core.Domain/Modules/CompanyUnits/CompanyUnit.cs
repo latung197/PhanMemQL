@@ -7,8 +7,11 @@ namespace Core.Domain.Modules.CompanyUnits;
 /// <summary>Đơn vị cơ sở (ma_dvcs). Matches Frontend CompanyUnit.</summary>
 [Audited("inv_company_unit_cat", "companyUnit", Label = "{Code} - {Name}")]
 [Table("sys_company_unit")]
-public class CompanyUnit
+public class CompanyUnit : IVersioned
 {
+    /// <summary>Row version (xmin) against lost updates; see IVersioned.</summary>
+    public uint Version { get; set; }
+
     [Key, Column("code"), MaxLength(20)] public string Code { get; set; } = string.Empty;
     [Required, Column("name"), MaxLength(150)] public string Name { get; set; } = string.Empty;
     [Column("short_name"), MaxLength(100)] public string? ShortName { get; set; }

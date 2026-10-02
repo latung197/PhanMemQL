@@ -15,7 +15,7 @@ import { SettingsViewProps } from './settingsTypes';
 const rate = (n: number) => n.toLocaleString('vi-VN', { maximumFractionDigits: 6 });
 const today = () => new Date().toISOString().slice(0, 10);
 
-export const ExchangeRateView: React.FC<SettingsViewProps> = ({ canEdit, canDelete }) => {
+export const ExchangeRateView: React.FC<SettingsViewProps> = ({ canCreate, canEdit, canDelete }) => {
   const catalog = useCatalog(exchangeRatesApi, {
     keyOf: r => r.id, noun: 'tỷ giá', describe: r => `${r.currencyCode} ngày ${formatDate(r.date)}`
   });
@@ -76,7 +76,7 @@ export const ExchangeRateView: React.FC<SettingsViewProps> = ({ canEdit, canDele
           <SelectInput aria-label="Lọc theo ngoại tệ" value={filter} onChange={e => setFilter(e.target.value)} wrapperClassName="w-56"
             options={[{ value: '', label: 'Tất cả ngoại tệ' }, ...foreign.map(c => ({ value: c.code, label: `${c.code} - ${c.name}` }))]} />
         }
-        primaryAction={canEdit && foreign.length > 0 ? { label: 'Thêm tỷ giá', icon: <Plus className="h-3.5 w-3.5" />, onClick: () => open() } : undefined}
+        primaryAction={canCreate && foreign.length > 0 ? { label: 'Thêm tỷ giá', icon: <Plus className="h-3.5 w-3.5" />, onClick: () => open() } : undefined}
         emptyText={foreign.length === 0 ? 'Chưa có ngoại tệ nào ngoài đồng tiền hạch toán. Hãy khai báo ngoại tệ trước.' : undefined}
         actions={(canEdit || canDelete) ? r => (
           <div className="flex justify-end gap-1">

@@ -71,10 +71,10 @@ export const ALL_SUB_MENU_KEYS: SubMenuKey[] = [
 
 export const READONLY_ACTIONS: ActionPermissions = {
   view: true,
-  createEdit: false,
+  create: false, edit: false,
   delete: false,
   approve: false,
-  printExport: true
+  print: true, export: true
 };
 
 // Helper to build full matrix
@@ -107,16 +107,16 @@ export const initialRoles: RoleDefinition[] = [
     permissions: buildPerms({
       overview_main: FULL_ACTIONS,
       fin_categories: FULL_ACTIONS,
-      fin_receipt_voucher: { view: true, createEdit: true, delete: false, approve: true, printExport: true },
-      fin_payment_voucher: { view: true, createEdit: true, delete: false, approve: true, printExport: true },
+      fin_receipt_voucher: { view: true, create: true, edit: true, delete: false, approve: true, print: true, export: true },
+      fin_payment_voucher: { view: true, create: true, edit: true, delete: false, approve: true, print: true, export: true },
       fin_report: FULL_ACTIONS,
       sales_customers: READONLY_ACTIONS,
-      sales_orders: { view: true, createEdit: true, delete: false, approve: true, printExport: true },
+      sales_orders: { view: true, create: true, edit: true, delete: false, approve: true, print: true, export: true },
       sales_report: FULL_ACTIONS,
       inv_report_stock: READONLY_ACTIONS,
       inv_report_nxt: READONLY_ACTIONS,
       hr_list: READONLY_ACTIONS,
-      hr_payroll: { view: true, createEdit: true, delete: false, approve: true, printExport: true },
+      hr_payroll: { view: true, create: true, edit: true, delete: false, approve: true, print: true, export: true },
       reports_main: FULL_ACTIONS,
       ai_main: FULL_ACTIONS,
       settings_main: READONLY_ACTIONS
@@ -130,13 +130,13 @@ export const initialRoles: RoleDefinition[] = [
     isSystemRole: false,
     permissions: buildPerms({
       overview_main: READONLY_ACTIONS,
-      inv_material_cat: { view: true, createEdit: true, delete: false, approve: false, printExport: true },
-      inv_warehouse_cat: { view: true, createEdit: true, delete: false, approve: false, printExport: true },
-      inv_receipt: { view: true, createEdit: true, delete: false, approve: true, printExport: true },
-      inv_issue: { view: true, createEdit: true, delete: false, approve: true, printExport: true },
+      inv_material_cat: { view: true, create: true, edit: true, delete: false, approve: false, print: true, export: true },
+      inv_warehouse_cat: { view: true, create: true, edit: true, delete: false, approve: false, print: true, export: true },
+      inv_receipt: { view: true, create: true, edit: true, delete: false, approve: true, print: true, export: true },
+      inv_issue: { view: true, create: true, edit: true, delete: false, approve: true, print: true, export: true },
       inv_report_stock: FULL_ACTIONS,
       inv_report_nxt: FULL_ACTIONS,
-      sales_delivery: { view: true, createEdit: true, delete: false, approve: true, printExport: true },
+      sales_delivery: { view: true, create: true, edit: true, delete: false, approve: true, print: true, export: true },
       reports_main: READONLY_ACTIONS,
       ai_main: READONLY_ACTIONS
     })
@@ -149,13 +149,13 @@ export const initialRoles: RoleDefinition[] = [
     isSystemRole: false,
     permissions: buildPerms({
       overview_main: READONLY_ACTIONS,
-      sales_customers: { view: true, createEdit: true, delete: false, approve: false, printExport: true },
-      sales_orders: { view: true, createEdit: true, delete: false, approve: false, printExport: true },
+      sales_customers: { view: true, create: true, edit: true, delete: false, approve: false, print: true, export: true },
+      sales_orders: { view: true, create: true, edit: true, delete: false, approve: false, print: true, export: true },
       sales_delivery: READONLY_ACTIONS,
       sales_report: READONLY_ACTIONS,
       inv_material_cat: READONLY_ACTIONS,
       inv_report_stock: READONLY_ACTIONS,
-      ai_main: { view: true, createEdit: true, delete: false, approve: false, printExport: true }
+      ai_main: { view: true, create: true, edit: true, delete: false, approve: false, print: true, export: true }
     })
   },
   {
@@ -166,8 +166,8 @@ export const initialRoles: RoleDefinition[] = [
     isSystemRole: false,
     permissions: buildPerms({
       overview_main: READONLY_ACTIONS,
-      hr_list: { view: true, createEdit: true, delete: false, approve: false, printExport: true },
-      hr_payroll: { view: true, createEdit: true, delete: false, approve: true, printExport: true },
+      hr_list: { view: true, create: true, edit: true, delete: false, approve: false, print: true, export: true },
+      hr_payroll: { view: true, create: true, edit: true, delete: false, approve: true, print: true, export: true },
       hr_report: FULL_ACTIONS,
       reports_main: READONLY_ACTIONS,
       ai_main: READONLY_ACTIONS

@@ -30,6 +30,7 @@ public sealed class ExchangeRateService(CoreContext db) : IExchangeRateService
     {
         var rate = await db.ExchangeRates.FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException("exchangeRate.notFound");
+        db.ExpectVersion(rate, request.Version);
         await ApplyAsync(rate, userId, request, ct);
         await db.SaveChangesAsync(ct);
         return ToDto(rate, await UserNamesAsync([userId], ct));
@@ -83,5 +84,5 @@ public sealed class ExchangeRateService(CoreContext db) : IExchangeRateService
 
     private static ExchangeRateDto ToDto(ExchangeRate x, IReadOnlyDictionary<int, string> names) =>
         new(x.Id.ToString(), x.CurrencyCode, x.RateDate, x.BuyRate, x.SellRate, x.AccountingRate,
-            names.GetValueOrDefault(x.UpdatedByUserId), x.UpdatedAtUtc);
+            names.GetValueOrDefault(x.UpdatedByUserId), x.UpdatedAtUtc, x.Version);
 }

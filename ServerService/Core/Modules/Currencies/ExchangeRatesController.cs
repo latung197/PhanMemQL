@@ -21,11 +21,11 @@ public sealed class ExchangeRatesController(IExchangeRateService rates) : ApiCon
     public async Task<IActionResult> Rate([FromQuery] string currency, [FromQuery] DateOnly date, CancellationToken ct) =>
         Ok(new { currency, date, rate = await rates.GetRateAsync(currency, date, ct) });
 
-    [HttpPost, RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPost, RequirePermission(Function, PermissionAction.Create)]
     public Task<ExchangeRateDto> Create(SaveExchangeRateRequest request, CancellationToken ct) =>
         rates.CreateAsync(CurrentUserId, request, ct);
 
-    [HttpPut("{id:long}"), RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPut("{id:long}"), RequirePermission(Function, PermissionAction.Edit)]
     public Task<ExchangeRateDto> Update(long id, SaveExchangeRateRequest request, CancellationToken ct) =>
         rates.UpdateAsync(CurrentUserId, id, request, ct);
 

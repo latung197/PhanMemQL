@@ -5,9 +5,9 @@ namespace Core.Application.Modules.VoucherNumbering;
 
 /// <summary>NextNumber = the number the next voucher of the signed-in unit would get today (preview only).</summary>
 public sealed record VoucherNumberingDto(string VoucherType, string Function, string Name, string Prefix, string Pattern,
-    int Digits, string NextNumber);
+    int Digits, string NextNumber, uint Version);
 
-public sealed record SaveVoucherNumberingRequest(string Prefix, string Pattern, int Digits);
+public sealed record SaveVoucherNumberingRequest(string Prefix, string Pattern, int Digits, uint? Version = null);
 
 public interface IVoucherNumberService
 {

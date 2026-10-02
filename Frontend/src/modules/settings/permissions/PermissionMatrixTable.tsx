@@ -40,7 +40,7 @@ const stateOf = (value: FullMatrix, items: FunctionItem[], actions: ActionKey[])
 };
 
 /**
- * Permission matrix grouped by module: functions × the five actions, plus the function's special
+ * Permission matrix grouped by module: functions × the seven actions, plus the function's special
  * rights (xem giá, sửa phiếu đã duyệt, ...). Granting any action also grants "Xem"; removing "Xem"
  * removes everything on that function, including its special rights. "Xem" of the landing page stays on.
  */

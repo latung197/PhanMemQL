@@ -90,7 +90,8 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
     setSaving(true);
     try {
       const matrix = isAdmin ? uniformMatrix('all') : draft.matrix;
-      const result = await usersApi.setPermissions(user.id, draft.roleId || null, matrix, isAdmin ? [] : draft.rights);
+      const result = await usersApi.setPermissions(user.id, draft.roleId || null, matrix, isAdmin ? [] : draft.rights,
+        user.version);
       reset({ roleId: result.roleId ?? '', matrix: toFullMatrix(result), rights: normalizeRights(result.specialRights) });
       onSaved(result);
       showToast.success(t('users.detail.saved', { username: user.username }));

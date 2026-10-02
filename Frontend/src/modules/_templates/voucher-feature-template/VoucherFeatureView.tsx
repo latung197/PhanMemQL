@@ -173,7 +173,7 @@ export const VoucherFeatureView: React.FC<VoucherFeatureViewProps> = ({
 
   // Mở modal tạo mới
   const handleOpenAdd = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Bạn không có quyền lập chứng từ mới!');
       return;
     }
@@ -451,10 +451,10 @@ export const VoucherFeatureView: React.FC<VoucherFeatureViewProps> = ({
             setVouchers([...initialVouchers]);
             showToast.info('Đã tải lại danh sách chứng từ!');
           }}
-          onExportExcel={() => showToast.success(`Đã xuất Excel ${filteredVouchers.length} chứng từ!`)}
+          onExportExcel={perms.export ? () => showToast.success(`Đã xuất Excel ${filteredVouchers.length} chứng từ!`) : undefined}
           addLabel="Lập Chứng Từ Mới"
           onOpenAdd={handleOpenAdd}
-          canCreate={perms.createEdit}
+          canCreate={perms.create}
           filterPanelContent={
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
               <div>

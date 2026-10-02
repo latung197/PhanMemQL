@@ -36,8 +36,8 @@ public sealed class SpecialRightCatalogTests
     {
         var matrix = new Dictionary<string, ActionPermissions>
         {
-            ["inv_receipt"] = new(true, true, false, false, true),
-            ["inv_issue"] = new(false, false, false, false, false)
+            ["inv_receipt"] = new(true, true, true, false, false, true, true),
+            ["inv_issue"] = new(false, false, false, false, false, false, false)
         };
         var granted = SpecialRightCatalog.InitialFor(matrix).Select(r => SpecialRightCatalog.Key(r.Function, r.Code)).ToList();
         Assert.Contains("inv_receipt:VIEW_PRICE", granted);
@@ -51,7 +51,7 @@ public sealed class SpecialRightCatalogTests
     {
         var matrix = new Dictionary<string, ActionPermissions>
         {
-            [SpecialRightCatalog.NotificationFunction] = new(true, true, true, true, true)
+            [SpecialRightCatalog.NotificationFunction] = new(true, true, true, true, true, true, true)
         };
         Assert.DoesNotContain(SpecialRightCatalog.InitialFor(matrix), r => r.Group == SpecialRightGroups.Feature);
         Assert.True(SpecialRightCatalog.IsKnown(SpecialRightCatalog.Key(

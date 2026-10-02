@@ -111,7 +111,7 @@ Khi làm một nghiệp vụ thật (ví dụ phiếu nhập kho), làm theo quy
 - **Bảng:** `sys_*` cho bảng hệ thống, `erp_*` cho bảng nghiệp vụ. Tên bảng và cột viết `snake_case`. **Không dùng khóa ngoại**: liên kết bằng mã hoặc ID có index, và service tự kiểm tra.
 - **Truy vấn:** CRUD viết bằng EF Core. Báo cáo, tính toán và ghi sổ dùng SQL thuần qua `ISqlExecutor`, luôn truyền tham số, không nối chuỗi.
 - **Mã chức năng** (`SubMenuKey`, ví dụ `inv_receipt`) là khóa chung của menu, route, phân quyền và thông báo. Frontend khai báo một lần trong `src/config/functions.ts` (route, nhãn, ma trận quyền tự lấy từ đây); backend khai báo trong `FunctionCatalog.cs`.
-- **Quyền:** mỗi chức năng có 5 thao tác (`view`, `createEdit`, `delete`, `approve`, `printExport`). Ngoài ra có quyền đặc biệt dạng `{chức năng}:{mã}`, ví dụ `inv_receipt:VIEW_PRICE`.
+- **Quyền:** mỗi chức năng có 7 thao tác: `view` (xem), `create` (thêm, cả sao chép / nhập Excel), `edit` (sửa bản ghi đã lưu), `delete`, `approve`, `print` (in), `export` (xuất file). API thêm mới (`POST`) kiểm tra `Create`, sửa (`PUT`) kiểm tra `Edit`. Ngoài ra có quyền đặc biệt dạng `{chức năng}:{mã}`, ví dụ `inv_receipt:VIEW_PRICE`.
 - **Bí mật** (mật khẩu database, khóa JWT, mật khẩu demo) chỉ để trong `appsettings.Local.json` hoặc `.env.local`, không commit.
 
 ## Thêm một chức năng mới
@@ -143,6 +143,8 @@ Mỗi chức năng có một **mã** (ví dụ `inv_supplier_cat`) và thuộc m
 
 Hướng dẫn từng bước, từng file (lấy danh mục đơn vị tính làm mẫu): **[docs/them-danh-muc.md](docs/them-danh-muc.md)**.
 
+Chống ghi đè khi nhiều người cùng sửa (phiên bản bản ghi, lỗi 409, các bước cho chức năng mới): **[docs/chong-ghi-de.md](docs/chong-ghi-de.md)**.
+
 
 - Backend: làm theo mẫu **Phòng ban** (`Core.Infrastructure/Modules/Departments/DepartmentService.cs`): kiểm tra dữ liệu bằng `Guard`, không trùng mã, không xóa bản ghi đang được dùng (tự kiểm tra vì không có khóa ngoại), cho phép "ngừng sử dụng".
 - Frontend: copy **`modules/settings/DepartmentCategoryView.tsx`**. Hook `useCatalog(api, ...)` lo phần tải, thêm, sửa, xóa kèm thông báo; màn hình chỉ khai báo cột (`GridView`) và form (`Modal` + `TextInput`, `SelectInput`, `Checkbox`).
@@ -168,7 +170,7 @@ Hướng dẫn từng bước, từng file (lấy danh mục đơn vị tính l�
 
 ### Báo cáo
 
-- Backend: câu SQL đặt trong `Core.Infrastructure/Modules/<Module>/Sql/<TenBaoCao>.sql`, đọc bằng `SqlScripts.Get("<Module>", "<TenBaoCao>")`, chạy bằng `ISqlExecutor.QueryAsync<T>` (luôn truyền tham số `@ten`). Controller chỉ cần quyền `View` (xuất file: `PrintExport`). Ẩn cột giá / giá vốn theo quyền đặc biệt `VIEW_PRICE` / `VIEW_COST` ngay ở backend.
+- Backend: câu SQL đặt trong `Core.Infrastructure/Modules/<Module>/Sql/<TenBaoCao>.sql`, đọc bằng `SqlScripts.Get("<Module>", "<TenBaoCao>")`, chạy bằng `ISqlExecutor.QueryAsync<T>` (luôn truyền tham số `@ten`). Controller chỉ cần quyền `View` (in: `Print`, xuất file: `Export`). Ẩn cột giá / giá vốn theo quyền đặc biệt `VIEW_PRICE` / `VIEW_COST` ngay ở backend.
 - Frontend: loại `'report'` trong `config/functions.ts`.
 
 ### Quyền đặc biệt và trạng thái chứng từ

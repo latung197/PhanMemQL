@@ -64,17 +64,17 @@ export function checkDocumentAction(user: PolicyUser, fn: SubMenuKey, action: Do
 
     case 'Edit':
       switch (status) {
-        case 'Draft': return a.createEdit ? allow : deny('noEditRight');
-        case 'Pending': return a.createEdit && has(RIGHTS.EDIT_PENDING)
+        case 'Draft': return a.edit ? allow : deny('noEditRight');
+        case 'Pending': return a.edit && has(RIGHTS.EDIT_PENDING)
           ? allow : deny('editPending');
-        case 'Approved': return a.createEdit && has(RIGHTS.EDIT_APPROVED)
+        case 'Approved': return a.edit && has(RIGHTS.EDIT_APPROVED)
           ? allow : deny('editApproved');
         case 'Posted': return deny('postedNoEdit');
         default: return deny('cancelled');
       }
 
     case 'Submit':
-      return status === 'Draft' && a.createEdit ? allow : deny('submitDraftOnly');
+      return status === 'Draft' && (a.create || a.edit) ? allow : deny('submitDraftOnly');
 
     case 'Post':
       return status === 'Approved' && has(RIGHTS.POST) ? allow : deny('postApprovedOnly');

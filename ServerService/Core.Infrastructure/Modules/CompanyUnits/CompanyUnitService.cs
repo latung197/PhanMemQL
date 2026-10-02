@@ -39,6 +39,7 @@ public sealed class CompanyUnitService(CoreContext db) : ICompanyUnitService
     public async Task<CompanyUnitDto> UpdateAsync(string code, SaveCompanyUnitRequest request, CancellationToken ct)
     {
         var unit = await FindAsync(code, ct);
+        db.ExpectVersion(unit, request.Version);
         Apply(unit, request);
         if (!unit.IsActive) await EnsureAnotherActiveAsync(unit.Code, ct);
         await ApplyDefaultAsync(unit, ct);
@@ -93,5 +94,5 @@ public sealed class CompanyUnitService(CoreContext db) : ICompanyUnitService
     }
 
     private static CompanyUnitDto ToDto(CompanyUnit x) => new(x.Code, x.Code, x.Name, x.ShortName, x.Address,
-        x.Phone, x.Email, x.TaxCode, x.IsActive ? CompanyUnitStatus.Active : CompanyUnitStatus.Paused, x.IsDefault);
+        x.Phone, x.Email, x.TaxCode, x.IsActive ? CompanyUnitStatus.Active : CompanyUnitStatus.Paused, x.IsDefault, x.Version);
 }

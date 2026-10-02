@@ -1,3 +1,5 @@
+using Core.Infrastructure.Common.Caching;
+using Core.Application.Common.Caching;
 using System.Text.Json;
 using Core.Application.Common.Exceptions;
 using Core.Application.Modules.SystemConfig;
@@ -8,9 +10,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Core.Infrastructure.Modules.SystemConfig;
 
-public sealed class SystemConfigService(CoreContext db, ILogger<SystemConfigService> logger) : ISystemConfigService
+public sealed class SystemConfigService(CoreContext db, IAppCache cache, ILogger<SystemConfigService> logger) : ISystemConfigService
 {
-    public async Task<IReadOnlyDictionary<string, JsonElement>> GetEffectiveAsync(string unitCode, CancellationToken ct)
+    /// <summary>Read at sign-in and by voucher checks; cached per unit until a setting or the base currency changes.</summary>
+    public Task<IReadOnlyDictionary<string, JsonElement>> GetEffectiveAsync(string unitCode, CancellationToken ct) =>
+        db.CachedAsync(cache, $"settings:{unitCode}", ["sys_setting", "sys_currency"], token => LoadEffectiveAsync(unitCode, token), ct);
+
+    private async Task<IReadOnlyDictionary<string, JsonElement>> LoadEffectiveAsync(string unitCode, CancellationToken ct)
     {
         var unitScope = SystemSetting.UnitScope(unitCode);
         var keys = SystemConfigSections.Keys.Values.ToList();

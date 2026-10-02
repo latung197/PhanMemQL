@@ -18,7 +18,7 @@ public sealed class VoucherNumberingController(IVoucherNumberService numbering) 
     [HttpGet, RequirePermission(Function, PermissionAction.View)]
     public Task<IReadOnlyList<VoucherNumberingDto>> GetAll(CancellationToken ct) => numbering.GetAllAsync(CurrentUnitCode, ct);
 
-    [HttpPut("{voucherType}"), RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPut("{voucherType}"), RequirePermission(Function, PermissionAction.Edit)]
     public Task<VoucherNumberingDto> Update(string voucherType, SaveVoucherNumberingRequest request, CancellationToken ct) =>
         numbering.UpdateAsync(CurrentUserId, voucherType, request, CurrentUnitCode, ct);
 

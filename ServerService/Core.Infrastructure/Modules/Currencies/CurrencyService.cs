@@ -34,6 +34,7 @@ public sealed class CurrencyService(CoreContext db, IUnitOfWork unitOfWork, IAud
     public async Task<CurrencyDto> UpdateAsync(string code, SaveCurrencyRequest request, CancellationToken ct)
     {
         var currency = await FindAsync(code, ct);
+        db.ExpectVersion(currency, request.Version);
         if (currency.IsBase && !request.IsBase)
             throw new BusinessRuleException("currency.keepBase");
         Apply(currency, request);
@@ -83,5 +84,5 @@ public sealed class CurrencyService(CoreContext db, IUnitOfWork unitOfWork, IAud
         await db.SaveChangesAsync(token);
     }, ct);
 
-    private static CurrencyDto ToDto(Currency x) => new(x.Code, x.Name, x.Symbol, x.DecimalPlaces, x.IsBase, x.IsActive);
+    private static CurrencyDto ToDto(Currency x) => new(x.Code, x.Name, x.Symbol, x.DecimalPlaces, x.IsBase, x.IsActive, x.Version);
 }

@@ -281,7 +281,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   };
 
   const handleExportExcel = () => {
-    if (!perm.printExport) {
+    if (!perm.export) {
       showToast.error('Tài khoản của bạn không có quyền Xuất Excel!');
       return;
     }
@@ -289,7 +289,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   };
 
   const handleImportExcel = () => {
-    if (!perm.createEdit) {
+    if (!perm.create) {
       showToast.error('Tài khoản của bạn không có quyền Nhập Excel!');
       return;
     }
@@ -298,7 +298,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
 
   // Open Add Modal
   const handleOpenAdd = () => {
-    if (!perm.createEdit) {
+    if (!perm.create) {
       showToast.error('Tài khoản của bạn không có quyền lập phiếu nhập kho mới!');
       return;
     }
@@ -920,7 +920,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   // Submit Form (Save Voucher)
   const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!perm.createEdit) {
+    if (!(editingVoucherId ? perm.edit : perm.create)) {
       showToast.error('Tài khoản của bạn không có quyền cập nhật dữ liệu!');
       return;
     }
@@ -1019,7 +1019,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
 
   // Print PDF simulation
   const handlePrint = (code: string) => {
-    if (!perm.printExport) {
+    if (!perm.print) {
       showToast.error('Tài khoản của bạn không có quyền In chứng từ!');
       return;
     }
@@ -1215,7 +1215,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
             </button>
           )}
 
-          {perm.printExport && (
+          {perm.print && (
             <button
               type="button"
               onClick={() => handlePrint(v.code)}
@@ -1255,10 +1255,10 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
         onToggleAdvancedFilter={() => setShowAdvancedFilter(!showAdvancedFilter)}
         activeFilterCount={activeFilterCount}
         onRefresh={handleRefresh}
-        onExportExcel={handleExportExcel}
-        onImportExcel={handleImportExcel}
+        onExportExcel={perm.export ? handleExportExcel : undefined}
+        onImportExcel={perm.create ? handleImportExcel : undefined}
         addLabel="Lập Phiếu Nhập Mới"
-        canCreate={perm.createEdit}
+        canCreate={perm.create}
         onOpenAdd={handleOpenAdd}
         filterPanelContent={
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 text-xs">
@@ -1394,7 +1394,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
         fullScreen={true}
         headerActions={
           <div className="flex items-center gap-2 shrink-0">
-            {editingVoucherId && perm.printExport && (
+            {editingVoucherId && perm.print && (
               <Button
                 type="button"
                 variant="outline"

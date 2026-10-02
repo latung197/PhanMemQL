@@ -203,10 +203,10 @@ export const CategoryViewTemplate: React.FC<CategoryViewTemplateProps> = ({
         onToggleAdvancedFilter={() => setShowAdvancedFilter(!showAdvancedFilter)}
         activeFilterCount={activeFilterCount}
         onRefresh={() => showToast.info('Đã làm mới dữ liệu!')}
-        onExportExcel={() => showToast.success('Đã xuất file Excel!')}
-        onImportExcel={() => showToast.info('Mở hộp thoại nhập file Excel...')}
+        onExportExcel={perms.export ? () => showToast.success('Đã xuất file Excel!') : undefined}
+        onImportExcel={perms.create ? () => showToast.info('Mở hộp thoại nhập file Excel...') : undefined}
         addLabel="Khai Báo Mới"
-        canCreate={perms.createEdit}
+        canCreate={perms.create}
         onOpenAdd={() => {
           setEditingItem(null);
           setCode(`CAT${Date.now().toString().slice(-4)}`);

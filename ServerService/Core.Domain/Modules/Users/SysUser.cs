@@ -6,8 +6,11 @@ namespace Core.Domain.Modules.Users;
 
 [Audited("sys_users", "user", Label = "{FullName} (@{UserName})", SoftDelete = nameof(ValidFlg))]
 [Table("sys_users", Schema = "public")]
-public class SysUser : AuditableEntity
+public class SysUser : AuditableEntity, IVersioned
 {
+    /// <summary>Row version (xmin) against lost updates; see IVersioned.</summary>
+    public uint Version { get; set; }
+
     [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity), Column("user_id")]
     public int UserId { get; set; }
 

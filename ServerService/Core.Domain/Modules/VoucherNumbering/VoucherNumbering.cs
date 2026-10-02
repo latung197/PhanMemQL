@@ -10,8 +10,11 @@ namespace Core.Domain.Modules.VoucherNumbering;
 /// </summary>
 [Audited("sys_default_config", "voucherNumbering", Label = "{VoucherType} - {Name}")]
 [Table("sys_voucher_numbering")]
-public class VoucherNumberingRule
+public class VoucherNumberingRule : IVersioned
 {
+    /// <summary>Row version (xmin) against lost updates; see IVersioned.</summary>
+    public uint Version { get; set; }
+
     [Key, Column("voucher_type"), MaxLength(20)] public string VoucherType { get; set; } = string.Empty;
     [AuditField("function"), Required, Column("menuid0"), MaxLength(64)] public string MenuId0 { get; set; } = string.Empty;
     [Required, Column("name"), MaxLength(100)] public string Name { get; set; } = string.Empty;

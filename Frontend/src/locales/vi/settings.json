@@ -22,7 +22,7 @@
   "users": {
     "title": "Người Dùng & Phân Quyền",
     "summary": "{users} người · {roles} vai trò",
-    "description": "Gán vai trò cho tài khoản rồi tinh chỉnh quyền Xem / Thêm-Sửa / Xóa / Duyệt / In-Xuất theo từng chức năng.",
+    "description": "Gán vai trò cho tài khoản rồi tinh chỉnh quyền Xem / Thêm / Sửa / Xóa / Duyệt / In / Xuất theo từng chức năng.",
     "loading": "Đang tải người dùng và vai trò...",
     "reload": "Nạp lại",
     "addUser": "Thêm người dùng",
@@ -183,17 +183,25 @@
   "permissions": {
     "action": {
       "view": "Xem",
+      "create": "Thêm",
+      "edit": "Sửa",
       "createEdit": "Thêm & Sửa",
       "delete": "Xóa",
       "approve": "Phê duyệt",
-      "printExport": "In & Xuất file"
+      "printExport": "In & Xuất file",
+      "print": "In",
+      "export": "Xuất file"
     },
     "actionShort": {
       "view": "Xem",
+      "create": "Thêm",
+      "edit": "Sửa",
       "createEdit": "Thêm/Sửa",
       "delete": "Xóa",
       "approve": "Duyệt",
-      "printExport": "In/Xuất"
+      "printExport": "In/Xuất",
+      "print": "In",
+      "export": "Xuất"
     },
     "group": {
       "danh_muc": "Danh mục",

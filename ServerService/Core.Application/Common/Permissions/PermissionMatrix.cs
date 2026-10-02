@@ -73,8 +73,8 @@ public static class PermissionMatrix
         matrix.TryGetValue(function, out var actions) && actions.Allows(action);
 
     public static ActionPermissions Combine(ActionPermissions a, ActionPermissions b) => new(
-        a.View || b.View, a.CreateEdit || b.CreateEdit, a.Delete || b.Delete,
-        a.Approve || b.Approve, a.PrintExport || b.PrintExport);
+        a.View || b.View, a.Create || b.Create, a.Edit || b.Edit, a.Delete || b.Delete,
+        a.Approve || b.Approve, a.Print || b.Print, a.Export || b.Export);
 
     /// <summary>Special rights: admins have all; otherwise role rights plus own grants, minus own denials.</summary>
     public static IReadOnlySet<string> ResolveRights(bool isAdmin, IEnumerable<string> fromRoles,

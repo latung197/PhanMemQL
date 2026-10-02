@@ -16,10 +16,10 @@ public sealed class CurrenciesController(ICurrencyService currencies) : ApiContr
     [HttpGet]
     public Task<IReadOnlyList<CurrencyDto>> GetAll(CancellationToken ct) => currencies.GetAllAsync(ct);
 
-    [HttpPost, RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPost, RequirePermission(Function, PermissionAction.Create)]
     public Task<CurrencyDto> Create(SaveCurrencyRequest request, CancellationToken ct) => currencies.CreateAsync(request, ct);
 
-    [HttpPut("{code}"), RequirePermission(Function, PermissionAction.CreateEdit)]
+    [HttpPut("{code}"), RequirePermission(Function, PermissionAction.Edit)]
     public Task<CurrencyDto> Update(string code, SaveCurrencyRequest request, CancellationToken ct) =>
         currencies.UpdateAsync(code, request, ct);
 

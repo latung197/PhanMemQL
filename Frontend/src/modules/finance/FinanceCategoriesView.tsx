@@ -162,7 +162,7 @@ export const FinanceCategoriesView: React.FC<FinanceCategoriesViewProps> = ({ cu
 
   // Import Excel
   const handleImportExcel = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Tài khoản của bạn không có quyền NHẬP DỮ LIỆU Khoản mục!');
       return;
     }
@@ -180,7 +180,7 @@ export const FinanceCategoriesView: React.FC<FinanceCategoriesViewProps> = ({ cu
 
   // Open Handlers
   const handleOpenAdd = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Tài khoản của bạn KHÔNG CÓ QUYỀN KHAI BÁO MÃ THU CHI!');
       return;
     }
@@ -192,7 +192,7 @@ export const FinanceCategoriesView: React.FC<FinanceCategoriesViewProps> = ({ cu
   };
 
   const handleOpenEdit = (c: FinCategory) => {
-    if (!perms.createEdit) {
+    if (!perms.edit) {
       showToast.error('Tài khoản của bạn KHÔNG CÓ QUYỀN SỬA KHOẢN MỤC!');
       return;
     }
@@ -350,11 +350,11 @@ export const FinanceCategoriesView: React.FC<FinanceCategoriesViewProps> = ({ cu
           onRefresh={() => {
             showToast.info('Đã tải lại danh mục Khoản mục Thu chi!');
           }}
-          onExportExcel={handleExportExcel}
-          onImportExcel={handleImportExcel}
+          onExportExcel={perms.export ? handleExportExcel : undefined}
+          onImportExcel={perms.create ? handleImportExcel : undefined}
           addLabel="Khai Báo Khoản Mục"
           onOpenAdd={handleOpenAdd}
-          canCreate={perms.createEdit}
+          canCreate={perms.create}
         />
 
         {/* Collapsible Advanced Search Bar */}

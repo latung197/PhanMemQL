@@ -8,10 +8,10 @@ public static class CompanyUnitStatus
 
 /// <summary>Same shape as Frontend CompanyUnit; Id equals Code.</summary>
 public sealed record CompanyUnitDto(string Id, string Code, string Name, string? ShortName,
-    string? Address, string? Phone, string? Email, string? TaxCode, string Status, bool IsDefault);
+    string? Address, string? Phone, string? Email, string? TaxCode, string Status, bool IsDefault, uint Version);
 
 public sealed record SaveCompanyUnitRequest(string Code, string Name, string? ShortName,
-    string? Address, string? Phone, string? Email, string? TaxCode, string? Status, bool IsDefault);
+    string? Address, string? Phone, string? Email, string? TaxCode, string? Status, bool IsDefault, uint? Version = null);
 
 public interface ICompanyUnitService
 {

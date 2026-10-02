@@ -1,9 +1,9 @@
 namespace Core.Application.Modules.Departments;
 
 /// <summary>UserCount = accounts (not deleted) in the department.</summary>
-public sealed record DepartmentDto(string Code, string Name, string? Note, bool IsActive, int UserCount);
+public sealed record DepartmentDto(string Code, string Name, string? Note, bool IsActive, int UserCount, uint Version);
 
-public sealed record SaveDepartmentRequest(string Code, string Name, string? Note, bool IsActive = true);
+public sealed record SaveDepartmentRequest(string Code, string Name, string? Note, bool IsActive = true, uint? Version = null);
 
 public interface IDepartmentService
 {

@@ -31,7 +31,9 @@ public sealed record UserProfileDto(
     /// <summary>Language the user works in: their own choice when it is active, otherwise the default language.</summary>
     string Language,
     /// <summary>The user's own choice (null = follow the default language of the company).</summary>
-    string? LanguagePreference);
+    string? LanguagePreference,
+    /// <summary>Row version, sent back by UpdateUserRequest / SetUserPermissionsRequest (IVersioned).</summary>
+    uint Version);
 
 public sealed record CreateUserRequest(
     string Username,
@@ -58,12 +60,13 @@ public sealed record UpdateUserRequest(
     string? EmployeeCode,
     bool IsActive,
     [property: JsonPropertyName("ma_dvcs")] string MaDvcs,
-    [property: JsonPropertyName("ds_ma_dvcs")] IReadOnlyList<string>? DsMaDvcs);
+    [property: JsonPropertyName("ds_ma_dvcs")] IReadOnlyList<string>? DsMaDvcs,
+    uint? Version = null);
 
 /// <summary>Assigns a role (null = none) and stores the user's own permission matrix and special rights.</summary>
 public sealed record SetUserPermissionsRequest(string? RoleId,
     IReadOnlyDictionary<string, ActionPermissions> Permissions,
-    IReadOnlyList<string>? SpecialRights = null);
+    IReadOnlyList<string>? SpecialRights = null, uint? Version = null);
 
 public sealed record ResetPasswordRequest(string NewPassword);
 
@@ -88,6 +91,8 @@ public interface IPermissionService
 {
     Task<bool> IsAdminAsync(int userId, CancellationToken ct = default);
     Task<bool> IsTokenCurrentAsync(int userId, int securityVersion, CancellationToken ct = default);
+    /// <summary>The unit exists, is active, and the user is an administrator or was given it.</summary>
+    Task<bool> HasUnitAccessAsync(int userId, string unitCode, CancellationToken ct = default);
 
     /// <summary>One entry per catalog function; admins get full rights everywhere.</summary>
     Task<IReadOnlyDictionary<string, ActionPermissions>> GetEffectiveAsync(int userId, CancellationToken ct = default);
@@ -106,6 +111,9 @@ public interface IPermissionService
 
     /// <summary>Throws ForbiddenException when the user may not perform the action on the function.</summary>
     Task EnsureAllowedAsync(int userId, string function, PermissionAction action, CancellationToken ct = default);
+    /// <summary>Allowed when the user has at least one of the actions.</summary>
+    Task EnsureAnyAllowedAsync(int userId, string function, IReadOnlyCollection<PermissionAction> actions,
+        CancellationToken ct = default);
 
     /// <summary>Throws ForbiddenException when the user is not an administrator.</summary>
     Task EnsureAdminAsync(int userId, CancellationToken ct = default);

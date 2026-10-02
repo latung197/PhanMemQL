@@ -23,7 +23,7 @@ interface PolicyCase {
 }
 
 const toActions = (keys: (keyof ActionPermissions)[] = []): ActionPermissions => {
-  const permissions: ActionPermissions = { view: false, createEdit: false, delete: false, approve: false, printExport: false };
+  const permissions: ActionPermissions = { view: false, create: false, edit: false, delete: false, approve: false, print: false, export: false };
   keys.forEach(a => { permissions[a] = true; });
   return permissions;
 };

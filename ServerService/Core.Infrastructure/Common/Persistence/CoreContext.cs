@@ -1,3 +1,4 @@
+using Core.Application.Common.Exceptions;
 using Core.Application.Common.Security;
 using Core.Infrastructure.Common.Auditing;
 using Core.Domain.Common;
@@ -66,6 +67,9 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     // Change log (all functions)
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    // How lists are shown (per user / company default)
+    public DbSet<GridLayout> GridLayouts => Set<GridLayout>();
+
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<SysUserRole>().HasKey(x => new { x.UserId, x.RoleId });
@@ -92,6 +96,11 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<ExchangeRate>().HasIndex(x => new { x.CurrencyCode, x.RateDate }).IsUnique();
         model.Entity<FiscalPeriod>().HasKey(x => new { x.UnitCode, x.Year, x.Month });
         model.Entity<VoucherSequence>().HasKey(x => new { x.VoucherType, x.UnitCode, x.PeriodKey });
+
+        // Row version of records edited in forms (IVersioned): PostgreSQL's xmin system column, changed by every update
+        // and checked by every UPDATE / DELETE of the row (RowVersions.ExpectVersion sets the version a screen loaded).
+        foreach (var type in model.Model.GetEntityTypes().Where(t => typeof(IVersioned).IsAssignableFrom(t.ClrType)).ToList())
+            model.Entity(type.ClrType).Property(nameof(IVersioned.Version)).HasColumnName("xmin").HasColumnType("xid").IsRowVersion();
     }
 
     /// <summary>
@@ -100,6 +109,19 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     /// is opened for the two saves.
     /// </summary>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await SaveWithChangeLogAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // The row was changed (other version) or deleted by someone else since it was loaded.
+            throw new ConflictException("record.changed");
+        }
+    }
+
+    private async Task<int> SaveWithChangeLogAsync(CancellationToken cancellationToken)
     {
         StampAuditFields();
         var batch = auditTrail is { Enabled: true } ? auditTrail.Collect(ChangeTracker) : null;

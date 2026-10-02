@@ -19,7 +19,7 @@ const EMPTY: SaveLanguageInput = { code: '', name: '', nativeName: '', isActive:
 /** Screen texts exist for the language (locales/<code>.json), otherwise its screens fall back to Vietnamese. */
 const hasScreenTexts = (code: string) => code in translations;
 
-export const LanguageCategoryView: React.FC<SettingsViewProps> = ({ canEdit, canDelete }) => {
+export const LanguageCategoryView: React.FC<SettingsViewProps> = ({ canCreate, canEdit, canDelete }) => {
   const catalog = useCatalog(languagesApi, { keyOf: l => l.code, noun: 'ngôn ngữ', describe: l => `${l.code} - ${l.name}` });
   // null = form closed; `editing` undefined = new record.
   const [form, setForm] = useState<SaveLanguageInput | null>(null);
@@ -78,7 +78,7 @@ export const LanguageCategoryView: React.FC<SettingsViewProps> = ({ canEdit, can
         getItemId={l => l.code}
         loading={catalog.loading}
         searchPlaceholder="Tìm mã hoặc tên ngôn ngữ..."
-        primaryAction={canEdit ? { label: 'Thêm ngôn ngữ', icon: <Plus className="h-3.5 w-3.5" />, onClick: () => open() } : undefined}
+        primaryAction={canCreate ? { label: 'Thêm ngôn ngữ', icon: <Plus className="h-3.5 w-3.5" />, onClick: () => open() } : undefined}
         actions={(canEdit || canDelete) ? l => (
           <div className="flex justify-end gap-1">
             {canEdit && <Button variant="ghost" size="sm" title="Sửa" onClick={() => open(l)} icon={<Edit2 className="h-3.5 w-3.5" />} />}

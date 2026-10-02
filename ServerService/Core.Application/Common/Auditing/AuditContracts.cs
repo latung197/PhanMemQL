@@ -37,6 +37,8 @@ public static class AuditActions
     /// </summary>
     public const string Sync = "SYNC";
     public const string ChangePassword = "CHANGE_PASSWORD";
+    /// <summary>Old change-log rows deleted automatically (AuditLogCleanupService); by the system, no user.</summary>
+    public const string Purge = "PURGE";
     public const string Submit = "SUBMIT";
     public const string Approve = "APPROVE";
     public const string Reject = "REJECT";
@@ -48,7 +50,7 @@ public static class AuditActions
 /// them without per-screen code:
 /// <list type="bullet">
 /// <item>plain field: camelCase name ("fullName", "isActive"); booleans are "true" / "false", lists comma-joined;</item>
-/// <item><c>permission:{function}</c>: granted actions, e.g. "view,createEdit" (null = none);</item>
+/// <item><c>permission:{function}</c>: granted actions, e.g. "view,create,edit" (null = none);</item>
 /// <item><c>right:{function}:{code}</c>: a special right, "true" granted / "false" not.</item>
 /// </list>
 /// </summary>
@@ -56,8 +58,8 @@ public sealed class AuditDiff
 {
     private static readonly (string Key, Func<ActionPermissions, bool> Has)[] Actions =
     [
-        ("view", a => a.View), ("createEdit", a => a.CreateEdit), ("delete", a => a.Delete),
-        ("approve", a => a.Approve), ("printExport", a => a.PrintExport)
+        ("view", a => a.View), ("create", a => a.Create), ("edit", a => a.Edit), ("delete", a => a.Delete),
+        ("approve", a => a.Approve), ("print", a => a.Print), ("export", a => a.Export)
     ];
 
     private readonly List<AuditChange> _changes = [];
@@ -105,7 +107,7 @@ public sealed class AuditDiff
         return this;
     }
 
-    /// <summary>Granted actions as "view,createEdit"; null when none.</summary>
+    /// <summary>Granted actions as "view,create,edit"; null when none.</summary>
     public static string? ActionList(ActionPermissions? actions) =>
         actions is null ? null : string.Join(',', Actions.Where(x => x.Has(actions)).Select(x => x.Key)) is { Length: > 0 } s ? s : null;
 

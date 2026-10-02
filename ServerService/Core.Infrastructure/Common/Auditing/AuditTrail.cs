@@ -24,9 +24,10 @@ public sealed partial class AuditTrail(ICurrentUser currentUser, IHttpContextAcc
 {
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    /// <summary>Record stamps (sys_* legacy columns, ErpEntity columns): the log's own information, never fields.</summary>
+    /// <summary>Record stamps (sys_* legacy columns, ErpEntity columns) and the row version: the log's own information, never fields.</summary>
     private static readonly HashSet<string> AuditColumns =
     [
+        nameof(IVersioned.Version),
         nameof(IAuditable.CreateTime), nameof(IAuditable.CreateId), nameof(IAuditable.UpdateTime), nameof(IAuditable.UpdateId),
         nameof(AuditableEntity.Status),
         nameof(ErpEntity.CreatedAt), nameof(ErpEntity.CreatedBy), nameof(ErpEntity.UpdatedAt), nameof(ErpEntity.UpdatedBy)

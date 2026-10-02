@@ -51,6 +51,7 @@ tests/Core.Tests/            Common/ và Modules/ giống cấu trúc trên
 - **Đặt tên:** `sys_*` cho bảng hệ thống (tài khoản, phân quyền, đơn vị cơ sở, thông báo, cài đặt), `erp_*` cho bảng dữ liệu nghiệp vụ (vật tư, chứng từ, sổ kho, sổ cái…). Tên bảng và cột dùng `snake_case`; test `TablesAndColumnsFollowNamingConvention` kiểm tra quy tắc này.
 - Bảng hệ thống hiện có: `sys_users`, `sys_role`, `sys_user_role`, `sys_command`, `sys_role_command`, `sys_user_command`, `sys_role_right`, `sys_user_right`, `sys_company_unit`, `sys_user_company_unit`, `sys_department`, `sys_notification`, `sys_notification_read`, `sys_setting`, `sys_currency`, `sys_exchange_rate`, `sys_fiscal_period`, `sys_voucher_numbering`, `sys_voucher_sequence`, `sys_approval_rule`, `sys_document_approval`, `sys_language` (danh mục ngôn ngữ, một ngôn ngữ mặc định), `sys_audit_log` (nhật ký thay đổi của mọi chức năng), `sys_migration` (chuyển dữ liệu một lần đã chạy). Bảng nghiệp vụ hiện có: `erp_uom` (danh mục đơn vị tính).
 - Mọi bảng `erp_*` có 4 cột dấu vết `created_at`, `created_by`, `updated_at`, `updated_by` (`timestamptz` giờ UTC, id người dùng): entity kế thừa `ErpEntity`, `CoreContext` tự điền khi lưu (client gửi lên cũng bị bỏ qua), test `BusinessTablesHaveRecordStamps` bắt buộc. DTO trả về dạng `stamp` (`RecordStampDto`, có tên người tạo / sửa); frontend dùng `recordStampColumns(t)` cho lưới và `<RecordStampLine>` cho form. Bảng `sys_*` cũ vẫn dùng `createtime` / `createid` / `updatetime` / `updateid`. `sys_users.language` là ngôn ngữ riêng của người dùng (null = theo ngôn ngữ mặc định).
+- **Chống ghi đè khi nhiều người cùng sửa**: bản ghi sửa trên form có `Version` (`IVersioned`; mọi `ErpEntity` đã có), ánh xạ tới cột hệ thống `xmin` của PostgreSQL (không cần thêm cột). DTO trả `version`, màn hình gửi lại khi lưu; service gọi `db.ExpectVersion(entity, request.Version)` sau khi tải bản ghi. Nếu bản ghi đã bị người khác sửa hoặc xóa, API trả **409** với thông báo `record.changed`, không ghi gì. Không gửi `version` thì không kiểm tra (nhập khẩu, sao lưu). Hướng dẫn: `docs/chong-ghi-de.md`.
 - Cài đặt dạng JSON (`sys_setting`) chỉ dùng cho giá trị không bị dữ liệu khác tham chiếu (tham số mặc định, năm tài chính, hồ sơ doanh nghiệp, định dạng số). Thứ gì được phiếu / người dùng tham chiếu (ngoại tệ, tỷ giá, phòng ban, kỳ khóa sổ, dải số) có bảng riêng. Script 06–08 tự chuyển dữ liệu JSON / chữ cũ sang các bảng này. Các bảng `erp_unit`, `erp_user_unit`, `erp_notification`, `erp_notification_read`, `erp_setting` của phiên bản cũ được script tự đổi tên (giữ nguyên dữ liệu).
 - `00-helpers.sql` có các hàm dùng lại khi viết script: `sys_rename_table`, `sys_rename_column`, `sys_rename_constraint`, `sys_drop_foreign_keys`.
 - **Không dùng khóa ngoại.** Các bảng liên kết với nhau qua trường mã/ID (`user_id`, `role_id`, `menuid0`, `unit_code`, `notification_id`), có index trên các trường này. Service kiểm tra bản ghi liên kết tồn tại trước khi ghi và không cho xóa bản ghi đang được dùng. Các script tự gỡ khóa ngoại còn sót từ phiên bản cũ.
@@ -74,7 +75,7 @@ await unitOfWork.ExecuteAsync(async ct =>
 
 ## Phân quyền
 
-- Ma trận quyền giống frontend: mỗi mã chức năng (`SubMenuKey`) có 5 thao tác `view / createEdit / delete / approve / printExport`. Bảng `sys_role_command` / `sys_user_command` vẫn giữ 11 cờ cũ; `CommandPermission` chuyển đổi hai chiều.
+- Ma trận quyền giống frontend: mỗi mã chức năng (`SubMenuKey`) có 7 thao tác `view / create / edit / delete / approve / print / export`. Bảng `sys_role_command` / `sys_user_command` vẫn giữ 11 cờ cũ; `CommandPermission` chuyển đổi hai chiều (`can_add` = Thêm, kèm `can_copy` / `can_import`; `can_edit` = Sửa; `can_print` = In; `can_export` = Xuất). Endpoint thêm mới dùng `PermissionAction.Create`, sửa / lưu cấu hình dùng `Edit`; gửi duyệt chứng từ cần `Create` hoặc `Edit`. JSON kiểu cũ (`createEdit`, `printExport` trong file seed, file sao lưu) vẫn đọc được, nghĩa là có cả hai quyền.
 - Quyền hiệu lực = **vai trò + ngoại lệ** (`PermissionMatrix.Resolve`). Quản trị viên (vai trò mã `ADMIN` hoặc cờ cũ `auth_fl` chứa `0`) có toàn quyền. Người khác có quyền của vai trò; mỗi dòng `sys_user_command` là ngoại lệ, thay quyền của đúng chức năng đó. Chức năng không có dòng riêng luôn theo vai trò, nên thêm chức năng hoặc sửa vai trò thì người giữ vai trò nhận ngay.
 - Màn phân quyền vẫn gửi cả ma trận mong muốn; backend chỉ lưu phần khác vai trò (`PermissionMatrix.Overrides`). "Đưa N người về đúng vai trò" (`POST /api/settings/roles/{id}/sync-users`) xóa ngoại lệ của những người giữ vai trò. Script `10-permission-exceptions.sql` đã chuyển dữ liệu kiểu cũ (ma trận riêng thay cả vai trò) sang kiểu này mà không đổi quyền của ai.
 - API bảo vệ bằng `[RequirePermission("sys_users", PermissionAction.Delete)]`. Mọi controller kế thừa `ApiControllerBase` yêu cầu đăng nhập và quyền vào đơn vị cơ sở của token.
@@ -149,7 +150,11 @@ Mọi API (trừ đăng nhập) nhận `Authorization: Bearer <token>`; lỗi tr
 | Notifications | `GET /api/notifications`, `PUT /{id}/read`, `PUT /read-all`, `DELETE /{id}` (ẩn một thông báo), `DELETE` (ẩn tất cả), `GET /stream` (sự kiện thời gian thực); `POST` gửi, `GET /send-scope`, `GET /recipients?unitCode=` | Gửi: quản trị viên hoặc quyền `SEND_NOTIFICATION` / `SEND_NOTIFICATION_ALL` |
 | Permissions | `GET /api/settings/permission-catalog` (danh sách quyền đặc biệt) | Đã đăng nhập |
 | Approvals | `GET/POST /api/settings/approval-rules`, `PUT/DELETE .../{id}`, `POST .../preview` | `sys_users` |
-| Inventory | `GET /api/inventory/uoms` (danh mục đơn vị tính); `POST`, `PUT /{code}`, `DELETE /{code}` | Xem: đã đăng nhập; sửa: `inv_uom_cat` |
+| Inventory | `GET /api/inventory/uoms` (danh mục đơn vị tính đầy đủ); `POST`, `PUT /{code}`, `DELETE /{code}`; `POST .../import` `{ rows, mode: "create" \| "upsert" }` (nhập Excel), `POST .../delete-many` `{ keys }` | Xem: Xem; thêm / nhập: Thêm (upsert cần thêm Sửa); sửa: Sửa; xóa: Xóa (`inv_uom_cat`). Màn khác chọn đơn vị qua `/api/lookups/uoms` |
+| AuditLogs | `GET /api/audit-logs/settings`, `PUT .../settings` `{ retentionMonths }` (0 = lưu vĩnh viễn, tối đa 120) | Xem / Sửa: `sys_audit_log` |
+| GridLayouts | `GET /api/grid-layouts/{functionCode}/{gridKey}` (bố cục của tôi + mặc định công ty), `PUT/DELETE .../me`, `PUT/DELETE .../company` | Xem chức năng đó; `company`: quản trị viên |
+| Lookups | `GET /api/lookups/{name}?q=&page=&pageSize=&includeInactive=`, `GET /api/lookups/{name}/codes?codes=A,B` (danh mục đăng ký bằng `AddLookup`: `uoms`) | Đã đăng nhập |
+| Health | `GET /health` (kiểm tra cả database), `GET /health/live` (chỉ tiến trình) | Công khai (cho load balancer / công cụ giám sát) |
 | AuditLogs | `GET /api/audit-logs/filters`; `GET /api/audit-logs?functionCode=&objectType=&objectId=&action=&actor=&search=&from=&to=&page=&pageSize=` (mới nhất trước; `actor` / `search` tìm một phần tên, không phân biệt hoa thường; `to` tính cả ngày đó) | Xem: `sys_audit_log` |
 | Approvals | `GET /api/approvals/pending`, `GET /api/approvals/{fn}/{id}`, `POST .../submit`, `.../approve`, `.../reject`, `.../withdraw` | Theo chức năng của phiếu |
 
@@ -182,7 +187,29 @@ Test `AuditDeclarationTests` bắt mọi entity phải có `[Audited]` hoặc `[
 - `RecordAsync(new AuditEntry(...))`: một dòng riêng, gọi trước `SaveChanges`. Đang dùng cho: phân quyền tài khoản (quyền **thực tế** được thêm / bớt, `UserAccessAudit`), ma trận + quyền đặc biệt của vai trò, đưa người dùng về đúng vai trò (`SYNC`), đặt lại / đổi mật khẩu, trình / duyệt / từ chối / rút phiếu (`DocumentApprovalService`), và thay đổi bằng `ExecuteUpdate` (bỏ cờ tiền hạch toán / ngôn ngữ mặc định cũ).
 - SQL thuần (`ISqlExecutor`, ghi sổ) và `ExecuteUpdate` / `ExecuteDelete` **không** đi qua EF: phải ghi tay một dòng tóm tắt.
 
+**Tự xóa nhật ký cũ.** Màn Nhật ký thay đổi có nút **Lưu trữ** (cần quyền Sửa của `sys_audit_log`): số tháng giữ nhật ký, lưu ở mục cài đặt `auditLog` (`sys_setting`, khóa `AUDIT_LOG_SETTINGS`; không có = lưu vĩnh viễn). `AuditLogCleanupService` chạy 1 phút sau khi API khởi động rồi 12 giờ một lần, xóa từng lô 5.000 dòng cũ hơn số tháng đó (tính trọn ngày), rồi ghi một dòng `PURGE` của "Hệ thống" (số dòng đã xóa, xóa trước ngày nào). Dòng `PURGE` không bao giờ bị xóa. Đổi số tháng cũng được ghi nhật ký.
+
 Quy ước trường (frontend tự hiển thị): trường thường `camelCase` (nhãn `audit.field.<tên>`), `permission:{chức năng}` (các quyền được cấp), `right:{chức năng}:{mã}` (quyền đặc biệt). Bộ lọc của màn lấy từ `GET /api/audit-logs/filters`, nên chức năng mới tự hiện; nhãn `audit.objectType.<loại>` / `audit.action.<HÀNH_ĐỘNG>` là tùy chọn (không có thì hiện mã).
+
+## Lỗi trùng dữ liệu, cache, log và giám sát
+
+**Lỗi trùng / xung đột** (`Core.Infrastructure/Common/Persistence/DatabaseErrors.cs`, dùng trong `AppExceptionFilter`): mọi lỗi unique (23505) từ bất kỳ đường ghi nào (EF, `ExecuteUpdate`, SQL thuần) thành **409** *"Tên "Kilogram" đã tồn tại. Vui lòng nhập giá trị khác."*, không còn lỗi 500. Tên trường lấy từ khóa `dbfield.<tên cột>` (`Messages.*.json`), giá trị lấy từ chi tiết lỗi của PostgreSQL (`IncludeErrorDetail` bật trong `AddInfrastructure`). Deadlock / serialization (40P01, 40001) thành 409 `record.busy`. Service vẫn nên kiểm tra trước để có thông báo riêng; lớp này là lưới an toàn khi hai người lưu cùng lúc.
+
+**Cache** (`IAppCache`, `Core.Infrastructure/Common/Caching/`): bộ nhớ của instance API. Mỗi mục cache khai báo các bảng nó đọc; `CacheInvalidationInterceptor` dò mọi lệnh `INSERT` / `UPDATE` / `DELETE` mà `CoreContext` chạy và xóa cache của bảng đó ngay, rồi xóa lại khi transaction commit hoặc rollback. Trong transaction đang mở thì không dùng cache (`db.CachedAsync`). Đang cache:
+- quyền của từng người dùng (tài khoản còn hoạt động, `security_version`, admin, ma trận quyền, quyền đặc biệt, đơn vị được vào): trước đây đọc DB ở mọi request, nay đọc một lần cho tới khi bảng tài khoản / vai trò / quyền thay đổi. Thu hồi quyền hay khóa tài khoản vẫn có hiệu lực ngay request sau;
+- danh sách đơn vị đang hoạt động, các mục cài đặt theo đơn vị, ngôn ngữ đang dùng, danh mục đơn vị tính.
+
+Không cache tồn kho, số dư, số chứng từ, khóa sổ. Lệnh ghi qua Dapper (`ISqlExecutor`) không đi qua EF: nếu ghi vào bảng có cache thì gọi `cache.InvalidateTables(...)`. Chạy nhiều instance API thì cần kênh xóa cache chung (PostgreSQL LISTEN / NOTIFY hoặc Redis).
+
+**Log** (Serilog, mục `Serilog` trong `appsettings.json`): ghi ra console và `Core/logs/erp-yyyyMMdd.log` (mỗi ngày một file, giữ 30 file, tối đa 100 MB / file; thư mục `logs/` không commit). Mỗi request một dòng: phương thức, đường dẫn, mã trả về, thời gian xử lý, kèm `UserId`, `UnitCode`, `ClientIp`, `RequestId`. Request chậm hơn `Monitoring:SlowRequestMs` (1.000 ms) ghi mức Warning, lỗi server ghi Error. Câu SQL chậm hơn `Monitoring:SlowQueryMs` (500 ms) ghi Warning kèm câu lệnh (`SlowQueryInterceptor`, không ghi giá trị tham số). Mỗi response có header `X-Request-Id` để người dùng báo lỗi kèm mã, tra đúng dòng log.
+
+**Bố cục lưới** (`sys_grid_layout`, `14-grid-layout.sql`): mỗi người một dòng cho mỗi lưới (`function_code` + `grid_key`), `user_id` NULL là mặc định của công ty; `layout` là JSON do frontend ghi (`columns: [{ key, visible, width }]`, `sortKey`, `sortDir`, `pageSize`), backend chỉ kiểm tra hình dạng và kích thước (`GridLayoutRules`). Cột do code định nghĩa; khóa cột không còn thì frontend bỏ qua.
+
+**Quyền đọc**: `GET` dữ liệu đầy đủ của một chức năng cần quyền **Xem** chức năng đó; chọn mã ở màn khác đi qua tra cứu (chỉ mã, tên, cột phụ khai báo). `ReadAccessContractTests` bắt mọi `GET` của controller có `Function` phải có `RequirePermission`; các ngoại lệ hiện có (đơn vị cơ sở, tiền tệ, tỷ giá, phòng ban, khóa sổ, xem trước số phiếu) ghi lý do trong test và sẽ chuyển sang tra cứu khi chuyển màn.
+
+**Tra cứu dùng chung** (`ILookupService`, `Core.Infrastructure/Common/Lookups/`): mỗi danh mục đăng ký một `LookupDefinition` (chiếu sang `LookupRow`: mã, tên, đang dùng, 3 cột phụ). Tìm `ILIKE` trên mã và tên (ký tự `%` / `_` được hiểu là chữ), mã trùng khớp rồi mã bắt đầu bằng chữ tìm đứng trước, phân trang tối đa 100.
+
+**Giám sát**: `GET /health` trả `{ status, checks: { database } }` (200 khi ổn, 503 khi database không kết nối được), `GET /health/live` chỉ kiểm tra tiến trình. Trên server database nên bật `pg_stat_statements` để biết câu lệnh nào tốn thời gian nhất.
 
 ## Thêm module mới
 
@@ -203,7 +230,7 @@ Service của phiếu ghép các khối có sẵn, tất cả trong một transa
 ```csharp
 public async Task<ReceiptDto> CreateAsync(int userId, string unitCode, SaveReceiptRequest request, CancellationToken ct)
 {
-    await permissions.EnsureAllowedAsync(userId, "inv_receipt", PermissionAction.CreateEdit, ct);
+    await permissions.EnsureAllowedAsync(userId, "inv_receipt", PermissionAction.Create, ct);   // UpdateAsync: Edit
     await fiscal.EnsureDateOpenAsync(unitCode, request.Date, ct);            // khóa sổ, ngày bắt đầu nhập liệu
     var rate = await rates.GetRateAsync(request.CurrencyCode, request.Date, ct); // 1 nếu là tiền hạch toán
 

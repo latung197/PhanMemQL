@@ -1,9 +1,9 @@
 namespace Core.Application.Modules.Languages;
 
 /// <summary>UserCount = accounts (not deleted) that chose this language themselves.</summary>
-public sealed record LanguageDto(string Code, string Name, string NativeName, bool IsActive, bool IsDefault, int UserCount);
+public sealed record LanguageDto(string Code, string Name, string NativeName, bool IsActive, bool IsDefault, int UserCount, uint Version);
 
-public sealed record SaveLanguageRequest(string Code, string Name, string NativeName, bool IsActive = true, bool IsDefault = false);
+public sealed record SaveLanguageRequest(string Code, string Name, string NativeName, bool IsActive = true, bool IsDefault = false, uint? Version = null);
 
 /// <summary>What the language picker needs (login screen and header), without the counts.</summary>
 public sealed record LanguageOptionDto(string Code, string NativeName, bool IsDefault);

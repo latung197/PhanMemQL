@@ -39,7 +39,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
 }) => {
   // App only renders this module when the user may view subKey.
   const perms = getActionPermission(user, subKey);
-  const rights = { canEdit: perms.createEdit, canDelete: perms.delete };
+  const rights = { canCreate: perms.create, canEdit: perms.edit, canDelete: perms.delete };
 
   const renderScreen = () => {
     switch (subKey) {
@@ -49,7 +49,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       case 'sys_exchange_rates': return <ExchangeRateView {...rights} />;
       case 'sys_departments': return <DepartmentCategoryView {...rights} />;
       case 'sys_languages': return <LanguageCategoryView {...rights} />;
-      case 'sys_audit_log': return <AuditLogView />;
+      case 'sys_audit_log': return <AuditLogView {...rights} />;
       case 'sys_users': return <UserPermissionManager currentUser={user} companyUnits={companyUnits} />;
       case 'inv_company_unit_cat':
         return (

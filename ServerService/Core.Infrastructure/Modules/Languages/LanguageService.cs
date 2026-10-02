@@ -1,3 +1,5 @@
+using Core.Infrastructure.Common.Caching;
+using Core.Application.Common.Caching;
 using System.Text.RegularExpressions;
 using Core.Application.Common.Auditing;
 using Core.Application.Common.Exceptions;
@@ -11,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Core.Infrastructure.Modules.Languages;
 
 /// <summary>Danh mục ngôn ngữ: a plain catalog with one default language (like the base currency).</summary>
-public sealed partial class LanguageService(CoreContext db, IUnitOfWork unitOfWork, IAuditLog auditLog) : ILanguageService
+public sealed partial class LanguageService(CoreContext db, IUnitOfWork unitOfWork, IAuditLog auditLog, IAppCache cache) : ILanguageService
 {
     /// <summary>Language tags as browsers send them: "vi", "en", "zh-cn", "pt-br".</summary>
     [GeneratedRegex("^[a-z]{2,3}(-[a-z0-9]{2,8})?$")]
@@ -26,8 +28,10 @@ public sealed partial class LanguageService(CoreContext db, IUnitOfWork unitOfWo
         return languages.Select(x => ToDto(x, counts.GetValueOrDefault(x.Code))).ToList();
     }
 
-    public async Task<IReadOnlyList<LanguageOptionDto>> GetActiveAsync(CancellationToken ct) =>
-        await Ordered().Where(x => x.IsActive).Select(x => new LanguageOptionDto(x.Code, x.NativeName, x.IsDefault)).ToListAsync(ct);
+    /// <summary>Read by the sign-in screen and the language menu; cached until the catalog changes.</summary>
+    public Task<IReadOnlyList<LanguageOptionDto>> GetActiveAsync(CancellationToken ct) =>
+        db.CachedAsync<IReadOnlyList<LanguageOptionDto>>(cache, "languages:active", ["sys_language"], async token =>
+            await Ordered().Where(x => x.IsActive).Select(x => new LanguageOptionDto(x.Code, x.NativeName, x.IsDefault)).ToListAsync(token), ct);
 
     public async Task<LanguageDto> CreateAsync(SaveLanguageRequest request, CancellationToken ct)
     {
@@ -50,6 +54,7 @@ public sealed partial class LanguageService(CoreContext db, IUnitOfWork unitOfWo
     public async Task<LanguageDto> UpdateAsync(string code, SaveLanguageRequest request, CancellationToken ct)
     {
         var language = await FindAsync(code, ct);
+        db.ExpectVersion(language, request.Version);
         if (language.IsDefault && !request.IsDefault)
             throw new BusinessRuleException("language.keepDefault");
         Apply(language, request);
@@ -108,5 +113,5 @@ public sealed partial class LanguageService(CoreContext db, IUnitOfWork unitOfWo
     }, ct);
 
     private static LanguageDto ToDto(Language x, int userCount) =>
-        new(x.Code, x.Name, x.NativeName, x.IsActive, x.IsDefault, userCount);
+        new(x.Code, x.Name, x.NativeName, x.IsActive, x.IsDefault, userCount, x.Version);
 }

@@ -166,7 +166,104 @@
     "deleteTitle": "Xóa {noun} {item}?",
     "deleteMessage": "Dữ liệu bị xóa không khôi phục được.",
     "delete": "Xóa",
-    "deleted": "Đã xóa {noun} {item}"
+    "deleted": "Đã xóa {noun} {item}",
+    "edit": "Sửa",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "saving": "Đang lưu...",
+    "deleteSelected": "Xóa các dòng đã chọn",
+    "deleteManyTitle": "Xóa {n} {noun} đã chọn?",
+    "deleteManyMessage": "Dữ liệu bị xóa không khôi phục được. Nếu có dòng không xóa được (đang được dùng...), sẽ không dòng nào bị xóa.",
+    "deleteManyFailed": "Không xóa được, chưa có dòng nào bị xóa",
+    "deletedMany": "Đã xóa {n} {noun}",
+    "filter": {
+      "status": "Trạng thái",
+      "all": "Tất cả",
+      "active": "Đang dùng",
+      "inactive": "Ngừng dùng"
+    },
+    "excel": {
+      "yes": "Có",
+      "no": "Không",
+      "helpSheet": "Hướng dẫn",
+      "helpColumn": "Cột",
+      "helpNote": "Ghi chú",
+      "required": "Bắt buộc",
+      "optional": "Không bắt buộc",
+      "booleanHint": "Ghi Có / Không (hoặc 1 / 0)"
+    },
+    "import": {
+      "title": "Nhập Excel: {name}",
+      "pickFile": "Chọn file Excel",
+      "otherFile": "Chọn file khác",
+      "template": "Tải file mẫu",
+      "intro": "Dòng đầu của file là tên cột: {columns}. Tải file mẫu để có đúng cột. Mỗi dòng được kiểm tra giống như khi nhập tay; nếu còn dòng lỗi thì không dòng nào được lưu.",
+      "unreadable": "Không đọc được file. Hãy dùng file .xlsx (có thể tải file mẫu).",
+      "missingColumns": "File thiếu cột bắt buộc: {columns}",
+      "requiredValue": "Thiếu {column}",
+      "badBoolean": "{column} \"{value}\" không hợp lệ (ghi Có / Không)",
+      "badNumber": "{column} \"{value}\" không phải số",
+      "rows": "{n} dòng",
+      "rowsWithProblems": "{n} dòng cần sửa",
+      "rowsRefused": "{n} dòng bị từ chối",
+      "row": "Dòng",
+      "status": "Kiểm tra",
+      "rowOk": "Hợp lệ",
+      "moreRows": "và {n} dòng khác (chỉ hiện 200 dòng đầu)",
+      "noRows": "File không có dòng dữ liệu nào.",
+      "modeCreate": "Chỉ thêm mới (mã đã có sẽ báo lỗi)",
+      "modeUpsert": "Thêm mới và cập nhật mã đã có",
+      "noEditRight": "Cần quyền Sửa để cập nhật mã đã có",
+      "cancel": "Hủy",
+      "send": "Nhập {n} dòng",
+      "sending": "Đang nhập...",
+      "failed": "Có {n} dòng bị từ chối, chưa lưu dòng nào. Sửa file rồi nhập lại.",
+      "done": "Đã nhập: thêm {created}, cập nhật {updated}"
+    },
+    "layout": {
+      "button": "Cột",
+      "hint": "Kéo mép tiêu đề cột để đổi độ rộng",
+      "source": {
+        "user": "Bố cục riêng của bạn",
+        "company": "Bố cục mặc định của công ty",
+        "code": "Bố cục mặc định"
+      },
+      "up": "Lên",
+      "down": "Xuống",
+      "resetToCompany": "Dùng lại bố cục mặc định của công ty",
+      "resetToDefault": "Dùng lại bố cục mặc định",
+      "saveCompany": "Đặt bố cục này làm mặc định cho công ty",
+      "removeCompany": "Bỏ bố cục mặc định của công ty",
+      "resetDone": "Đã dùng lại bố cục mặc định",
+      "companySaved": "Đã đặt bố cục mặc định cho công ty",
+      "companyReset": "Đã bỏ bố cục mặc định của công ty"
+    },
+    "lookup": {
+      "placeholder": "Mã (F2)",
+      "search": "Tìm (F2)",
+      "title": "Tra cứu",
+      "searchPlaceholder": "Gõ mã hoặc tên để tìm...",
+      "code": "Mã",
+      "name": "Tên",
+      "empty": "Không tìm thấy",
+      "notFound": "Mã không tồn tại hoặc ngừng dùng",
+      "inactive": "ngừng dùng",
+      "clear": "Bỏ chọn",
+      "more": "Xem thêm",
+      "choose": "Chọn",
+      "count": "{shown}/{total} dòng",
+      "keys": "↑ ↓ chọn, Enter lấy, Esc đóng",
+      "multiPlaceholder": "Gõ mã (cách nhau bởi dấu phẩy) hoặc F2",
+      "selectedCount": "Đã chọn {n}",
+      "remove": "Bỏ {code}",
+      "unknownCodes": "Không có hoặc ngừng dùng: {codes}",
+      "tickShown": "Chọn / bỏ các dòng đang hiện",
+      "keysMultiple": "↑ ↓ di chuyển, Enter hoặc Space tích, Ctrl+Enter xong, Esc đóng",
+      "picked": "Đã chọn {n}",
+      "pickedOf": "Đã chọn {n}/{max}",
+      "clearAll": "Bỏ chọn tất cả",
+      "done": "Xong"
+    }
   },
   "controls": {
     "grid": {
@@ -175,7 +272,8 @@
       "empty": "Chưa có dữ liệu. Hãy thêm mới hoặc thay đổi bộ lọc.",
       "selected": "Đã chọn {n} dòng",
       "clearSelection": "Bỏ chọn tất cả",
-      "loading": "Đang tải dữ liệu..."
+      "loading": "Đang tải dữ liệu...",
+      "resize": "Kéo để đổi độ rộng cột"
     },
     "pagination": {
       "showing": "Hiển thị {range} / {total} bản ghi",
@@ -484,7 +582,8 @@
       "SUBMIT": "Trình duyệt",
       "APPROVE": "Duyệt",
       "REJECT": "Từ chối",
-      "WITHDRAW": "Rút lại"
+      "WITHDRAW": "Rút lại",
+      "PURGE": "Tự động xóa"
     },
     "note": {
       "default": "Ghi chú: {note}",
@@ -570,7 +669,10 @@
       "unitPriceDecimals": "Số lẻ đơn giá",
       "percentDecimals": "Số lẻ phần trăm",
       "defaultForeignCurrency": "Ngoại tệ mặc định",
-      "defaultExchangeRate": "Tỷ giá mặc định"
+      "defaultExchangeRate": "Tỷ giá mặc định",
+      "purgedRows": "Số dòng đã xóa",
+      "purgedBefore": "Xóa các dòng trước ngày",
+      "retentionMonths": "Số tháng lưu nhật ký"
     },
     "description": "Ai sửa gì, lúc nào, ở đơn vị nào trên mọi chức năng có ghi nhật ký. Bấm vào một dòng để xem chi tiết trước → sau.",
     "reload": "Nạp lại",
@@ -613,7 +715,26 @@
       "companyUnit": "Đơn vị cơ sở",
       "voucherNumbering": "Đánh số chứng từ",
       "setting": "Tham số hệ thống",
-      "uom": "Đơn vị tính"
+      "uom": "Đơn vị tính",
+      "auditLog": "Nhật ký thay đổi"
+    },
+    "objectLabel": {
+      "auditLog": "Dọn nhật ký cũ"
+    },
+    "retention": {
+      "button": "Lưu trữ",
+      "keepForever": "Lưu vĩnh viễn",
+      "keepMonths": "Lưu {n} tháng",
+      "title": "Thời gian lưu nhật ký",
+      "label": "Số tháng lưu nhật ký",
+      "hint": "0 = lưu vĩnh viễn. Tối đa 120 tháng.",
+      "invalid": "Nhập số nguyên từ 0 đến 120.",
+      "preview": "Nhật ký cũ hơn {n} tháng sẽ được tự động xóa (hệ thống kiểm tra 2 lần mỗi ngày). Mỗi lần xóa đều để lại một dòng ghi số dòng đã xóa.",
+      "previewForever": "Nhật ký được giữ vĩnh viễn, không tự động xóa.",
+      "save": "Lưu",
+      "saving": "Đang lưu...",
+      "cancel": "Hủy",
+      "saved": "Đã lưu thời gian lưu nhật ký"
     }
   },
   "recordStamp": {

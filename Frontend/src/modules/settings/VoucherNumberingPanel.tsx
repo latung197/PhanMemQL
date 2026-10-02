@@ -46,7 +46,7 @@ export const VoucherNumberingPanel: React.FC<{ canEdit: boolean }> = ({ canEdit 
     const d = drafts[row.voucherType];
     setSaving(row.voucherType);
     try {
-      const updated = await voucherNumberingApi.update(row.voucherType, { prefix: d.prefix, pattern: d.pattern, digits: d.digits });
+      const updated = await voucherNumberingApi.update(row.voucherType, { prefix: d.prefix, pattern: d.pattern, digits: d.digits, version: row.version });
       setRows(prev => prev.map(r => r.voucherType === updated.voucherType ? updated : r));
       setDrafts(prev => ({ ...prev, [updated.voucherType]: updated }));
       showToast.success(`Đã lưu cách đánh số ${updated.name}`);

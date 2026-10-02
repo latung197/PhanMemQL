@@ -14,7 +14,7 @@ import { SettingsViewProps } from './settingsTypes';
 
 const EMPTY: Currency = { code: '', name: '', symbol: '', decimalPlaces: 2, isBase: false, isActive: true };
 
-export const CurrencyCategoryView: React.FC<SettingsViewProps> = ({ canEdit, canDelete }) => {
+export const CurrencyCategoryView: React.FC<SettingsViewProps> = ({ canCreate, canEdit, canDelete }) => {
   const catalog = useCatalog(currenciesApi, { keyOf: c => c.code, noun: 'ngoại tệ', describe: c => c.code });
   const [form, setForm] = useState<Currency | null>(null);
   const [editing, setEditing] = useState<Currency>();
@@ -62,7 +62,7 @@ export const CurrencyCategoryView: React.FC<SettingsViewProps> = ({ canEdit, can
         loading={catalog.loading}
         paginated={false}
         searchPlaceholder="Tìm mã hoặc tên ngoại tệ..."
-        primaryAction={canEdit ? { label: 'Thêm ngoại tệ', icon: <Plus className="h-3.5 w-3.5" />, onClick: () => open() } : undefined}
+        primaryAction={canCreate ? { label: 'Thêm ngoại tệ', icon: <Plus className="h-3.5 w-3.5" />, onClick: () => open() } : undefined}
         actions={(canEdit || canDelete) ? c => (
           <div className="flex justify-end gap-1">
             {canEdit && <Button variant="ghost" size="sm" title="Sửa" onClick={() => open(c)} icon={<Edit2 className="h-3.5 w-3.5" />} />}

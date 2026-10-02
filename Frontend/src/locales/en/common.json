@@ -166,7 +166,104 @@
     "deleteTitle": "Delete {noun} {item}?",
     "deleteMessage": "Deleted data cannot be restored.",
     "delete": "Delete",
-    "deleted": "Deleted {noun} {item}"
+    "deleted": "Deleted {noun} {item}",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "deleteSelected": "Delete selected rows",
+    "deleteManyTitle": "Delete {n} selected {noun}?",
+    "deleteManyMessage": "Deleted data cannot be recovered. If any row cannot be deleted (in use...), nothing is deleted.",
+    "deleteManyFailed": "Could not delete; nothing was deleted",
+    "deletedMany": "Deleted {n} {noun}",
+    "filter": {
+      "status": "Status",
+      "all": "All",
+      "active": "In use",
+      "inactive": "Not in use"
+    },
+    "excel": {
+      "yes": "Yes",
+      "no": "No",
+      "helpSheet": "Help",
+      "helpColumn": "Column",
+      "helpNote": "Note",
+      "required": "Required",
+      "optional": "Optional",
+      "booleanHint": "Write Yes / No (or 1 / 0)"
+    },
+    "import": {
+      "title": "Import Excel: {name}",
+      "pickFile": "Choose Excel file",
+      "otherFile": "Choose another file",
+      "template": "Download template",
+      "intro": "The first row of the file holds the column names: {columns}. Download the template to get them right. Each row is checked like a manual entry; if any row has an error, nothing is saved.",
+      "unreadable": "The file could not be read. Use an .xlsx file (the template, for instance).",
+      "missingColumns": "Required columns missing: {columns}",
+      "requiredValue": "{column} is missing",
+      "badBoolean": "{column} \"{value}\" is not valid (write Yes / No)",
+      "badNumber": "{column} \"{value}\" is not a number",
+      "rows": "{n} rows",
+      "rowsWithProblems": "{n} rows to fix",
+      "rowsRefused": "{n} rows refused",
+      "row": "Row",
+      "status": "Check",
+      "rowOk": "Valid",
+      "moreRows": "and {n} more rows (only the first 200 are shown)",
+      "noRows": "The file has no data rows.",
+      "modeCreate": "Add new codes only (existing codes are errors)",
+      "modeUpsert": "Add new and update existing codes",
+      "noEditRight": "Updating existing codes needs the Edit right",
+      "cancel": "Cancel",
+      "send": "Import {n} rows",
+      "sending": "Importing...",
+      "failed": "{n} rows were refused; nothing was saved. Fix the file and import again.",
+      "done": "Imported: {created} added, {updated} updated"
+    },
+    "layout": {
+      "button": "Columns",
+      "hint": "Drag a header edge to change the width",
+      "source": {
+        "user": "Your own layout",
+        "company": "Company default layout",
+        "code": "Default layout"
+      },
+      "up": "Up",
+      "down": "Down",
+      "resetToCompany": "Back to the company default",
+      "resetToDefault": "Back to the default layout",
+      "saveCompany": "Make this the company default",
+      "removeCompany": "Remove the company default",
+      "resetDone": "Default layout restored",
+      "companySaved": "Company default layout saved",
+      "companyReset": "Company default layout removed"
+    },
+    "lookup": {
+      "placeholder": "Code (F2)",
+      "search": "Search (F2)",
+      "title": "Lookup",
+      "searchPlaceholder": "Type a code or name...",
+      "code": "Code",
+      "name": "Name",
+      "empty": "Nothing found",
+      "notFound": "Unknown or inactive code",
+      "inactive": "not in use",
+      "clear": "Clear",
+      "more": "Show more",
+      "choose": "Choose",
+      "count": "{shown}/{total} rows",
+      "keys": "↑ ↓ move, Enter choose, Esc close",
+      "multiPlaceholder": "Type codes (comma separated) or F2",
+      "selectedCount": "{n} selected",
+      "remove": "Remove {code}",
+      "unknownCodes": "Unknown or inactive: {codes}",
+      "tickShown": "Tick / untick the rows shown",
+      "keysMultiple": "↑ ↓ move, Enter or Space tick, Ctrl+Enter done, Esc close",
+      "picked": "{n} selected",
+      "pickedOf": "{n}/{max} selected",
+      "clearAll": "Clear all",
+      "done": "Done"
+    }
   },
   "controls": {
     "grid": {
@@ -175,7 +272,8 @@
       "empty": "No data yet. Add a record or change the filter.",
       "selected": "{n} rows selected",
       "clearSelection": "Clear selection",
-      "loading": "Loading data..."
+      "loading": "Loading data...",
+      "resize": "Drag to resize the column"
     },
     "pagination": {
       "showing": "Showing {range} of {total} records",
@@ -535,7 +633,8 @@
       "SUBMIT": "Submitted",
       "APPROVE": "Approved",
       "REJECT": "Rejected",
-      "WITHDRAW": "Withdrawn"
+      "WITHDRAW": "Withdrawn",
+      "PURGE": "Automatic deletion"
     },
     "note": {
       "default": "Note: {note}",
@@ -621,7 +720,10 @@
       "unitPriceDecimals": "Unit price decimals",
       "percentDecimals": "Percent decimals",
       "defaultForeignCurrency": "Default foreign currency",
-      "defaultExchangeRate": "Default exchange rate"
+      "defaultExchangeRate": "Default exchange rate",
+      "purgedRows": "Rows deleted",
+      "purgedBefore": "Deleted rows before",
+      "retentionMonths": "Months kept"
     },
     "description": "Who changed what, when and in which unit, across every function that logs its changes. Click a row to see before → after.",
     "reload": "Reload",
@@ -664,7 +766,26 @@
       "companyUnit": "Company unit",
       "voucherNumbering": "Voucher numbering",
       "setting": "System parameter",
-      "uom": "Unit of measure"
+      "uom": "Unit of measure",
+      "auditLog": "Change log"
+    },
+    "objectLabel": {
+      "auditLog": "Old entries removed"
+    },
+    "retention": {
+      "button": "Retention",
+      "keepForever": "Kept forever",
+      "keepMonths": "Kept {n} months",
+      "title": "Change log retention",
+      "label": "Months to keep the log",
+      "hint": "0 = keep forever. At most 120 months.",
+      "invalid": "Enter a whole number from 0 to 120.",
+      "preview": "Entries older than {n} months are deleted automatically (checked twice a day). Each deletion leaves one entry with the number of rows removed.",
+      "previewForever": "The log is kept forever, nothing is deleted automatically.",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "saved": "Change log retention saved"
     }
   },
   "recordStamp": {

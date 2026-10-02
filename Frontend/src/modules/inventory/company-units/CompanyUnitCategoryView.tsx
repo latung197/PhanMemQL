@@ -70,7 +70,7 @@ export const CompanyUnitCategoryView: React.FC<CompanyUnitCategoryViewProps> = (
   const [status, setStatus] = useState<'Hoạt động' | 'Tạm dừng'>('Hoạt động');
 
   const handleOpenAdd = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Tài khoản của bạn không có quyền THÊM Đơn vị cơ sở!');
       return;
     }
@@ -87,7 +87,7 @@ export const CompanyUnitCategoryView: React.FC<CompanyUnitCategoryViewProps> = (
   };
 
   const handleOpenEdit = (unit: CompanyUnit) => {
-    if (!perms.createEdit) {
+    if (!perms.edit) {
       showToast.error('Tài khoản của bạn chỉ có quyền XEM, không có quyền SỬA!');
       return;
     }
@@ -269,11 +269,11 @@ export const CompanyUnitCategoryView: React.FC<CompanyUnitCategoryViewProps> = (
             setLocalUnits([...initialUnits]);
             showToast.info('Đã tải lại danh sách Đơn vị cơ sở!');
           }}
-          onExportExcel={() => showToast.success('Đã xuất Excel danh mục Đơn vị cơ sở!')}
-          onImportExcel={() => showToast.info('Tính năng nhập Excel đang xử lý!')}
+          onExportExcel={perms.export ? () => showToast.success('Đã xuất Excel danh mục Đơn vị cơ sở!') : undefined}
+          onImportExcel={perms.create ? () => showToast.info('Tính năng nhập Excel đang xử lý!') : undefined}
           addLabel="Thêm ĐVCS"
           onOpenAdd={handleOpenAdd}
-          canCreate={perms.createEdit}
+          canCreate={perms.create}
           filterPanelContent={
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
               <div>

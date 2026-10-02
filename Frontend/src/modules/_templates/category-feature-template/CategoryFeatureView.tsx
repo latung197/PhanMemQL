@@ -65,7 +65,7 @@ export const CategoryFeatureView: React.FC<CategoryFeatureViewProps> = ({
   onSaveItem,
   onDeleteItem
 }) => {
-  // 1. Phân quyền thao tác theo tài khoản đăng nhập (Xem, Thêm/Sửa, Xóa)
+  // 1. Phân quyền thao tác theo tài khoản đăng nhập (Xem, Thêm, Sửa, Xóa, Xuất)
   const currentSubKey: SubMenuKey = (subKey || 'inv_material_cat') as SubMenuKey;
   const perms = getActionPermission(currentUser, currentSubKey);
 
@@ -177,7 +177,7 @@ export const CategoryFeatureView: React.FC<CategoryFeatureViewProps> = ({
 
   // Mở modal Thêm mới
   const handleOpenAdd = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Bạn không có quyền thêm mới danh mục này!');
       return;
     }
@@ -195,7 +195,7 @@ export const CategoryFeatureView: React.FC<CategoryFeatureViewProps> = ({
 
   // Mở modal Sửa
   const handleOpenEdit = (item: CategoryItemModel) => {
-    if (!perms.createEdit) {
+    if (!perms.edit) {
       showToast.error('Bạn không có quyền chỉnh sửa danh mục này!');
       return;
     }
@@ -335,7 +335,7 @@ export const CategoryFeatureView: React.FC<CategoryFeatureViewProps> = ({
       width: '90px',
       accessor: (it) => (
         <div className="flex items-center justify-center gap-1">
-          {perms.createEdit && (
+          {perms.edit && (
             <button
               onClick={() => handleOpenEdit(it)}
               className="p-1 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-[5px] transition-colors"
@@ -375,11 +375,11 @@ export const CategoryFeatureView: React.FC<CategoryFeatureViewProps> = ({
             setItems([...initialItems]);
             showToast.info('Đã tải lại dữ liệu danh mục!');
           }}
-          onExportExcel={handleExportExcel}
-          onImportExcel={handleImportExcel}
+          onExportExcel={perms.export ? handleExportExcel : undefined}
+          onImportExcel={perms.create ? handleImportExcel : undefined}
           addLabel="Thêm Mới"
           onOpenAdd={handleOpenAdd}
-          canCreate={perms.createEdit}
+          canCreate={perms.create}
           filterPanelContent={
             /* 2. Bộ lọc nâng cao: Nền sáng / tối chuẩn, bo góc 5px */
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">

@@ -87,7 +87,7 @@ export const LocationCategoryView: React.FC<LocationCategoryViewProps> = ({
   const paginatedList = filteredLocations.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const handleOpenAddModal = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       alert('Bạn không có quyền THÊM vị trí kho!');
       return;
     }
@@ -106,7 +106,7 @@ export const LocationCategoryView: React.FC<LocationCategoryViewProps> = ({
   };
 
   const handleOpenEditModal = (l: StorageLocation) => {
-    if (!perms.createEdit) {
+    if (!perms.edit) {
       alert('Bạn không có quyền CHỈNH SỬA vị trí kho!');
       return;
     }
@@ -200,11 +200,11 @@ export const LocationCategoryView: React.FC<LocationCategoryViewProps> = ({
             setLocalLocations([...initialLocations]);
             showToast.info('Đã tải lại danh mục vị trí kho!');
           }}
-          onExportExcel={() => showToast.success('Đã xuất Excel vị trí kho!')}
-          onImportExcel={() => showToast.info('Tính năng nhập Excel đang xử lý!')}
+          onExportExcel={perms.export ? () => showToast.success('Đã xuất Excel vị trí kho!') : undefined}
+          onImportExcel={perms.create ? () => showToast.info('Tính năng nhập Excel đang xử lý!') : undefined}
           addLabel="Thêm Vị Trí Kho"
           onOpenAdd={handleOpenAddModal}
-          canCreate={perms.createEdit}
+          canCreate={perms.create}
           filterPanelContent={
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
               <div>
@@ -361,7 +361,7 @@ export const LocationCategoryView: React.FC<LocationCategoryViewProps> = ({
                       </td>
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {perms.createEdit && (
+                          {perms.edit && (
                             <button
                               onClick={() => handleOpenEditModal(l)}
                               className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950 rounded-lg transition-colors cursor-pointer"

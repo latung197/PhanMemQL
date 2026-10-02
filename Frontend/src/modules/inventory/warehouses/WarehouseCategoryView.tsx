@@ -157,7 +157,7 @@ export const WarehouseCategoryView: React.FC<WarehouseCategoryViewProps> = ({
 
   // Handle Import Excel
   const handleImportExcel = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Tài khoản của bạn không có quyền NHẬP DỮ LIỆU Kho bãi!');
       return;
     }
@@ -175,7 +175,7 @@ export const WarehouseCategoryView: React.FC<WarehouseCategoryViewProps> = ({
 
   // Open Handlers
   const handleOpenAdd = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Tài khoản của bạn không có quyền KHAI BÁO KHO MỚI!');
       return;
     }
@@ -190,7 +190,7 @@ export const WarehouseCategoryView: React.FC<WarehouseCategoryViewProps> = ({
   };
 
   const handleOpenEdit = (wh: WarehouseType) => {
-    if (!perms.createEdit) {
+    if (!perms.edit) {
       showToast.error('Tài khoản của bạn chỉ có quyền XEM, không có quyền SỬA!');
       return;
     }
@@ -387,11 +387,11 @@ export const WarehouseCategoryView: React.FC<WarehouseCategoryViewProps> = ({
             setLocalWarehouses([...initialWarehouses]);
             showToast.info('Đã tải lại danh mục Kho bãi!');
           }}
-          onExportExcel={handleExportExcel}
-          onImportExcel={handleImportExcel}
+          onExportExcel={perms.export ? handleExportExcel : undefined}
+          onImportExcel={perms.create ? handleImportExcel : undefined}
           addLabel="Khai Báo Kho Mới"
           onOpenAdd={handleOpenAdd}
-          canCreate={perms.createEdit}
+          canCreate={perms.create}
         />
 
         {/* Collapsible Advanced Search Bar */}

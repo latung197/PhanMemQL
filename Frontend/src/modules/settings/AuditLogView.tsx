@@ -4,17 +4,21 @@
 // audit.field.<name>, audit.action.<ACTION>), the raw names are shown otherwise. Field conventions (backend AuditDiff):
 // camelCase fields, permission:{function} (granted actions), right:{function}:{code} (special right).
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, ChevronDown, ChevronRight, History, RefreshCw, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ArrowRight, Archive, ChevronDown, ChevronRight, History, RefreshCw, X } from 'lucide-react';
 import { Badge, BadgeVariant } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { DateTimePicker } from '../../components/common/DateTimePicker';
 import { SelectInput, TextInput } from '../../components/common/FormField';
+import { Modal } from '../../components/common/Modal';
 import { Pagination } from '../../components/common/Pagination';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/StateViews';
 import { FUNCTION_REGISTRY, functionLabel } from '../../config/functions';
 import { useLanguage } from '../../context/LanguageContext';
 import { getErrorMessage } from '../../services/apiClient';
 import { auditLogApi, AuditFilters, AuditLogEntry, AuditPage, AuditQuery, permissionCatalogApi, SpecialRightDef } from '../../services/settingsApi';
+import { showToast } from '../../utils/toast';
+import { SettingsViewProps } from './settingsTypes';
 import { costingMethodLabel, CostingMethod, systemSettingsService } from '../../services/systemSettingsService';
 import { SubMenuKey } from '../../types';
 import { formatDateTime } from '../../utils/format';
@@ -22,7 +26,7 @@ import { cn } from '../../lib/utils';
 
 const ACTION_TONE: Record<string, BadgeVariant> = {
   CREATE: 'success', DELETE: 'danger', PERMISSIONS: 'warning', SYNC: 'warning', RESET_PASSWORD: 'warning',
-  CHANGE_PASSWORD: 'warning', APPROVE: 'success', REJECT: 'danger', WITHDRAW: 'warning'
+  CHANGE_PASSWORD: 'warning', APPROVE: 'success', REJECT: 'danger', WITHDRAW: 'warning', PURGE: 'slate'
 };
 
 const isFunction = (code: string): code is SubMenuKey => code in FUNCTION_REGISTRY;
@@ -40,8 +44,11 @@ const useDebounced = <T,>(value: T, delay = 400): T => {
   return debounced;
 };
 
-export const AuditLogView: React.FC = () => {
+export const AuditLogView: React.FC<Partial<SettingsViewProps>> = ({ canEdit = false }) => {
   const { t } = useLanguage();
+  // Months the log is kept (0 = forever; null while loading); the dialog edits it.
+  const [retention, setRetention] = useState<number | null>(null);
+  const [retentionOpen, setRetentionOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const actor = useDebounced(filters.actor);
   const search = useDebounced(filters.search);
@@ -57,6 +64,7 @@ export const AuditLogView: React.FC = () => {
   useEffect(() => {
     permissionCatalogApi.get().then(c => setRightDefs(c.specialRights)).catch(() => { /* right codes shown instead */ });
     auditLogApi.filters().then(setChoices).catch(() => { /* filters stay empty; the list still loads */ });
+    auditLogApi.settings().then(s => setRetention(s.retentionMonths)).catch(() => { /* the button shows no period */ });
   }, []);
 
   const load = useCallback(async () => {
@@ -148,11 +156,26 @@ export const AuditLogView: React.FC = () => {
             <p className="text-[11px] text-slate-500 dark:text-slate-400">{t('audit.description')}</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="h-7 px-2.5 text-[11px] shrink-0" disabled={loading}
-          icon={<RefreshCw className="h-3.5 w-3.5 text-indigo-500" />} onClick={() => void load()}>
-          {t('audit.reload')}
-        </Button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button variant="outline" size="sm" className="h-7 px-2.5 text-[11px]" disabled={retention === null}
+            title={canEdit ? t('audit.retention.title') : undefined}
+            icon={<Archive className="h-3.5 w-3.5 text-indigo-500" />} onClick={() => canEdit && setRetentionOpen(true)}>
+            {retention === null ? t('audit.retention.button')
+              : retention === 0 ? t('audit.retention.keepForever') : t('audit.retention.keepMonths', { n: retention })}
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 px-2.5 text-[11px]" disabled={loading}
+            icon={<RefreshCw className="h-3.5 w-3.5 text-indigo-500" />} onClick={() => void load()}>
+            {t('audit.reload')}
+          </Button>
+        </div>
       </div>
+
+      {/* Portal: the settings panel creates its own stacking context, which would put the table over the dialog. */}
+      {retentionOpen && retention !== null && createPortal(
+        <RetentionDialog months={retention} onClose={() => setRetentionOpen(false)}
+          onSaved={months => { setRetention(months); setRetentionOpen(false); void load(); }} />,
+        document.body
+      )}
 
       {/* Filters */}
       <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200/90 dark:border-slate-800 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2 items-end">
@@ -218,7 +241,7 @@ export const AuditLogView: React.FC = () => {
                           </td>
                           <td className="px-2 py-1.5 text-slate-700 dark:text-slate-300">{isFunction(entry.functionCode) ? functionLabel(entry.functionCode) : entry.functionCode}</td>
                           <td className="px-2 py-1.5">
-                            <span className="text-slate-800 dark:text-slate-100">{entry.objectLabel ?? entry.objectId}</span>
+                            <span className="text-slate-800 dark:text-slate-100">{entry.objectLabel ?? known(`audit.objectLabel.${entry.objectType}`) ?? entry.objectId}</span>
                             <span className="block text-[10px] text-slate-400">{objectTypeLabel(entry.objectType)}</span>
                           </td>
                           <td className="px-2 py-1.5">
@@ -281,3 +304,45 @@ export const AuditLogView: React.FC = () => {
     </div>
   );
 };
+
+/** How long the log is kept: older rows are deleted automatically by the backend twice a day (0 = forever). */
+const RetentionDialog: React.FC<{ months: number; onClose: () => void; onSaved: (months: number) => void }> = ({ months, onClose, onSaved }) => {
+  const { t } = useLanguage();
+  const [value, setValue] = useState(String(months));
+  const [saving, setSaving] = useState(false);
+  const parsed = Number(value);
+  const valid = value.trim() !== '' && Number.isInteger(parsed) && parsed >= 0 && parsed <= 120;
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!valid) return;
+    setSaving(true);
+    try {
+      const saved = await auditLogApi.saveSettings({ retentionMonths: parsed });
+      showToast.success(t('audit.retention.saved'));
+      onSaved(saved.retentionMonths);
+    } catch (error) {
+      showToast.error(getErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal isOpen onClose={onClose} title={t('audit.retention.title')}>
+      <form onSubmit={submit} className="space-y-3">
+        <TextInput label={t('audit.retention.label')} type="number" min={0} max={120} step={1} required autoFocus
+          value={value} onChange={e => setValue(e.target.value)}
+          error={value.trim() !== '' && !valid ? t('audit.retention.invalid') : undefined} hint={t('audit.retention.hint')} />
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+          {valid && parsed > 0 ? t('audit.retention.preview', { n: parsed }) : t('audit.retention.previewForever')}
+        </p>
+        <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>{t('audit.retention.cancel')}</Button>
+          <Button type="submit" size="sm" disabled={!valid || saving}>{saving ? t('audit.retention.saving') : t('audit.retention.save')}</Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+

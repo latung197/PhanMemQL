@@ -11,6 +11,8 @@ export interface CompanyUnit {
   taxCode?: string;     // Mã số thuế
   status: 'Hoạt động' | 'Tạm dừng';
   isDefault?: boolean;
+  /** Row version from the backend; sent back when saving so a change made meanwhile by someone else is not overwritten. */
+  version?: number;
 }
 
 export interface Product {
@@ -332,11 +334,13 @@ export interface SystemNotification {
 }
 
 export interface ActionPermissions {
-  view: boolean;         // Xem
-  createEdit: boolean;   // Thêm & Sửa
-  delete: boolean;       // Xóa
-  approve: boolean;      // Phê duyệt chứng từ
-  printExport: boolean;  // In & Xuất file PDF/Excel
+  view: boolean;     // Xem
+  create: boolean;   // Thêm mới (cả sao chép, nhập từ Excel)
+  edit: boolean;     // Sửa bản ghi đã lưu
+  delete: boolean;   // Xóa
+  approve: boolean;  // Phê duyệt chứng từ
+  print: boolean;    // In
+  export: boolean;   // Xuất dữ liệu ra file (Excel...)
 }
 
 export interface RoleDefinition {
@@ -348,6 +352,8 @@ export interface RoleDefinition {
   permissions: Record<SubMenuKey, ActionPermissions>;
   /** Special rights as "{function}:{code}", e.g. "inv_receipt:VIEW_PRICE". */
   specialRights?: string[];
+  /** Row version from the backend; sent back when saving so a change made meanwhile by someone else is not overwritten. */
+  version?: number;
 }
 
 export type SubKeyPermissions = boolean | ActionPermissions;
@@ -384,6 +390,8 @@ export interface UserProfile {
   language?: string;
   /** Ngôn ngữ người dùng tự chọn (null = theo mặc định của công ty). */
   languagePreference?: string | null;
+  /** Row version from the backend; sent back when saving so a change made meanwhile by someone else is not overwritten. */
+  version?: number;
 }
 
 export interface ERPData {

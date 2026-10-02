@@ -284,7 +284,8 @@ export const EditUserModal: React.FC<{
         employeeCode: form.employeeCode.trim() || undefined,
         isActive: form.isActive,
         ma_dvcs: form.defaultUnit,
-        ds_ma_dvcs: form.allowedUnits
+        ds_ma_dvcs: form.allowedUnits,
+        version: user.version
       }));
     } catch (error) {
       onServerError(error);

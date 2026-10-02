@@ -10,6 +10,8 @@ export interface Uom {
   isActive: boolean;
   /** Who created / last changed it and when (filled by the backend). */
   stamp: RecordStamp;
+  /** Row version; sent back when saving so a change made meanwhile by someone else is not overwritten. */
+  version: number;
 }
 
 export interface SaveUomInput {
@@ -18,4 +20,5 @@ export interface SaveUomInput {
   symbol: string;
   note: string;
   isActive: boolean;
+  version?: number;
 }

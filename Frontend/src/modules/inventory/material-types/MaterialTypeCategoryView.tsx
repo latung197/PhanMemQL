@@ -162,7 +162,7 @@ export const MaterialTypeCategoryView: React.FC<MaterialTypeCategoryViewProps> =
 
   // Import Excel
   const handleImportExcel = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Tài khoản của bạn không có quyền NHẬP DỮ LIỆU Loại vật tư!');
       return;
     }
@@ -180,7 +180,7 @@ export const MaterialTypeCategoryView: React.FC<MaterialTypeCategoryViewProps> =
 
   // Open Handlers
   const handleOpenAddModal = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Bạn không có quyền THÊM hoặc SỬA danh mục loại vật tư!');
       return;
     }
@@ -194,7 +194,7 @@ export const MaterialTypeCategoryView: React.FC<MaterialTypeCategoryViewProps> =
   };
 
   const handleOpenEditModal = (mt: MaterialType) => {
-    if (!perms.createEdit) {
+    if (!perms.edit) {
       showToast.error('Bạn không có quyền CHỈNH SỬA loại vật tư này!');
       return;
     }
@@ -372,11 +372,11 @@ export const MaterialTypeCategoryView: React.FC<MaterialTypeCategoryViewProps> =
             setLocalTypes([...initialTypes]);
             showToast.info('Đã làm mới danh mục Loại vật tư!');
           }}
-          onExportExcel={handleExportExcel}
-          onImportExcel={handleImportExcel}
+          onExportExcel={perms.export ? handleExportExcel : undefined}
+          onImportExcel={perms.create ? handleImportExcel : undefined}
           addLabel="Khai Báo Loại Mới"
           onOpenAdd={handleOpenAddModal}
-          canCreate={perms.createEdit}
+          canCreate={perms.create}
         />
 
         {/* Collapsible Advanced Search Bar */}

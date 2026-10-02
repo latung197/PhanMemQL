@@ -7,8 +7,8 @@ namespace Core.Tests.Common;
 
 public sealed class DocumentStatusPolicyTests
 {
-    private static readonly ActionPermissions Clerk = new(true, true, true, false, true);
-    private static readonly ActionPermissions Approver = new(true, false, false, true, true);
+    private static readonly ActionPermissions Clerk = new(true, true, true, true, false, true, true);
+    private static readonly ActionPermissions Approver = new(true, false, false, false, true, true, true);
 
     private static DocumentActor Actor(ActionPermissions actions, bool isOwner, params string[] rights) =>
         new(actions, rights.ToHashSet(), isOwner);

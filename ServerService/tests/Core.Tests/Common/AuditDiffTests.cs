@@ -6,8 +6,8 @@ namespace Core.Tests.Common;
 
 public sealed class AuditDiffTests
 {
-    private static readonly ActionPermissions ViewOnly = new(true, false, false, false, false);
-    private static readonly ActionPermissions ViewEdit = new(true, true, false, false, false);
+    private static readonly ActionPermissions ViewOnly = new(true, false, false, false, false, false, false);
+    private static readonly ActionPermissions ViewEdit = new(true, true, true, false, false, false, false);
 
     [Fact]
     public void FieldSkipsUnchangedValuesAndTreatsEmptyAsNoValue()
@@ -49,7 +49,7 @@ public sealed class AuditDiffTests
             ["inv_receipt"] = ViewEdit, ["inv_issue"] = ViewOnly, ["sys_users"] = ActionPermissions.None
         };
 
-        Assert.Equal([new AuditChange("permission:inv_receipt", "view", "view,createEdit")],
+        Assert.Equal([new AuditChange("permission:inv_receipt", "view", "view,create,edit")],
             new AuditDiff().Matrix(before, after).Changes);
         Assert.Equal([new AuditChange("permission:inv_issue", "view", null), new AuditChange("permission:inv_receipt", "view", null)],
             new AuditDiff().Matrix(before, null).Changes);
@@ -72,6 +72,6 @@ public sealed class AuditDiffTests
     {
         Assert.Null(AuditDiff.ActionList(ActionPermissions.None));
         Assert.Null(AuditDiff.ActionList(null));
-        Assert.Equal("view,createEdit,delete,approve,printExport", AuditDiff.ActionList(ActionPermissions.Full));
+        Assert.Equal("view,create,edit,delete,approve,print,export", AuditDiff.ActionList(ActionPermissions.Full));
     }
 }

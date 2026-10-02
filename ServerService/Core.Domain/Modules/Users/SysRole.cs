@@ -6,8 +6,11 @@ namespace Core.Domain.Modules.Users;
 
 [Audited("sys_users", "role", Label = "{RoleName} [{RoleCode}]", SoftDelete = nameof(ValidFlg))]
 [Table("sys_role")]
-public class SysRole : AuditableEntity
+public class SysRole : AuditableEntity, IVersioned
 {
+    /// <summary>Row version (xmin) against lost updates; see IVersioned.</summary>
+    public uint Version { get; set; }
+
     /// <summary>Role code that grants full access regardless of the permission matrix.</summary>
     public const string AdminCode = "ADMIN";
 

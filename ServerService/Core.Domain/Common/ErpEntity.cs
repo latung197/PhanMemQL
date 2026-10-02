@@ -9,8 +9,11 @@ namespace Core.Domain.Common;
 /// SQL of a new table: created_at timestamptz NOT NULL DEFAULT now(), created_by integer, updated_at timestamptz,
 /// updated_by integer.
 /// </summary>
-public abstract class ErpEntity
+public abstract class ErpEntity : IVersioned
 {
+    /// <summary>Row version (xmin) against lost updates; see IVersioned.</summary>
+    public uint Version { get; set; }
+
     [Column("created_at", TypeName = "timestamp with time zone")] public DateTime CreatedAt { get; set; }
     /// <summary>sys_users.user_id; null for rows created by scripts.</summary>
     [Column("created_by")] public int? CreatedBy { get; set; }

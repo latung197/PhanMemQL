@@ -22,3 +22,6 @@ CREATE TABLE IF NOT EXISTS sys_audit_log (
 CREATE INDEX IF NOT EXISTS ix_sys_audit_log_object ON sys_audit_log (object_type, object_id, log_time DESC);
 CREATE INDEX IF NOT EXISTS ix_sys_audit_log_function ON sys_audit_log (function_code, log_time DESC);
 CREATE INDEX IF NOT EXISTS ix_sys_audit_log_actor ON sys_audit_log (actor_id, log_time DESC);
+
+-- Automatic deletion of old rows (AuditLogCleanupService) and date filters.
+CREATE INDEX IF NOT EXISTS ix_sys_audit_log_time ON sys_audit_log (log_time);

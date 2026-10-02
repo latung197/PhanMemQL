@@ -16,6 +16,35 @@ public interface ISystemConfigService
 }
 
 /// <summary>
+/// auditLog section: rows of sys_audit_log older than retentionMonths are deleted automatically (0 = kept forever).
+/// </summary>
+public static class AuditLogRetention
+{
+    public const string Section = "auditLog";
+    public const int MaxMonths = 120;
+
+    public static void Validate(JsonElement value)
+    {
+        if (!value.TryGetProperty("retentionMonths", out var months) || months.ValueKind != JsonValueKind.Number
+            || !months.TryGetInt32(out var n) || n < 0 || n > MaxMonths)
+            throw new BusinessRuleException("auditLog.invalidRetention", MaxMonths);
+    }
+
+    /// <summary>Months to keep from a stored section (0 when not set or not readable).</summary>
+    public static int MonthsOf(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.TryGetProperty("retentionMonths", out var m) && m.TryGetInt32(out var n)
+                ? Math.Clamp(n, 0, MaxMonths) : 0;
+        }
+        catch (JsonException) { return 0; }
+    }
+}
+
+/// <summary>
 /// Settings kept as one JSON value each (Frontend src/services/systemSettingsService.ts). Settings that
 /// other data refers to (currencies, rates, departments, locks, numbering) have their own tables.
 /// </summary>
@@ -30,10 +59,11 @@ public static class SystemConfigSections
             ["fiscalConfig"] = "FRONTEND_FISCAL_CONFIG",
             ["companyProfile"] = "FRONTEND_COMPANY_PROFILE",
             ["numberFormat"] = "FRONTEND_NUMBER_FORMAT",
-            ["unitDefaults"] = "FRONTEND_UNIT_DEFAULTS"
+            ["unitDefaults"] = "FRONTEND_UNIT_DEFAULTS",
+            ["auditLog"] = "AUDIT_LOG_SETTINGS"
         };
 
-    /// <summary>Frontend function (SubMenuKey) whose "createEdit" right allows saving the section.</summary>
+    /// <summary>Frontend function (SubMenuKey) whose "edit" right allows saving the section.</summary>
     public static IReadOnlyDictionary<string, string> Functions { get; } =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -41,7 +71,8 @@ public static class SystemConfigSections
             ["fiscalConfig"] = "sys_fiscal_year",
             ["companyProfile"] = "settings_main",
             ["numberFormat"] = "sys_default_config",
-            ["unitDefaults"] = "sys_default_config"
+            ["unitDefaults"] = "sys_default_config",
+            ["auditLog"] = "sys_audit_log"
         };
 
     private static readonly IReadOnlyDictionary<string, string[]> RequiredFields =
@@ -50,7 +81,8 @@ public static class SystemConfigSections
             ["systemDefaults"] = ["costingMethod"],
             ["fiscalConfig"] = ["fiscalYear", "startDate"],
             ["companyProfile"] = ["companyName", "taxCode", "address"],
-            ["numberFormat"] = ["thousandSeparator", "decimalSeparator"]
+            ["numberFormat"] = ["thousandSeparator", "decimalSeparator"],
+            ["auditLog"] = ["retentionMonths"]
         };
 
     /// <summary>Returns the canonical section name (as the frontend spells it).</summary>
@@ -67,6 +99,7 @@ public static class SystemConfigSections
             throw new BusinessRuleException("settings.tooLarge");
         if (name is "systemDefaults" or "unitDefaults") SystemParameters.ValidateSection(name, value);
         if (name == "numberFormat") ValidateNumberFormat(value);
+        if (name == AuditLogRetention.Section) AuditLogRetention.Validate(value);
         return name;
     }
 

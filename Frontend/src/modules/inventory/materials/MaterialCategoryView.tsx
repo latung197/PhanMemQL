@@ -233,7 +233,7 @@ export const MaterialCategoryView: React.FC<MaterialCategoryViewProps> = ({
 
   // Reset form to defaults
   const handleOpenAddModal = () => {
-    if (!perms.createEdit) {
+    if (!perms.create) {
       showToast.error('Tài khoản của bạn không có quyền THÊM vật tư!');
       return;
     }
@@ -293,7 +293,7 @@ export const MaterialCategoryView: React.FC<MaterialCategoryViewProps> = ({
   };
 
   const handleOpenEditModal = (p: Product) => {
-    if (!perms.createEdit) {
+    if (!perms.edit) {
       showToast.error('Tài khoản của bạn chỉ có quyền XEM, không có quyền SỬA vật tư này!');
       return;
     }
@@ -682,11 +682,11 @@ export const MaterialCategoryView: React.FC<MaterialCategoryViewProps> = ({
             setLocalProducts([...initialProducts]);
             showToast.info('Đã load lại danh mục dữ liệu vật tư mới nhất!');
           }}
-          onExportExcel={handleExportExcel}
-          onImportExcel={handleImportExcel}
+          onExportExcel={perms.export ? handleExportExcel : undefined}
+          onImportExcel={perms.create ? handleImportExcel : undefined}
           addLabel="Khai Báo Mới"
           onOpenAdd={handleOpenAddModal}
-          canCreate={perms.createEdit}
+          canCreate={perms.create}
         />
 
         {/* Collapsible Compact Advanced Filter Panel (Phần Mở Rộng) */}

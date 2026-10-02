@@ -17,9 +17,9 @@ export interface FunctionItem {
 
 export type FullMatrix = Record<SubMenuKey, ActionPermissions>;
 
-/** The five actions; names are permissions.action.<key> (label) and permissions.actionShort.<key> (column). */
+/** The seven actions; names are permissions.action.<key> (label) and permissions.actionShort.<key> (column). */
 export const ACTIONS: { key: keyof ActionPermissions }[] = [
-  { key: 'view' }, { key: 'createEdit' }, { key: 'delete' }, { key: 'approve' }, { key: 'printExport' }
+  { key: 'view' }, { key: 'create' }, { key: 'edit' }, { key: 'delete' }, { key: 'approve' }, { key: 'print' }, { key: 'export' }
 ];
 
 export const actionLabel = (key: keyof ActionPermissions) => translate(`permissions.action.${key}`);
@@ -50,8 +50,8 @@ export const FUNCTIONS: FunctionItem[] = FUNCTION_KEYS
   .sort((a, b) => MODULE_NAMES.indexOf(a.module) - MODULE_NAMES.indexOf(b.module)
     || GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group));
 
-const NONE: ActionPermissions = { view: false, createEdit: false, delete: false, approve: false, printExport: false };
-const ALL: ActionPermissions = { view: true, createEdit: true, delete: true, approve: true, printExport: true };
+const NONE: ActionPermissions = { view: false, create: false, edit: false, delete: false, approve: false, print: false, export: false };
+const ALL: ActionPermissions = { view: true, create: true, edit: true, delete: true, approve: true, print: true, export: true };
 
 /** Matrix with every function of the catalog, from a user or a role. */
 export const toFullMatrix = (source: Pick<UserProfile, 'isSystemAdmin' | 'permissions'>): FullMatrix =>

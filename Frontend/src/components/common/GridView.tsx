@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   ArrowUpDown,
   ArrowUp,
@@ -76,6 +76,13 @@ export interface GridViewProps<T> {
   sortColumn?: string;
   sortDirection?: 'asc' | 'desc';
   onSort?: (columnKey: string, direction: 'asc' | 'desc') => void;
+  /** Sort applied at first (the grid still sorts by itself); changes are reported by onSortChange. */
+  defaultSortColumn?: string;
+  defaultSortDirection?: 'asc' | 'desc';
+  onSortChange?: (columnKey: string, direction: 'asc' | 'desc') => void;
+
+  /** Given: column headers get a drag handle on their right edge; called with the new width in pixels. */
+  onColumnResize?: (columnKey: string, width: number) => void;
 
   // Selection
   selectable?: boolean;
@@ -109,6 +116,11 @@ export interface GridViewProps<T> {
   hoverable?: boolean;
   striped?: boolean;
   className?: string;
+  /**
+   * The grid takes the height its parent gives it and scrolls inside, so the pager always stays visible (screens
+   * that fill the content area, e.g. CatalogScreen). Otherwise the table is capped at a fixed share of the window.
+   */
+  fillHeight?: boolean;
 }
 
 /** GridView accepts colour names for its buttons; Button knows meanings. */
@@ -145,6 +157,10 @@ export function GridView<T extends Record<string, any>>({
   sortColumn: controlledSortColumn,
   sortDirection: controlledSortDirection = 'asc',
   onSort: controlledOnSort,
+  defaultSortColumn,
+  defaultSortDirection,
+  onSortChange,
+  onColumnResize,
 
   selectable = false,
   selectedIds: controlledSelectedIds,
@@ -173,7 +189,8 @@ export function GridView<T extends Record<string, any>>({
   dense = false,
   hoverable = true,
   striped = false,
-  className = ''
+  className = '',
+  fillHeight = false
 }: GridViewProps<T>) {
   const { t } = useLanguage();
   const searchPlaceholder = searchPlaceholderProp ?? t('controls.grid.searchPlaceholder');
@@ -183,8 +200,15 @@ export function GridView<T extends Record<string, any>>({
 
   // Local states for uncontrolled usage
   const [localSearchValue, setLocalSearchValue] = useState('');
-  const [localSortColumn, setLocalSortColumn] = useState<string | undefined>(undefined);
-  const [localSortDirection, setLocalSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [localSortColumn, setLocalSortColumn] = useState<string | undefined>(defaultSortColumn);
+  const [localSortDirection, setLocalSortDirection] = useState<'asc' | 'desc'>(defaultSortDirection ?? 'asc');
+  // A saved layout arrives after the first render: apply its sort when it does.
+  useEffect(() => {
+    if (defaultSortColumn !== undefined) {
+      setLocalSortColumn(defaultSortColumn);
+      setLocalSortDirection(defaultSortDirection ?? 'asc');
+    }
+  }, [defaultSortColumn, defaultSortDirection]);
   const [localSelectedIds, setLocalSelectedIds] = useState<(string | number)[]>([]);
   const [localCurrentPage, setLocalCurrentPage] = useState(1);
   const [localPageSize, setLocalPageSize] = useState(10);
@@ -217,7 +241,29 @@ export function GridView<T extends Record<string, any>>({
     } else {
       setLocalSortColumn(key);
       setLocalSortDirection(nextDir);
+      onSortChange?.(key, nextDir);
     }
+  };
+
+  // Column resize: drag the right edge of a header; the width is reported when the mouse is released.
+  const resizing = useRef(false);
+  const startResize = (event: React.MouseEvent, key: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const th = (event.currentTarget as HTMLElement).parentElement as HTMLElement;
+    const startX = event.clientX;
+    const startWidth = th.getBoundingClientRect().width;
+    resizing.current = true;
+    const move = (e: MouseEvent) => { th.style.width = `${Math.max(48, startWidth + e.clientX - startX)}px`; };
+    const up = (e: MouseEvent) => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      onColumnResize?.(key, Math.round(Math.max(48, startWidth + e.clientX - startX)));
+      // The click that ends the drag must not sort the column.
+      setTimeout(() => { resizing.current = false; }, 0);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
   };
 
   // Selection handlers
@@ -389,7 +435,8 @@ export function GridView<T extends Record<string, any>>({
       {/* Grid Container Card */}
       <Card className="w-full min-w-0 flex-1 flex flex-col min-h-0">
         <div className="p-3 sm:p-4 space-y-3 w-full min-w-0 flex-1 flex flex-col min-h-0">
-          {/* Top Toolbar: Search + Filters + Actions (Fixed at top of Card) */}
+          {/* Top Toolbar: Search + Filters + Actions (Fixed at top of Card); left out when the screen has its own toolbar */}
+          {(searchable || toolbarFilters || toolbarActions) && (
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 shrink-0">
             <div className="flex flex-1 items-center gap-2.5 flex-wrap">
               {searchable && (
@@ -409,6 +456,7 @@ export function GridView<T extends Record<string, any>>({
               <div className="flex items-center gap-2 self-end md:self-auto shrink-0">{toolbarActions}</div>
             )}
           </div>
+          )}
 
           {/* Batch Actions Bar (shown when items are selected) */}
           {selectable && selectedIds.length > 0 && (
@@ -447,7 +495,7 @@ export function GridView<T extends Record<string, any>>({
           )}
 
           {/* Table Element - Flex grow with overflow auto */}
-          <div className="flex-1 min-h-[300px] max-h-[calc(100vh-250px)] overflow-auto border border-slate-200 dark:border-slate-800 rounded-[8px] relative custom-scrollbar w-full min-w-0">
+          <div className={`flex-1 ${fillHeight ? 'min-h-[160px]' : 'min-h-[300px] max-h-[calc(100vh-250px)]'} overflow-auto border border-slate-200 dark:border-slate-800 rounded-[8px] relative custom-scrollbar w-full min-w-0`}>
             {loading && (
               <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xs z-20 flex items-center justify-center">
                 <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-[8px] shadow-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200">
@@ -483,8 +531,9 @@ export function GridView<T extends Record<string, any>>({
                     return (
                       <th
                         key={col.key}
-                        style={{ width: col.width }}
-                        className={`${dense ? 'px-2 py-1.5' : 'px-3 py-2'} transition-colors ${
+                        // Resizable lists keep the chosen width (the table scrolls instead of squeezing the column).
+                        style={{ width: col.width, minWidth: onColumnResize ? col.width : undefined }}
+                        className={`${dense ? 'px-2 py-1.5' : 'px-3 py-2'} ${onColumnResize ? 'relative' : ''} transition-colors ${
                           col.align === 'center'
                             ? 'text-center'
                             : col.align === 'right'
@@ -493,7 +542,7 @@ export function GridView<T extends Record<string, any>>({
                         } ${col.sortable ? 'cursor-pointer hover:bg-slate-200/60 dark:hover:bg-slate-700/60 select-none' : ''} ${
                           col.headerClassName || ''
                         }`}
-                        onClick={() => col.sortable && handleSortClick(col)}
+                        onClick={() => col.sortable && !resizing.current && handleSortClick(col)}
                       >
                         <div
                           className={`inline-flex items-center gap-1 ${
@@ -519,6 +568,11 @@ export function GridView<T extends Record<string, any>>({
                             </span>
                           )}
                         </div>
+                        {onColumnResize && (
+                          <span role="separator" aria-orientation="vertical" title={t('controls.grid.resize')}
+                            onMouseDown={e => startResize(e, col.key)} onClick={e => e.stopPropagation()}
+                            className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-indigo-400/60 active:bg-indigo-500" />
+                        )}
                       </th>
                     );
                   })}

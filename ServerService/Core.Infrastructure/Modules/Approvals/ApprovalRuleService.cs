@@ -37,6 +37,7 @@ public sealed class ApprovalRuleService(CoreContext db, ApprovalResolver resolve
     {
         var rule = await db.ApprovalRules.FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException("approval.ruleNotFound");
+        db.ExpectVersion(rule, request.Version);
         var before = await NamesOfAsync(rule, ct);
         await ApplyAsync(rule, actorUserId, request, ct);
         await AttachNamesAsync(rule, before, ct);
@@ -150,5 +151,5 @@ public sealed class ApprovalRuleService(CoreContext db, ApprovalResolver resolve
     }
 
     private static ApprovalRuleDto ToDto(ApprovalRule x) => new(x.Id.ToString(), x.MenuId0, x.UnitCode, x.Level,
-        x.RequesterType, x.RequesterValue, x.MinAmount, x.ApproverType, x.ApproverValue, x.Note, x.IsActive);
+        x.RequesterType, x.RequesterValue, x.MinAmount, x.ApproverType, x.ApproverValue, x.Note, x.IsActive, x.Version);
 }
