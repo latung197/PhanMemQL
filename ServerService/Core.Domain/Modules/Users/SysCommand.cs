@@ -16,4 +16,5 @@ public class SysCommand
     [Column("menuid"), StringLength(64)] public string MenuId { get; set; } = string.Empty;
     [Column("text"), StringLength(100)] public string Text { get; set; } = string.Empty;
     [Column("type"), StringLength(3)] public string Type { get; set; } = "M";
+    [Column("hide_yn")] public short HideYn { get; set; }
 }

@@ -70,6 +70,8 @@
     "language": "Ngôn ngữ",
     "collapseSidebar": "Thu gọn sidebar",
     "expandSidebar": "Mở rộng sidebar",
+    "searchFunctions": "Tìm chức năng...",
+    "noFunctionsFound": "Không tìm thấy chức năng phù hợp",
     "groups": {
       "categories": "Danh Mục",
       "vouchers": "Chứng Từ",
@@ -85,6 +87,7 @@
       "inv_material_cat": "Khai báo vật tư & Sản phẩm",
       "inv_warehouse_cat": "Khai báo danh mục kho",
       "inv_material_type_cat": "Danh mục Loại vật tư",
+      "inv_material_group_cat": "Danh mục Nhóm vật tư",
       "inv_uom_cat": "Danh mục Đơn vị tính",
       "inv_uom_conversion_cat": "Danh mục Quy đổi ĐVT",
       "inv_stock_norm_cat": "Danh mục Định mức tồn kho",
@@ -716,6 +719,7 @@
       "voucherNumbering": "Đánh số chứng từ",
       "setting": "Tham số hệ thống",
       "uom": "Đơn vị tính",
+      "materialGroup": "Nhóm vật tư",
       "auditLog": "Nhật ký thay đổi"
     },
     "objectLabel": {
@@ -736,6 +740,23 @@
       "cancel": "Hủy",
       "saved": "Đã lưu thời gian lưu nhật ký"
     }
+  },
+  "function": {
+    "sys_menu": "Quản lý menu"
+  },
+  "menuManager": {
+    "title": "Quản lý menu",
+    "description": "Chọn module và chức năng hiển thị trong menu cho mọi người dùng.",
+    "permissionNote": "Ẩn menu chỉ thay đổi điều hướng, không thu hồi quyền truy cập chức năng hoặc API.",
+    "search": "Tìm module hoặc chức năng...",
+    "noResults": "Không tìm thấy module hoặc chức năng phù hợp.",
+    "functions": "chức năng",
+    "moduleHidden": "Module đang ẩn nên các chức năng bên dưới cũng không xuất hiện trên menu.",
+    "required": "Luôn hiển thị",
+    "directFunction": "Chức năng chính",
+    "save": "Lưu cấu hình menu",
+    "saving": "Đang lưu...",
+    "saved": "Đã lưu cấu hình menu"
   },
   "recordStamp": {
     "created": "Người tạo",

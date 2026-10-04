@@ -42,6 +42,10 @@ public sealed class SettingsBackupService(CoreContext db, IUnitOfWork unitOfWork
                 ((Dictionary<string, JsonElement>)own)[section] = value;
             }
         }
+        // Export the effective menu: function flags live in sys_command.hide_yn, not in the JSON row.
+        var effectiveMenu = await config.GetEffectiveAsync(string.Empty, ct);
+        if (effectiveMenu.TryGetValue("menuVisibility", out var menuVisibility))
+            sections["menuVisibility"] = menuVisibility;
 
         return new SettingsBackup(CurrentVersion, DateTime.UtcNow, sections,
             (await currencies.GetAllAsync(ct)).Select(x => new SaveCurrencyRequest(x.Code, x.Name, x.Symbol, x.DecimalPlaces, x.IsBase, x.IsActive)).ToList(),

@@ -5,6 +5,8 @@
 // are in services/settingsApi.ts.
 import { apiRequest } from './apiClient';
 import { translate } from '../utils/i18n';
+import type { MenuVisibilityConfig } from './menuVisibility';
+import { EMPTY_MENU_VISIBILITY } from './menuVisibility';
 
 export interface PrintSignatureLabels {
   preparedBy: string;
@@ -143,6 +145,7 @@ interface SettingSections {
   numberFormat?: NumberFormatConfig;
   /** Only for the unit of the session. */
   unitDefaults?: UnitDefaultsConfig;
+  menuVisibility?: MenuVisibilityConfig;
 }
 
 type SectionName = keyof SettingSections;
@@ -243,6 +246,17 @@ class SystemSettingsService {
 
   saveNumberFormat(config: NumberFormatConfig): Promise<NumberFormatConfig> {
     return this.save('numberFormat', config);
+  }
+
+  getMenuVisibility(): MenuVisibilityConfig {
+    return {
+      hiddenModules: [...(this.cache.menuVisibility?.hiddenModules ?? EMPTY_MENU_VISIBILITY.hiddenModules)],
+      hiddenFunctions: [...(this.cache.menuVisibility?.hiddenFunctions ?? EMPTY_MENU_VISIBILITY.hiddenFunctions)]
+    };
+  }
+
+  saveMenuVisibility(config: MenuVisibilityConfig): Promise<MenuVisibilityConfig> {
+    return this.save('menuVisibility', config);
   }
 }
 

@@ -7,12 +7,12 @@ Mẫu để copy là **Danh mục đơn vị tính**. Đây là mẫu đầy đ�
 | Lớp | File mẫu |
 | --- | --- |
 | SQL | `ServerService/sql/postgresql/13-inventory-uom.sql` |
-| Entity | `ServerService/Core.Domain/Modules/Inventory/Uom.cs` |
-| Contract (DTO, interface) | `ServerService/Core.Application/Modules/Inventory/UomContracts.cs` |
-| Service | `ServerService/Core.Infrastructure/Modules/Inventory/UomService.cs` |
-| Controller | `ServerService/Core/Modules/Inventory/UomsController.cs` |
+| Entity | `ServerService/Core.Domain/Modules/Inventory/Categories/uom/Uom.cs` |
+| Contract (DTO, interface) | `ServerService/Core.Application/Modules/Inventory/Categories/uom/UomContracts.cs` |
+| Service | `ServerService/Core.Infrastructure/Modules/Inventory/Categories/uom/UomService.cs` |
+| Controller | `ServerService/Core/Modules/Inventory/Categories/uom/UomsController.cs` |
 | Tra cứu | `ServerService/Core.Infrastructure/DependencyInjection.cs` (dòng `AddLookup(... "uoms" ...)`) |
-| Màn hình | `Frontend/src/modules/inventory/uom/` (`UomCategoryView.tsx`, `api.ts`, `types.ts`, `index.ts`) |
+| Màn hình | `Frontend/src/modules/inventory/categories/uom/` (`UomCategoryView.tsx`, `api.ts`, `types.ts`, `index.ts`) |
 
 ---
 
@@ -64,7 +64,7 @@ Mẫu để copy là **Danh mục đơn vị tính**. Đây là mẫu đầy đ�
 | API | `api/inventory/suppliers` | Số nhiều, chữ thường |
 | Tên tra cứu | `suppliers` | `GET /api/lookups/suppliers` |
 | Đường dẫn màn | `/inventory/suppliers` | |
-| Thư mục màn | `Frontend/src/modules/inventory/suppliers/` | |
+| Thư mục màn | `Frontend/src/modules/inventory/categories/suppliers/` | |
 
 Đổi các tên này cho danh mục của bạn. Làm theo thứ tự: **SQL → backend → frontend → phân quyền → kiểm tra**.
 
@@ -74,7 +74,7 @@ Mẫu để copy là **Danh mục đơn vị tính**. Đây là mẫu đầy đ�
 
 ### 1.1. Tạo script SQL — `ServerService/sql/postgresql/NN-<ten>.sql` (thêm mới)
 
-`NN` là số tiếp theo trong thư mục (hiện có đến `14`), ví dụ `15-inventory-supplier.sql`. Script phải **chạy lại nhiều lần không lỗi**: dùng `IF NOT EXISTS`, không `DROP`.
+`NN` là số tiếp theo trong thư mục `ServerService/sql/postgresql/` (xem số lớn nhất trước khi tạo file mới). Script phải **chạy lại nhiều lần không lỗi**: dùng `IF NOT EXISTS`, không `DROP`.
 
 ```sql
 -- Inventory: supplier catalog (danh mục nhà cung cấp, function inv_supplier_cat). Safe to rerun.
@@ -125,9 +125,11 @@ WHERE NOT EXISTS (SELECT 1 FROM erp_supplier);
 
 `psql` có thể không có trong PATH. Mật khẩu database nằm trong `ServerService/Core/appsettings.Local.json` (`ConnectionStrings:CoreContext`); không ghi mật khẩu vào script hay tài liệu.
 
-```bash
-"C:/Program Files/PostgreSQL/15/bin/psql.exe" -h localhost -U postgres -d erp_dev -f ServerService/sql/postgresql/15-inventory-supplier.sql
+```powershell
+psql -h localhost -U postgres -d erp_dev -v ON_ERROR_STOP=1 -f ServerService/sql/postgresql/NN-inventory-supplier.sql
 ```
+
+Thay `NN` bằng số đã chọn ở bước 1.1; nếu `psql` chưa có trong PATH, gọi bằng đường dẫn tới bản PostgreSQL đang cài.
 
 Database mới: chạy **mọi** file trong `sql/postgresql/` theo thứ tự tên (`00-helpers.sql` trước).
 
@@ -549,7 +551,7 @@ Thêm vào nhóm danh mục của phân hệ (copy mục `MNU_INV_UOM`):
 - `orderNo` quyết định thứ tự trong nhóm.
 - Menu chỉ hiện với người có quyền Xem chức năng.
 
-### 3.4. Thư mục chức năng — `modules/inventory/suppliers/` (thêm mới, copy từ `modules/inventory/uom/`)
+### 3.4. Thư mục chức năng — `modules/inventory/categories/suppliers/` (thêm mới, copy từ `modules/inventory/categories/uom/`)
 
 #### `types.ts`
 

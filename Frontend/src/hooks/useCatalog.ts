@@ -20,6 +20,7 @@ export interface CatalogOptions<T> {
   noun: string;
   /** Text naming one record in messages, e.g. `${x.code} - ${x.name}`. */
   describe: (item: T) => string;
+  onChanged?: () => void | Promise<void>;
 }
 
 /** The loaded record's row version (IVersioned on the backend), when it has one. */
@@ -34,7 +35,7 @@ export function useCatalog<T, TInput>(api: CatalogApi<T, TInput>, options: Catal
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { keyOf, noun, describe } = options;
+  const { keyOf, noun, describe, onChanged } = options;
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -62,6 +63,7 @@ export function useCatalog<T, TInput>(api: CatalogApi<T, TInput>, options: Catal
       showToast.success(t(existing ? 'catalog.saved' : 'catalog.added', { noun }));
       // Reload: a save may change other rows too (e.g. a new base currency).
       await reload();
+      await onChanged?.();
       return true;
     } catch (e) {
       showToast.error(getErrorMessage(e));
@@ -83,6 +85,7 @@ export function useCatalog<T, TInput>(api: CatalogApi<T, TInput>, options: Catal
       await api.remove(keyOf(item));
       showToast.success(t('catalog.deleted', { noun, item: describe(item) }));
       await reload();
+      await onChanged?.();
     } catch (e) {
       showToast.error(getErrorMessage(e));
     }

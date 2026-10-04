@@ -24,6 +24,7 @@ export const ALL_SUB_MENU_KEYS: SubMenuKey[] = [
   'inv_material_cat',
   'inv_material_type_cat',
   'inv_warehouse_cat',
+  'inv_warehouse_type_cat',
   'inv_location_cat',
   'inv_uom_cat',
   'inv_uom_conversion_cat',
@@ -44,6 +45,7 @@ export const ALL_SUB_MENU_KEYS: SubMenuKey[] = [
   'sys_fiscal_year',
   'sys_currencies',
   'sys_exchange_rates',
+  'sys_menu',
 
   // Sales
   'sales_customers',
@@ -132,6 +134,7 @@ export const initialRoles: RoleDefinition[] = [
       overview_main: READONLY_ACTIONS,
       inv_material_cat: { view: true, create: true, edit: true, delete: false, approve: false, print: true, export: true },
       inv_warehouse_cat: { view: true, create: true, edit: true, delete: false, approve: false, print: true, export: true },
+      inv_warehouse_type_cat: { view: true, create: true, edit: true, delete: false, approve: false, print: true, export: true },
       inv_receipt: { view: true, create: true, edit: true, delete: false, approve: true, print: true, export: true },
       inv_issue: { view: true, create: true, edit: true, delete: false, approve: true, print: true, export: true },
       inv_report_stock: FULL_ACTIONS,
@@ -183,6 +186,7 @@ export const initialRoles: RoleDefinition[] = [
       overview_main: READONLY_ACTIONS,
       inv_material_cat: READONLY_ACTIONS,
       inv_warehouse_cat: READONLY_ACTIONS,
+      inv_warehouse_type_cat: READONLY_ACTIONS,
       inv_report_stock: READONLY_ACTIONS,
       inv_report_nxt: READONLY_ACTIONS,
       sales_customers: READONLY_ACTIONS,

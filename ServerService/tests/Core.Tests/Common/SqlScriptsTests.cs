@@ -19,4 +19,12 @@ public sealed class SqlScriptsTests
             SqlScripts.Get(typeof(SqlScriptsTests).Assembly, "Sample", "Missing"));
         Assert.Contains("Modules/Sample/Sql/Missing.sql", error.Message);
     }
+
+    [Fact]
+    public void LoadsGoodsReceiptPostingScript()
+    {
+        var sql = SqlScripts.Get("Inventory.Documents.GoodsReceipts", "PostReceipt");
+        Assert.Contains("erp_stock_movement", sql);
+        Assert.Contains("@receiptId", sql);
+    }
 }

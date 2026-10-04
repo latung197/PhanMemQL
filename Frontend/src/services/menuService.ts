@@ -5,6 +5,7 @@ import { TransformedModuleItem } from '../types/menu';
 import { Language } from '../utils/i18n';
 import { UserProfile } from '../types';
 import { canView } from '../utils/permissions';
+import { EMPTY_MENU_VISIBILITY, isMenuFunctionVisible, isMenuModuleVisible, type MenuVisibilityConfig } from './menuVisibility';
 
 // Old versions kept a copy of the menu in the browser, which hid functions added later.
 try { localStorage.removeItem('serp_sys_modules'); } catch { /* storage unavailable */ }
@@ -14,13 +15,15 @@ export const menuService = {
   getUserMenuTree(
     lang: Language = 'vi',
     currentUser?: UserProfile,
-    badgeCounts?: { lowStockCount?: number; pendingOrderCount?: number }
+    badgeCounts?: { lowStockCount?: number; pendingOrderCount?: number },
+    visibility: MenuVisibilityConfig = EMPTY_MENU_VISIBILITY
   ): TransformedModuleItem[] {
     // Same rule as the screen guard in App (utils/permissions).
-    const allowed = (item: { subKey: Parameters<typeof canView>[1] }) => !currentUser || canView(currentUser, item.subKey);
+    const allowed = (item: { subKey: Parameters<typeof canView>[1] }) =>
+      isMenuFunctionVisible(visibility, item.subKey) && (!currentUser || canView(currentUser, item.subKey));
 
     return INITIAL_SYS_MODULES
-      .filter(m => m.isActive)
+      .filter(m => m.isActive && isMenuModuleVisible(visibility, m.key))
       .sort((a, b) => a.orderNo - b.orderNo)
       .map(mod => {
         let badgeCount: number | undefined = undefined;

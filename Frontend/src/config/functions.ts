@@ -25,12 +25,14 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
   // Kho hàng - danh mục
   inv_material_cat: fn('inventory', '/inventory/materials', 'Vật tư & sản phẩm', 'catalog'),
   inv_material_type_cat: fn('inventory', '/inventory/types', 'Loại vật tư', 'catalog'),
+  inv_material_group_cat: fn('inventory', '/inventory/material-groups', 'Nhóm vật tư', 'catalog'),
   inv_uom_cat: fn('inventory', '/inventory/uom', 'Đơn vị tính', 'catalog'),
   inv_uom_conversion_cat: fn('inventory', '/inventory/uom-conversions', 'Quy đổi đơn vị tính', 'catalog'),
   inv_stock_norm_cat: fn('inventory', '/inventory/stock-norms', 'Định mức tồn kho', 'catalog'),
   inv_lot_cat: fn('inventory', '/inventory/lots', 'Lô & hạn sử dụng', 'catalog'),
   inv_location_cat: fn('inventory', '/inventory/locations', 'Vị trí lưu kho', 'catalog'),
   inv_warehouse_cat: fn('inventory', '/inventory/warehouses', 'Danh mục kho', 'catalog'),
+  inv_warehouse_type_cat: fn('inventory', '/inventory/warehouse-types', 'Danh mục loại kho', 'catalog'),
   // Kho hàng - chứng từ
   inv_receipt: fn('inventory', '/inventory/receipts', 'Phiếu nhập kho', 'voucher'),
   inv_issue: fn('inventory', '/inventory/issues', 'Phiếu xuất kho', 'voucher'),
@@ -80,7 +82,8 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
   sys_currencies: fn('settings', '/settings/currencies', 'Ngoại tệ', 'system'),
   sys_exchange_rates: fn('settings', '/settings/exchange-rates', 'Tỷ giá', 'system'),
   sys_languages: fn('settings', '/settings/languages', 'Ngôn ngữ', 'system'),
-  sys_audit_log: fn('settings', '/settings/audit-log', 'Nhật ký thay đổi', 'system')
+  sys_audit_log: fn('settings', '/settings/audit-log', 'Nhật ký thay đổi', 'system'),
+  sys_menu: fn('settings', '/settings/menu', 'Quản lý menu', 'system')
 };
 
 /** Function codes in declaration order. */

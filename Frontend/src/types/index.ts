@@ -4,6 +4,9 @@ export interface CompanyUnit {
   id: string;
   code: string;         // ma_dvcs (e.g. 'DVCS01', 'DVCS02')
   name: string;         // ten_dvcs (e.g. 'Trụ sở chính TP. Hồ Chí Minh')
+  localizedName?: string;
+  translations?: { languageCode: string; name: string }[];
+  isActive?: boolean;
   shortName?: string;   // Tên viết tắt
   address?: string;     // Địa chỉ
   phone?: string;       // Số điện thoại
@@ -131,19 +134,6 @@ export interface UnitOfMeasure {
   symbol: string;
   note?: string;
   status: 'Hoạt động' | 'Tạm dừng';
-}
-
-export interface UomConversion {
-  id: string;
-  code: string;
-  materialId?: string;
-  materialName?: string;
-  fromUnitId: string;
-  fromUnitName: string;
-  toUnitId: string;
-  toUnitName: string;
-  conversionFactor: number;
-  description?: string;
 }
 
 export interface StockNorm {
@@ -286,6 +276,8 @@ export interface VoucherItem {
 
 export interface GoodsVoucher {
   id: string;
+  /** Backend row version used when editing a receipt. */
+  version?: number;
   type: 'Nhập kho' | 'Xuất kho';
   code: string;
   date: string;                      // Ngày chứng từ (Document Date)
@@ -400,7 +392,6 @@ export interface ERPData {
   warehouses: Warehouse[];
   materialTypes?: MaterialType[];
   unitsOfMeasure?: UnitOfMeasure[];
-  uomConversions?: UomConversion[];
   stockNorms?: StockNorm[];
   lots?: MaterialLot[];
   storageLocations?: StorageLocation[];
@@ -445,7 +436,9 @@ export type SubMenuKey =
   // Inventory submenus - 3. Danh mục
   | 'inv_material_cat'          // Khai báo vật tư & SP
   | 'inv_material_type_cat'     // Danh mục Loại vật tư
+  | 'inv_material_group_cat'    // Danh mục Nhóm vật tư
   | 'inv_warehouse_cat'         // Danh mục kho bãi
+  | 'inv_warehouse_type_cat'    // Danh mục loại kho
   | 'inv_location_cat'          // Danh mục Vị trí lưu kho
   | 'inv_uom_cat'               // Danh mục Đơn vị tính
   | 'inv_uom_conversion_cat'    // Danh mục Quy đổi ĐVT
@@ -473,6 +466,7 @@ export type SubMenuKey =
   | 'sys_exchange_rates'        // Cập nhật tỷ giá
   | 'sys_languages'             // Danh mục ngôn ngữ
   | 'sys_audit_log'             // Nhật ký thay đổi (mọi chức năng)
+  | 'sys_menu'                  // Quản lý ẩn/hiện menu
 
   // Sales submenus
   | 'sales_customers'           // Danh mục khách hàng

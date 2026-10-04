@@ -70,6 +70,8 @@
     "language": "Language",
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
+    "searchFunctions": "Search functions...",
+    "noFunctionsFound": "No matching functions found",
     "groups": {
       "categories": "Master Data",
       "vouchers": "Vouchers & Documents",
@@ -85,6 +87,7 @@
       "inv_material_cat": "Materials & Products",
       "inv_warehouse_cat": "Warehouses Master",
       "inv_material_type_cat": "Material Types",
+      "inv_material_group_cat": "Material Groups",
       "inv_uom_cat": "Units of Measure (UOM)",
       "inv_uom_conversion_cat": "UOM Conversions",
       "inv_stock_norm_cat": "Stock Norms",
@@ -576,6 +579,7 @@
     "inv_approve_transfer": "Approve transfers",
     "inv_material_cat": "Materials & products",
     "inv_material_type_cat": "Material types",
+    "inv_material_group_cat": "Material groups",
     "inv_warehouse_cat": "Warehouses",
     "inv_location_cat": "Storage locations",
     "inv_uom_cat": "Units of measure",
@@ -610,7 +614,8 @@
     "reports_main": "Summary reports",
     "ai_main": "AI assistant",
     "settings_main": "System settings",
-    "sys_audit_log": "Change log"
+    "sys_audit_log": "Change log",
+    "sys_menu": "Menu management"
   },
   "audit": {
     "title": "Change log",
@@ -767,6 +772,7 @@
       "voucherNumbering": "Voucher numbering",
       "setting": "System parameter",
       "uom": "Unit of measure",
+      "materialGroup": "Material group",
       "auditLog": "Change log"
     },
     "objectLabel": {
@@ -787,6 +793,20 @@
       "cancel": "Cancel",
       "saved": "Change log retention saved"
     }
+  },
+  "menuManager": {
+    "title": "Menu management",
+    "description": "Choose which modules and functions appear in the menu for all users.",
+    "permissionNote": "Hiding a menu changes navigation only; it does not revoke function or API access.",
+    "search": "Search modules or functions...",
+    "noResults": "No matching modules or functions.",
+    "functions": "functions",
+    "moduleHidden": "This module is hidden, so its functions do not appear in the menu.",
+    "required": "Always visible",
+    "directFunction": "Main function",
+    "save": "Save menu settings",
+    "saving": "Saving...",
+    "saved": "Menu settings saved"
   },
   "recordStamp": {
     "created": "Created by",

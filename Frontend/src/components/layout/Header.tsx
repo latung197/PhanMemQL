@@ -48,6 +48,7 @@ interface HeaderProps {
   onNotificationPublished?: () => void;
   /** The user edited their profile or changed their password. */
   onUserUpdated: (user: UserProfile) => void;
+  onLanguageChanged?: () => void | Promise<void>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -68,7 +69,8 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   onToggleMobileSidebar,
   onNotificationPublished,
-  onUserUpdated
+  onUserUpdated,
+  onLanguageChanged
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, languages, t } = useLanguage();
@@ -76,6 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
   /** Switches at once and saves the choice to the profile, so it follows the user to other devices. */
   const changeLanguage = (code: string) => {
     setLanguage(code);
+    void onLanguageChanged?.();
     authService.setMyLanguage(code).then(onUserUpdated).catch(error => showToast.error(getErrorMessage(error)));
   };
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -124,7 +127,7 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 {companyUnits.map(u => (
                   <option key={u.id} value={u.code} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
-                    {u.code} - {u.shortName || u.name}
+                    {u.code} - {u.localizedName || u.shortName || u.name}
                   </option>
                 ))}
               </select>

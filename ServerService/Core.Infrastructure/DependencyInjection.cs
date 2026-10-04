@@ -1,6 +1,7 @@
 using Core.Infrastructure.Common.Lookups;
 using Core.Infrastructure.Common.Layouts;
 using Core.Application.Common.Lookups;
+using Core.Application.Common.Localization;
 using Core.Application.Common.Layouts;
 using Core.Infrastructure.Common.Catalogs;
 using Core.Application.Common.Auditing;
@@ -13,6 +14,7 @@ using Core.Application.Modules.Currencies;
 using Core.Application.Modules.Departments;
 using Core.Application.Modules.Fiscal;
 using Core.Application.Modules.Inventory;
+using Core.Application.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Application.Modules.Languages;
 using Core.Application.Modules.Notifications;
 using Core.Application.Modules.Roles;
@@ -31,6 +33,7 @@ using Core.Infrastructure.Modules.Currencies;
 using Core.Infrastructure.Modules.Departments;
 using Core.Infrastructure.Modules.Fiscal;
 using Core.Infrastructure.Modules.Inventory;
+using Core.Infrastructure.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Infrastructure.Modules.Languages;
 using Core.Infrastructure.Modules.Notifications;
 using Core.Infrastructure.Modules.Roles;
@@ -76,8 +79,35 @@ public static class DependencyInjection
         services.AddScoped<ILookupService, LookupService>();
 
         // Lookups (ô chọn mã + F2): one line per catalog, see docs/them-danh-muc.md.
-        services.AddLookup(new LookupDefinition("uoms", db => db.Uoms.Select(x =>
-            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.Symbol }), "symbol"));
+        services.AddLookup(new LookupDefinition("uoms", db =>
+        {
+            var language = Messages.CurrentLanguage;
+            var baseLanguage = language.Split('-')[0];
+            return db.Uoms.Select(x => new LookupRow { Code = x.Code,
+                Name = db.UomTranslations.Where(t => t.UomCode == x.Code &&
+                    (t.LanguageCode == language || t.LanguageCode == baseLanguage))
+                    .OrderByDescending(t => t.LanguageCode == language)
+                    .Select(t => t.Name).FirstOrDefault() ?? x.Name,
+                IsActive = x.IsActive, Extra1 = x.Symbol });
+        }, "symbol"));
+        services.AddLookup(new LookupDefinition("uomConversions", db => db.UomConversions.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.FromUomCode + " → " + x.ToUomCode, IsActive = x.IsActive,
+                Extra1 = x.MaterialCode, Extra2 = x.Factor.ToString() }), "materialCode", "factor"));
+        services.AddLookup(new LookupDefinition("materialGroups", db => db.MaterialGroups.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive })));
+        services.AddLookup(new LookupDefinition("warehouses", db => db.Warehouses.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.Address }), "address"));
+        services.AddLookup(new LookupDefinition("warehouseTypes", db =>
+        {
+            var language = Messages.CurrentLanguage;
+            var baseLanguage = language.Split('-')[0];
+            return db.WarehouseTypes.Select(x => new LookupRow { Code = x.Code,
+                Name = db.WarehouseTypeTranslations.Where(t => t.WarehouseTypeCode == x.Code &&
+                    (t.LanguageCode == language || t.LanguageCode == baseLanguage))
+                    .OrderByDescending(t => t.LanguageCode == language)
+                    .Select(t => t.Name).FirstOrDefault() ?? x.Name,
+                IsActive = x.IsActive });
+        }));
 
         // Modules
         services.AddScoped<UserProfileBuilder>();
@@ -106,6 +136,11 @@ public static class DependencyInjection
         services.AddScoped<ISystemParameters, SystemParametersService>();
         services.AddScoped<ILanguageService, LanguageService>();
         services.AddScoped<IUomService, UomService>();
+        services.AddScoped<IUomConversionService, UomConversionService>();
+        services.AddScoped<IMaterialGroupService, MaterialGroupService>();
+        services.AddScoped<IWarehouseService, WarehouseService>();
+        services.AddScoped<IWarehouseTypeService, WarehouseTypeService>();
+        services.AddScoped<IGoodsReceiptService, GoodsReceiptService>();
         return services;
     }
 }

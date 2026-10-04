@@ -2,6 +2,8 @@
 
 Thư mục này được đóng gói độc lập cho nghiệp vụ **Chứng Từ Giao Dịch Master-Detail** (Hóa đơn, phiếu nhập/xuất, đề nghị thanh toán, hợp đồng, lệnh sản xuất).
 
+**Lưu ý:** code bên dưới là bản minh họa trên dữ liệu mẫu, còn ô nhập thô, chữ tiếng Việt và `Intl.NumberFormat('vi-VN')` cố định. Với chứng từ thật, thay bằng control trong `components/common/` (`FormField`, `NumberInput`/`CurrencyInput`, `DateTimePicker`, `VoucherDetailGrid`), `useLanguage().t(...)`, `useNumberFormat()` và API/quy trình ở [README gốc](../../../../../README.md#phiếu-chứng-từ). Template này chưa phải một quy trình chứng từ backend hoàn chỉnh.
+
 ---
 
 ## 📁 Cấu trúc đóng gói:

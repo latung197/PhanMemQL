@@ -106,4 +106,23 @@ public sealed class SystemConfigSectionsTests
     {
         Assert.All(SystemConfigSections.Keys.Keys, section => Assert.True(SystemConfigSections.Functions.ContainsKey(section)));
     }
+
+    [Fact]
+    public void AcceptsKnownMenuVisibilityOverrides()
+    {
+        using var value = JsonDocument.Parse("""{"hiddenModules":["sales"],"hiddenFunctions":["inv_warehouse_cat"]}""");
+        Assert.Equal("menuVisibility", SystemConfigSections.Validate("menuVisibility", value.RootElement));
+    }
+
+    [Theory]
+    [InlineData("""{"hiddenModules":["settings"],"hiddenFunctions":[]}""")]
+    [InlineData("""{"hiddenModules":[],"hiddenFunctions":["sys_menu"]}""")]
+    [InlineData("""{"hiddenModules":[],"hiddenFunctions":["unknown"]}""")]
+    [InlineData("""{"hiddenModules":["sales","sales"],"hiddenFunctions":[]}""")]
+    [InlineData("""{"hiddenModules":[],"hiddenFunctions":"inv_warehouse_cat"}""")]
+    public void RejectsInvalidOrProtectedMenuVisibilityOverrides(string json)
+    {
+        using var value = JsonDocument.Parse(json);
+        Assert.Throws<BusinessRuleException>(() => SystemConfigSections.Validate("menuVisibility", value.RootElement));
+    }
 }

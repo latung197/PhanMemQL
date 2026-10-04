@@ -28,13 +28,23 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         // Whoever may add or change the document may send it (same rule as DocumentStatusPolicy Submit).
         await permissions.EnsureAnyAllowedAsync(userId, request.Function, [PermissionAction.Create, PermissionAction.Edit], ct);
         var documentId = Guard.Required(request.DocumentId, 64, "field.documentId");
+        var receipt = request.Function == "inv_receipt"
+            ? await db.GoodsReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct)
+            : null;
+        if (request.Function == "inv_receipt")
+        {
+            if (receipt is null) throw new NotFoundException("receipt.notFound");
+            if (receipt.CreatedBy != userId) throw new ForbiddenException("policy.ownOnly");
+            if (receipt.Status != "Draft") throw new BusinessRuleException("policy.submitDraftOnly");
+        }
         var steps = await LatestRoundAsync(request.Function, documentId, ct);
         if (steps.Any(x => x.Status is ApprovalStepStatus.Pending or ApprovalStepStatus.Waiting))
             throw new BusinessRuleException("approval.pending");
         if (steps.Count > 0 && steps.All(x => x.Status == ApprovalStepStatus.Approved))
             throw new BusinessRuleException("approval.alreadyApproved");
 
-        var resolution = await resolver.ResolveAsync(request.Function, unitCode, userId, request.Amount, ct);
+        var amount = receipt?.TotalValue ?? request.Amount;
+        var resolution = await resolver.ResolveAsync(request.Function, unitCode, userId, amount, ct);
         var empty = resolution.Levels.FirstOrDefault(x => x.UserIds.Count == 0);
         if (empty is not null)
             throw new BusinessRuleException("approval.emptyLevel", empty.Level, empty.Label);
@@ -45,7 +55,7 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         var rows = resolution.Levels.Select((level, index) => new DocumentApproval
         {
             MenuId0 = request.Function, DocumentId = documentId, DocumentTitle = title, UnitCode = unitCode,
-            Amount = request.Amount, Round = round, Level = level.Level, ApproverLabel = level.Label,
+            Amount = amount, Round = round, Level = level.Level, ApproverLabel = level.Label,
             ApproverUserIds = string.Join(',', level.UserIds),
             Status = index == 0 ? ApprovalStepStatus.Pending : ApprovalStepStatus.Waiting,
             RequestedByUserId = userId, RequestedAtUtc = now
@@ -53,6 +63,7 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         await unitOfWork.ExecuteAsync(async token =>
         {
             db.DocumentApprovals.AddRange(rows);
+            if (receipt is not null) receipt.Status = "Pending";
             await RecordAsync(rows[0], AuditActions.Submit, null, rows.Count, token);
             await db.SaveChangesAsync(token);
             await NotifyApproversAsync(userId, rows[0], token);
@@ -67,6 +78,13 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         Act(current, userId, ApprovalStepStatus.Approved, request.Note);
         var next = steps.Where(x => x.Status == ApprovalStepStatus.Waiting).OrderBy(x => x.Level).FirstOrDefault();
         if (next is not null) next.Status = ApprovalStepStatus.Pending;
+        if (next is null && function == "inv_receipt")
+        {
+            var receipt = await db.GoodsReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct)
+                ?? throw new NotFoundException("receipt.notFound");
+            receipt.Status = "Approved";
+            receipt.ApprovedByUserId = userId;
+        }
         await unitOfWork.ExecuteAsync(async token =>
         {
             await RecordAsync(current, AuditActions.Approve, request.Note, steps.Count, token);
@@ -84,6 +102,12 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         Guard.Required(request.Note, 1000, "field.rejectReason");
         Act(current, userId, ApprovalStepStatus.Rejected, request.Note);
         foreach (var waiting in steps.Where(x => x.Status == ApprovalStepStatus.Waiting)) waiting.Status = ApprovalStepStatus.Cancelled;
+        if (function == "inv_receipt")
+        {
+            var receipt = await db.GoodsReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct)
+                ?? throw new NotFoundException("receipt.notFound");
+            receipt.Status = "Draft";
+        }
         await unitOfWork.ExecuteAsync(async token =>
         {
             await RecordAsync(current, AuditActions.Reject, request.Note, steps.Count, token);
@@ -101,6 +125,12 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         if (open[0].RequestedByUserId != userId && !await permissions.IsAdminAsync(userId, ct))
             throw new ForbiddenException("approval.withdrawOwnOnly");
         foreach (var step in open) step.Status = ApprovalStepStatus.Cancelled;
+        if (function == "inv_receipt")
+        {
+            var receipt = await db.GoodsReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct)
+                ?? throw new NotFoundException("receipt.notFound");
+            receipt.Status = "Draft";
+        }
         await RecordAsync(open[0], AuditActions.Withdraw, null, steps.Count, ct);
         await db.SaveChangesAsync(ct);
         return await GetAsync(userId, unitCode, function, documentId, ct);
@@ -149,7 +179,9 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         var requesterIds = pending.Select(x => x.RequestedByUserId).Distinct().ToList();
         var users = await db.Users.AsNoTracking().Where(x => requesterIds.Contains(x.UserId))
             .ToDictionaryAsync(x => x.UserId, x => new ApproverUserDto(x.UserId.ToString(), x.UserName, x.FullName), ct);
-        return pending.Select(x => new PendingApprovalDto(x.MenuId0, x.DocumentId, x.DocumentTitle, x.Amount, x.Level,
+        var canSeeReceiptPrice = await permissions.HasRightAsync(userId, "inv_receipt", SpecialRightCatalog.ViewPrice, ct);
+        return pending.Select(x => new PendingApprovalDto(x.MenuId0, x.DocumentId, x.DocumentTitle,
+            x.MenuId0 == "inv_receipt" && !canSeeReceiptPrice ? null : x.Amount, x.Level,
             users.GetValueOrDefault(x.RequestedByUserId, new ApproverUserDto(x.RequestedByUserId.ToString(), "?", "?")),
             x.RequestedAtUtc)).ToList();
     }

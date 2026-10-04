@@ -9,7 +9,7 @@ export type BadgeVariant =
   | 'success' | 'warning' | 'danger' | 'info' | 'slate' | 'indigo'
   | 'neutral' | 'secondary' | 'outline' | 'emerald' | 'amber' | 'rose' | 'purple';
 
-interface BadgeProps {
+interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
   variant?: BadgeVariant;
   size?: 'sm' | 'md';
@@ -36,8 +36,8 @@ const SIZES = {
   md: 'px-3 py-1 text-xs'
 };
 
-export const Badge: React.FC<BadgeProps> = ({ children, variant = 'info', size = 'sm', className }) => (
-  <span className={cn('inline-flex items-center gap-1.5 font-bold rounded-full border', STYLES[variant], SIZES[size], className)}>
+export const Badge: React.FC<BadgeProps> = ({ children, variant = 'info', size = 'sm', className, ...props }) => (
+  <span {...props} className={cn('inline-flex items-center gap-1.5 font-bold rounded-full border', STYLES[variant], SIZES[size], className)}>
     {children}
   </span>
 );

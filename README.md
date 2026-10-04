@@ -99,11 +99,16 @@ Trình duyệt ── fetch + Bearer token ──► ServerService (Core, contro
 | Thông báo (gửi, đọc, thời gian thực, tự dọn) | **Backend** |
 | Quy tắc phê duyệt (Cài đặt › Phân quyền › Quy trình phê duyệt) | **Backend** |
 | Nhật ký thay đổi (Cài đặt › Nhật ký thay đổi) | **Backend** |
+| Quản lý menu (Cài đặt › Quản lý menu) | **Backend**: module ẩn lưu trong `sys_setting` (`MENU_VISIBILITY`), chức năng ẩn lưu tại `sys_command.hide_yn`. Ẩn menu không thay đổi quyền truy cập API. |
 | Kho › Danh mục đơn vị tính (`erp_uom`) | **Backend** |
+| Kho › Quy đổi đơn vị tính (`erp_uom_conversion`) | **Backend**; vật tư liên kết vẫn lấy từ danh mục mẫu trên frontend |
+| Kho › Nhóm vật tư (`erp_material_group`) | **Backend**; màn Vật tư mẫu chọn mã cho 5 trường nhóm qua tra cứu |
+| Kho › Danh mục kho (`erp_warehouse`) | **Backend**; các màn chứng từ, tồn kho và vị trí kho vẫn dùng dữ liệu mẫu trong trình duyệt |
 | API trình / duyệt / từ chối phiếu (`/api/approvals/...`) | Backend đã có, **frontend chưa gọi** |
-| Vật tư, kho, quy đổi đơn vị tính, phiếu nhập / xuất, bán hàng, tài chính, nhân sự, báo cáo | **Dữ liệu mẫu trong trình duyệt** (`Frontend/src/mock`, `localStorage['s_erp_database_state']`) |
+| Kho — Phiếu nhập kho (`erp_goods_receipt`, `erp_goods_receipt_line`, `erp_stock_movement`) | **Backend**: lưu phiếu, duyệt, ghi sổ và bỏ ghi sổ. Chạy `ServerService/sql/postgresql/20-inventory-goods-receipts.sql` sau các script Kho trước đó. Bộ chọn vật tư và nhà cung cấp vẫn dùng dữ liệu mẫu. |
+| Vật tư, phiếu xuất, báo cáo tồn kho, vị trí kho, bán hàng, tài chính, nhân sự | **Dữ liệu mẫu trong trình duyệt** (`Frontend/src/mock`, `localStorage['s_erp_database_state']`) |
 
-Khi làm một nghiệp vụ thật (ví dụ phiếu nhập kho), làm theo quy trình bên dưới rồi bỏ dữ liệu mẫu của màn đó.
+Khi làm một nghiệp vụ thật, làm theo quy trình bên dưới rồi bỏ dữ liệu mẫu của màn đó.
 
 ## Quy ước chung
 
@@ -135,13 +140,15 @@ Mỗi chức năng có một **mã** (ví dụ `inv_supplier_cat`) và thuộc m
 1. `types/index.ts`: thêm mã vào `SubMenuKey`.
 2. `config/functions.ts`: thêm một dòng `mã: fn(phân hệ, '/đường-dẫn', 'Nhãn', loại)`. Route, tiêu đề, lịch sử điều hướng và ma trận phân quyền tự lấy từ đây. Thiếu dòng này TypeScript báo lỗi.
 3. `mock/initialMenuData.ts`: thêm mục menu (chỉ cần `subKey`, tên, icon, thứ tự).
-4. Thư mục chức năng trong `modules/<phân hệ>/<ten>/`: màn hình + `api.ts` (gọi `apiRequest`, không gọi `fetch` trực tiếp).
+4. Thư mục chức năng trong `modules/<phân hệ>/<nhóm>/<tên>/`: màn hình + `api.ts` (gọi `apiRequest`, không gọi `fetch` trực tiếp). Kho dùng `categories/`, `documents/`, `reports/`; xem [cấu trúc module Kho](docs/cau-truc-module-kho.md).
 5. `modules/<phân hệ>/<Phân hệ>Module.tsx`: thêm `case 'mã'`.
 6. Chạy `npm run lint` và `npm run build`.
 
 ### Danh mục
 
 Hướng dẫn từng bước, từng file (lấy danh mục đơn vị tính làm mẫu): **[docs/them-danh-muc.md](docs/them-danh-muc.md)**.
+
+Quy trình triển khai thực tế danh mục quy đổi đơn vị tính, gồm tra cứu chọn một/chọn nhiều: **[docs/them-quy-doi-don-vi-tinh.md](docs/them-quy-doi-don-vi-tinh.md)**.
 
 Chống ghi đè khi nhiều người cùng sửa (phiên bản bản ghi, lỗi 409, các bước cho chức năng mới): **[docs/chong-ghi-de.md](docs/chong-ghi-de.md)**.
 
@@ -166,7 +173,7 @@ Chống ghi đè khi nhiều người cùng sửa (phiên bản bản ghi, lỗi
   | Ghi sổ kho / sổ cái | SQL trong `Modules/<Module>/Sql/*.sql` qua `ISqlExecutor`, cùng transaction |
   | Nhật ký ai sửa gì | `[Audited]` trên entity (tự động); trình / duyệt / ghi sổ bằng SQL thì ghi tay `IAuditLog.RecordAsync`; xem ở Cài đặt › Nhật ký thay đổi |
 
-- Frontend: copy `modules/_templates/voucher-feature-template/`. Số phiếu hiển thị trước khi lưu lấy bằng `voucherNumberingApi.preview(loại)`; số thật do backend cấp lúc lưu. Kiểm tra ngày bằng `fiscalPeriodsApi.check(ngày)`. Mở đúng phiếu từ thông báo bằng `useOpenDocumentRequest('mã', id => ...)`.
+- Frontend: dùng `modules/_templates/voucher-feature-template/` để tham khảo bố cục; đây là dữ liệu mẫu, cần thay ô nhập và định dạng cố định bằng control chung, `useLanguage` và `useNumberFormat` trước khi dùng thật. Số phiếu hiển thị trước khi lưu lấy bằng `voucherNumberingApi.preview(loại)`; số thật do backend cấp lúc lưu. Kiểm tra ngày bằng `fiscalPeriodsApi.check(ngày)`. Mở đúng phiếu từ thông báo bằng `useOpenDocumentRequest('mã', id => ...)`.
 
 ### Báo cáo
 

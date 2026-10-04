@@ -302,6 +302,7 @@ export const initialUsers: UserProfile[] = [
       inv_lot_cat: true,
       inv_location_cat: true,
       inv_warehouse_cat: true,
+      inv_warehouse_type_cat: true,
       inv_receipt: true,
       inv_issue: true,
       inv_report_stock: true,
@@ -347,6 +348,7 @@ export const initialUsers: UserProfile[] = [
       inv_lot_cat: false,
       inv_location_cat: false,
       inv_warehouse_cat: false,
+      inv_warehouse_type_cat: false,
       inv_receipt: false,
       inv_issue: false,
       inv_report_stock: true,
@@ -392,6 +394,7 @@ export const initialUsers: UserProfile[] = [
       inv_lot_cat: true,
       inv_location_cat: true,
       inv_warehouse_cat: true,
+      inv_warehouse_type_cat: true,
       inv_receipt: true,
       inv_issue: true,
       inv_report_stock: true,
@@ -437,6 +440,7 @@ export const initialUsers: UserProfile[] = [
       inv_lot_cat: true,
       inv_location_cat: true,
       inv_warehouse_cat: true,
+      inv_warehouse_type_cat: true,
       inv_receipt: true,
       inv_issue: true,
       inv_report_stock: true,
@@ -482,6 +486,7 @@ export const initialUsers: UserProfile[] = [
       inv_lot_cat: false,
       inv_location_cat: false,
       inv_warehouse_cat: false,
+      inv_warehouse_type_cat: false,
       inv_receipt: false,
       inv_issue: false,
       inv_report_stock: false,
@@ -522,12 +527,6 @@ export const initialUnitsOfMeasure: any[] = [
   { id: 'UOM007', code: 'MET', name: 'Mét', symbol: 'm', Note: 'Đơn vị đo chiều dài cuộn cáp', status: 'Hoạt động' }
 ];
 
-export const initialUomConversions: any[] = [
-  { id: 'UCONV001', code: 'QĐ-THUNG-CAI', materialId: 'PROD001', materialName: 'Laptop Dell XPS 15 Ultra 2026', fromUnitId: 'UOM003', fromUnitName: 'Thùng', toUnitId: 'UOM002', toUnitName: 'Chiếc', conversionFactor: 10, description: '1 Thùng quy đổi bằng 10 Chiếc' },
-  { id: 'UCONV002', code: 'QĐ-HOP-CAI', materialId: 'PROD003', materialName: 'Bàn Phím Cơ Keychron K8 Pro Wireless', fromUnitId: 'UOM004', fromUnitName: 'Hộp', toUnitId: 'UOM001', toUnitName: 'Cái', conversionFactor: 1, description: '1 Hộp quy đổi bằng 1 Cái' },
-  { id: 'UCONV003', code: 'QĐ-THUNG-HOP', materialId: 'PROD006', materialName: 'Ổ Cứng SSD NVMe Samsung 990 Pro 2TB', fromUnitId: 'UOM003', fromUnitName: 'Thùng', toUnitId: 'UOM004', toUnitName: 'Hộp', conversionFactor: 20, description: '1 Thùng quy đổi bằng 20 Hộp' }
-];
-
 export const initialStockNorms: any[] = [
   { id: 'NORM001', code: 'ĐM-PROD001-KH001', materialId: 'PROD001', materialName: 'Laptop Dell XPS 15 Ultra 2026', materialSku: 'LAP-DELL-XPS15', warehouseId: 'KH001', warehouseName: 'Kho Tổng TP. Hồ Chí Minh', minQuantity: 5, maxQuantity: 50, safetyStock: 10, reorderPoint: 8, status: 'Bình thường' },
   { id: 'NORM002', code: 'ĐM-PROD004-KH001', materialId: 'PROD004', materialName: 'Chuột Logitech MX Master 3S Wireless', materialSku: 'MOU-LOG-MX3S', warehouseId: 'KH001', warehouseName: 'Kho Tổng TP. Hồ Chí Minh', minQuantity: 10, maxQuantity: 100, safetyStock: 15, reorderPoint: 12, status: 'Thiếu hàng' },
@@ -554,7 +553,6 @@ export const getInitialERPData = (): ERPData => {
     products: initialProducts,
     materialTypes: initialMaterialTypes,
     unitsOfMeasure: initialUnitsOfMeasure,
-    uomConversions: initialUomConversions,
     stockNorms: initialStockNorms,
     lots: initialLots,
     storageLocations: initialStorageLocations,

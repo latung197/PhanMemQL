@@ -4,7 +4,7 @@ import React from 'react';
 import { CompanyUnit, SubMenuKey, UserProfile, Warehouse } from '../../types';
 import { getActionPermission } from '../../utils/permissions';
 import { UserPermissionManager } from './UserPermissionManager';
-import { CompanyUnitCategoryView } from '../inventory/company-units/CompanyUnitCategoryView';
+import { CompanyUnitCategoryView } from '../inventory/categories/company-units/CompanyUnitCategoryView';
 import { DefaultConfigView } from './DefaultConfigView';
 import { FiscalYearView } from './FiscalYearView';
 import { CurrencyCategoryView } from './CurrencyCategoryView';
@@ -13,6 +13,8 @@ import { DepartmentCategoryView } from './DepartmentCategoryView';
 import { CompanySettingsView } from './CompanySettingsView';
 import { LanguageCategoryView } from './LanguageCategoryView';
 import { AuditLogView } from './AuditLogView';
+import { MenuManagementView } from './MenuManagementView';
+import type { MenuVisibilityConfig } from '../../services/menuVisibility';
 
 interface SettingsModuleProps {
   subKey: SubMenuKey;
@@ -23,7 +25,10 @@ interface SettingsModuleProps {
   onAddCompanyUnit?: (unit: Omit<CompanyUnit, 'id'>) => Promise<boolean>;
   onUpdateCompanyUnit?: (id: string, unit: Partial<CompanyUnit>) => Promise<boolean>;
   onDeleteCompanyUnit?: (id: string) => Promise<boolean>;
+  onCompanyUnitsChanged?: () => void | Promise<void>;
   onResetData: () => void;
+  menuVisibility: MenuVisibilityConfig;
+  onMenuVisibilityChanged: (value: MenuVisibilityConfig) => void;
 }
 
 /** A new settings screen: a sidebar item in mock/initialMenuData.ts and a case in renderScreen. */
@@ -32,10 +37,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   user,
   companyUnits = [],
   warehouses = [],
-  onAddCompanyUnit = async () => false,
-  onUpdateCompanyUnit,
-  onDeleteCompanyUnit,
-  onResetData
+  onCompanyUnitsChanged,
+  onResetData,
+  menuVisibility,
+  onMenuVisibilityChanged
 }) => {
   // App only renders this module when the user may view subKey.
   const perms = getActionPermission(user, subKey);
@@ -50,16 +55,18 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       case 'sys_departments': return <DepartmentCategoryView {...rights} />;
       case 'sys_languages': return <LanguageCategoryView {...rights} />;
       case 'sys_audit_log': return <AuditLogView {...rights} />;
+      case 'sys_menu': return <MenuManagementView canEdit={perms.edit} visibility={menuVisibility} onSaved={onMenuVisibilityChanged} />;
       case 'sys_users': return <UserPermissionManager currentUser={user} companyUnits={companyUnits} />;
       case 'inv_company_unit_cat':
         return (
-          <CompanyUnitCategoryView companyUnits={companyUnits} onAddCompanyUnit={onAddCompanyUnit}
-            onUpdateCompanyUnit={onUpdateCompanyUnit} onDeleteCompanyUnit={onDeleteCompanyUnit} currentUser={user} />
+          <CompanyUnitCategoryView currentUser={user} onChanged={onCompanyUnitsChanged} />
         );
       case 'settings_main': return <CompanySettingsView {...rights} user={user} onResetData={onResetData} />;
       default: return null;
     }
   };
 
-  return <div className="space-y-4">{renderScreen()}</div>;
+  return <div className={subKey === 'sys_menu'
+    ? 'space-y-4 md:min-h-0 md:flex-1 md:overflow-y-auto md:pr-2 custom-scrollbar'
+    : 'space-y-4'}>{renderScreen()}</div>;
 };

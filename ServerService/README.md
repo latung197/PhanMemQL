@@ -17,6 +17,7 @@ Core.Domain/                 Entity, không phụ thuộc gì
   Modules/Currencies/        Currency, ExchangeRate
   Modules/Fiscal/            FiscalPeriod (khóa sổ theo tháng, từng đơn vị)
   Modules/VoucherNumbering/  VoucherNumberingRule, VoucherSequence
+  Modules/Inventory/Categories/<feature>/  Uom, UomConversion, MaterialGroup, Warehouse
   Modules/Approvals/         ApprovalRule, DocumentApproval
 Core.Application/            Contract (DTO + interface) và quy tắc thuần
   Common/Exceptions/         BusinessRuleException (400), NotFound (404), AuthenticationFailed (401), Forbidden (403)
@@ -25,7 +26,7 @@ Core.Application/            Contract (DTO + interface) và quy tắc thuần
   Common/Documents/          VoucherCatalog: danh sách phiếu (loại số, quyền đặc biệt, quy trình duyệt)
   Common/Persistence/        ISqlExecutor, IUnitOfWork
   Common/Validation/         Guard
-  Modules/{Auth,Users,Roles,CompanyUnits,Departments,Currencies,Fiscal,VoucherNumbering,Notifications,SystemConfig,Approvals}/
+  Modules/{Auth,Users,Roles,CompanyUnits,Departments,Currencies,Fiscal,VoucherNumbering,Notifications,SystemConfig,Approvals,Inventory}/
 Core.Infrastructure/         Triển khai
   Common/Persistence/        CoreContext (EF Core), UnitOfWork, Sql/ (SqlExecutor, SqlScripts)
   Common/Security/           PasswordService, JwtTokenService, CurrentUser
@@ -40,7 +41,7 @@ Core/                        Web API (chạy được dạng Windows service)
   SeedData/seed.json         Dữ liệu mẫu, xuất từ mock của frontend
 sql/postgresql/              00-helpers, 01-users, 02-company-units, 03-notifications, 04-system-config, 05-approvals,
                              06-departments, 07-currencies, 08-fiscal-periods, 09-voucher-numbering,
-                             10-permission-exceptions
+                             10-permission-exceptions đến 21-company-unit-translations
 tests/Core.Tests/            Common/ và Modules/ giống cấu trúc trên
 ```
 
@@ -50,6 +51,11 @@ tests/Core.Tests/            Common/ và Modules/ giống cấu trúc trên
 
 - **Đặt tên:** `sys_*` cho bảng hệ thống (tài khoản, phân quyền, đơn vị cơ sở, thông báo, cài đặt), `erp_*` cho bảng dữ liệu nghiệp vụ (vật tư, chứng từ, sổ kho, sổ cái…). Tên bảng và cột dùng `snake_case`; test `TablesAndColumnsFollowNamingConvention` kiểm tra quy tắc này.
 - Bảng hệ thống hiện có: `sys_users`, `sys_role`, `sys_user_role`, `sys_command`, `sys_role_command`, `sys_user_command`, `sys_role_right`, `sys_user_right`, `sys_company_unit`, `sys_user_company_unit`, `sys_department`, `sys_notification`, `sys_notification_read`, `sys_setting`, `sys_currency`, `sys_exchange_rate`, `sys_fiscal_period`, `sys_voucher_numbering`, `sys_voucher_sequence`, `sys_approval_rule`, `sys_document_approval`, `sys_language` (danh mục ngôn ngữ, một ngôn ngữ mặc định), `sys_audit_log` (nhật ký thay đổi của mọi chức năng), `sys_migration` (chuyển dữ liệu một lần đã chạy). Bảng nghiệp vụ hiện có: `erp_uom` (danh mục đơn vị tính).
+- Bảng nghiệp vụ `erp_uom_conversion` lưu quy đổi đơn vị tính; `material_code` tùy chọn vì danh mục vật tư hiện vẫn là dữ liệu mẫu trên frontend. Hai mã đơn vị luôn được kiểm tra với `erp_uom` khi lưu.
+- Đa ngôn ngữ đơn vị tính: chạy `18-inventory-uom-translations.sql` để tạo `erp_uom_translation` (`uom_code`, `language_code`, `name`). `erp_uom.name` là tên gốc tiếng Việt; màn danh mục cho nhập tên theo các ngôn ngữ đang bật trong `sys_language`. Danh sách và tra cứu trả tên theo `Accept-Language`, thiếu bản dịch thì dùng tên gốc. API vẫn trả `name` gốc cùng `translations` để sửa; nhập Excel không có trường `translations` sẽ giữ bản dịch đã lưu khi cập nhật.
+- Đa ngôn ngữ đơn vị cơ sở: chạy `21-company-unit-translations.sql` để tạo `sys_company_unit_translation`. `sys_company_unit.name` là tên gốc; `localizedName` theo `Accept-Language`, thiếu bản dịch thì dùng tên gốc. Màn Cài đặt › Đơn vị cơ sở dùng khung danh mục chung, hỗ trợ nhập/xuất Excel, sửa hàng loạt và ghi nhật ký thay đổi tên dịch. Excel chỉ chứa tên gốc; khi cập nhật không xóa bản dịch đã lưu.
+- Danh mục loại kho: `19-inventory-warehouse-types.sql` tạo `erp_warehouse_type`, `erp_warehouse_type_translation` và thêm `erp_warehouse.warehouse_type_code` (cho phép NULL để giữ kho cũ). Loại kho có mã, tên gốc, bản dịch tên, ghi chú, trạng thái; không xóa được khi kho đang sử dụng. Màn kho chọn loại qua lookup `warehouseTypes`; API `/api/inventory/warehouse-types` theo quyền `inv_warehouse_type_cat`.
+- Bảng nghiệp vụ `erp_material_group` lưu nhóm vật tư; màn Vật tư hiện vẫn là dữ liệu mẫu trong trình duyệt nên backend chưa thể chặn xóa nhóm đang được vật tư sử dụng.
 - Mọi bảng `erp_*` có 4 cột dấu vết `created_at`, `created_by`, `updated_at`, `updated_by` (`timestamptz` giờ UTC, id người dùng): entity kế thừa `ErpEntity`, `CoreContext` tự điền khi lưu (client gửi lên cũng bị bỏ qua), test `BusinessTablesHaveRecordStamps` bắt buộc. DTO trả về dạng `stamp` (`RecordStampDto`, có tên người tạo / sửa); frontend dùng `recordStampColumns(t)` cho lưới và `<RecordStampLine>` cho form. Bảng `sys_*` cũ vẫn dùng `createtime` / `createid` / `updatetime` / `updateid`. `sys_users.language` là ngôn ngữ riêng của người dùng (null = theo ngôn ngữ mặc định).
 - **Chống ghi đè khi nhiều người cùng sửa**: bản ghi sửa trên form có `Version` (`IVersioned`; mọi `ErpEntity` đã có), ánh xạ tới cột hệ thống `xmin` của PostgreSQL (không cần thêm cột). DTO trả `version`, màn hình gửi lại khi lưu; service gọi `db.ExpectVersion(entity, request.Version)` sau khi tải bản ghi. Nếu bản ghi đã bị người khác sửa hoặc xóa, API trả **409** với thông báo `record.changed`, không ghi gì. Không gửi `version` thì không kiểm tra (nhập khẩu, sao lưu). Hướng dẫn: `docs/chong-ghi-de.md`.
 - Cài đặt dạng JSON (`sys_setting`) chỉ dùng cho giá trị không bị dữ liệu khác tham chiếu (tham số mặc định, năm tài chính, hồ sơ doanh nghiệp, định dạng số). Thứ gì được phiếu / người dùng tham chiếu (ngoại tệ, tỷ giá, phòng ban, kỳ khóa sổ, dải số) có bảng riêng. Script 06–08 tự chuyển dữ liệu JSON / chữ cũ sang các bảng này. Các bảng `erp_unit`, `erp_user_unit`, `erp_notification`, `erp_notification_read`, `erp_setting` của phiên bản cũ được script tự đổi tên (giữ nguyên dữ liệu).
@@ -89,11 +95,13 @@ await unitOfWork.ExecuteAsync(async ct =>
 - Mã hiện có: `VIEW_PRICE` (xem đơn giá, thành tiền), `VIEW_COST` (xem giá vốn), `VIEW_ALL` (xem phiếu của người khác), `EDIT_PENDING`, `EDIT_APPROVED`, `POST`, `UNPOST`, `CANCEL`.
 - Cách tính: quản trị viên có tất cả; người khác có quyền của vai trò, cộng các dòng `sys_user_right` có `is_granted = true`, trừ các dòng `is_granted = false`. Quyền mới thêm vào danh mục chưa ai có (trừ quản trị viên) cho tới khi được cấp.
 - Thêm quyền đặc biệt: xem mục "Quyền đặc biệt và trạng thái chứng từ" trong README gốc.
-- API: `[RequireRight("inv_receipt", SpecialRightCatalog.ViewPrice)]` hoặc `IPermissionService.HasRightAsync`. Frontend: `hasRight(user, 'inv_receipt', RIGHTS.VIEW_PRICE)`. Hiện phiếu nhập/xuất kho đã ẩn giá khi không có `VIEW_PRICE` (chỉ ẩn ở giao diện; API chứng từ khi làm cần lọc giá phía server).
+- API: `[RequireRight("inv_receipt", SpecialRightCatalog.ViewPrice)]` hoặc `IPermissionService.HasRightAsync`. Frontend: `hasRight(user, 'inv_receipt', RIGHTS.VIEW_PRICE)`. Phiếu nhập kho ẩn giá cả ở API và giao diện khi không có `VIEW_PRICE`; phiếu xuất kho hiện chỉ ẩn trên giao diện mẫu.
 - Gửi thông báo (chuông trên header): quyền `overview_main:SEND_NOTIFICATION` cho gửi trong đơn vị đang làm việc (cả đơn vị hoặc một người), `overview_main:SEND_NOTIFICATION_ALL` cho gửi mọi đơn vị. Quản trị viên luôn gửi được. Hai quyền này không được cấp tự động. Thông báo tự động của quy trình duyệt không cần quyền này.
 - `DocumentStatusPolicy` quyết định thao tác nào được phép theo trạng thái phiếu (Nháp / Chờ duyệt / Đã duyệt / Đã ghi sổ / Đã hủy) và quyền của người dùng. Frontend có bản sao `Frontend/src/utils/documentPolicy.ts`; cả hai cùng được kiểm tra bằng `tests/Core.Tests/Common/DocumentPolicyCases.json` (`dotnet test` và `npm run check-policy`).
 
 ### Quy trình phê duyệt
+
+Phiếu nhập kho dùng API `/api/inventory/goods-receipts` và các bảng trong `sql/postgresql/20-inventory-goods-receipts.sql`. Chạy script 20 sau các script Kho 15–19 trước khi sử dụng màn hình. Ghi sổ tạo dòng `erp_stock_movement`; bỏ ghi sổ xóa các dòng của phiếu đó. Báo cáo tồn kho hiện vẫn dùng dữ liệu mẫu và chưa đọc bảng này.
 
 - Quy tắc ở `sys_approval_rule`: chức năng, cấp, người lập (mọi người / người cụ thể / vai trò / phòng ban), giá trị từ, đơn vị, người duyệt (người cụ thể / vai trò). Quản lý tại Cài đặt › Người dùng & Phân quyền › Quy trình phê duyệt.
 - Phiếu duyệt lần lượt từng cấp; các quy tắc cùng cấp gộp người duyệt. Người duyệt phải còn hoạt động, được vào đơn vị của phiếu, có quyền Duyệt chức năng và không phải người lập. Không có quy tắc nào khớp thì mọi người có quyền Duyệt được duyệt (một cấp).
@@ -138,7 +146,7 @@ Mọi API (trừ đăng nhập) nhận `Authorization: Bearer <token>`; lỗi tr
 | Auth | `GET /api/auth/me`, `POST /api/auth/switch-unit`, `PUT /api/auth/me/profile`, `PUT /api/auth/me/password` | Đã đăng nhập |
 | Users | `GET/POST /api/settings/users`, `PUT /api/settings/users/{id}`, `PUT .../{id}/permissions`, `PUT .../{id}/password`, `DELETE .../{id}` | `sys_users` |
 | Roles | `GET/POST /api/settings/roles`, `PUT /api/settings/roles/{id}`, `POST .../{id}/sync-users`, `DELETE .../{id}` (từ chối khi còn người giữ vai trò hoặc quy tắc duyệt dùng vai trò) | `sys_users` (xóa: quyền Xóa) |
-| CompanyUnits | `GET /api/settings/company-units`; `POST`, `PUT /{code}`, `DELETE /{code}` | Xem: đã đăng nhập; sửa: `inv_company_unit_cat` |
+| CompanyUnits | `GET /api/settings/company-units`; `POST`, `PUT /{code}`, `DELETE /{code}`, `POST /import`, `POST /delete-many` | Xem: đã đăng nhập; sửa: `inv_company_unit_cat` |
 | SystemConfig | `GET /api/settings/system-config`; `PUT /api/settings/system-config/{section}?unitCode=` (section: `systemDefaults`, `fiscalConfig`, `companyProfile`, `numberFormat`; `unitCode` phải là đơn vị người dùng được vào) | Sửa: `sys_default_config`, `sys_fiscal_year`, `settings_main` theo section |
 | SystemConfig | `GET /api/settings/system-config/backup`, `POST .../restore` (một transaction, chỉ thêm / sửa, không xóa) | Quản trị viên |
 | Departments | `GET /api/settings/departments`; `POST`, `PUT /{code}`, `DELETE /{code}` | Xem: đã đăng nhập; sửa: `sys_departments` |
@@ -151,9 +159,13 @@ Mọi API (trừ đăng nhập) nhận `Authorization: Bearer <token>`; lỗi tr
 | Permissions | `GET /api/settings/permission-catalog` (danh sách quyền đặc biệt) | Đã đăng nhập |
 | Approvals | `GET/POST /api/settings/approval-rules`, `PUT/DELETE .../{id}`, `POST .../preview` | `sys_users` |
 | Inventory | `GET /api/inventory/uoms` (danh mục đơn vị tính đầy đủ); `POST`, `PUT /{code}`, `DELETE /{code}`; `POST .../import` `{ rows, mode: "create" \| "upsert" }` (nhập Excel), `POST .../delete-many` `{ keys }` | Xem: Xem; thêm / nhập: Thêm (upsert cần thêm Sửa); sửa: Sửa; xóa: Xóa (`inv_uom_cat`). Màn khác chọn đơn vị qua `/api/lookups/uoms` |
+| Inventory | `GET /api/inventory/uom-conversions`; `POST`, `PUT /{code}`, `DELETE /{code}`; `POST .../import`, `POST .../delete-many` | Quyền theo `inv_uom_conversion_cat` giống danh mục đơn vị tính. Tra cứu một / nhiều mã qua `/api/lookups/uomConversions` |
+| Inventory | `GET /api/inventory/material-groups`; `POST`, `PUT /{code}`, `DELETE /{code}`; `POST .../import`, `POST .../delete-many` | Quyền theo `inv_material_group_cat` giống danh mục đơn vị tính. Tra cứu một / nhiều mã qua `/api/lookups/materialGroups` |
+| Inventory | `GET /api/inventory/warehouses`; `POST`, `PUT /{code}`, `DELETE /{code}`; `POST .../import`, `POST .../delete-many` | Quyền theo `inv_warehouse_cat` giống danh mục đơn vị tính. Tra cứu một / nhiều mã qua `/api/lookups/warehouses` |
+| Menu | `GET /api/settings/system-config` (mục `menuVisibility`); `PUT /api/settings/system-config/menuVisibility` với `{ hiddenModules, hiddenFunctions }` | Đọc: đã đăng nhập; sửa: quyền Sửa `sys_menu`. Module ẩn lưu ở `sys_setting`, chức năng ẩn cập nhật `sys_command.hide_yn`. Không cho ẩn Tổng quan, Cài đặt hoặc chính màn Quản lý menu. Chỉ ảnh hưởng điều hướng. |
 | AuditLogs | `GET /api/audit-logs/settings`, `PUT .../settings` `{ retentionMonths }` (0 = lưu vĩnh viễn, tối đa 120) | Xem / Sửa: `sys_audit_log` |
 | GridLayouts | `GET /api/grid-layouts/{functionCode}/{gridKey}` (bố cục của tôi + mặc định công ty), `PUT/DELETE .../me`, `PUT/DELETE .../company` | Xem chức năng đó; `company`: quản trị viên |
-| Lookups | `GET /api/lookups/{name}?q=&page=&pageSize=&includeInactive=`, `GET /api/lookups/{name}/codes?codes=A,B` (danh mục đăng ký bằng `AddLookup`: `uoms`) | Đã đăng nhập |
+| Lookups | `GET /api/lookups/{name}?q=&page=&pageSize=&includeInactive=`, `GET /api/lookups/{name}/codes?codes=A,B` (danh mục đăng ký bằng `AddLookup`: `uoms`, `uomConversions`, `materialGroups`, `warehouses`) | Đã đăng nhập |
 | Health | `GET /health` (kiểm tra cả database), `GET /health/live` (chỉ tiến trình) | Công khai (cho load balancer / công cụ giám sát) |
 | AuditLogs | `GET /api/audit-logs/filters`; `GET /api/audit-logs?functionCode=&objectType=&objectId=&action=&actor=&search=&from=&to=&page=&pageSize=` (mới nhất trước; `actor` / `search` tìm một phần tên, không phân biệt hoa thường; `to` tính cả ngày đó) | Xem: `sys_audit_log` |
 | Approvals | `GET /api/approvals/pending`, `GET /api/approvals/{fn}/{id}`, `POST .../submit`, `.../approve`, `.../reject`, `.../withdraw` | Theo chức năng của phiếu |

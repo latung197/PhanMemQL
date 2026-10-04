@@ -8,6 +8,7 @@ using Core.Domain.Modules.Currencies;
 using Core.Domain.Modules.Departments;
 using Core.Domain.Modules.Fiscal;
 using Core.Domain.Modules.Inventory;
+using Core.Domain.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Domain.Modules.Languages;
 using Core.Domain.Modules.Notifications;
 using Core.Domain.Modules.SystemConfig;
@@ -37,6 +38,7 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
 
     // Company units
     public DbSet<CompanyUnit> CompanyUnits => Set<CompanyUnit>();
+    public DbSet<CompanyUnitTranslation> CompanyUnitTranslations => Set<CompanyUnitTranslation>();
     public DbSet<UserCompanyUnit> UserCompanyUnits => Set<UserCompanyUnit>();
 
     // Notifications
@@ -63,6 +65,14 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
 
     // Inventory
     public DbSet<Uom> Uoms => Set<Uom>();
+    public DbSet<UomTranslation> UomTranslations => Set<UomTranslation>();
+    public DbSet<UomConversion> UomConversions => Set<UomConversion>();
+    public DbSet<MaterialGroup> MaterialGroups => Set<MaterialGroup>();
+    public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+    public DbSet<WarehouseType> WarehouseTypes => Set<WarehouseType>();
+    public DbSet<WarehouseTypeTranslation> WarehouseTypeTranslations => Set<WarehouseTypeTranslation>();
+    public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
+    public DbSet<GoodsReceiptLine> GoodsReceiptLines => Set<GoodsReceiptLine>();
 
     // Change log (all functions)
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
@@ -86,6 +96,7 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<SysUserRight>().HasKey(x => new { x.UserId, x.MenuId0, x.RightCode });
 
         model.Entity<UserCompanyUnit>().HasKey(x => new { x.UserId, x.UnitCode });
+        model.Entity<CompanyUnitTranslation>().HasKey(x => new { x.UnitCode, x.LanguageCode });
         model.Entity<UserCompanyUnit>().HasOne(x => x.Unit).WithMany().HasForeignKey(x => x.UnitCode);
 
         model.Entity<NotificationRead>().HasKey(x => new { x.NotificationId, x.UserId });
@@ -96,6 +107,9 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<ExchangeRate>().HasIndex(x => new { x.CurrencyCode, x.RateDate }).IsUnique();
         model.Entity<FiscalPeriod>().HasKey(x => new { x.UnitCode, x.Year, x.Month });
         model.Entity<VoucherSequence>().HasKey(x => new { x.VoucherType, x.UnitCode, x.PeriodKey });
+        model.Entity<UomTranslation>().HasKey(x => new { x.UomCode, x.LanguageCode });
+        model.Entity<WarehouseTypeTranslation>().HasKey(x => new { x.WarehouseTypeCode, x.LanguageCode });
+        model.Entity<GoodsReceipt>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.ReceiptId);
 
         // Row version of records edited in forms (IVersioned): PostgreSQL's xmin system column, changed by every update
         // and checked by every UPDATE / DELETE of the row (RowVersions.ExpectVersion sets the version a screen loaded).

@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   ChevronDown, 
-  ChevronRight, 
   ChevronsLeft, 
   ChevronsRight,
   Sparkles,
-  Lock,
+  Search,
   X,
   Bot
 } from 'lucide-react';
@@ -14,6 +13,10 @@ import { ModuleCategoryKey, SubMenuKey, UserProfile } from '../../types';
 import { DynamicIcon } from '../common/DynamicIcon';
 import { menuService } from '../../services/menuService';
 import { canView } from '../../utils/permissions';
+import { INITIAL_SYS_MODULES } from '../../mock/initialMenuData';
+import { isMenuFunctionVisible, type MenuVisibilityConfig } from '../../services/menuVisibility';
+
+const foldSearch = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\u0111/g, 'd');
 
 interface SidebarProps {
   activeCategory: ModuleCategoryKey;
@@ -24,6 +27,7 @@ interface SidebarProps {
   onCloseMobile: () => void;
   lowStockCount: number;
   pendingOrderCount: number;
+  menuVisibility: MenuVisibilityConfig;
 }
 
 interface ModuleMenuItem {
@@ -51,10 +55,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen,
   onCloseMobile,
   lowStockCount,
-  pendingOrderCount
+  pendingOrderCount,
+  menuVisibility
 }) => {
   const { language, t } = useLanguage();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [search, setSearch] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({
     inventory: true,
     sales: true,
@@ -71,7 +78,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // State for collapsible sub-function groups
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
-  const isSubKeyVisible = (subKey: SubMenuKey): boolean => canView(currentUser, subKey);
+  const isSubKeyVisible = (subKey: SubMenuKey): boolean =>
+    canView(currentUser, subKey) && isMenuFunctionVisible(menuVisibility, subKey);
 
   const toggleModuleExpand = (modKey: string) => {
     setExpandedModules(prev => ({
@@ -97,8 +105,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const menuConfig = menuService.getUserMenuTree(
     language,
     currentUser || undefined,
-    { lowStockCount, pendingOrderCount }
+    { lowStockCount, pendingOrderCount },
+    menuVisibility
   );
+  const query = foldSearch(search.trim());
+  const searchItems = query ? [
+    ...INITIAL_SYS_MODULES
+      .filter(mod => mod.isActive && mod.directSubKey && isSubKeyVisible(mod.directSubKey))
+      .map(mod => ({
+        category: mod.key,
+        subKey: mod.directSubKey!,
+        label: language === 'en' ? mod.titleEn : mod.titleVi,
+        context: '',
+        iconName: mod.icon
+      })),
+    ...menuConfig.flatMap(mod => mod.subGroups?.flatMap(group => group.items.map(item => ({
+      category: mod.key,
+      subKey: item.subKey,
+      label: item.label,
+      context: `${mod.title} · ${group.groupTitle}`,
+      iconName: item.iconName
+    }))) ?? [])
+  ].filter(item => foldSearch(`${item.label} ${item.subKey} ${item.context}`).includes(query)) : [];
 
   return (
     <>
@@ -164,9 +192,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
+        {/* Search only functions available to the signed-in user. */}
+        {isCollapsed ? (
+          <button
+            type="button"
+            onClick={() => {
+              setIsCollapsed(false);
+              requestAnimationFrame(() => searchInputRef.current?.focus());
+            }}
+            className="mx-3 mt-3 flex w-[calc(100%-1.5rem)] items-center justify-center rounded-[5px] p-3 text-slate-600 hover:bg-brand-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            title={t('navigation.searchFunctions')}
+            aria-label={t('navigation.searchFunctions')}
+          >
+            <Search className="h-4 w-4" />
+          </button>
+        ) : (
+          <div className="relative mx-3 mt-3">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={search}
+              onChange={event => setSearch(event.target.value)}
+              onKeyDown={event => { if (event.key === 'Escape') setSearch(''); }}
+              placeholder={t('navigation.searchFunctions')}
+              aria-label={t('navigation.searchFunctions')}
+              className="w-full rounded-[5px] border border-brand-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-800 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:ring-slate-700"
+            />
+          </div>
+        )}
+
         {/* Hierarchical Navigation Menu */}
         <nav className="p-3 grow space-y-1.5 overflow-y-auto custom-scrollbar">
-          {menuConfig.map((mod) => {
+          {query ? (
+            searchItems.length ? searchItems.map(item => (
+              <button
+                key={item.subKey}
+                type="button"
+                onClick={() => {
+                  onSelectSubMenu(item.category, item.subKey);
+                  setSearch('');
+                  onCloseMobile();
+                }}
+                className={`w-full flex items-center gap-2.5 rounded-[5px] px-3 py-2 text-left text-xs transition-colors ${activeSubMenu === item.subKey ? 'bg-brand-600 text-white' : 'text-slate-700 hover:bg-brand-100 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+              >
+                <DynamicIcon name={item.iconName} className="h-4 w-4 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{item.label}</span>
+                  {item.context && <span className="block truncate text-[10px] opacity-70">{item.context}</span>}
+                </span>
+              </button>
+            )) : <p className="px-3 py-4 text-center text-xs text-slate-500 dark:text-slate-400">{t('navigation.noFunctionsFound')}</p>
+          ) : menuConfig.map((mod) => {
             const isCatActive = activeCategory === mod.key;
             const isExpanded = expandedModules[mod.key] ?? false;
             const hasSubGroups = mod.subGroups && mod.subGroups.length > 0;
@@ -198,7 +275,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }
 
             return (
-              <div key={mod.key} className="space-y-1">
+              <div key={mod.key}>
                 {/* Module Header Button */}
                 <button
                   onClick={() => {
@@ -209,6 +286,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onCloseMobile();
                     }
                   }}
+                  aria-expanded={hasSubGroups ? isExpanded : undefined}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-[5px] text-left text-xs font-bold transition-all cursor-pointer focus:outline-hidden ${
                     isCatActive
                       ? 'bg-indigo-600 text-white shadow-xs'
@@ -228,15 +306,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     ) : null}
                     {hasSubGroups && (
                       <span className={isCatActive ? 'text-indigo-200' : 'text-slate-400'}>
-                        {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${isExpanded ? '' : '-rotate-90'}`} />
                       </span>
                     )}
                   </div>
                 </button>
 
                 {/* Sub Groups Accordion (Hierarchical levels) */}
-                {hasSubGroups && isExpanded && (
-                  <div className="pl-2.5 pr-1 py-1 space-y-1.5 border-l-2 border-brand-200 dark:border-slate-800 ml-3.5 my-1 animate-fade-in bg-brand-100/60 dark:bg-slate-900/30 rounded-r-[7px]">
+                {hasSubGroups && (
+                  <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} aria-hidden={!isExpanded} inert={!isExpanded}>
+                  <div className="min-h-0 overflow-hidden">
+                  <div className="pl-2.5 pr-1 py-1 space-y-1.5 border-l-2 border-brand-200 dark:border-slate-800 ml-3.5 mt-1 bg-brand-100/60 dark:bg-slate-900/30 rounded-r-[7px]">
                     {mod.subGroups!.map((group, gIdx) => {
                       const groupExpanded = isGroupOpen(mod.key, group.groupTitle);
                       const visibleItems = group.items.filter((subItem) => isSubKeyVisible(subItem.subKey));
@@ -249,6 +329,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           <button
                             type="button"
                             onClick={() => toggleGroupExpand(mod.key, group.groupTitle)}
+                            aria-expanded={groupExpanded}
                             className="w-full flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:text-indigo-700 dark:hover:text-indigo-300 pt-1.5 pb-1 px-2 rounded-[5px] hover:bg-brand-100 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group/sub"
                           >
                             <span className="flex items-center gap-1.5">
@@ -259,17 +340,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               </span>
                             </span>
                             <span className="text-slate-400 dark:text-slate-500 group-hover/sub:text-indigo-600 dark:group-hover/sub:text-indigo-300 transition-colors">
-                              {groupExpanded ? (
-                                <ChevronDown className="h-3 w-3" />
-                              ) : (
-                                <ChevronRight className="h-3 w-3" />
-                              )}
+                              <ChevronDown className={`h-3 w-3 transition-transform duration-300 ${groupExpanded ? '' : '-rotate-90'}`} />
                             </span>
                           </button>
 
                           {/* SubGroup Leaf Links */}
-                          {groupExpanded && (
-                            <div className="space-y-0.5 animate-fade-in">
+                          <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none ${groupExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} aria-hidden={!groupExpanded} inert={!groupExpanded}>
+                            <div className="min-h-0 overflow-hidden space-y-0.5">
                               {visibleItems.map((subItem) => {
                                 const isSubActive = activeSubMenu === subItem.subKey;
 
@@ -294,10 +371,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 );
                               })}
                             </div>
-                          )}
+                          </div>
                         </div>
                       );
                     })}
+                  </div>
+                  </div>
                   </div>
                 )}
               </div>
@@ -307,7 +386,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
 
         {/* AI Quick Footer Link */}
-        {!isCollapsed && (
+        {!isCollapsed && isSubKeyVisible('ai_main') && (
           <div className="p-3 border-t border-brand-200 dark:border-slate-800 bg-brand-100/70 dark:bg-slate-950/40">
             <button
               onClick={() => {

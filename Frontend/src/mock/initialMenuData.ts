@@ -178,6 +178,15 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             isActive: true
           },
           {
+            id: 'MNU_INV_MATERIAL_GROUP',
+            subKey: 'inv_material_group_cat',
+            titleVi: 'Danh mục Nhóm vật tư',
+            titleEn: 'Material Groups',
+            icon: 'FolderTree',
+            orderNo: 25,
+            isActive: true
+          },
+          {
             id: 'MNU_INV_WAREHOUSE',
             subKey: 'inv_warehouse_cat',
             titleVi: 'Khai báo danh mục kho',
@@ -633,6 +642,24 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleEn: 'Change Log',
             icon: 'History',
             orderNo: 20,
+            isActive: true
+          },
+          {
+            id: 'MNU_INV_WAREHOUSE_TYPE',
+            subKey: 'inv_warehouse_type_cat',
+            titleVi: 'Danh mục loại kho',
+            titleEn: 'Warehouse Types',
+            icon: 'Tags',
+            orderNo: 35,
+            isActive: true
+          },
+          {
+            id: 'MNU_SYS_MENU',
+            subKey: 'sys_menu',
+            titleVi: 'Quản lý menu',
+            titleEn: 'Menu management',
+            icon: 'PanelLeft',
+            orderNo: 30,
             isActive: true
           }
         ]

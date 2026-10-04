@@ -18,7 +18,8 @@ public sealed class AuthController(IAuthService auth, IUserService users, ICompa
     /// <summary>Active company units for the unit picker on the login screen.</summary>
     [HttpGet("company-units"), AllowAnonymous]
     public async Task<IActionResult> LoginUnits(CancellationToken ct) =>
-        Ok((await units.GetAllAsync(true, ct)).Select(x => new { x.Id, x.Code, x.Name, x.ShortName, x.IsDefault }));
+        Ok((await units.GetAllAsync(true, ct)).Select(x => new { x.Id, x.Code, Name = x.LocalizedName ?? x.Name,
+            x.ShortName, x.IsDefault }));
 
     /// <summary>Active languages for the language picker, also on the login screen.</summary>
     [HttpGet("languages"), AllowAnonymous]

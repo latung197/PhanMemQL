@@ -1,6 +1,7 @@
 // Settings screens backed by the API: users, roles and company units (backend: /api/settings/*).
 import { apiRequest } from './apiClient';
 import { ActionPermissions, CompanyUnit, RoleDefinition, SubMenuKey, UserProfile } from '../types';
+import type { DeleteManyResult, ImportMode, ImportResult } from '../components/catalog/catalogTypes';
 
 export type PermissionMatrix = Partial<Record<SubMenuKey, ActionPermissions>>;
 
@@ -133,7 +134,11 @@ export const companyUnitsApi = {
   create: (input: SaveCompanyUnitInput) => apiRequest<CompanyUnit>('POST', '/api/settings/company-units', input),
   update: (code: string, input: SaveCompanyUnitInput) =>
     apiRequest<CompanyUnit>('PUT', `/api/settings/company-units/${encodeURIComponent(code)}`, input),
-  remove: (code: string) => apiRequest<void>('DELETE', `/api/settings/company-units/${encodeURIComponent(code)}`)
+  remove: (code: string) => apiRequest<void>('DELETE', `/api/settings/company-units/${encodeURIComponent(code)}`),
+  importMany: (rows: SaveCompanyUnitInput[], mode: ImportMode) =>
+    apiRequest<ImportResult>('POST', '/api/settings/company-units/import', { rows, mode }),
+  removeMany: (keys: string[]) =>
+    apiRequest<DeleteManyResult>('POST', '/api/settings/company-units/delete-many', { keys })
 };
 
 // ----- Organization and accounting settings (tables on the backend) -----

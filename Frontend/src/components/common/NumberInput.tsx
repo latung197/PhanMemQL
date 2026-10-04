@@ -63,7 +63,10 @@ export const NumberInput: React.FC<NumberInputProps> = ({
           setDisplayValue('');
         } else {
           // Replace dot with active decimal separator if needed
-          let strVal = activeDecimals > 0 ? numVal.toString() : Math.round(numVal).toString();
+          const raw = numVal.toString();
+          let strVal = activeDecimals > 0
+            ? (raw.includes('e') ? numVal.toFixed(activeDecimals) : raw)
+            : Math.round(numVal).toString();
           if (config.decimalSeparator !== '.' && strVal.includes('.')) {
             strVal = strVal.replace('.', config.decimalSeparator);
           }

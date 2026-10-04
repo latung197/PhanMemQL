@@ -3,6 +3,7 @@ using Core.Application.Common.Caching;
 using System.Text.Json;
 using Core.Application.Common.Exceptions;
 using Core.Application.Modules.SystemConfig;
+using Core.Application.Common.Permissions;
 using Core.Domain.Modules.SystemConfig;
 using Core.Infrastructure.Common.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -12,9 +13,9 @@ namespace Core.Infrastructure.Modules.SystemConfig;
 
 public sealed class SystemConfigService(CoreContext db, IAppCache cache, ILogger<SystemConfigService> logger) : ISystemConfigService
 {
-    /// <summary>Read at sign-in and by voucher checks; cached per unit until a setting or the base currency changes.</summary>
+    /// <summary>Read at sign-in and by voucher checks; cached per unit until a setting, function flag or base currency changes.</summary>
     public Task<IReadOnlyDictionary<string, JsonElement>> GetEffectiveAsync(string unitCode, CancellationToken ct) =>
-        db.CachedAsync(cache, $"settings:{unitCode}", ["sys_setting", "sys_currency"], token => LoadEffectiveAsync(unitCode, token), ct);
+        db.CachedAsync(cache, $"settings:{unitCode}", ["sys_setting", "sys_currency", "sys_command"], token => LoadEffectiveAsync(unitCode, token), ct);
 
     private async Task<IReadOnlyDictionary<string, JsonElement>> LoadEffectiveAsync(string unitCode, CancellationToken ct)
     {
@@ -53,6 +54,18 @@ public sealed class SystemConfigService(CoreContext db, IAppCache cache, ILogger
                 result.TryGetValue("systemDefaults", out var defaults) ? defaults : empty.RootElement,
                 SystemConfigSections.BaseCurrencyField, baseCurrency);
         }
+        // Module visibility is stored in sys_setting. Function visibility comes from the existing
+        // sys_command.hide_yn column, which is the source of truth for every function.
+        var hiddenModules = result.TryGetValue("menuVisibility", out var menu)
+            && menu.TryGetProperty("hiddenModules", out var modules) && modules.ValueKind == JsonValueKind.Array
+                ? modules.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String)
+                    .Select(x => x.GetString()!).Where(x => x is not ("overview" or "settings")).ToArray()
+                : [];
+        var hiddenFunctions = await db.Commands.AsNoTracking()
+            .Where(x => x.HideYn == 1 && x.MenuId0 != "overview_main" && x.MenuId0 != "sys_menu"
+                && FunctionCatalog.Functions.Keys.Contains(x.MenuId0))
+            .Select(x => x.MenuId0).ToArrayAsync(ct);
+        result["menuVisibility"] = JsonSerializer.SerializeToElement(new { hiddenModules, hiddenFunctions });
         return result;
     }
 
@@ -77,7 +90,18 @@ public sealed class SystemConfigService(CoreContext db, IAppCache cache, ILogger
         var key = SystemConfigSections.Keys[name];
         var setting = await db.SystemSettings.FirstOrDefaultAsync(x => x.Key == key && x.Scope == scope, ct);
         if (setting is null) db.SystemSettings.Add(setting = new SystemSetting { Key = key, Scope = scope });
-        setting.Value = value.GetRawText();
+        if (name == "menuVisibility")
+        {
+            var hiddenFunctions = value.GetProperty("hiddenFunctions").EnumerateArray()
+                .Select(x => x.GetString()!).ToHashSet(StringComparer.Ordinal);
+            var commands = await db.Commands.Where(x => FunctionCatalog.Functions.Keys.Contains(x.MenuId0)).ToListAsync(ct);
+            foreach (var command in commands) command.HideYn = hiddenFunctions.Contains(command.MenuId0) ? (short)1 : (short)0;
+            setting.Value = JsonSerializer.Serialize(new
+            {
+                hiddenModules = value.GetProperty("hiddenModules").EnumerateArray().Select(x => x.GetString()).ToArray()
+            });
+        }
+        else setting.Value = value.GetRawText();
         setting.IsPublic = true;
         setting.UpdatedAtUtc = DateTime.UtcNow;
         setting.UpdatedByUserId = userId;

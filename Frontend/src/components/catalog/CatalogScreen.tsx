@@ -1,7 +1,7 @@
 // One screen for every catalog (danh mục), driven by a CatalogDefinition: toolbar (reload, search, filters, Excel import
 // / export, add), grid with selection and bulk delete, add / edit form with record stamps and lost-update protection
 // (useCatalog), all shown or hidden by the function's rights (view / create / edit / delete / export).
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Edit2, Trash2 } from 'lucide-react';
 import { GridView } from '../common/GridView';
 import { CategoryHeaderToolbar } from '../common/CategoryHeaderToolbar';
@@ -31,15 +31,23 @@ const defaultSearchText = (item: object) =>
 
 const fold = (text: string) => text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
 
-export function CatalogScreen<T extends object, TInput extends object>({ definition, currentUser }: {
+export function CatalogScreen<T extends object, TInput extends object>({ definition, currentUser, onChanged }: {
   definition: CatalogDefinition<T, TInput>;
   currentUser?: UserProfile;
+  onChanged?: () => void | Promise<void>;
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const confirm = useConfirm();
   const d = definition;
   const perms = getActionPermission(currentUser, d.functionCode);
-  const catalog = useCatalog(d.api, { keyOf: d.keyOf, noun: d.texts.noun, describe: d.describe });
+  const catalog = useCatalog(d.api, { keyOf: d.keyOf, noun: d.texts.noun, describe: d.describe, onChanged });
+  const loadedLanguage = useRef(language);
+  useEffect(() => {
+    if (loadedLanguage.current !== language) {
+      loadedLanguage.current = language;
+      void catalog.reload();
+    }
+  }, [language, catalog.reload]);
   // Columns shown, order, widths, sort and rows per page, saved per user (sys_grid_layout).
   const layout = useGridLayout(d.functionCode, 'main', d.columns);
 
@@ -92,6 +100,7 @@ export function CatalogScreen<T extends object, TInput extends object>({ definit
       tone: 'danger'
     });
     if (!ok) return;
+    let changed = false;
     try {
       const result = await d.api.removeMany(items.map(d.keyOf));
       if (result.errors.length > 0) {
@@ -99,11 +108,13 @@ export function CatalogScreen<T extends object, TInput extends object>({ definit
       } else {
         showToast.success(t('catalog.deletedMany', { n: result.deleted, noun: d.texts.noun }));
         setSelected([]);
+        changed = true;
       }
     } catch (error) {
       showToast.error(getErrorMessage(error));
     }
     await catalog.reload();
+    if (changed) await onChanged?.();
   };
 
   const exportVisible = () => void exportExcel(d.texts.fileName, d.texts.title, d.excel.columns, visible.map(d.excel.toRow))
@@ -199,7 +210,7 @@ export function CatalogScreen<T extends object, TInput extends object>({ definit
           canUpdate={perms.edit}
           importMany={d.api.importMany}
           onClose={() => setImporting(false)}
-          onImported={() => { setImporting(false); void catalog.reload(); }}
+          onImported={() => { setImporting(false); void catalog.reload(); void onChanged?.(); }}
         />
       )}
     </div>

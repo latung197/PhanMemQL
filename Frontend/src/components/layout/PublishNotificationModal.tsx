@@ -45,7 +45,7 @@ export const PublishNotificationModal: React.FC<PublishNotificationModalProps> =
   const targetUnit = allUnits ? unitCode : currentUnitCode ?? '';
   const unitLabel = (code?: string) => {
     const unit = companyUnits.find(u => u.code === code);
-    return unit ? `${unit.code} - ${unit.shortName || unit.name}` : code || '';
+    return unit ? `${unit.code} - ${unit.localizedName || unit.shortName || unit.name}` : code || '';
   };
 
   // People who can be addressed in the chosen unit (every unit when none is chosen).

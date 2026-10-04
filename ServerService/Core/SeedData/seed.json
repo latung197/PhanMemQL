@@ -178,6 +178,15 @@
           "print": true,
           "export": true
         },
+        "inv_warehouse_type_cat": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true,
+          "approve": true,
+          "print": true,
+          "export": true
+        },
         "inv_location_cat": {
           "view": true,
           "create": true,
@@ -314,6 +323,15 @@
           "export": true
         },
         "sys_exchange_rates": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true,
+          "approve": true,
+          "print": true,
+          "export": true
+        },
+        "sys_menu": {
           "view": true,
           "create": true,
           "edit": true,
@@ -591,6 +609,15 @@
           "print": false,
           "export": false
         },
+        "inv_warehouse_type_cat": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "print": false,
+          "export": false
+        },
         "inv_location_cat": {
           "view": false,
           "create": false,
@@ -727,6 +754,15 @@
           "export": false
         },
         "sys_exchange_rates": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "print": false,
+          "export": false
+        },
+        "sys_menu": {
           "view": false,
           "create": false,
           "edit": false,
@@ -1004,6 +1040,15 @@
           "print": true,
           "export": true
         },
+        "inv_warehouse_type_cat": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false,
+          "approve": false,
+          "print": true,
+          "export": true
+        },
         "inv_location_cat": {
           "view": false,
           "create": false,
@@ -1140,6 +1185,15 @@
           "export": false
         },
         "sys_exchange_rates": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "print": false,
+          "export": false
+        },
+        "sys_menu": {
           "view": false,
           "create": false,
           "edit": false,
@@ -1417,6 +1471,15 @@
           "print": false,
           "export": false
         },
+        "inv_warehouse_type_cat": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "print": false,
+          "export": false
+        },
         "inv_location_cat": {
           "view": false,
           "create": false,
@@ -1553,6 +1616,15 @@
           "export": false
         },
         "sys_exchange_rates": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "print": false,
+          "export": false
+        },
+        "sys_menu": {
           "view": false,
           "create": false,
           "edit": false,
@@ -1830,6 +1902,15 @@
           "print": false,
           "export": false
         },
+        "inv_warehouse_type_cat": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "print": false,
+          "export": false
+        },
         "inv_location_cat": {
           "view": false,
           "create": false,
@@ -1966,6 +2047,15 @@
           "export": false
         },
         "sys_exchange_rates": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "print": false,
+          "export": false
+        },
+        "sys_menu": {
           "view": false,
           "create": false,
           "edit": false,
@@ -2243,6 +2333,15 @@
           "print": true,
           "export": true
         },
+        "inv_warehouse_type_cat": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "print": true,
+          "export": true
+        },
         "inv_location_cat": {
           "view": false,
           "create": false,
@@ -2379,6 +2478,15 @@
           "export": false
         },
         "sys_exchange_rates": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "print": false,
+          "export": false
+        },
+        "sys_menu": {
           "view": false,
           "create": false,
           "edit": false,
@@ -2639,6 +2747,15 @@
           "export": true
         },
         "inv_warehouse_cat": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true,
+          "approve": true,
+          "print": true,
+          "export": true
+        },
+        "inv_warehouse_type_cat": {
           "view": true,
           "create": true,
           "edit": true,
@@ -2917,6 +3034,15 @@
           "print": false,
           "export": false
         },
+        "inv_warehouse_type_cat": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "print": false,
+          "export": false
+        },
         "inv_receipt": {
           "view": false,
           "create": false,
@@ -3179,6 +3305,15 @@
           "export": true
         },
         "inv_warehouse_cat": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true,
+          "approve": true,
+          "print": true,
+          "export": true
+        },
+        "inv_warehouse_type_cat": {
           "view": true,
           "create": true,
           "edit": true,
@@ -3457,6 +3592,15 @@
           "print": true,
           "export": true
         },
+        "inv_warehouse_type_cat": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true,
+          "approve": true,
+          "print": true,
+          "export": true
+        },
         "inv_receipt": {
           "view": true,
           "create": true,
@@ -3719,6 +3863,15 @@
           "export": false
         },
         "inv_warehouse_cat": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "print": false,
+          "export": false
+        },
+        "inv_warehouse_type_cat": {
           "view": false,
           "create": false,
           "edit": false,

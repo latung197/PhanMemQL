@@ -1,25 +1,31 @@
 import React from 'react';
-import { SubMenuKey, Product, Warehouse, GoodsVoucher, MaterialType, UnitOfMeasure, UomConversion, StockNorm, MaterialLot, StorageLocation, UserProfile, CompanyUnit } from '../../types';
-import { MaterialCategoryView } from './materials';
-import { CompanyUnitCategoryView } from './company-units/CompanyUnitCategoryView';
-import { WarehouseCategoryView } from './warehouses';
-import { MaterialTypeCategoryView } from './material-types';
-import { UomCategoryView } from './uom';
-import { UomConversionCategoryView } from './uom-conversions';
-import { StockNormCategoryView } from './stock-norms';
-import { LotCategoryView } from './lots';
-import { LocationCategoryView } from './locations';
-import { GoodsReceiptView } from './goods-receipts';
-import { GoodsIssueView } from './goods-issues';
+import { SubMenuKey, Product, Warehouse, GoodsVoucher, MaterialType, UnitOfMeasure, StockNorm, MaterialLot, StorageLocation, UserProfile, CompanyUnit } from '../../types';
+import { MaterialCategoryView } from './categories/materials';
+import { CompanyUnitCategoryView } from './categories/company-units/CompanyUnitCategoryView';
+import { WarehouseCategoryView } from './categories/warehouses';
+import { WarehouseTypeCategoryView } from './categories/warehouse-types';
+import { MaterialTypeCategoryView } from './categories/material-types';
+import { MaterialGroupCategoryView } from './categories/material-groups';
+import { UomCategoryView } from './categories/uom';
+import { UomConversionCategoryView } from './categories/uom-conversions';
+import { StockNormCategoryView } from './categories/stock-norms';
+import { LotCategoryView } from './categories/lots';
+import { LocationCategoryView } from './categories/locations';
+import { GoodsReceiptView } from './documents/goods-receipts';
+import { GoodsIssueView } from './documents/goods-issues';
 import { StockReportView, NXTReportView } from './reports';
-import { TransferVouchersView } from './transfers/TransferVouchersView';
-import { StockAuditView } from './audits/StockAuditView';
-import { MonthlyCostCalcView } from './costing/MonthlyCostCalcView';
-import { InstantStockCalcView } from './costing/InstantStockCalcView';
-import { InventoryApprovalView } from './approvals/InventoryApprovalView';
-import { InwardReportView } from './reports/InwardReportView';
-import { OutwardReportView } from './reports/OutwardReportView';
-import { InventoryAgingReportView } from './reports/InventoryAgingReportView';
+import { TransferOrderView } from './documents/transfer-order/TransferOrderView';
+import { TransferIssueView } from './documents/transfer-issue/TransferIssueView';
+import { TransferReceiptView } from './documents/transfer-receipt/TransferReceiptView';
+import { StockAuditView } from './documents/audits/StockAuditView';
+import { MonthlyCostCalcView } from './documents/monthly-cost/MonthlyCostCalcView';
+import { InstantStockCalcView } from './documents/instant-stock/InstantStockCalcView';
+import { ReceiptApprovalView } from './documents/approval-receipt/ReceiptApprovalView';
+import { IssueApprovalView } from './documents/approval-issue/IssueApprovalView';
+import { TransferApprovalView } from './documents/approval-transfer/TransferApprovalView';
+import { InwardReportView } from './reports/inward/InwardReportView';
+import { OutwardReportView } from './reports/outward/OutwardReportView';
+import { InventoryAgingReportView } from './reports/aging/InventoryAgingReportView';
 
 interface InventoryModuleProps {
   subKey: SubMenuKey;
@@ -31,7 +37,6 @@ interface InventoryModuleProps {
   activeCompanyUnitCode?: string;
   materialTypes?: MaterialType[];
   unitsOfMeasure?: UnitOfMeasure[];
-  uomConversions?: UomConversion[];
   stockNorms?: StockNorm[];
   lots?: MaterialLot[];
   storageLocations?: StorageLocation[];
@@ -39,11 +44,11 @@ interface InventoryModuleProps {
   onUpdateProduct?: (id: string, prod: Partial<Product>) => void;
   onDeleteProduct?: (id: string) => void;
   onAdjustStock: (id: string, qty: number) => void;
-  onAddWarehouse: (wh: Warehouse) => void;
   onAddVoucher: (voucher: GoodsVoucher) => void;
   onAddCompanyUnit?: (unit: Omit<CompanyUnit, 'id'>) => Promise<boolean>;
   onUpdateCompanyUnit?: (id: string, unit: Partial<CompanyUnit>) => Promise<boolean>;
   onDeleteCompanyUnit?: (id: string) => Promise<boolean>;
+  onCompanyUnitsChanged?: () => void | Promise<void>;
   currentUser?: UserProfile;
 }
 
@@ -57,7 +62,6 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
   activeCompanyUnitCode = 'DVCS01',
   materialTypes = [],
   unitsOfMeasure = [],
-  uomConversions = [],
   stockNorms = [],
   lots = [],
   storageLocations = [],
@@ -65,11 +69,8 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
   onUpdateProduct,
   onDeleteProduct,
   onAdjustStock,
-  onAddWarehouse,
   onAddVoucher,
-  onAddCompanyUnit,
-  onUpdateCompanyUnit,
-  onDeleteCompanyUnit,
+  onCompanyUnitsChanged,
   currentUser
 }) => {
 
@@ -79,11 +80,9 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
       case 'inv_receipt':
         return (
           <GoodsReceiptView
-            vouchers={vouchers}
             products={products}
-            warehouses={warehouses}
             companyUnits={companyUnits}
-            onAddVoucher={onAddVoucher}
+            activeUnitCode={activeCompanyUnitCode}
             currentUser={currentUser}
           />
         );
@@ -99,11 +98,11 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
           />
         );
       case 'inv_transfer_order':
-        return <TransferVouchersView typeFilter="order" products={products} warehouses={warehouses} />;
+        return <TransferOrderView products={products} warehouses={warehouses} />;
       case 'inv_transfer_issue':
-        return <TransferVouchersView typeFilter="issue" products={products} warehouses={warehouses} />;
+        return <TransferIssueView products={products} warehouses={warehouses} />;
       case 'inv_transfer_receipt':
-        return <TransferVouchersView typeFilter="receipt" products={products} warehouses={warehouses} />;
+        return <TransferReceiptView products={products} warehouses={warehouses} />;
       case 'inv_audit_count':
         return <StockAuditView />;
       case 'inv_calc_monthly_cost':
@@ -113,31 +112,27 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
 
       // 2. Phê duyệt
       case 'inv_approve_receipt':
-        return <InventoryApprovalView typeFilter="receipt" currentUser={currentUser} />;
+        return <ReceiptApprovalView currentUser={currentUser} />;
       case 'inv_approve_issue':
-        return <InventoryApprovalView typeFilter="issue" currentUser={currentUser} />;
+        return <IssueApprovalView currentUser={currentUser} />;
       case 'inv_approve_transfer':
-        return <InventoryApprovalView typeFilter="transfer" currentUser={currentUser} />;
+        return <TransferApprovalView currentUser={currentUser} />;
 
       // 3. Danh mục
       case 'inv_company_unit_cat':
-        return (
-          <CompanyUnitCategoryView
-            companyUnits={companyUnits}
-            onAddCompanyUnit={onAddCompanyUnit}
-            onUpdateCompanyUnit={onUpdateCompanyUnit}
-            onDeleteCompanyUnit={onDeleteCompanyUnit}
-            currentUser={currentUser}
-          />
-        );
+        return <CompanyUnitCategoryView currentUser={currentUser} onChanged={onCompanyUnitsChanged} />;
       case 'inv_warehouse_cat':
-        return <WarehouseCategoryView warehouses={warehouses} onAddWarehouse={onAddWarehouse} currentUser={currentUser} />;
+        return <WarehouseCategoryView currentUser={currentUser} />;
+      case 'inv_warehouse_type_cat':
+        return <WarehouseTypeCategoryView currentUser={currentUser} />;
       case 'inv_material_type_cat':
         return <MaterialTypeCategoryView materialTypes={materialTypes} currentUser={currentUser} />;
+      case 'inv_material_group_cat':
+        return <MaterialGroupCategoryView currentUser={currentUser} />;
       case 'inv_uom_cat':
         return <UomCategoryView currentUser={currentUser} />;
       case 'inv_uom_conversion_cat':
-        return <UomConversionCategoryView conversions={uomConversions} products={products} unitsOfMeasure={unitsOfMeasure} currentUser={currentUser} />;
+        return <UomConversionCategoryView products={products} currentUser={currentUser} />;
       case 'inv_stock_norm_cat':
         return <StockNormCategoryView stockNorms={stockNorms} products={products} warehouses={warehouses} currentUser={currentUser} />;
       case 'inv_lot_cat':

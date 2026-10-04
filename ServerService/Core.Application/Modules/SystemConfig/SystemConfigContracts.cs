@@ -3,6 +3,7 @@ using Core.Application.Common.Exceptions;
 using Core.Application.Modules.Currencies;
 using Core.Application.Modules.Departments;
 using Core.Application.Modules.VoucherNumbering;
+using Core.Application.Common.Permissions;
 
 namespace Core.Application.Modules.SystemConfig;
 
@@ -44,6 +45,33 @@ public static class AuditLogRetention
     }
 }
 
+/// <summary>Company-wide navigation preferences. Hiding a menu does not revoke its API permission.</summary>
+public static class MenuVisibilitySettings
+{
+    private static readonly HashSet<string> ProtectedModules = ["overview", "settings"];
+    private static readonly HashSet<string> ProtectedFunctions = ["overview_main", "sys_menu"];
+
+    public static void Validate(JsonElement value)
+    {
+        ValidateArray(value, "hiddenModules", FunctionCatalog.ModuleKeys, ProtectedModules);
+        ValidateArray(value, "hiddenFunctions", FunctionCatalog.Functions.Keys, ProtectedFunctions);
+    }
+
+    private static void ValidateArray(JsonElement value, string field, IEnumerable<string> allowed, HashSet<string> protectedKeys)
+    {
+        if (!value.TryGetProperty(field, out var array) || array.ValueKind != JsonValueKind.Array)
+            throw new BusinessRuleException("menuVisibility.invalid");
+        var known = allowed.ToHashSet(StringComparer.Ordinal);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var item in array.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.String || item.GetString() is not { } key
+                || !known.Contains(key) || protectedKeys.Contains(key) || !seen.Add(key))
+                throw new BusinessRuleException("menuVisibility.invalid");
+        }
+    }
+}
+
 /// <summary>
 /// Settings kept as one JSON value each (Frontend src/services/systemSettingsService.ts). Settings that
 /// other data refers to (currencies, rates, departments, locks, numbering) have their own tables.
@@ -60,7 +88,8 @@ public static class SystemConfigSections
             ["companyProfile"] = "FRONTEND_COMPANY_PROFILE",
             ["numberFormat"] = "FRONTEND_NUMBER_FORMAT",
             ["unitDefaults"] = "FRONTEND_UNIT_DEFAULTS",
-            ["auditLog"] = "AUDIT_LOG_SETTINGS"
+            ["auditLog"] = "AUDIT_LOG_SETTINGS",
+            ["menuVisibility"] = "MENU_VISIBILITY"
         };
 
     /// <summary>Frontend function (SubMenuKey) whose "edit" right allows saving the section.</summary>
@@ -72,7 +101,8 @@ public static class SystemConfigSections
             ["companyProfile"] = "settings_main",
             ["numberFormat"] = "sys_default_config",
             ["unitDefaults"] = "sys_default_config",
-            ["auditLog"] = "sys_audit_log"
+            ["auditLog"] = "sys_audit_log",
+            ["menuVisibility"] = "sys_menu"
         };
 
     private static readonly IReadOnlyDictionary<string, string[]> RequiredFields =
@@ -82,7 +112,8 @@ public static class SystemConfigSections
             ["fiscalConfig"] = ["fiscalYear", "startDate"],
             ["companyProfile"] = ["companyName", "taxCode", "address"],
             ["numberFormat"] = ["thousandSeparator", "decimalSeparator"],
-            ["auditLog"] = ["retentionMonths"]
+            ["auditLog"] = ["retentionMonths"],
+            ["menuVisibility"] = ["hiddenModules", "hiddenFunctions"]
         };
 
     /// <summary>Returns the canonical section name (as the frontend spells it).</summary>
@@ -100,6 +131,7 @@ public static class SystemConfigSections
         if (name is "systemDefaults" or "unitDefaults") SystemParameters.ValidateSection(name, value);
         if (name == "numberFormat") ValidateNumberFormat(value);
         if (name == AuditLogRetention.Section) AuditLogRetention.Validate(value);
+        if (name == "menuVisibility") MenuVisibilitySettings.Validate(value);
         return name;
     }
 

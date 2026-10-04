@@ -1,4 +1,6 @@
 using Core.Application.Modules.CompanyUnits;
+using Core.Application.Common.Catalogs;
+using Core.Application.Modules.Users;
 using Core.Common.Authorization;
 using Core.Common.Controllers;
 using Core.Domain.Modules.Users;
@@ -8,7 +10,7 @@ namespace Core.Modules.CompanyUnits;
 
 /// <summary>Settings › "Đơn vị cơ sở" (function inv_company_unit_cat).</summary>
 [Route("api/settings/company-units")]
-public sealed class CompanyUnitsController(ICompanyUnitService units) : ApiControllerBase
+public sealed class CompanyUnitsController(ICompanyUnitService units, IPermissionService permissions) : ApiControllerBase
 {
     private const string Function = "inv_company_unit_cat";
 
@@ -23,6 +25,16 @@ public sealed class CompanyUnitsController(ICompanyUnitService units) : ApiContr
     [HttpPut("{code}"), RequirePermission(Function, PermissionAction.Edit)]
     public Task<CompanyUnitDto> Update(string code, SaveCompanyUnitRequest request, CancellationToken ct) =>
         units.UpdateAsync(code, request, ct);
+
+    [HttpPost("import"), RequirePermission(Function, PermissionAction.Create)]
+    public async Task<ImportResult> Import(ImportRequest<SaveCompanyUnitRequest> request, CancellationToken ct)
+    {
+        if (request.IsUpsert) await permissions.EnsureAllowedAsync(CurrentUserId, Function, PermissionAction.Edit, ct);
+        return await units.ImportAsync(request, ct);
+    }
+
+    [HttpPost("delete-many"), RequirePermission(Function, PermissionAction.Delete)]
+    public Task<DeleteManyResult> DeleteMany(DeleteManyRequest request, CancellationToken ct) => units.DeleteManyAsync(request, ct);
 
     [HttpDelete("{code}"), RequirePermission(Function, PermissionAction.Delete)]
     public async Task<IActionResult> Delete(string code, CancellationToken ct)

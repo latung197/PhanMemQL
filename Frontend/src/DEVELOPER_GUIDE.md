@@ -2,6 +2,8 @@
 
 Tài liệu này hướng dẫn bạn cách **tự nhân bản (copy-paste)** và phát triển thêm bất kỳ chức năng nào trong hệ thống S-ERP một cách nhanh chóng, đồng bộ và đúng kiến trúc chuẩn doanh nghiệp.
 
+**Quy trình chuẩn cho danh mục có dữ liệu thật:** xem [docs/them-danh-muc.md](../../docs/them-danh-muc.md), lấy `src/modules/inventory/categories/uom/` làm mẫu và dùng `CatalogDefinition` + `CatalogScreen`. Hai thư mục `_templates/` dưới đây chỉ minh họa giao diện với dữ liệu mẫu; chúng chưa có API, nhật ký, chống ghi đè và cấu hình số doanh nghiệp. Chứng từ thật cần thêm quy trình backend trong [README gốc](../../README.md#phiếu-chứng-từ).
+
 ---
 
 ## 🏗️ 1. Kiến Trúc Cấu Trúc File & Đóng Gói (Modular Architecture)
@@ -9,7 +11,7 @@ Tài liệu này hướng dẫn bạn cách **tự nhân bản (copy-paste)** v�
 Mỗi chức năng (feature) trong S-ERP được đóng gói theo dạng **Self-contained Feature Package** (Gói tính năng độc lập):
 
 ```
-src/modules/[module-name]/[feature-name]/
+src/modules/[module-name]/[group-name]/[feature-name]/
 ├── [Feature]View.tsx    # Giao diện chính (Header Toolbar + Bộ lọc nâng cao + Bảng GridView + Modal Thêm/Sửa + Modal Xóa)
 ├── types.ts             # Kiểu dữ liệu TypeScript (Entity Model, FilterCriteria, FormData)
 ├── index.ts             # Export barrel giúp import gọn gàng: import { FeatureView } from './[feature-name]'
@@ -29,8 +31,8 @@ Hệ thống đã chuẩn bị sẵn 2 thư mục mẫu hoàn chỉnh tại `src
 
 | Thư mục mẫu | Nghiệp vụ phù hợp | Các tính năng đã tích hợp sẵn |
 | :--- | :--- | :--- |
-| **`category-feature-template/`** | Khai báo Danh mục Master Data (Nhà cung cấp, Dự án, Xe, Hợp đồng, Tài sản...) | • Header Toolbar (Đếm số lượng, Nạp lại, Xuất/Nhập Excel, Thêm mới)<br>• Bộ lọc nâng cao đóng/mở chuẩn màu sáng/tối<br>• Lưới GridView phân trang, tìm kiếm, sắp xếp<br>• Modal Thêm/Sửa có validation<br>• Modal xác nhận xóa an toàn<br>• Phân quyền CRUD theo vai trò người dùng |
-| **`voucher-feature-template/`** | Chứng từ giao dịch Master-Detail (Hóa đơn, Phiếu đặt hàng, Đề nghị thanh toán, Phiếu thu/chi...) | • Danh sách chứng từ GridView<br>• Trạng thái (Lập phiếu, Chờ duyệt, Đã duyệt, Hủy)<br>• Modal lập chứng từ gồm Thông tin chung + Lưới chi tiết hàng hóa tự tính thành tiền<br>• Chức năng phê duyệt chứng từ |
+| **`category-feature-template/`** | Ví dụ giao diện danh mục trên dữ liệu mẫu | Thanh công cụ, lưới, modal; danh mục thật dùng `CatalogScreen` + API |
+| **`voucher-feature-template/`** | Ví dụ giao diện chứng từ trên dữ liệu mẫu | Danh sách, phần đầu và chi tiết; chứng từ thật cần nối API, chính sách trạng thái và cấu hình chung |
 
 ---
 
@@ -38,26 +40,22 @@ Hệ thống đã chuẩn bị sẵn 2 thư mục mẫu hoàn chỉnh tại `src
 
 Giả sử bạn muốn tạo chức năng mới: **"Danh Mục Nhà Cung Cấp"** (`suppliers`).
 
-### 🔹 BƯỚC 1: Sao chép thư mục template
-Copy toàn bộ thư mục `src/modules/_templates/category-feature-template/` sang module mong muốn:
+### 🔹 BƯỚC 1: Lấy danh mục backend đang chạy làm mẫu
+Lấy cấu trúc `src/modules/inventory/categories/uom/` cho danh mục mới:
 ```
-src/modules/inventory/suppliers/
-├── SupplierCategoryView.tsx   (đổi tên từ CategoryFeatureView.tsx)
+src/modules/inventory/categories/suppliers/
+├── SupplierCategoryView.tsx
 ├── types.ts
+├── api.ts
 ├── index.ts
-└── README.md
 ```
 
 ### 🔹 BƯỚC 2: Tùy biến kiểu dữ liệu và giao diện
-1. Mở `src/modules/inventory/suppliers/types.ts`:
-   - Đổi tên interface thành `Supplier` hoặc giữ `SupplierItemModel`.
-   - Bổ sung các trường cần thiết: `phone`, `taxCode`, `address`, `email`.
-2. Mở `SupplierCategoryView.tsx`:
-   - Đổi tên Component thành `SupplierCategoryView`.
-   - Cập nhật tiêu đề tại `CategoryHeaderToolbar`: `title="Khai Báo Danh Mục Nhà Cung Cấp"`.
-   - Khai báo các cột trong `columns: GridViewColumn<Supplier>[]` (ví dụ thêm cột Mã số thuế, Số điện thoại).
-   - Thêm các ô nhập liệu tương ứng trong `<form>` của Modal Thêm/Sửa.
-3. Mở `index.ts`:
+1. `types.ts`: khai báo DTO và request khớp API; DTO có `stamp`, `version`.
+2. `api.ts`: triển khai `CatalogScreenApi` bằng `apiRequest`, gồm thêm, sửa, xóa, nhập Excel, xóa nhiều.
+3. `SupplierCategoryView.tsx`: khai báo `CatalogDefinition` (cột lưới, form, cột Excel, bản dịch) rồi truyền vào `CatalogScreen`; khung dựng thanh công cụ, modal, quyền và thông báo.
+4. Tạo SQL, entity, service, controller và lookup theo [quy trình thêm danh mục](../../docs/them-danh-muc.md).
+5. Mở `index.ts`:
    ```typescript
    export * from './SupplierCategoryView';
    export * from './types';
@@ -90,21 +88,21 @@ src/modules/inventory/suppliers/
    ```
 4. Backend: thêm mã vào `ServerService/Core.Application/Common/Permissions/FunctionCatalog.cs` (xem README gốc, mục "Thêm một chức năng mới").
 
-> Danh mục có dữ liệu thật trên backend: copy `src/modules/settings/DepartmentCategoryView.tsx` (dùng hook `useCatalog`) thay cho template dữ liệu mẫu.
+> Không copy state mock từ `_templates/category-feature-template/` vào danh mục thật.
 
 ### 🔹 BƯỚC 4: Hiển thị Component trong Module cha
 Mở `src/modules/inventory/InventoryModule.tsx`:
 1. Import Component mới:
    ```typescript
-   import { SupplierCategoryView } from './suppliers';
+   import { SupplierCategoryView } from './categories/suppliers';
    ```
 2. Thêm trường hợp trong `switch (subKey)`:
    ```typescript
    case 'inv_supplier_cat':
-     return <SupplierCategoryView currentUser={currentUser} subKey={subKey} />;
+     return <SupplierCategoryView currentUser={currentUser} />;
    ```
 
-🎉 **XONG!** Chức năng mới đã hoạt động hoàn hảo với đầy đủ menu, điều hướng router, bộ lọc, bảng dữ liệu, modal thêm/sửa/xóa và phân quyền!
+Sau khi thêm mã vào `FunctionCatalog.cs`, dịch vi/en và chạy kiểm tra SQL, API, phân quyền, Excel, lookup theo `docs/them-danh-muc.md`, danh mục mới mới đủ luồng sử dụng.
 
 ---
 
@@ -118,8 +116,7 @@ Bạn có thể tận dụng ngay các linh kiện ERP mạnh mẽ trong `src/co
 | `CategoryHeaderToolbar` | Thanh công cụ đỉnh trang: Tiêu đề, badge số lượng, nút Bộ Lọc, Nạp lại, Xuất Excel, Nhập Excel, Tạo mới |
 | `Modal` | Cửa sổ popup chuẩn ERP có backdrop làm mờ, hỗ trợ kích thước: `sm`, `md`, `lg`, `xl`, `3xl`, `5xl`, `fullScreen` |
 | `DeleteConfirmModal` | Modal cảnh báo xác nhận xóa bản ghi an toàn với màu cảnh báo đỏ chuẩn |
-| `LookupField` | Ô tìm kiếm tra cứu dạng ERP (nhấn F4 hoặc click kính lúp để bật bảng chọn nhanh) |
-| `MasterLookupModal` | Cửa sổ tra cứu danh mục nhanh (hỗ trợ phím Enter, nhấp đúp để chọn) |
+| `CatalogLookup` / `CatalogMultiLookup` | Tra cứu mã từ backend, chọn một / chọn nhiều; gõ mã, nhấn F2 hoặc nút kính lúp; tự mở cửa sổ tìm kiếm dùng chung |
 | `NumberInput` / `CurrencyInput` | Ô nhập tiền tệ / số lượng tự format hàng nghìn (1.000.000 đ) và căn phải |
 | `DateTimePicker` | Bộ chọn ngày giờ chuyên nghiệp |
 | `Badge` | Huy hiệu trạng thái với các màu: `emerald`, `amber`, `rose`, `indigo`, `slate`, `blue` |
@@ -132,7 +129,7 @@ Bạn có thể tận dụng ngay các linh kiện ERP mạnh mẽ trong `src/co
 Mọi chức năng đều có thể tự động kiểm tra quyền của tài khoản đang đăng nhập chỉ với 1 dòng code:
 
 ```typescript
-import { getActionPermission } from '../../../mock/initialRoles';
+import { getActionPermission } from '../../../utils/permissions';
 
 const perms = getActionPermission(currentUser, 'mã_chức_năng');
 // perms.view    -> Xem chức năng
@@ -158,6 +155,13 @@ Dùng các control sau thay vì tự viết `<input>`, `<select>`, nút tab hay 
 | `useConfirm()` | Hộp xác nhận (xóa, khóa, khôi phục) | `if (!(await confirm({ title: 'Xóa phiếu?', tone: 'danger' }))) return;` |
 | `LoadingState`, `EmptyState`, `ErrorState`, `Spinner` | Trạng thái khi gọi API | `{error ? <ErrorState message={error} onRetry={load} /> : <LoadingState />}` |
 | `saveWithFeedback` (utils/toast) | Lưu qua API, báo thành công/lỗi | `saveWithFeedback(api.save(x), () => showToast.success('Đã lưu'))` |
+
+### Quy ước giao diện cho chức năng mới
+
+- Chữ hiển thị lấy từ `useLanguage().t(...)`; thêm cùng khóa trong `locales/vi` và `locales/en`, kể cả nhãn form, cột lưới, cột Excel, modal và thông báo.
+- Dùng `TextInput`, `SelectInput`, `TextArea`, `FormField`, `Checkbox`, `CatalogLookup`/`CatalogMultiLookup`; để `CatalogScreen` dựng thanh công cụ, lưới và modal cho danh mục. Chọn `formWidth` trong `CatalogDefinition` khi form cần rộng hơn.
+- Dùng `NumberInput`, `CurrencyInput`, `ForeignCurrencyInput` cho số và tiền. `useNumberFormat()` lấy dấu phân cách, số lẻ và tiền tệ từ cài đặt; lưới dùng `formatNumber`, `formatQuantity`, `formatUnitPrice` hoặc `formatCurrency`. Chỉ đặt `decimals` riêng cho giới hạn nghiệp vụ như hệ số quy đổi tối đa 8 số lẻ.
+- Màu thương hiệu lấy từ `brand-*` trong `index.css`; trạng thái dùng `Badge` theo ý nghĩa. Không đặt `Intl.NumberFormat('vi-VN')`, mã màu hay nhãn tiếng Việt cố định trong chức năng mới.
 
 `useConfirm()` cần `ConfirmProvider`, đã gắn sẵn trong `App.tsx`.
 ## Màu sắc giao diện

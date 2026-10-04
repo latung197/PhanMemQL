@@ -40,9 +40,9 @@ public sealed class SeedDataFileTests
     public void SystemConfigSectionsAreValid()
     {
         var seed = Load();
-        // Every company-wide section; unit-only sections (unitDefaults) are not seeded, nor the change-log retention
-        // (missing = kept forever).
-        Assert.Equal(SystemConfigSections.Keys.Keys.Count(k => !SystemConfigSections.IsUnitOnly(k) && k != AuditLogRetention.Section),
+        // Optional sections use defaults when absent: audit log is kept and all menu entries are shown.
+        Assert.Equal(SystemConfigSections.Keys.Keys.Count(k => !SystemConfigSections.IsUnitOnly(k)
+            && k != AuditLogRetention.Section && k != "menuVisibility"),
             seed.SystemConfig.Count);
         foreach (var (section, value) in seed.SystemConfig) SystemConfigSections.Validate(section, value);
     }

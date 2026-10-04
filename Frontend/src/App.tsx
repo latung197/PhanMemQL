@@ -32,7 +32,6 @@ import {
   ModuleCategoryKey, 
   SubMenuKey, 
   Product, 
-  Warehouse, 
   GoodsVoucher, 
   Customer, 
   Order, 
@@ -46,9 +45,11 @@ import { Button } from './components/common/Button';
 import { ConfirmProvider } from './components/common/ConfirmDialog';
 import { NumberFormatProvider, useNumberFormat } from './context/NumberFormatContext';
 import { interpolate } from './utils/interpolate';
+import { EMPTY_MENU_VISIBILITY, isMenuFunctionVisible, type MenuVisibilityConfig } from './services/menuVisibility';
 
 // The realtime stream delivers new notifications at once; polling is only the fallback.
 const NOTIFICATION_POLL_MS = 180_000;
+const MENU_VISIBILITY_POLL_MS = 60_000;
 
 // Business data of the other modules is still demo data kept in the browser.
 // Accounts, permissions, company units, settings and notifications come from the backend.
@@ -76,6 +77,7 @@ const ERPAppContent: React.FC = () => {
   const [isRestoringSession, setIsRestoringSession] = useState(authService.hasSession);
   const [companyUnits, setCompanyUnits] = useState<CompanyUnit[]>([]);
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
+  const [menuVisibility, setMenuVisibility] = useState<MenuVisibilityConfig>(EMPTY_MENU_VISIBILITY);
 
   // Navigation State
   const [activeCategory, setActiveCategory] = useState<ModuleCategoryKey>('overview');
@@ -197,6 +199,7 @@ const ERPAppContent: React.FC = () => {
     if (user.language) setLanguage(user.language);
     try {
       await systemSettingsService.load();
+      setMenuVisibility(systemSettingsService.getMenuVisibility());
     } catch (error) {
       showToast.warning(t('app.settingsLoadFailed'), getErrorMessage(error));
     }
@@ -207,6 +210,7 @@ const ERPAppContent: React.FC = () => {
   const handleLogout = useCallback(() => {
     authService.logout();
     systemSettingsService.clear();
+    setMenuVisibility(EMPTY_MENU_VISIBILITY);
     setCurrentUser(null);
     setNotifications([]);
     seenNotificationIds.current = null;
@@ -254,6 +258,26 @@ const ERPAppContent: React.FC = () => {
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [signedIn, refreshNotifications]);
+
+  // Apply changes made by another administrator while this tab stays open. Keep a local draft on the
+  // management screen until its user saves it.
+  useEffect(() => {
+    if (!signedIn || activeSubMenu === 'sys_menu') return;
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      void systemSettingsService.load()
+        .then(() => setMenuVisibility(systemSettingsService.getMenuVisibility()))
+        .catch(() => {});
+    };
+    const timer = window.setInterval(refresh, MENU_VISIBILITY_POLL_MS);
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('focus', refresh);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [signedIn, activeSubMenu]);
 
   const handleLoginSuccess = (user: UserProfile) => {
     // Keep the screen of the address bar (e.g. a shared link) when the user may open it.
@@ -328,13 +352,6 @@ const ERPAppContent: React.FC = () => {
     setErpData(prev => ({
       ...prev,
       products: prev.products.map(p => p.id === id ? { ...p, quantity: newQty } : p)
-    }));
-  };
-
-  const handleAddWarehouse = (wh: Warehouse) => {
-    setErpData(prev => ({
-      ...prev,
-      warehouses: [...prev.warehouses, wh]
     }));
   };
 
@@ -515,6 +532,7 @@ const ERPAppContent: React.FC = () => {
         onCloseMobile={() => setMobileSidebarOpen(false)}
         lowStockCount={lowStockCount}
         pendingOrderCount={pendingOrderCount}
+        menuVisibility={menuVisibility}
       />
 
       {/* Main Workspace Area */}
@@ -541,11 +559,12 @@ const ERPAppContent: React.FC = () => {
           onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
           onNotificationPublished={refreshNotifications}
           onUserUpdated={setCurrentUser}
+          onLanguageChanged={refreshCompanyUnits}
         />
 
         {/* Fixed Top Navigation History & Position Bar */}
         <NavigationHistoryBar
-          history={navHistory}
+          history={navHistory.filter(item => isMenuFunctionVisible(menuVisibility, item.subKey))}
           activeCategory={activeCategory}
           activeSubMenu={activeSubMenu}
           onSelectStep={handleSelectHistoryStep}
@@ -627,7 +646,6 @@ const ERPAppContent: React.FC = () => {
                     activeCompanyUnitCode={activeCompanyUnitCode}
                     materialTypes={erpData.materialTypes}
                     unitsOfMeasure={erpData.unitsOfMeasure}
-                    uomConversions={erpData.uomConversions}
                     stockNorms={erpData.stockNorms}
                     lots={erpData.lots}
                     storageLocations={erpData.storageLocations}
@@ -635,11 +653,11 @@ const ERPAppContent: React.FC = () => {
                     onUpdateProduct={handleUpdateProduct}
                     onDeleteProduct={handleDeleteProduct}
                     onAdjustStock={handleAdjustStock}
-                    onAddWarehouse={handleAddWarehouse}
                     onAddVoucher={handleAddGoodsVoucher}
                     onAddCompanyUnit={handleAddCompanyUnit}
                     onUpdateCompanyUnit={handleUpdateCompanyUnit}
                     onDeleteCompanyUnit={handleDeleteCompanyUnit}
+                    onCompanyUnitsChanged={refreshCompanyUnits}
                   />
                 )}
 
@@ -694,7 +712,10 @@ const ERPAppContent: React.FC = () => {
                     onAddCompanyUnit={handleAddCompanyUnit}
                     onUpdateCompanyUnit={handleUpdateCompanyUnit}
                     onDeleteCompanyUnit={handleDeleteCompanyUnit}
+                    onCompanyUnitsChanged={refreshCompanyUnits}
                     onResetData={handleResetData}
+                    menuVisibility={menuVisibility}
+                    onMenuVisibilityChanged={setMenuVisibility}
                   />
                 )}
               </>

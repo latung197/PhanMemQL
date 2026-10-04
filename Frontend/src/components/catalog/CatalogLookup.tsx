@@ -15,6 +15,7 @@ import { Button } from '../common/Button';
 import { apiRequest } from '../../services/apiClient';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
+import { fieldControlClass } from '../common/FormField';
 
 export interface LookupItem {
   code: string;
@@ -47,14 +48,14 @@ interface CommonProps {
   className?: string;
 }
 
-const inputClass = 'bg-white dark:bg-slate-900 border rounded-[5px] focus:ring-2 focus:ring-indigo-500 focus:outline-hidden dark:text-slate-100';
+const inputClass = fieldControlClass(false, 'h-8 px-2 py-0');
 const fieldId = (lookup: string, label?: string) => `lookup-${lookup}-${label ?? ''}`.replace(/\s+/g, '-');
 
 const FieldLabel: React.FC<{ id: string; label?: string; required?: boolean; extra?: React.ReactNode }> = ({ id, label, required, extra }) =>
   label ? (
     <div className="flex items-center justify-between">
-      <label htmlFor={id} className="font-semibold text-slate-700 dark:text-slate-300">
-        {label}{required && <span className="text-rose-500"> *</span>}
+      <label htmlFor={id} className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+        {label}{required && <span className="text-rose-500 ml-0.5">*</span>}
       </label>
       {extra}
     </div>
