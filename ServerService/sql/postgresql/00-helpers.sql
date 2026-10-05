@@ -48,3 +48,14 @@ BEGIN
         EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I', r.tbl, r.conname);
     END LOOP;
 END $$;
+
+-- Accent-insensitive search (Vietnamese users type "thung" for "Thùng"): the unaccent extension, an IMMUTABLE wrapper that
+-- indexes can use, and sys_search_match(text, pattern) = unaccent(text) ILIKE unaccent(pattern), which the API calls through
+-- SearchFunctions.Matches. Needs the unaccent extension (shipped with PostgreSQL; creating it needs the CREATE privilege).
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
+CREATE OR REPLACE FUNCTION sys_unaccent(value text) RETURNS text
+LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT AS $$ SELECT public.unaccent('public.unaccent'::regdictionary, value) $$;
+
+CREATE OR REPLACE FUNCTION sys_search_match(value text, pattern text) RETURNS boolean
+LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$ SELECT sys_unaccent(coalesce(value, '')) ILIKE sys_unaccent(coalesce(pattern, '')) $$;

@@ -33,6 +33,7 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
   inv_location_cat: fn('inventory', '/inventory/locations', 'Vị trí lưu kho', 'catalog'),
   inv_warehouse_cat: fn('inventory', '/inventory/warehouses', 'Danh mục kho', 'catalog'),
   inv_warehouse_type_cat: fn('inventory', '/inventory/warehouse-types', 'Danh mục loại kho', 'catalog'),
+  inv_supplier_cat: fn('inventory', '/inventory/suppliers', 'Nhà cung cấp', 'catalog'),
   // Kho hàng - chứng từ
   inv_receipt: fn('inventory', '/inventory/receipts', 'Phiếu nhập kho', 'voucher'),
   inv_issue: fn('inventory', '/inventory/issues', 'Phiếu xuất kho', 'voucher'),

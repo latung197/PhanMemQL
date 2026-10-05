@@ -6,7 +6,9 @@
 // The search window (both kinds): server search on code and name, paged ("Xem thêm"); ↑ ↓ move, Enter takes (single) or
 // ticks (multiple), Space ticks, Esc closes, double click takes. Only code, name and the registered extra columns
 // come back, so pickers never expose the whole catalog (which needs the View right of its function).
-// A catalog becomes available with one AddLookup line in the backend's DependencyInjection.
+// A catalog becomes available with one entry in the backend's LookupCatalogs (plain catalog) or a LookupProvider class
+// (custom lookup: typed extra columns, parameters such as the warehouse, rights). `params` are sent as query parameters
+// to the lookup, and `onChange` gets the whole chosen record (`item.extra`) so a form can fill several fields at once.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, Search, X } from 'lucide-react';
@@ -17,26 +19,39 @@ import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 import { fieldControlClass } from '../common/FormField';
 
+/** Value of an extra column: text, number, true / false or an ISO date text, as the lookup declares it. */
+export type LookupValue = string | number | boolean | null;
+
 export interface LookupItem {
   code: string;
   name: string;
   isActive: boolean;
-  extra: Record<string, string | null>;
+  extra: Record<string, LookupValue>;
 }
+
+/** Text of an extra column in the search list (numbers in the browser's format, true as a tick, dates as local time). */
+const extraText = (value: LookupValue | undefined): string => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'boolean') return value ? '✓' : '';
+  if (typeof value === 'number') return value.toLocaleString();
+  return /^\d{4}-\d{2}-\d{2}T/.test(value) ? new Date(value).toLocaleString() : value;
+};
 interface LookupPage { items: LookupItem[]; total: number }
 
 export const lookupApi = {
-  search: (name: string, q: string, page = 1, pageSize = 20, includeInactive = false) =>
+  search: (name: string, q: string, page = 1, pageSize = 20, includeInactive = false, params: Record<string, string> = {}) =>
     apiRequest<LookupPage>('GET', `/api/lookups/${encodeURIComponent(name)}?${new URLSearchParams({
-      q, page: String(page), pageSize: String(pageSize), includeInactive: String(includeInactive)
+      ...params, q, page: String(page), pageSize: String(pageSize), includeInactive: String(includeInactive)
     })}`),
-  byCodes: (name: string, codes: string[]) =>
-    apiRequest<LookupItem[]>('GET', `/api/lookups/${encodeURIComponent(name)}/codes?codes=${encodeURIComponent(codes.join(','))}`)
+  byCodes: (name: string, codes: string[], params: Record<string, string> = {}) =>
+    apiRequest<LookupItem[]>('GET', `/api/lookups/${encodeURIComponent(name)}/codes?${new URLSearchParams({ ...params, codes: codes.join(',') })}`)
 };
 
 interface CommonProps {
   /** Lookup name registered on the backend (uoms...). */
   lookup: string;
+  /** Query parameters the lookup understands, e.g. { warehouse: 'KHO1' } (a custom lookup declares them); a change reloads the names. */
+  params?: Record<string, string>;
   label?: string;
   required?: boolean;
   disabled?: boolean;
@@ -69,9 +84,10 @@ export interface CatalogLookupProps extends CommonProps {
 }
 
 export const CatalogLookup: React.FC<CatalogLookupProps> = ({
-  lookup, value, onChange, label, required, disabled, placeholder, extraColumns = [], title, className
+  lookup, params, value, onChange, label, required, disabled, placeholder, extraColumns = [], title, className
 }) => {
   const { t } = useLanguage();
+  const paramsKey = JSON.stringify(params ?? {});
   const [text, setText] = useState(value);
   const [item, setItem] = useState<LookupItem>();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -84,10 +100,10 @@ export const CatalogLookup: React.FC<CatalogLookupProps> = ({
     if (!value) { setItem(undefined); return; }
     if (item?.code === value) return;
     let alive = true;
-    lookupApi.byCodes(lookup, [value]).then(found => { if (alive) setItem(found[0]); }).catch(() => { /* code only */ });
+    lookupApi.byCodes(lookup, [value], params).then(found => { if (alive) setItem(found[0]); }).catch(() => { /* code only */ });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, lookup]);
+  }, [value, lookup, paramsKey]);
 
   const choose = (chosen: LookupItem | undefined) => {
     setSearchOpen(false);
@@ -102,7 +118,7 @@ export const CatalogLookup: React.FC<CatalogLookupProps> = ({
     const typed = text.trim();
     if (typed === (value ?? '')) return;
     if (!typed) { choose(undefined); return; }
-    const found = (await lookupApi.byCodes(lookup, [typed]).catch(() => [])).find(x => x.code.toUpperCase() === typed.toUpperCase());
+    const found = (await lookupApi.byCodes(lookup, [typed], params).catch(() => [])).find(x => x.code.toUpperCase() === typed.toUpperCase());
     if (found && found.isActive) choose(found);
     else { setNotFound(true); setSearchOpen(true); }
   };
@@ -141,7 +157,7 @@ export const CatalogLookup: React.FC<CatalogLookupProps> = ({
         </div>
       </div>
       {searchOpen && createPortal(
-        <LookupDialog lookup={lookup} initial={notFound ? text : ''} title={title ?? label ?? t('catalog.lookup.title')}
+        <LookupDialog lookup={lookup} params={params} initial={notFound ? text : ''} title={title ?? label ?? t('catalog.lookup.title')}
           extraColumns={extraColumns} onClose={() => setSearchOpen(false)} onChoose={choose} />,
         document.body
       )}
@@ -159,9 +175,10 @@ export interface CatalogMultiLookupProps extends CommonProps {
 }
 
 export const CatalogMultiLookup: React.FC<CatalogMultiLookupProps> = ({
-  lookup, value, onChange, label, required, disabled, placeholder, extraColumns = [], title, className, max
+  lookup, params, value, onChange, label, required, disabled, placeholder, extraColumns = [], title, className, max
 }) => {
   const { t } = useLanguage();
+  const paramsKey = JSON.stringify(params ?? {});
   const [items, setItems] = useState<Map<string, LookupItem>>(new Map());
   const [text, setText] = useState('');
   const [missing, setMissing] = useState<string[]>([]);
@@ -172,12 +189,12 @@ export const CatalogMultiLookup: React.FC<CatalogMultiLookupProps> = ({
     const unknown = value.filter(code => !items.has(code));
     if (unknown.length === 0) return;
     let alive = true;
-    lookupApi.byCodes(lookup, unknown).then(found => {
+    lookupApi.byCodes(lookup, unknown, params).then(found => {
       if (alive) setItems(prev => new Map([...prev, ...found.map(x => [x.code, x] as const)]));
     }).catch(() => { /* codes only */ });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value.join(','), lookup]);
+  }, [value.join(','), lookup, paramsKey]);
 
   const emit = (next: LookupItem[]) => {
     const limited = max ? next.slice(0, max) : next;
@@ -191,7 +208,7 @@ export const CatalogMultiLookup: React.FC<CatalogMultiLookupProps> = ({
     const codes = [...new Set(text.split(/[\s,;]+/).map(c => c.trim().toUpperCase()).filter(Boolean))]
       .filter(c => !value.includes(c));
     if (codes.length === 0) { setText(''); return; }
-    const found = (await lookupApi.byCodes(lookup, codes).catch(() => [])).filter(x => x.isActive);
+    const found = (await lookupApi.byCodes(lookup, codes, params).catch(() => [])).filter(x => x.isActive);
     const foundCodes = new Set(found.map(x => x.code.toUpperCase()));
     setMissing(codes.filter(c => !foundCodes.has(c)));
     setText('');
@@ -235,7 +252,7 @@ export const CatalogMultiLookup: React.FC<CatalogMultiLookupProps> = ({
       </div>
       {missing.length > 0 && <p className="text-[11px] text-rose-600">{t('catalog.lookup.unknownCodes', { codes: missing.join(', ') })}</p>}
       {searchOpen && createPortal(
-        <LookupDialog lookup={lookup} initial="" title={title ?? label ?? t('catalog.lookup.title')} extraColumns={extraColumns}
+        <LookupDialog lookup={lookup} params={params} initial="" title={title ?? label ?? t('catalog.lookup.title')} extraColumns={extraColumns}
           multiple initialSelection={current()} max={max}
           onClose={() => setSearchOpen(false)}
           onChoose={() => { /* single only */ }}
@@ -250,8 +267,8 @@ export const CatalogMultiLookup: React.FC<CatalogMultiLookupProps> = ({
 
 const PAGE_SIZE = 20;
 
-function LookupDialog({ lookup, initial, title, extraColumns, onClose, onChoose, multiple = false, initialSelection = [], max, onChooseMany }: {
-  lookup: string; initial: string; title: string; extraColumns: { key: string; title: string }[];
+function LookupDialog({ lookup, params, initial, title, extraColumns, onClose, onChoose, multiple = false, initialSelection = [], max, onChooseMany }: {
+  lookup: string; params?: Record<string, string>; initial: string; title: string; extraColumns: { key: string; title: string }[];
   onClose: () => void; onChoose: (item: LookupItem) => void;
   multiple?: boolean; initialSelection?: LookupItem[]; max?: number; onChooseMany?: (items: LookupItem[]) => void;
 }) {
@@ -265,12 +282,13 @@ function LookupDialog({ lookup, initial, title, extraColumns, onClose, onChoose,
   const [picked, setPicked] = useState<LookupItem[]>(initialSelection);
   const request = useRef(0);
   const input = useRef<HTMLInputElement>(null);
+  const paramsKey = JSON.stringify(params ?? {});
 
   const load = useCallback(async (text: string, page: number) => {
     const ticket = ++request.current;
     setLoading(true);
     try {
-      const result = await lookupApi.search(lookup, text, page, PAGE_SIZE);
+      const result = await lookupApi.search(lookup, text, page, PAGE_SIZE, false, JSON.parse(paramsKey));
       if (ticket !== request.current) return;
       setItems(prev => page === 1 ? result.items : [...prev, ...result.items]);
       setTotal(result.total);
@@ -278,7 +296,7 @@ function LookupDialog({ lookup, initial, title, extraColumns, onClose, onChoose,
     } finally {
       if (ticket === request.current) setLoading(false);
     }
-  }, [lookup]);
+  }, [lookup, paramsKey]);
 
   // Search as the user types (short pause first).
   useEffect(() => {
@@ -348,7 +366,7 @@ function LookupDialog({ lookup, initial, title, extraColumns, onClose, onChoose,
                   )}
                   <td className="px-2 py-1.5 font-mono font-bold">{x.code}</td>
                   <td className="px-2 py-1.5">{x.name}</td>
-                  {extraColumns.map(c => <td key={c.key} className="px-2 py-1.5">{x.extra[c.key] ?? ''}</td>)}
+                  {extraColumns.map(c => <td key={c.key} className={cn('px-2 py-1.5', typeof x.extra[c.key] === 'number' && 'text-right tabular-nums')}>{extraText(x.extra[c.key])}</td>)}
                 </tr>
               ))}
               {!loading && items.length === 0 && (

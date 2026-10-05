@@ -639,7 +639,8 @@
       "APPROVE": "Approved",
       "REJECT": "Rejected",
       "WITHDRAW": "Withdrawn",
-      "PURGE": "Automatic deletion"
+      "PURGE": "Automatic deletion",
+      "EXPORT": "Excel export"
     },
     "note": {
       "default": "Note: {note}",

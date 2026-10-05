@@ -2,6 +2,7 @@ using Core.Infrastructure.Common.Caching;
 using Core.Application.Common.Caching;
 using System.Text.Json;
 using Core.Application.Common.Exceptions;
+using Core.Application.Modules.Notifications;
 using Core.Application.Modules.SystemConfig;
 using Core.Application.Common.Permissions;
 using Core.Domain.Modules.SystemConfig;
@@ -11,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Core.Infrastructure.Modules.SystemConfig;
 
-public sealed class SystemConfigService(CoreContext db, IAppCache cache, ILogger<SystemConfigService> logger) : ISystemConfigService
+public sealed class SystemConfigService(CoreContext db, IAppCache cache, INotificationStream stream, ILogger<SystemConfigService> logger) : ISystemConfigService
 {
     /// <summary>Read at sign-in and by voucher checks; cached per unit until a setting, function flag or base currency changes.</summary>
     public Task<IReadOnlyDictionary<string, JsonElement>> GetEffectiveAsync(string unitCode, CancellationToken ct) =>
@@ -106,5 +107,7 @@ public sealed class SystemConfigService(CoreContext db, IAppCache cache, ILogger
         setting.UpdatedAtUtc = DateTime.UtcNow;
         setting.UpdatedByUserId = userId;
         await db.SaveChangesAsync(ct);
+        // Open tabs of other users reload the menu at once instead of polling for it.
+        if (name == "menuVisibility") stream.PublishSettings();
     }
 }

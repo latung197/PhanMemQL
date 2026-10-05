@@ -69,6 +69,7 @@ public static class ApiServiceExtensions
         services.AddScoped<IAuthorizationHandler, AdminHandler>();
         services.AddScoped<IAuthorizationHandler, PermissionHandler>();
         services.AddScoped<IAuthorizationHandler, SpecialRightHandler>();
+        services.AddScoped<CatalogPermissionFilter>();
         services.AddAuthorizationBuilder()
             .AddPolicy(Policies.UnitAccess, p => p.RequireAuthenticatedUser().AddRequirements(new UnitAccessRequirement()))
             .AddPolicy(Policies.Admin, p => p.RequireAuthenticatedUser()

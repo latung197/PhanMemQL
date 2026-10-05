@@ -31,6 +31,7 @@ public static class FunctionCatalog
             ["inv_warehouse_type_cat"] = "Danh mục loại kho",
             ["inv_location_cat"] = "Danh mục vị trí lưu kho",
             ["inv_uom_cat"] = "Danh mục đơn vị tính",
+            ["inv_supplier_cat"]="Danh mục nhà cung cấp",
             ["inv_uom_conversion_cat"] = "Quy đổi đơn vị tính",
             ["inv_stock_norm_cat"] = "Định mức tồn kho",
             ["inv_lot_cat"] = "Lô và hạn sử dụng",

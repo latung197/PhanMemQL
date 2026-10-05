@@ -15,7 +15,7 @@ public sealed class NotificationsController(INotificationService notifications) 
 
     /// <summary>
     /// Server-sent events: "notification" when something new arrives for this user and unit, "sync" when
-    /// another tab changed the read state. The browser reads it with fetch() so the token stays in the
+    /// another tab changed the read state, "settings" when company-wide settings (the menu) changed. The browser reads it with fetch() so the token stays in the
     /// Authorization header. A comment line every 25 s keeps proxies from closing the connection; the
     /// stream also ends as soon as the token is revoked (account locked, password changed).
     /// </summary>

@@ -4,6 +4,7 @@
 import type React from 'react';
 import type { GridViewColumn } from '../common/GridView';
 import type { CatalogApi } from '../../hooks/useCatalog';
+import type { PagedQuery } from '../../services/paging';
 import type { SubMenuKey } from '../../types';
 
 /** One column of the Excel file (export, import, template). Values are read into the save input's field `key`. */
@@ -19,12 +20,16 @@ export interface ExcelColumn<TInput> {
   example?: string | number | boolean;
 }
 
-/** Extra filter of a catalog (the status filter is built in for records with isActive). */
+/**
+ * Extra filter of a catalog (the status filter is built in for records with isActive). For a server-paged catalog the
+ * `key` is the query parameter sent to the list endpoint and `match` is not used.
+ */
 export interface CatalogFilter<T> {
   key: string;
   label: string;
   options: { value: string; label: string }[];
-  match: (item: T, value: string) => boolean;
+  /** Only for a catalog still loaded as a whole list (getAll); a server-paged catalog filters on the server. */
+  match?: (item: T, value: string) => boolean;
 }
 
 export interface ImportRowError { row: number; message: string }
@@ -34,6 +39,8 @@ export type ImportMode = 'create' | 'upsert';
 
 /** Backend endpoints of a catalog: CRUD plus the optional shared batch endpoints (CatalogBatch). */
 export interface CatalogScreenApi<T, TInput> extends CatalogApi<T, TInput> {
+  /** Excel file of everything the list's filters match, made by the server (export right + change log). Takes the query without the page. */
+  exportAll?: (query: PagedQuery) => Promise<void>;
   importMany?: (rows: TInput[], mode: ImportMode) => Promise<ImportResult>;
   removeMany?: (keys: string[]) => Promise<DeleteManyResult>;
 }

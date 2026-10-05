@@ -195,7 +195,7 @@ Cài đặt **"Duyệt trước khi ghi sổ"** (Cài đặt mặc định) quy�
 | Người lập | Bất kỳ ai; một người; một vai trò; một phòng ban |
 | Số tiền từ | Để trống = mọi giá trị |
 | Cấp | 1, 2, 3... |
-| Người duyệt | Một người, hoặc một vai trò (mọi người giữ vai trò đó **và được làm việc ở đơn vị của phiếu**) |
+| Người duyệt | Một người, hoặc một vai trò (mọi người giữ vai trò đó). Chỉ tính người **có quyền Duyệt** chức năng (hoặc màn phê duyệt của nó) **và được làm việc ở đơn vị của phiếu** |
 
 ### Cách chạy
 
@@ -203,7 +203,7 @@ Cài đặt **"Duyệt trước khi ghi sổ"** (Cài đặt mặc định) quy�
 2. Các cấp chạy **lần lượt** 1 → 2 → 3. Trong một cấp, **một người** trong danh sách duyệt là đủ để qua cấp.
 3. Duyệt xong cấp cuối thì phiếu thành **Đã duyệt**. Bị từ chối ở bất kỳ cấp nào thì phiếu về **Lập**, người lập sửa rồi gửi lại (lượt mới).
 4. Người lập (hoặc quản trị viên) rút lại được khi phiếu đang chờ.
-5. Không có quy tắc nào khớp thì phiếu không cần duyệt.
+5. Không có quy tắc nào khớp thì phiếu vẫn phải duyệt một cấp: mọi người có quyền **Duyệt** chức năng đó (hoặc màn phê duyệt của nó), được làm việc ở đơn vị của phiếu, trừ người lập. Một cấp có quy tắc mà không còn ai duyệt được (vai trò không có người, người duyệt bị khóa) thì không gửi duyệt được và báo lỗi.
 
 Mỗi bước gửi thông báo, theo ngôn ngữ của từng người:
 - người duyệt cấp kế tiếp nhận yêu cầu duyệt;

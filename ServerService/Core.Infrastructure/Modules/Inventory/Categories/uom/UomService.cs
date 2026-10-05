@@ -1,92 +1,80 @@
-using Core.Infrastructure.Common.Catalogs;
+using Core.Application.Common.Auditing;
 using Core.Application.Common.Catalogs;
-using Core.Infrastructure.Common.Caching;
-using Core.Application.Common.Caching;
 using Core.Application.Common.Exceptions;
+using Core.Application.Common.Export;
+using Core.Application.Common.Localization;
 using Core.Application.Common.Persistence;
 using Core.Application.Common.Validation;
-using Core.Application.Common.Localization;
 using Core.Application.Modules.Inventory;
+using Core.Domain.Common;
 using Core.Domain.Modules.Inventory;
-using Core.Infrastructure.Common.Persistence;
+using Core.Infrastructure.Common.Catalogs;
+using Core.Infrastructure.Common.Paging;
 using Microsoft.EntityFrameworkCore;
+using Core.Infrastructure.Common.Persistence;
 
 namespace Core.Infrastructure.Modules.Inventory;
 
-/// <summary>Danh mục đơn vị tính (same model as the department catalog). Changes are logged automatically ([Audited]).</summary>
-public sealed class UomService(CoreContext db, IAppCache cache, CatalogBatch batch) : IUomService
+/// <summary>Danh mục đơn vị tính: the model of a catalog service (see CatalogService). Names can be translated per language.</summary>
+public sealed class UomService(CoreContext db, CatalogBatch batch, IExcelExporter excel, IAuditLog audit)
+    : CatalogService<Uom, UomDto, SaveUomRequest>(db, batch, excel, audit), IUomService
 {
-    /// <summary>Read by every screen with a unit field; cached until the catalog (or a user name in the stamps) changes.</summary>
-    public Task<IReadOnlyList<UomDto>> GetAllAsync(CancellationToken ct) =>
-        db.CachedAsync(cache, $"uoms:all:{Messages.CurrentLanguage}",
-            ["erp_uom", "erp_uom_translation", "sys_users"], LoadAllAsync, ct);
+    private static readonly CatalogSpec Info = new("inv_uom_cat", "uom", "field.uomCode", 20, "DanhMucDonViTinh");
 
-    private async Task<IReadOnlyList<UomDto>> LoadAllAsync(CancellationToken ct)
+    /// <summary>"localizedName" sorts by the original name.</summary>
+    private static readonly SortMap<Uom> SortColumns = SortMap<Uom>.By(x => x.Code, "order")
+        .Add("order", x => x.SortOrder).Add("code", x => x.Code).Add("name", x => x.Name).Add("localizedName", x => x.Name)
+        .Add("symbol", x => x.Symbol).Add("note", x => x.Note).Add("isActive", x => x.IsActive).AddRecordStamps();
+
+    protected override CatalogSpec Spec => Info;
+    protected override SortMap<Uom> Sorts => SortColumns;
+
+    protected override IQueryable<Uom> Search(IQueryable<Uom> rows, string pattern) =>
+        rows.Where(x => SearchFunctions.Matches(x.Code, pattern) || SearchFunctions.Matches(x.Name, pattern)
+            || SearchFunctions.Matches(x.Symbol, pattern) || SearchFunctions.Matches(x.Note, pattern)
+            || Db.UomTranslations.Any(t => t.UomCode == x.Code && SearchFunctions.Matches(t.Name, pattern)));
+
+    protected override IReadOnlyList<ExportColumn<Uom>> ExportColumns() =>
+    [
+        new("export.uom.code", x => x.Code), new("export.uom.name", x => x.Name), new("export.uom.symbol", x => x.Symbol),
+        new("export.uom.note", x => x.Note), new("export.uom.isActive", x => YesNo(x.IsActive))
+    ];
+
+    protected override SaveUomRequest WithoutVersion(SaveUomRequest request) => request with { Version = null };
+
+    protected override async Task<IReadOnlyList<UomDto>> MapAsync(IReadOnlyList<Uom> rows,
+        Func<ErpEntity, RecordStampDto> stamp, CancellationToken ct)
     {
-        var uoms = await db.Uoms.AsNoTracking().OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync(ct);
-        var translations = await db.UomTranslations.AsNoTracking().ToListAsync(ct);
+        var codes = rows.Select(x => x.Code).ToList();
+        var translations = await Db.UomTranslations.AsNoTracking().Where(x => codes.Contains(x.UomCode)).ToListAsync(ct);
         var byCode = translations.GroupBy(x => x.UomCode).ToDictionary(x => x.Key, x => x.ToList());
-        var stamp = await RecordStamps.ForAsync(db, uoms, ct);
-        return uoms.Select(x => ToDto(x, stamp(x), byCode.GetValueOrDefault(x.Code) ?? [])).ToList();
+        return rows.Select(x => ToDto(x, stamp(x), byCode.GetValueOrDefault(x.Code) ?? [])).ToList();
     }
 
-    public async Task<UomDto> CreateAsync(SaveUomRequest request, CancellationToken ct)
-    {
-        var code = Guard.Code(request.Code, 20, "field.uomCode");
-        if (await db.Uoms.AnyAsync(x => x.Code == code, ct))
-            throw new BusinessRuleException("uom.codeExists", code);
-        var uom = new Uom { Code = code, SortOrder = (await db.Uoms.MaxAsync(x => (int?)x.SortOrder, ct) ?? 0) + 1 };
-        await ApplyAsync(uom, request, ct);
-        db.Uoms.Add(uom);
-        await ApplyTranslationsAsync(uom.Code, request.Translations, ct);
-        await db.SaveChangesAsync(ct);
-        return await ResultAsync(uom, ct);
-    }
-
-    public async Task<UomDto> UpdateAsync(string code, SaveUomRequest request, CancellationToken ct)
-    {
-        var uom = await FindAsync(code, ct);
-        db.ExpectVersion(uom, request.Version);
-        await ApplyAsync(uom, request, ct);
-        await ApplyTranslationsAsync(uom.Code, request.Translations, ct);
-        // A translation edit must advance the parent version so concurrent forms cannot overwrite it.
-        if (request.Translations is not null) db.Entry(uom).Property(x => x.Name).IsModified = true;
-        await db.SaveChangesAsync(ct);
-        return await ResultAsync(uom, ct);
-    }
-
-    public async Task DeleteAsync(string code, CancellationToken ct)
-    {
-        var uom = await FindAsync(code, ct);
-        if (await db.UomConversions.AnyAsync(x => x.FromUomCode == code || x.ToUomCode == code, ct))
-            throw new BusinessRuleException("uom.inUse", uom.Name);
-        // Materials and voucher lines still use browser data; check them when those modules move to the backend.
-        db.UomTranslations.RemoveRange(await db.UomTranslations.Where(x => x.UomCode == code).ToListAsync(ct));
-        db.Uoms.Remove(uom);
-        await db.SaveChangesAsync(ct);
-    }
-
-    public Task<ImportResult> ImportAsync(ImportRequest<SaveUomRequest> request, CancellationToken ct) =>
-        batch.ImportAsync(request, row => (row.Code ?? string.Empty).Trim().ToUpperInvariant(),
-            (code, token) => db.Uoms.AnyAsync(x => x.Code == code, token),
-            (row, token) => CreateAsync(row, token),
-            (code, row, token) => UpdateAsync(code, row with { Version = null }, token), ct);
-
-    public Task<DeleteManyResult> DeleteManyAsync(DeleteManyRequest request, CancellationToken ct) =>
-        batch.DeleteManyAsync(request, DeleteAsync, ct);
-
-    private async Task<Uom> FindAsync(string code, CancellationToken ct) =>
-        await db.Uoms.FirstOrDefaultAsync(x => x.Code == code, ct) ?? throw new NotFoundException("uom.notFound");
-
-    private async Task ApplyAsync(Uom uom, SaveUomRequest request, CancellationToken ct)
+    protected override async Task ApplyAsync(Uom uom, SaveUomRequest request, CancellationToken ct)
     {
         var name = Guard.Required(request.Name, 100, "field.uomName");
-        if (await db.Uoms.AnyAsync(x => x.Code != uom.Code && x.Name.ToLower() == name.ToLower(), ct))
+        if (await Db.Uoms.AnyAsync(x => x.Code != uom.Code && x.Name.ToLower() == name.ToLower(), ct))
             throw new BusinessRuleException("uom.nameExists", name);
         uom.Name = name;
         uom.Symbol = Guard.Optional(request.Symbol, 20, "field.symbol") ?? string.Empty;
         uom.Note = Guard.Optional(request.Note, 300, "field.note");
         uom.IsActive = request.IsActive;
+    }
+
+    protected override async Task AfterApplyAsync(Uom uom, SaveUomRequest request, bool isNew, CancellationToken ct)
+    {
+        await ApplyTranslationsAsync(uom.Code, request.Translations, ct);
+        // A translation edit must advance the parent version so concurrent forms cannot overwrite it.
+        if (!isNew && request.Translations is not null) Db.Entry(uom).Property(x => x.Name).IsModified = true;
+    }
+
+    protected override async Task BeforeDeleteAsync(Uom uom, CancellationToken ct)
+    {
+        if (await Db.UomConversions.AnyAsync(x => x.FromUomCode == uom.Code || x.ToUomCode == uom.Code, ct))
+            throw new BusinessRuleException("uom.inUse", uom.Name);
+        // Materials and voucher lines still use browser data; check them when those modules move to the backend.
+        Db.UomTranslations.RemoveRange(await Db.UomTranslations.Where(x => x.UomCode == uom.Code).ToListAsync(ct));
     }
 
     private async Task ApplyTranslationsAsync(string code, IReadOnlyList<UomTranslationDto>? input, CancellationToken ct)
@@ -101,25 +89,19 @@ public sealed class UomService(CoreContext db, IAppCache cache, CatalogBatch bat
                 Guard.Required(item.Name, 100, "field.uomName")))
                 throw new BusinessRuleException("uom.translationInvalid");
         }
-        var active = await db.Languages.AsNoTracking()
+        var active = await Db.Languages.AsNoTracking()
             .Select(x => x.Code).ToListAsync(ct);
         if (requested.Keys.Any(x => !active.Contains(x, StringComparer.OrdinalIgnoreCase)))
             throw new BusinessRuleException("uom.translationInvalid");
 
-        var existing = await db.UomTranslations.Where(x => x.UomCode == code).ToListAsync(ct);
+        var existing = await Db.UomTranslations.Where(x => x.UomCode == code).ToListAsync(ct);
         foreach (var translation in existing)
         {
             if (requested.Remove(translation.LanguageCode, out var name)) translation.Name = name;
-            else db.UomTranslations.Remove(translation);
+            else Db.UomTranslations.Remove(translation);
         }
         foreach (var (language, name) in requested)
-            db.UomTranslations.Add(new UomTranslation { UomCode = code, LanguageCode = language, Name = name });
-    }
-
-    private async Task<UomDto> ResultAsync(Uom uom, CancellationToken ct)
-    {
-        var translations = await db.UomTranslations.AsNoTracking().Where(x => x.UomCode == uom.Code).ToListAsync(ct);
-        return ToDto(uom, await RecordStamps.OfAsync(db, uom, ct), translations);
+            Db.UomTranslations.Add(new UomTranslation { UomCode = code, LanguageCode = language, Name = name });
     }
 
     private static UomDto ToDto(Uom x, RecordStampDto stamp, IReadOnlyList<UomTranslation> translations)

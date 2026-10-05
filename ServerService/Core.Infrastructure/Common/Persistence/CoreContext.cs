@@ -1,6 +1,5 @@
 using Core.Application.Common.Exceptions;
 using Core.Application.Common.Security;
-using Core.Infrastructure.Common.Auditing;
 using Core.Domain.Common;
 using Core.Domain.Modules.Approvals;
 using Core.Domain.Modules.CompanyUnits;
@@ -8,12 +7,15 @@ using Core.Domain.Modules.Currencies;
 using Core.Domain.Modules.Departments;
 using Core.Domain.Modules.Fiscal;
 using Core.Domain.Modules.Inventory;
+using Core.Domain.Modules.Inventory.Categories.suppliers;
 using Core.Domain.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Domain.Modules.Languages;
 using Core.Domain.Modules.Notifications;
 using Core.Domain.Modules.SystemConfig;
 using Core.Domain.Modules.Users;
 using Core.Domain.Modules.VoucherNumbering;
+using Core.Infrastructure.Common.Auditing;
+using Core.Infrastructure.Common.Paging;
 using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Common.Persistence;
@@ -65,6 +67,7 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
 
     // Inventory
     public DbSet<Uom> Uoms => Set<Uom>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<UomTranslation> UomTranslations => Set<UomTranslation>();
     public DbSet<UomConversion> UomConversions => Set<UomConversion>();
     public DbSet<MaterialGroup> MaterialGroups => Set<MaterialGroup>();
@@ -82,6 +85,9 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
 
     protected override void OnModelCreating(ModelBuilder model)
     {
+        // Search that ignores accents and case (SQL function sys_search_match, see 00-helpers.sql).
+        model.HasDbFunction(typeof(SearchFunctions).GetMethod(nameof(SearchFunctions.Matches))!).HasName("sys_search_match");
+
         model.Entity<SysUserRole>().HasKey(x => new { x.UserId, x.RoleId });
         model.Entity<SysUserRole>().HasOne(x => x.Role).WithMany().HasForeignKey(x => x.RoleId);
 

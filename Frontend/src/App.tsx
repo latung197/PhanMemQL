@@ -49,7 +49,6 @@ import { EMPTY_MENU_VISIBILITY, isMenuFunctionVisible, type MenuVisibilityConfig
 
 // The realtime stream delivers new notifications at once; polling is only the fallback.
 const NOTIFICATION_POLL_MS = 180_000;
-const MENU_VISIBILITY_POLL_MS = 60_000;
 
 // Business data of the other modules is still demo data kept in the browser.
 // Accounts, permissions, company units, settings and notifications come from the backend.
@@ -242,7 +241,10 @@ const ERPAppContent: React.FC = () => {
   // unit, because the token (and so what the user may see) changes with it.
   useEffect(() => {
     if (!signedIn) return;
-    return startNotificationStream(() => void refreshNotifications());
+    return startNotificationStream(event => {
+      if (event === 'settings') reloadSettingsRef.current();
+      else void refreshNotifications();
+    });
   }, [signedIn, activeCompanyUnitCode, refreshNotifications]);
 
   // Poll while the tab is visible, and check at once when the user comes back to it.
@@ -259,25 +261,15 @@ const ERPAppContent: React.FC = () => {
     };
   }, [signedIn, refreshNotifications]);
 
-  // Apply changes made by another administrator while this tab stays open. Keep a local draft on the
-  // management screen until its user saves it.
-  useEffect(() => {
-    if (!signedIn || activeSubMenu === 'sys_menu') return;
-    const refresh = () => {
-      if (document.visibilityState !== 'visible') return;
-      void systemSettingsService.load()
-        .then(() => setMenuVisibility(systemSettingsService.getMenuVisibility()))
-        .catch(() => {});
-    };
-    const timer = window.setInterval(refresh, MENU_VISIBILITY_POLL_MS);
-    document.addEventListener('visibilitychange', refresh);
-    window.addEventListener('focus', refresh);
-    return () => {
-      window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', refresh);
-      window.removeEventListener('focus', refresh);
-    };
-  }, [signedIn, activeSubMenu]);
+  // Apply menu changes made by another administrator when the server says so (stream event "settings").
+  // Keep a local draft on the management screen until its user saves it.
+  const reloadSettingsRef = useRef<() => void>(() => {});
+  reloadSettingsRef.current = () => {
+    if (activeSubMenu === 'sys_menu') return;
+    void systemSettingsService.load()
+      .then(() => setMenuVisibility(systemSettingsService.getMenuVisibility()))
+      .catch(() => {});
+  };
 
   const handleLoginSuccess = (user: UserProfile) => {
     // Keep the screen of the address bar (e.g. a shared link) when the user may open it.

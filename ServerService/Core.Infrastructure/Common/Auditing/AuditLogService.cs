@@ -1,3 +1,4 @@
+using Core.Infrastructure.Common.Paging;
 using System.Text.Json;
 using Core.Application.Common.Auditing;
 using Core.Domain.Common;
@@ -31,9 +32,9 @@ public sealed class AuditLogService(CoreContext db, AuditTrail trail) : IAuditLo
         if (!string.IsNullOrWhiteSpace(query.ObjectId)) rows = rows.Where(x => x.ObjectId == query.ObjectId);
         if (!string.IsNullOrWhiteSpace(query.Action)) rows = rows.Where(x => x.Action == query.Action);
         if (Like(query.Actor) is { } actor)
-            rows = rows.Where(x => EF.Functions.ILike(x.ActorUsername ?? "", actor) || EF.Functions.ILike(x.ActorName ?? "", actor));
+            rows = rows.Where(x => SearchFunctions.Matches(x.ActorUsername, actor) || SearchFunctions.Matches(x.ActorName, actor));
         if (Like(query.Search) is { } search)
-            rows = rows.Where(x => EF.Functions.ILike(x.ObjectLabel ?? "", search) || EF.Functions.ILike(x.ObjectId, search));
+            rows = rows.Where(x => SearchFunctions.Matches(x.ObjectLabel, search) || SearchFunctions.Matches(x.ObjectId, search));
         if (query.From is DateTime from) rows = rows.Where(x => x.LogTime >= from.Date);
         if (query.To is DateTime to) rows = rows.Where(x => x.LogTime < to.Date.AddDays(1));
 

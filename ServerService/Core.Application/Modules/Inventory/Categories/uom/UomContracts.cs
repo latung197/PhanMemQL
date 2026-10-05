@@ -9,20 +9,7 @@ public sealed record UomDto(string Code, string Name, string LocalizedName, stri
     bool IsActive, RecordStampDto Stamp, uint Version, IReadOnlyList<UomTranslationDto> Translations);
 
 public sealed record SaveUomRequest(string Code, string Name, string? Symbol, string? Note, bool IsActive = true,
-    uint? Version = null, IReadOnlyList<UomTranslationDto>? Translations = null);
+    uint? Version = null, IReadOnlyList<UomTranslationDto>? Translations = null) : ICatalogRequest;
 
-public interface IUomService
-{
-    Task<IReadOnlyList<UomDto>> GetAllAsync(CancellationToken ct);
-    Task<UomDto> CreateAsync(SaveUomRequest request, CancellationToken ct);
-
-    /// <summary>The code is the key and cannot be changed.</summary>
-    Task<UomDto> UpdateAsync(string code, SaveUomRequest request, CancellationToken ct);
-
-    /// <summary>Refused while other data uses the unit (set it inactive instead).</summary>
-    Task DeleteAsync(string code, CancellationToken ct);
-
-    /// <summary>Nhập Excel: every row checked like the form, all saved or none (CatalogBatch).</summary>
-    Task<ImportResult> ImportAsync(ImportRequest<SaveUomRequest> request, CancellationToken ct);
-    Task<DeleteManyResult> DeleteManyAsync(DeleteManyRequest request, CancellationToken ct);
-}
+/// <summary>Everything a catalog service offers (list, export, create, update, delete, import) comes from ICatalogService.</summary>
+public interface IUomService : ICatalogService<UomDto, SaveUomRequest>;

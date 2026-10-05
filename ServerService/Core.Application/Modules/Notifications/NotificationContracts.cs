@@ -18,6 +18,8 @@ public static class NotificationStreamEvents
     public const string Notification = "notification";
     /// <summary>The subscriber's read / hidden state changed in another tab.</summary>
     public const string Sync = "sync";
+    /// <summary>Company-wide settings changed (e.g. menu visibility): every tab reloads them.</summary>
+    public const string Settings = "settings";
 }
 
 /// <summary>An open realtime connection; dispose it when the connection closes.</summary>
@@ -35,6 +37,8 @@ public interface INotificationStream
     void Publish(string? unitCode, int? recipientUserId);
     /// <summary>Signals the user's other tabs to reload their inbox (read / hidden state changed).</summary>
     void SyncUser(int userId);
+    /// <summary>Signals every open tab to reload the company-wide settings.</summary>
+    void PublishSettings();
 }
 
 /// <summary>Who may send notifications and where (drives the send form).</summary>

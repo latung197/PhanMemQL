@@ -6,7 +6,7 @@ namespace Core.Domain.Modules.Inventory;
 
 [Audited("inv_uom_conversion_cat", "uomConversion", Label = "{Code}")]
 [Table("erp_uom_conversion")]
-public class UomConversion : ErpEntity
+public class UomConversion : ErpEntity, ICatalogRecord
 {
     [Key, Column("code"), MaxLength(40)] public string Code { get; set; } = string.Empty;
     [Column("material_code"), MaxLength(50)] public string? MaterialCode { get; set; }

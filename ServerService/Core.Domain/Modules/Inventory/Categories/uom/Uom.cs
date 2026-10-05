@@ -7,7 +7,7 @@ namespace Core.Domain.Modules.Inventory;
 /// <summary>Đơn vị tính. Materials, unit conversions and voucher lines link to it by code.</summary>
 [Audited("inv_uom_cat", "uom", Label = "{Code} - {Name}")]
 [Table("erp_uom")]
-public class Uom : ErpEntity
+public class Uom : ErpEntity, ICatalogRecord
 {
     [Key, Column("code"), MaxLength(20)] public string Code { get; set; } = string.Empty;
     [Required, Column("name"), MaxLength(100)] public string Name { get; set; } = string.Empty;

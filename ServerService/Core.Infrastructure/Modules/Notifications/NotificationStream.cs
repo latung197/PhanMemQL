@@ -44,5 +44,10 @@ public sealed class NotificationStream : INotificationStream
             if (s.UserId == userId) s.Channel.Writer.TryWrite(NotificationStreamEvents.Sync);
     }
 
+    public void PublishSettings()
+    {
+        foreach (var s in _subscribers.Values) s.Channel.Writer.TryWrite(NotificationStreamEvents.Settings);
+    }
+
     public int Count => _subscribers.Count;
 }

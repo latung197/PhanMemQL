@@ -99,7 +99,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
             S
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            S-ERP & MES Enterprise
+            FSTV Viêt Nam
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {t('auth.subtitle')}

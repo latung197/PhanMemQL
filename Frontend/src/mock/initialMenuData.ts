@@ -196,6 +196,15 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             isActive: true
           },
           {
+            id: 'MNU_INV_WAREHOUSE_TYPE',
+            subKey: 'inv_warehouse_type_cat',
+            titleVi: 'Danh mục loại kho',
+            titleEn: 'Warehouse Types',
+            icon: 'Tags',
+            orderNo: 35,
+            isActive: true
+          },
+          {
             id: 'MNU_INV_LOCATION',
             subKey: 'inv_location_cat',
             titleVi: 'Danh mục Vị trí kho (Bin/Rack)',
@@ -642,15 +651,6 @@ export const INITIAL_SYS_MODULES: SysModule[] = [
             titleEn: 'Change Log',
             icon: 'History',
             orderNo: 20,
-            isActive: true
-          },
-          {
-            id: 'MNU_INV_WAREHOUSE_TYPE',
-            subKey: 'inv_warehouse_type_cat',
-            titleVi: 'Danh mục loại kho',
-            titleEn: 'Warehouse Types',
-            icon: 'Tags',
-            orderNo: 35,
             isActive: true
           },
           {

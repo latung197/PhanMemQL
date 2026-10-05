@@ -586,7 +586,8 @@
       "APPROVE": "Duyệt",
       "REJECT": "Từ chối",
       "WITHDRAW": "Rút lại",
-      "PURGE": "Tự động xóa"
+      "PURGE": "Tự động xóa",
+      "EXPORT": "Xuất Excel"
     },
     "note": {
       "default": "Ghi chú: {note}",

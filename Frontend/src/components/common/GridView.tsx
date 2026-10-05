@@ -92,6 +92,11 @@ export interface GridViewProps<T> {
 
   // Pagination
   paginated?: boolean;
+  /**
+   * The server sorts, filters and cuts the pages (services/paging.ts): `data` is already the current page and is shown
+   * as it is. Pass currentPage, pageSize, totalItems and the page / sort handlers.
+   */
+  serverSide?: boolean;
   currentPage?: number;
   pageSize?: number;
   totalItems?: number;
@@ -168,6 +173,7 @@ export function GridView<T extends Record<string, any>>({
   batchActions = [],
 
   paginated = true,
+  serverSide = false,
   currentPage: controlledCurrentPage,
   pageSize: controlledPageSize,
   totalItems: controlledTotalItems,
@@ -280,7 +286,7 @@ export function GridView<T extends Record<string, any>>({
 
   // Filter data locally if uncontrolled search/sort is active and controlled arrays aren't provided
   const processedData = useMemo(() => {
-    if (isSearchControlled && isSortControlled) {
+    if (serverSide || (isSearchControlled && isSortControlled)) {
       return data;
     }
 
@@ -320,7 +326,7 @@ export function GridView<T extends Record<string, any>>({
     }
 
     return result;
-  }, [data, columns, isSearchControlled, searchValue, isSortControlled, sortColumn, sortDirection]);
+  }, [data, columns, serverSide, isSearchControlled, searchValue, isSortControlled, sortColumn, sortDirection]);
 
   // Pagination processing
   const isPaginationControlled = controlledCurrentPage !== undefined;

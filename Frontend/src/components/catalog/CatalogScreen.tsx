@@ -12,6 +12,8 @@ import { ErrorState } from '../common/StateViews';
 import { RecordStampLine, type RecordStamp } from '../common/RecordStamp';
 import { useConfirm } from '../common/ConfirmDialog';
 import { useCatalog } from '../../hooks/useCatalog';
+import { useDebounced } from '../../hooks/useDebounced';
+import { clampPageSize, PAGE_SIZE_OPTIONS, type PagedQuery } from '../../services/paging';
 import { useLanguage } from '../../context/LanguageContext';
 import { getErrorMessage } from '../../services/apiClient';
 import { showToast } from '../../utils/toast';
@@ -40,7 +42,34 @@ export function CatalogScreen<T extends object, TInput extends object>({ definit
   const confirm = useConfirm();
   const d = definition;
   const perms = getActionPermission(currentUser, d.functionCode);
-  const catalog = useCatalog(d.api, { keyOf: d.keyOf, noun: d.texts.noun, describe: d.describe, onChanged });
+  // Columns shown, order, widths, sort and rows per page, saved per user (sys_grid_layout).
+  const layout = useGridLayout(d.functionCode, 'main', d.columns);
+
+  // Server-paged catalog (api.list): the server sorts, filters and cuts the page; only the page is kept here.
+  const serverPaged = !!d.api.list;
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounced(search, 300);
+  const [showFilter, setShowFilter] = useState(false);
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const pageSize = clampPageSize(layout.pageSize);
+  const serverFilters = useMemo(
+    () => Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '')), [filterValues]);
+  // A new search, filter, sort or page size starts again from the first page (in the same render, so no extra request).
+  const resetKey = JSON.stringify([debouncedSearch, serverFilters, layout.sortKey, layout.sortDir, pageSize]);
+  const [pageState, setPageState] = useState({ key: resetKey, page: 1 });
+  const page = pageState.key === resetKey ? pageState.page : 1;
+  const setPage = (next: number) => setPageState({ key: resetKey, page: next });
+  const listQuery = useMemo((): PagedQuery | null => serverPaged && layout.ready ? {
+    page, pageSize, sort: layout.sortKey, dir: layout.sortDir, search: debouncedSearch, filters: serverFilters
+  } : null, [serverPaged, layout.ready, page, pageSize, layout.sortKey, layout.sortDir, debouncedSearch, serverFilters]);
+
+  const catalog = useCatalog(d.api, { keyOf: d.keyOf, noun: d.texts.noun, describe: d.describe, onChanged, query: listQuery });
+  // After deleting the last rows of a page, go back to the last page that still exists.
+  useEffect(() => {
+    if (!serverPaged || catalog.loading || catalog.total === 0) return;
+    const lastPage = Math.max(1, Math.ceil(catalog.total / pageSize));
+    if (page > lastPage) setPage(lastPage);
+  }, [serverPaged, catalog.loading, catalog.total, pageSize, page]);
   const loadedLanguage = useRef(language);
   useEffect(() => {
     if (loadedLanguage.current !== language) {
@@ -48,19 +77,16 @@ export function CatalogScreen<T extends object, TInput extends object>({ definit
       void catalog.reload();
     }
   }, [language, catalog.reload]);
-  // Columns shown, order, widths, sort and rows per page, saved per user (sys_grid_layout).
-  const layout = useGridLayout(d.functionCode, 'main', d.columns);
-
-  const [search, setSearch] = useState('');
-  const [showFilter, setShowFilter] = useState(false);
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<(string | number)[]>([]);
   const [form, setForm] = useState<TInput | null>(null);
   const [editing, setEditing] = useState<T>();
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
 
-  const hasStatus = catalog.items.length > 0 && 'isActive' in catalog.items[0];
+  // Remembered once seen, so the status filter stays when a filter leaves the page empty.
+  const seenStatus = useRef(false);
+  if (catalog.items.length > 0) seenStatus.current = 'isActive' in catalog.items[0];
+  const hasStatus = seenStatus.current;
   const filters = useMemo(() => [
     ...(hasStatus ? [{
       key: STATUS_FILTER, label: t('catalog.filter.status'),
@@ -72,11 +98,12 @@ export function CatalogScreen<T extends object, TInput extends object>({ definit
 
   const activeFilters = Object.entries(filterValues).filter(([, v]) => v !== '');
   const visible = useMemo(() => {
+    if (serverPaged) return catalog.items;
     const q = fold(search.trim());
     return catalog.items.filter(item =>
       (!q || fold((d.searchText ?? defaultSearchText)(item)).includes(q))
-      && activeFilters.every(([key, value]) => filters.find(f => f.key === key)?.match(item, value) ?? true));
-  }, [catalog.items, search, activeFilters, filters, d.searchText]);
+      && activeFilters.every(([key, value]) => filters.find(f => f.key === key)?.match?.(item, value) ?? true));
+  }, [serverPaged, catalog.items, search, activeFilters, filters, d.searchText]);
 
   const open = (item?: T) => {
     setEditing(item);
@@ -117,8 +144,11 @@ export function CatalogScreen<T extends object, TInput extends object>({ definit
     if (changed) await onChanged?.();
   };
 
-  const exportVisible = () => void exportExcel(d.texts.fileName, d.texts.title, d.excel.columns, visible.map(d.excel.toRow))
-    .catch(error => showToast.error(getErrorMessage(error)));
+  // Server-paged: the server makes the file from every row the filters match (not just this page).
+  const exportVisible = () => void (serverPaged && d.api.exportAll
+    ? d.api.exportAll({ page: 1, pageSize, sort: layout.sortKey, dir: layout.sortDir, search: debouncedSearch, filters: serverFilters })
+    : exportExcel(d.texts.fileName, d.texts.title, d.excel.columns, visible.map(d.excel.toRow))
+  ).catch(error => showToast.error(getErrorMessage(error)));
 
   if (catalog.error) return <ErrorState message={catalog.error} onRetry={() => void catalog.reload()} />;
 
@@ -131,7 +161,7 @@ export function CatalogScreen<T extends object, TInput extends object>({ definit
         icon={d.icon}
         title={d.texts.title}
         subtitle={d.texts.subtitle}
-        count={visible.length}
+        count={serverPaged ? catalog.total : visible.length}
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder={d.texts.searchPlaceholder}
@@ -160,11 +190,22 @@ export function CatalogScreen<T extends object, TInput extends object>({ definit
         data={visible}
         columns={layout.columns}
         getItemId={item => d.keyOf(item)}
-        defaultSortColumn={layout.sortKey}
-        defaultSortDirection={layout.sortDir}
-        onSortChange={layout.sort}
+        {...(serverPaged ? {
+          serverSide: true,
+          sortColumn: layout.sortKey ?? '',
+          sortDirection: layout.sortDir ?? 'asc',
+          onSort: layout.sort,
+          currentPage: page,
+          totalItems: catalog.total,
+          onPageChange: setPage,
+          pageSizeOptions: PAGE_SIZE_OPTIONS
+        } : {
+          defaultSortColumn: layout.sortKey,
+          defaultSortDirection: layout.sortDir,
+          onSortChange: layout.sort
+        })}
         onColumnResize={layout.resize}
-        pageSize={layout.pageSize}
+        pageSize={serverPaged ? pageSize : layout.pageSize}
         onPageSizeChange={layout.setPageSize}
         loading={catalog.loading}
         searchable={false}

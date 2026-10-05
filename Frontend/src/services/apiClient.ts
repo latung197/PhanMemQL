@@ -73,24 +73,47 @@ export async function apiRequest<T>(
     throw new ApiError(0, translate('api.connectionFailed'));
   }
 
-  if (!response.ok) {
-    let message = STATUS_MESSAGES[response.status]
-      ? translate(STATUS_MESSAGES[response.status]) : translate('api.serverError', { status: response.status });
-    try {
-      const data = await response.json();
-      if (data && typeof data.message === 'string') message = data.message;
-    } catch {
-      // Keep the generic message when the body is not JSON.
-    }
-    if (response.status === 401 && !options.anonymous) {
-      window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
-    }
-    throw new ApiError(response.status, message);
-  }
+  if (!response.ok) throw await failure(response, options.anonymous);
 
   if (response.status === 204) return undefined as T;
   const text = await response.text();
   return (text ? JSON.parse(text) : undefined) as T;
+}
+
+/** The error for a rejected answer: the backend's { message }, or a generic text; a 401 signs the user out. */
+async function failure(response: Response, anonymous?: boolean): Promise<ApiError> {
+  let message = STATUS_MESSAGES[response.status]
+    ? translate(STATUS_MESSAGES[response.status]) : translate('api.serverError', { status: response.status });
+  try {
+    const data = await response.json();
+    if (data && typeof data.message === 'string') message = data.message;
+  } catch {
+    // Keep the generic message when the body is not JSON.
+  }
+  if (response.status === 401 && !anonymous) {
+    window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
+  }
+  return new ApiError(response.status, message);
+}
+
+/** Downloads a file the backend generates (e.g. an Excel export) and saves it under `fileName`. */
+export async function apiDownload(path: string, fileName: string): Promise<void> {
+  const headers: Record<string, string> = { Accept: '*/*', 'Accept-Language': storedLanguage() };
+  const token = tokenStore.get();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { method: 'GET', headers });
+  } catch {
+    throw new ApiError(0, translate('api.connectionFailed'));
+  }
+  if (!response.ok) throw await failure(response);
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /** Message to show in a toast for any error thrown by an API call. */

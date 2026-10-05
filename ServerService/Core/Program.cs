@@ -22,6 +22,7 @@ builder.AddMonitoring();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApi(builder.Configuration);
+if (builder.Environment.IsDevelopment()) builder.Services.AddSwagger();
 
 var app = builder.Build();
 
@@ -40,6 +41,7 @@ app.Use(async (context, next) =>
     await next(context);
 });
 app.UseMonitoring();
+app.UseSwaggerInDevelopment();
 app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();

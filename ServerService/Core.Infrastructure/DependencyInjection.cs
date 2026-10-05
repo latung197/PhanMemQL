@@ -1,10 +1,9 @@
-using Core.Infrastructure.Common.Lookups;
-using Core.Infrastructure.Common.Layouts;
-using Core.Application.Common.Lookups;
-using Core.Application.Common.Localization;
-using Core.Application.Common.Layouts;
-using Core.Infrastructure.Common.Catalogs;
 using Core.Application.Common.Auditing;
+using Core.Application.Common.Caching;
+using Core.Application.Common.Export;
+using Core.Application.Common.Layouts;
+using Core.Application.Common.Localization;
+using Core.Application.Common.Lookups;
 using Core.Application.Common.Persistence;
 using Core.Application.Common.Security;
 using Core.Application.Modules.Approvals;
@@ -14,6 +13,7 @@ using Core.Application.Modules.Currencies;
 using Core.Application.Modules.Departments;
 using Core.Application.Modules.Fiscal;
 using Core.Application.Modules.Inventory;
+using Core.Application.Modules.Inventory.Categories.suppliers;
 using Core.Application.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Application.Modules.Languages;
 using Core.Application.Modules.Notifications;
@@ -22,6 +22,11 @@ using Core.Application.Modules.SystemConfig;
 using Core.Application.Modules.Users;
 using Core.Application.Modules.VoucherNumbering;
 using Core.Infrastructure.Common.Auditing;
+using Core.Infrastructure.Common.Caching;
+using Core.Infrastructure.Common.Catalogs;
+using Core.Infrastructure.Common.Export;
+using Core.Infrastructure.Common.Layouts;
+using Core.Infrastructure.Common.Lookups;
 using Core.Infrastructure.Common.Persistence;
 using Core.Infrastructure.Common.Persistence.Sql;
 using Core.Infrastructure.Common.Security;
@@ -33,6 +38,7 @@ using Core.Infrastructure.Modules.Currencies;
 using Core.Infrastructure.Modules.Departments;
 using Core.Infrastructure.Modules.Fiscal;
 using Core.Infrastructure.Modules.Inventory;
+using Core.Infrastructure.Modules.Inventory.Categories.suppliers;
 using Core.Infrastructure.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Infrastructure.Modules.Languages;
 using Core.Infrastructure.Modules.Notifications;
@@ -40,12 +46,10 @@ using Core.Infrastructure.Modules.Roles;
 using Core.Infrastructure.Modules.SystemConfig;
 using Core.Infrastructure.Modules.Users;
 using Core.Infrastructure.Modules.VoucherNumbering;
-using Core.Application.Common.Caching;
-using Core.Infrastructure.Common.Caching;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 
 namespace Core.Infrastructure;
 
@@ -60,6 +64,7 @@ public static class DependencyInjection
         // Shared cache, kept in step with every write CoreContext makes (CacheInvalidationInterceptor).
         services.AddMemoryCache();
         services.AddSingleton<IAppCache, MemoryAppCache>();
+        services.AddSingleton<IExcelExporter, ExcelExporter>();
         services.AddSingleton<CacheInvalidationInterceptor>();
         services.AddSingleton<SlowQueryInterceptor>();
         services.AddDbContext<CoreContext>((sp, o) => o.UseNpgsql(connectionString)
@@ -78,36 +83,10 @@ public static class DependencyInjection
         services.AddScoped<IGridLayoutService, GridLayoutService>();
         services.AddScoped<ILookupService, LookupService>();
 
-        // Lookups (ô chọn mã + F2): one line per catalog, see docs/them-danh-muc.md.
-        services.AddLookup(new LookupDefinition("uoms", db =>
-        {
-            var language = Messages.CurrentLanguage;
-            var baseLanguage = language.Split('-')[0];
-            return db.Uoms.Select(x => new LookupRow { Code = x.Code,
-                Name = db.UomTranslations.Where(t => t.UomCode == x.Code &&
-                    (t.LanguageCode == language || t.LanguageCode == baseLanguage))
-                    .OrderByDescending(t => t.LanguageCode == language)
-                    .Select(t => t.Name).FirstOrDefault() ?? x.Name,
-                IsActive = x.IsActive, Extra1 = x.Symbol });
-        }, "symbol"));
-        services.AddLookup(new LookupDefinition("uomConversions", db => db.UomConversions.Select(x =>
-            new LookupRow { Code = x.Code, Name = x.FromUomCode + " → " + x.ToUomCode, IsActive = x.IsActive,
-                Extra1 = x.MaterialCode, Extra2 = x.Factor.ToString() }), "materialCode", "factor"));
-        services.AddLookup(new LookupDefinition("materialGroups", db => db.MaterialGroups.Select(x =>
-            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive })));
-        services.AddLookup(new LookupDefinition("warehouses", db => db.Warehouses.Select(x =>
-            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.Address }), "address"));
-        services.AddLookup(new LookupDefinition("warehouseTypes", db =>
-        {
-            var language = Messages.CurrentLanguage;
-            var baseLanguage = language.Split('-')[0];
-            return db.WarehouseTypes.Select(x => new LookupRow { Code = x.Code,
-                Name = db.WarehouseTypeTranslations.Where(t => t.WarehouseTypeCode == x.Code &&
-                    (t.LanguageCode == language || t.LanguageCode == baseLanguage))
-                    .OrderByDescending(t => t.LanguageCode == language)
-                    .Select(t => t.Name).FirstOrDefault() ?? x.Name,
-                IsActive = x.IsActive });
-        }));
+        // Lookups (ô chọn mã + F2): the catalogs are listed in LookupCatalogs (see docs/them-danh-muc.md).
+        foreach (var lookup in LookupCatalogs.All) services.AddLookup(lookup);
+        // Custom lookups (typed columns, parameters, rights): one class each, see LookupProvider.
+        services.AddLookupProvider<UomFullLookup>();
 
         // Modules
         services.AddScoped<UserProfileBuilder>();
@@ -136,6 +115,7 @@ public static class DependencyInjection
         services.AddScoped<ISystemParameters, SystemParametersService>();
         services.AddScoped<ILanguageService, LanguageService>();
         services.AddScoped<IUomService, UomService>();
+        services.AddScoped<ISupplierService, SupplierService>();
         services.AddScoped<IUomConversionService, UomConversionService>();
         services.AddScoped<IMaterialGroupService, MaterialGroupService>();
         services.AddScoped<IWarehouseService, WarehouseService>();

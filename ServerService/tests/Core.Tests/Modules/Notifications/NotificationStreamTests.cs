@@ -49,6 +49,19 @@ public sealed class NotificationStreamTests
     }
 
     [Fact]
+    public void SettingsSignalGoesToEveryTab()
+    {
+        var stream = new NotificationStream();
+        using var a = stream.Subscribe(1, "DVCS01");
+        using var b = stream.Subscribe(2, "DVCS02");
+
+        stream.PublishSettings();
+
+        Assert.Equal([NotificationStreamEvents.Settings], Drain(a));
+        Assert.Equal([NotificationStreamEvents.Settings], Drain(b));
+    }
+
+    [Fact]
     public void SlowTabKeepsOnlyTheLatestSignals()
     {
         var stream = new NotificationStream();

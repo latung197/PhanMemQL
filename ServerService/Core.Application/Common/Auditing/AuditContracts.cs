@@ -43,6 +43,8 @@ public static class AuditActions
     public const string Approve = "APPROVE";
     public const string Reject = "REJECT";
     public const string Withdraw = "WITHDRAW";
+    /// <summary>Data downloaded as an Excel file (note = row count and the filter used).</summary>
+    public const string Export = "EXPORT";
 }
 
 /// <summary>

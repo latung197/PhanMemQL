@@ -41,6 +41,8 @@ export interface GridLayoutControl<T> {
   sortKey?: string;
   sortDir?: 'asc' | 'desc';
   pageSize?: number;
+  /** The saved layout has been read (or could not be): a server-paged list waits for it to ask for the right sort and page size. */
+  ready: boolean;
   /** Where the layout comes from. */
   source: 'user' | 'company' | 'code';
   hasCompany: boolean;
@@ -57,13 +59,15 @@ export interface GridLayoutControl<T> {
 export function useGridLayout<T>(functionCode: SubMenuKey, gridKey: string, declared: GridViewColumn<T>[]): GridLayoutControl<T> {
   const [mine, setMine] = useState<GridLayout | null>(null);
   const [company, setCompany] = useState<GridLayout | null>(null);
+  const [ready, setReady] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     let alive = true;
     gridLayoutApi.get(functionCode, gridKey)
       .then(r => { if (alive) { setMine(r.user); setCompany(r.company); } })
-      .catch(() => { /* the code's layout is used */ });
+      .catch(() => { /* the code's layout is used */ })
+      .finally(() => { if (alive) setReady(true); });
     return () => { alive = false; clearTimeout(saveTimer.current); };
   }, [functionCode, gridKey]);
 
@@ -100,6 +104,7 @@ export function useGridLayout<T>(functionCode: SubMenuKey, gridKey: string, decl
   return {
     columns,
     choices: ordered.map(c => ({ key: c.key, visible: c.visible, title: titleOf(declared.find(d => d.key === c.key)!) })),
+    ready,
     sortKey: effective.sortKey,
     sortDir: effective.sortDir,
     pageSize: effective.pageSize,
