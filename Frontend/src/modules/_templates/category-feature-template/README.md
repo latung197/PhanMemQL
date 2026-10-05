@@ -44,18 +44,8 @@ Trong file `SupplierCategoryView.tsx`:
    ```typescript
    export type SubMenuKey = ... | 'inv_supplier_cat';
    ```
-2. **Khai báo Menu trong `src/mock/initialMenuData.ts`:**
-   Thêm mục menu vào nhóm danh mục mong muốn:
-   ```typescript
-   {
-     id: 'ITEM_SUPPLIER_CAT',
-     subKey: 'inv_supplier_cat',
-     titleVi: 'Danh Mục Nhà Cung Cấp',
-     titleEn: 'Suppliers Category',
-     icon: 'Truck',
-     routePath: '#/inventory/suppliers'
-   }
-   ```
+2. **Khai báo mục menu trong DB:**
+   Cập nhật dòng `sys_command` có `menuid0 = 'inv_supplier_cat'`: đặt `menu_kind = 'function'`, `menu_parent_id` là ID nhóm, `menu_icon` và `menu_order_no`. Tên các ngôn ngữ nằm trong `sys_command_translation`; route ở `src/config/functions.ts`.
 3. **Mount vào Module cha (VD: `InventoryModule.tsx`):**
    ```typescript
    import { SupplierCategoryView } from './suppliers';

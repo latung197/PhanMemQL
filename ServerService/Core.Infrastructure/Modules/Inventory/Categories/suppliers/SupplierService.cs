@@ -49,7 +49,9 @@ namespace Core.Infrastructure.Modules.Inventory.Categories.suppliers
         protected override IReadOnlyList<ExportColumn<Supplier>> ExportColumns() =>
         [
             new("export.supplier.code", x => x.Code), new("export.supplier.name", x => x.Name),
-        new("export.supplier.taxCode", x => x.TaxCode), new("export.supplier.isActive", x => YesNo(x.IsActive))
+            new("export.supplier.taxCode", x => x.TaxCode), new("export.supplier.phone", x => x.Phone),
+            new("export.supplier.address", x => x.Address), new("export.supplier.note", x => x.Note),
+            new("export.supplier.isActive", x => YesNo(x.IsActive))
         ];
 
         // Dòng nhập Excel không có phiên bản.
@@ -75,12 +77,6 @@ namespace Core.Infrastructure.Modules.Inventory.Categories.suppliers
             row.IsActive = request.IsActive;
         }
 
-        // Tùy chọn: chặn xóa khi dữ liệu khác đang dùng (và xóa dòng con).
-        // protected override async Task BeforeDeleteAsync(Supplier row, CancellationToken ct)
-        // {
-        //     if (await Db.GoodsReceipts.AnyAsync(x => x.SupplierCode == row.Code, ct))
-        //         throw new BusinessRuleException("supplier.inUse", row.Name);
-        // }
     }
 
 }

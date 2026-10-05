@@ -439,6 +439,7 @@ export type SubMenuKey =
   | 'inv_material_group_cat'    // Danh mục Nhóm vật tư
   | 'inv_warehouse_cat'         // Danh mục kho bãi
   | 'inv_warehouse_type_cat'    // Danh mục loại kho
+  | 'inv_supplier_cat'          // Danh mục nhà cung cấp
   | 'inv_location_cat'          // Danh mục Vị trí lưu kho
   | 'inv_uom_cat'               // Danh mục Đơn vị tính
   | 'inv_uom_conversion_cat'    // Danh mục Quy đổi ĐVT

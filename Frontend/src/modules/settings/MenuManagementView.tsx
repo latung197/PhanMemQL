@@ -3,7 +3,8 @@ import { Eye, EyeOff, Save } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Checkbox } from '../../components/common/Checkbox';
 import { useLanguage } from '../../context/LanguageContext';
-import { INITIAL_SYS_MODULES } from '../../mock/initialMenuData';
+import type { SysModule } from '../../types/menu';
+import { menuTitle } from '../../services/menuService';
 import type { ModuleCategoryKey, SubMenuKey } from '../../types';
 import type { MenuVisibilityConfig } from '../../services/menuVisibility';
 import { systemSettingsService } from '../../services/systemSettingsService';
@@ -16,8 +17,9 @@ const protectedFunctions: SubMenuKey[] = ['overview_main', 'sys_menu'];
 export const MenuManagementView: React.FC<{
   canEdit: boolean;
   visibility: MenuVisibilityConfig;
+  menuTree: SysModule[];
   onSaved: (value: MenuVisibilityConfig) => void;
-}> = ({ canEdit, visibility, onSaved }) => {
+}> = ({ canEdit, visibility, menuTree, onSaved }) => {
   const { language, t } = useLanguage();
   const [draft, setDraft] = useState<MenuVisibilityConfig>(visibility);
   const [saving, setSaving] = useState(false);
@@ -27,19 +29,19 @@ export const MenuManagementView: React.FC<{
 
   const modules = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
-    return INITIAL_SYS_MODULES.map(mod => {
-      const moduleMatches = `${mod.key} ${language === 'en' ? mod.titleEn : mod.titleVi}`.toLocaleLowerCase().includes(query);
+    return menuTree.map(mod => {
+      const moduleMatches = `${mod.key} ${menuTitle(mod, language)}`.toLocaleLowerCase().includes(query);
       const subGroups = mod.subGroups?.map(group => {
-        const groupMatches = `${group.groupCode} ${language === 'en' ? group.titleEn : group.titleVi}`.toLocaleLowerCase().includes(query);
+        const groupMatches = `${group.groupCode} ${menuTitle(group, language)}`.toLocaleLowerCase().includes(query);
         return { ...group, items: group.items.filter(item =>
           !query || moduleMatches || groupMatches ||
-          `${item.subKey} ${language === 'en' ? item.titleEn : item.titleVi}`.toLocaleLowerCase().includes(query)) };
+          `${item.subKey} ${menuTitle(item, language)}`.toLocaleLowerCase().includes(query)) };
       }).filter(group => group.items.length > 0);
       const directMatches = mod.directSubKey?.toLocaleLowerCase().includes(query);
       return { ...mod, subGroups, showDirectFunction: !query || moduleMatches || Boolean(directMatches) };
     }).filter(mod => !query || mod.subGroups?.length || (mod.directSubKey && mod.showDirectFunction) ||
-      `${mod.key} ${language === 'en' ? mod.titleEn : mod.titleVi}`.toLocaleLowerCase().includes(query));
-  }, [language, search]);
+      `${mod.key} ${menuTitle(mod, language)}`.toLocaleLowerCase().includes(query));
+  }, [language, search, menuTree]);
 
   const dirty = useMemo(() =>
     [...draft.hiddenModules].sort().join('|') !== [...visibility.hiddenModules].sort().join('|') ||
@@ -96,7 +98,7 @@ export const MenuManagementView: React.FC<{
             <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/30">
               {moduleVisible ? <Eye className="h-4 w-4 text-emerald-600" /> : <EyeOff className="h-4 w-4 text-slate-400" />}
               <Checkbox checked={moduleVisible} disabled={!canEdit || locked}
-                label={<span className="font-bold">{language === 'en' ? mod.titleEn : mod.titleVi}</span>}
+                label={<span className="font-bold">{menuTitle(mod, language)}</span>}
                 onChange={visible => toggleModule(mod.key, visible)} />
               <span className="text-[11px] text-slate-500 dark:text-slate-400">{functionCount} {t('menuManager.functions')}</span>
               {locked && <span className="ml-auto text-[11px] text-slate-400">{t('menuManager.required')}</span>}
@@ -104,13 +106,13 @@ export const MenuManagementView: React.FC<{
             {!moduleVisible && <p className="border-b border-slate-100 bg-amber-50 px-4 py-2 text-xs text-amber-800 dark:border-slate-800 dark:bg-amber-950/20 dark:text-amber-300">{t('menuManager.moduleHidden')}</p>}
             {mod.subGroups?.map(group => <div key={group.id} className="border-b border-slate-100 px-4 py-3 last:border-b-0 dark:border-slate-800">
               <h3 className="mb-3 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                {language === 'en' ? group.titleEn : group.titleVi}
+                {menuTitle(group, language)}
               </h3>
               <div className="grid gap-2 sm:grid-cols-2">
                 {group.items.map(item => <div key={item.subKey} className="min-w-0 rounded-md border border-slate-100 px-3 py-2 dark:border-slate-800"><Checkbox
                   checked={!draft.hiddenFunctions.includes(item.subKey)}
                   disabled={!canEdit || protectedFunctions.includes(item.subKey)}
-                  label={language === 'en' ? item.titleEn : item.titleVi}
+                  label={menuTitle(item, language)}
                   subLabel={item.subKey}
                   onChange={visible => toggleFunction(item.subKey, visible)} /></div>)}
               </div>

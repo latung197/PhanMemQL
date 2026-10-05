@@ -121,6 +121,26 @@
     "inactive": "Ngừng sử dụng",
     "isActive": "Đang sử dụng"
   },
+  "suppliers": {
+    "noun": "nhà cung cấp",
+    "title": "Danh mục nhà cung cấp",
+    "subtitle": "Quản lý đối tác cung ứng dùng trên phiếu nhập kho.",
+    "search": "Tìm mã, tên, mã số thuế hoặc điện thoại...",
+    "add": "Thêm nhà cung cấp",
+    "addTitle": "Thêm nhà cung cấp",
+    "editTitle": "Sửa nhà cung cấp {code}",
+    "code": "Mã nhà cung cấp",
+    "codeHint": "Không đổi được sau khi tạo",
+    "name": "Tên nhà cung cấp",
+    "taxCode": "Mã số thuế",
+    "phone": "Điện thoại",
+    "address": "Địa chỉ",
+    "note": "Ghi chú",
+    "status": "Trạng thái",
+    "active": "Đang sử dụng",
+    "inactive": "Ngừng sử dụng",
+    "isActive": "Đang sử dụng"
+  },
   "warehouses": {
     "noun": "kho",
     "title": "Danh mục kho",

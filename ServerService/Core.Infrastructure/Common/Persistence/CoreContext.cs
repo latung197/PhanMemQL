@@ -33,6 +33,7 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<SysRole> Roles => Set<SysRole>();
     public DbSet<SysUserRole> UserRoles => Set<SysUserRole>();
     public DbSet<SysCommand> Commands => Set<SysCommand>();
+    public DbSet<SysCommandTranslation> CommandTranslations => Set<SysCommandTranslation>();
     public DbSet<SysRoleCommand> RoleCommands => Set<SysRoleCommand>();
     public DbSet<SysUserCommand> UserCommands => Set<SysUserCommand>();
     public DbSet<SysRoleRight> RoleRights => Set<SysRoleRight>();
@@ -92,6 +93,7 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<SysUserRole>().HasOne(x => x.Role).WithMany().HasForeignKey(x => x.RoleId);
 
         model.Entity<SysRoleCommand>().HasKey(x => new { x.RoleId, x.MenuId0 });
+        model.Entity<SysCommandTranslation>().HasKey(x => new { x.MenuId0, x.LanguageCode });
         model.Entity<SysRole>().HasMany(x => x.Permissions).WithOne().HasForeignKey(x => x.RoleId);
         model.Entity<SysRoleCommand>().HasOne<SysCommand>().WithMany().HasForeignKey(x => x.MenuId0);
 

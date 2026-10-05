@@ -41,7 +41,7 @@ Core/                        Web API (chạy được dạng Windows service)
   SeedData/seed.json         Dữ liệu mẫu, xuất từ mock của frontend
 sql/postgresql/              00-helpers, 01-users, 02-company-units, 03-notifications, 04-system-config, 05-approvals,
                              06-departments, 07-currencies, 08-fiscal-periods, 09-voucher-numbering,
-                             10-permission-exceptions đến 21-company-unit-translations
+                             10-permission-exceptions đến 23-menu-tree
 tests/Core.Tests/            Common/ và Modules/ giống cấu trúc trên
 ```
 
@@ -103,6 +103,12 @@ await unitOfWork.ExecuteAsync(async ct =>
 
 Phiếu nhập kho dùng API `/api/inventory/goods-receipts` và các bảng trong `sql/postgresql/20-inventory-goods-receipts.sql`. Chạy script 20 sau các script Kho 15–19 trước khi sử dụng màn hình. Ghi sổ tạo dòng `erp_stock_movement`; bỏ ghi sổ xóa các dòng của phiếu đó. Báo cáo tồn kho hiện vẫn dùng dữ liệu mẫu và chưa đọc bảng này.
 
+Danh mục nhà cung cấp dùng bảng `erp_supplier` trong `sql/postgresql/22-inventory-suppliers.sql`. Trên database đã tồn tại, chạy lại `00-helpers.sql` để cập nhật hàm tìm kiếm `sys_search_match`, rồi chạy script 22. Phiếu nhập kho hiện chưa liên kết tới danh mục này.
+
+Cây menu nằm trong `sys_command` (`23-menu-tree.sql` thêm các cột `menu_*`); tên theo từng ngôn ngữ nằm trong `sys_command_translation` (`menuid0`, `language_code`, `title`). Chạy script 23 trước khi khởi động API mới; script chuyển dữ liệu từ `sys_menu_node` cũ nếu có. Nếu chưa có metadata menu, API nhập cây ban đầu từ `Core/SeedData/menu.json` đúng một lần. `menuid0` của chức năng vẫn là khóa phân quyền, `hide_yn` vẫn quyết định ẩn/hiện; `GET /api/menu` trả cây menu cho frontend.
+
+Khi thêm chức năng, giữ mã trong `FunctionCatalog.cs` và route/màn hình frontend như trước. Dòng `sys_command` của mã đó được seeder tạo sẵn; chỉ cần đặt `menu_kind = 'function'`, `menu_parent_id` bằng `menuid0` của nhóm, `menu_key` bằng mã chức năng, cùng icon và thứ tự. Thêm mỗi bản dịch bằng một dòng `sys_command_translation` với `language_code` tương ứng. Tạo phân hệ hoặc nhóm bằng một dòng `sys_command` có `menu_kind = 'module'` hoặc `'group'`; các dòng này không tham gia ma trận quyền.
+
 - Quy tắc ở `sys_approval_rule`: chức năng, cấp, người lập (mọi người / người cụ thể / vai trò / phòng ban), giá trị từ, đơn vị, người duyệt (người cụ thể / vai trò). Quản lý tại Cài đặt › Người dùng & Phân quyền › Quy trình phê duyệt.
 - Phiếu duyệt lần lượt từng cấp; các quy tắc cùng cấp gộp người duyệt. Người duyệt phải còn hoạt động, được vào đơn vị của phiếu, có quyền Duyệt chức năng và không phải người lập. Không có quy tắc nào khớp thì mọi người có quyền Duyệt được duyệt (một cấp).
 - Trạng thái duyệt lưu ở `sys_document_approval`; mỗi bước gửi thông báo cho người duyệt và người lập.
@@ -162,7 +168,7 @@ Mọi API (trừ đăng nhập) nhận `Authorization: Bearer <token>`; lỗi tr
 | Inventory | `GET /api/inventory/uom-conversions`; `POST`, `PUT /{code}`, `DELETE /{code}`; `POST .../import`, `POST .../delete-many` | Quyền theo `inv_uom_conversion_cat` giống danh mục đơn vị tính. Tra cứu một / nhiều mã qua `/api/lookups/uomConversions` |
 | Inventory | `GET /api/inventory/material-groups`; `POST`, `PUT /{code}`, `DELETE /{code}`; `POST .../import`, `POST .../delete-many` | Quyền theo `inv_material_group_cat` giống danh mục đơn vị tính. Tra cứu một / nhiều mã qua `/api/lookups/materialGroups` |
 | Inventory | `GET /api/inventory/warehouses`; `POST`, `PUT /{code}`, `DELETE /{code}`; `POST .../import`, `POST .../delete-many` | Quyền theo `inv_warehouse_cat` giống danh mục đơn vị tính. Tra cứu một / nhiều mã qua `/api/lookups/warehouses` |
-| Menu | `GET /api/settings/system-config` (mục `menuVisibility`); `PUT /api/settings/system-config/menuVisibility` với `{ hiddenModules, hiddenFunctions }` | Đọc: đã đăng nhập; sửa: quyền Sửa `sys_menu`. Module ẩn lưu ở `sys_setting`, chức năng ẩn cập nhật `sys_command.hide_yn`. Không cho ẩn Tổng quan, Cài đặt hoặc chính màn Quản lý menu. Chỉ ảnh hưởng điều hướng. |
+| Menu | `GET /api/menu` lấy cây menu từ `sys_command` và `sys_command_translation`; `GET /api/settings/system-config` (mục `menuVisibility`); `PUT /api/settings/system-config/menuVisibility` với `{ hiddenModules, hiddenFunctions }` | Đọc: đã đăng nhập; sửa ẩn/hiện: quyền Sửa `sys_menu`. Module ẩn lưu ở `sys_setting`, chức năng ẩn cập nhật `sys_command.hide_yn`. Không cho ẩn Tổng quan, Cài đặt hoặc chính màn Quản lý menu. Chỉ ảnh hưởng điều hướng. |
 | AuditLogs | `GET /api/audit-logs/settings`, `PUT .../settings` `{ retentionMonths }` (0 = lưu vĩnh viễn, tối đa 120) | Xem / Sửa: `sys_audit_log` |
 | GridLayouts | `GET /api/grid-layouts/{functionCode}/{gridKey}` (bố cục của tôi + mặc định công ty), `PUT/DELETE .../me`, `PUT/DELETE .../company` | Xem chức năng đó; `company`: quản trị viên |
 | Lookups | `GET /api/lookups/{name}?q=&page=&pageSize=&includeInactive=`, `GET /api/lookups/{name}/codes?codes=A,B` (danh mục đăng ký bằng `AddLookup`: `uoms`, `uomConversions`, `materialGroups`, `warehouses`) | Đã đăng nhập |

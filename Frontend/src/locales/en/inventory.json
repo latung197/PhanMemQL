@@ -121,6 +121,26 @@
     "inactive": "Inactive",
     "isActive": "In use"
   },
+  "suppliers": {
+    "noun": "supplier",
+    "title": "Suppliers",
+    "subtitle": "Manage suppliers used on goods receipts.",
+    "search": "Search code, name, tax code or phone...",
+    "add": "Add supplier",
+    "addTitle": "Add supplier",
+    "editTitle": "Edit supplier {code}",
+    "code": "Supplier code",
+    "codeHint": "Cannot be changed after creating",
+    "name": "Supplier name",
+    "taxCode": "Tax code",
+    "phone": "Phone",
+    "address": "Address",
+    "note": "Note",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "isActive": "Active"
+  },
   "warehouses": {
     "noun": "warehouse",
     "title": "Warehouses",

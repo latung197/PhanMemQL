@@ -74,18 +74,7 @@ src/modules/inventory/categories/suppliers/
    ```typescript
    inv_supplier_cat: fn('inventory', '/inventory/suppliers', 'Nhà cung cấp', 'catalog'),
    ```
-3. Mở `src/mock/initialMenuData.ts`, khai báo mục hiển thị trên cây Menu:
-   ```typescript
-   {
-     id: 'ITEM_INV_SUPPLIERS',
-     subKey: 'inv_supplier_cat',
-     titleVi: 'Danh Mục Nhà Cung Cấp',
-     titleEn: 'Suppliers Category',
-     icon: 'Truck', // Tên icon Lucide, phải có trong components/common/DynamicIcon.tsx
-     orderNo: 90,
-     isActive: true
-   }
-   ```
+3. Cập nhật dòng `sys_command` của chức năng: `menu_kind = 'function'`, `menu_parent_id` là ID nhóm, `menu_key = 'inv_supplier_cat'`, `menu_icon` và `menu_order_no`. Thêm tên hiển thị theo từng ngôn ngữ vào `sys_command_translation`. Cây menu được lấy qua `GET /api/menu`; `Core/SeedData/menu.json` chỉ dùng khi khởi tạo DB trống.
 4. Backend: thêm mã vào `ServerService/Core.Application/Common/Permissions/FunctionCatalog.cs` (xem README gốc, mục "Thêm một chức năng mới").
 
 > Không copy state mock từ `_templates/category-feature-template/` vào danh mục thật.

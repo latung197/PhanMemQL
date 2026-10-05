@@ -1,6 +1,6 @@
 // The one list of ERP functions (SubMenuKey). Routes, breadcrumbs, the screen guard and the permission
-// matrix are all derived from it, so a new function is declared here once (plus a sidebar entry in
-// mock/initialMenuData.ts and the backend FunctionCatalog.cs). Typed as Record<SubMenuKey, ...>, so a
+// matrix are all derived from it. The sidebar entry is stored in sys_command, while the backend
+// FunctionCatalog.cs declares permission codes. Typed as Record<SubMenuKey, ...>, so a
 // code added to SubMenuKey without an entry here is a compile error.
 import { ModuleCategoryKey, SubMenuKey } from '../types';
 import { translate } from '../utils/i18n';

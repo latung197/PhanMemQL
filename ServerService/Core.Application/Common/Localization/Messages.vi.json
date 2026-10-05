@@ -332,5 +332,8 @@
   "export.supplier.code": "Mã nhà cung cấp",
   "export.supplier.name": "Tên nhà cung cấp",
   "export.supplier.taxCode": "Mã số thuế",
+  "export.supplier.phone": "Điện thoại",
+  "export.supplier.address": "Địa chỉ",
+  "export.supplier.note": "Ghi chú",
   "export.supplier.isActive": "Đang sử dụng"
 }

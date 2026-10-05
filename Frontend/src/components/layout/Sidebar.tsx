@@ -5,15 +5,14 @@ import {
   ChevronsRight,
   Sparkles,
   Search,
-  X,
-  Bot
+  X
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { ModuleCategoryKey, SubMenuKey, UserProfile } from '../../types';
 import { DynamicIcon } from '../common/DynamicIcon';
-import { menuService } from '../../services/menuService';
+import { menuService, menuTitle } from '../../services/menuService';
 import { canView } from '../../utils/permissions';
-import { INITIAL_SYS_MODULES } from '../../mock/initialMenuData';
+import type { SysModule } from '../../types/menu';
 import { isMenuFunctionVisible, type MenuVisibilityConfig } from '../../services/menuVisibility';
 
 const foldSearch = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\u0111/g, 'd');
@@ -28,6 +27,7 @@ interface SidebarProps {
   lowStockCount: number;
   pendingOrderCount: number;
   menuVisibility: MenuVisibilityConfig;
+  menuTree: SysModule[];
 }
 
 interface ModuleMenuItem {
@@ -56,7 +56,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
   lowStockCount,
   pendingOrderCount,
-  menuVisibility
+  menuVisibility,
+  menuTree
 }) => {
   const { language, t } = useLanguage();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -101,21 +102,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }));
   };
 
-  // Load menu structure dynamically from database/mock service (C# API response format)
+  // Menu structure is loaded from the backend; apply the current user's rights locally.
   const menuConfig = menuService.getUserMenuTree(
+    menuTree,
     language,
     currentUser || undefined,
     { lowStockCount, pendingOrderCount },
     menuVisibility
   );
+  const aiMenu = menuTree.find(mod => mod.key === 'ai' && mod.isActive && mod.directSubKey === 'ai_main');
   const query = foldSearch(search.trim());
   const searchItems = query ? [
-    ...INITIAL_SYS_MODULES
+    ...menuTree
       .filter(mod => mod.isActive && mod.directSubKey && isSubKeyVisible(mod.directSubKey))
       .map(mod => ({
         category: mod.key,
         subKey: mod.directSubKey!,
-        label: language === 'en' ? mod.titleEn : mod.titleVi,
+        label: menuTitle(mod, language),
         context: '',
         iconName: mod.icon
       })),
@@ -386,7 +389,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
 
         {/* AI Quick Footer Link */}
-        {!isCollapsed && isSubKeyVisible('ai_main') && (
+        {!isCollapsed && aiMenu && isSubKeyVisible('ai_main') && (
           <div className="p-3 border-t border-brand-200 dark:border-slate-800 bg-brand-100/70 dark:bg-slate-950/40">
             <button
               onClick={() => {
@@ -395,10 +398,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }}
               className="w-full flex items-center gap-2.5 p-2.5 rounded-[7px] text-left text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition-colors cursor-pointer"
             >
-              <Bot className="h-4 w-4 animate-pulse text-amber-300" />
+              <DynamicIcon name={aiMenu.icon} className="h-4 w-4 animate-pulse text-amber-300" />
               <div className="grow truncate">
                 <p className="font-bold flex items-center gap-1 text-[11px]">
-                  {t('navigation.aiAdvisor')}
+                  {menuTitle(aiMenu, language)}
                   <Sparkles className="h-3 w-3 text-amber-300" />
                 </p>
                 <p className="text-[9.5px] text-indigo-200 font-normal">{t('navigation.aiSubtext')}</p>

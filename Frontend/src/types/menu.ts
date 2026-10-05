@@ -8,6 +8,7 @@ export interface SysMenuItem {
   subKey: SubMenuKey;
   titleVi: string;
   titleEn: string;
+  titles?: Record<string, string>;
   icon: string; // Lucide icon identifier e.g. "Package", "Building2"
   orderNo: number;
   badgeType?: 'lowStock' | 'pendingOrder';
@@ -19,6 +20,7 @@ export interface SysMenuGroup {
   groupCode: string;
   titleVi: string;
   titleEn: string;
+  titles?: Record<string, string>;
   icon: string; // e.g. "FolderTree", "FileText"
   iconColor?: string; // e.g. "text-indigo-400"
   orderNo: number;
@@ -31,6 +33,7 @@ export interface SysModule {
   key: ModuleCategoryKey;
   titleVi: string;
   titleEn: string;
+  titles?: Record<string, string>;
   icon: string; // e.g. "Layers", "BarChart"
   orderNo: number;
   directSubKey?: SubMenuKey;

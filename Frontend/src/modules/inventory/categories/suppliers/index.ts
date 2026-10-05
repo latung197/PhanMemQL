@@ -1,0 +1,1 @@
+export { SupplierCategoryView } from './SupplierCategoryView';

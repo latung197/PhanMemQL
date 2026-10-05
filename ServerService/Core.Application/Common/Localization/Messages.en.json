@@ -395,5 +395,8 @@
   "export.supplier.code": "Supplier code",
   "export.supplier.name": "Supplier name",
   "export.supplier.taxCode": "Tax code",
+  "export.supplier.phone": "Phone",
+  "export.supplier.address": "Address",
+  "export.supplier.note": "Note",
   "export.supplier.isActive": "In use"
 }

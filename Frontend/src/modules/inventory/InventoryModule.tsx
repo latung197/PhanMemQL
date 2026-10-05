@@ -4,6 +4,7 @@ import { MaterialCategoryView } from './categories/materials';
 import { CompanyUnitCategoryView } from './categories/company-units/CompanyUnitCategoryView';
 import { WarehouseCategoryView } from './categories/warehouses';
 import { WarehouseTypeCategoryView } from './categories/warehouse-types';
+import { SupplierCategoryView } from './categories/suppliers';
 import { MaterialTypeCategoryView } from './categories/material-types';
 import { MaterialGroupCategoryView } from './categories/material-groups';
 import { UomCategoryView } from './categories/uom';
@@ -125,6 +126,8 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
         return <WarehouseCategoryView currentUser={currentUser} />;
       case 'inv_warehouse_type_cat':
         return <WarehouseTypeCategoryView currentUser={currentUser} />;
+      case 'inv_supplier_cat':
+        return <SupplierCategoryView currentUser={currentUser} />;
       case 'inv_material_type_cat':
         return <MaterialTypeCategoryView materialTypes={materialTypes} currentUser={currentUser} />;
       case 'inv_material_group_cat':

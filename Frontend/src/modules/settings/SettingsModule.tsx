@@ -15,6 +15,7 @@ import { LanguageCategoryView } from './LanguageCategoryView';
 import { AuditLogView } from './AuditLogView';
 import { MenuManagementView } from './MenuManagementView';
 import type { MenuVisibilityConfig } from '../../services/menuVisibility';
+import type { SysModule } from '../../types/menu';
 
 interface SettingsModuleProps {
   subKey: SubMenuKey;
@@ -28,10 +29,11 @@ interface SettingsModuleProps {
   onCompanyUnitsChanged?: () => void | Promise<void>;
   onResetData: () => void;
   menuVisibility: MenuVisibilityConfig;
+  menuTree: SysModule[];
   onMenuVisibilityChanged: (value: MenuVisibilityConfig) => void;
 }
 
-/** A new settings screen: a sidebar item in mock/initialMenuData.ts and a case in renderScreen. */
+/** A new settings screen needs sys_command menu fields and a case in renderScreen. */
 export const SettingsModule: React.FC<SettingsModuleProps> = ({
   subKey,
   user,
@@ -40,6 +42,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   onCompanyUnitsChanged,
   onResetData,
   menuVisibility,
+  menuTree,
   onMenuVisibilityChanged
 }) => {
   // App only renders this module when the user may view subKey.
@@ -55,7 +58,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       case 'sys_departments': return <DepartmentCategoryView {...rights} />;
       case 'sys_languages': return <LanguageCategoryView {...rights} />;
       case 'sys_audit_log': return <AuditLogView {...rights} />;
-      case 'sys_menu': return <MenuManagementView canEdit={perms.edit} visibility={menuVisibility} onSaved={onMenuVisibilityChanged} />;
+      case 'sys_menu': return <MenuManagementView canEdit={perms.edit} visibility={menuVisibility} menuTree={menuTree} onSaved={onMenuVisibilityChanged} />;
       case 'sys_users': return <UserPermissionManager currentUser={user} companyUnits={companyUnits} />;
       case 'inv_company_unit_cat':
         return (

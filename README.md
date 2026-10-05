@@ -100,10 +100,12 @@ Trình duyệt ── fetch + Bearer token ──► ServerService (Core, contro
 | Quy tắc phê duyệt (Cài đặt › Phân quyền › Quy trình phê duyệt) | **Backend** |
 | Nhật ký thay đổi (Cài đặt › Nhật ký thay đổi) | **Backend** |
 | Quản lý menu (Cài đặt › Quản lý menu) | **Backend**: module ẩn lưu trong `sys_setting` (`MENU_VISIBILITY`), chức năng ẩn lưu tại `sys_command.hide_yn`. Ẩn menu không thay đổi quyền truy cập API. |
+| Cấu trúc menu (`sys_command`) | Backend trả menu qua `GET /api/menu`; chạy `23-menu-tree.sql` trước khi nâng cấp API. Menu được nạp một lần từ `Core/SeedData/menu.json`, sau đó tên, icon, thứ tự và quan hệ nhóm lấy từ DB. Tên dịch ở `sys_command_translation`. |
 | Kho › Danh mục đơn vị tính (`erp_uom`) | **Backend** |
 | Kho › Quy đổi đơn vị tính (`erp_uom_conversion`) | **Backend**; vật tư liên kết vẫn lấy từ danh mục mẫu trên frontend |
 | Kho › Nhóm vật tư (`erp_material_group`) | **Backend**; màn Vật tư mẫu chọn mã cho 5 trường nhóm qua tra cứu |
 | Kho › Danh mục kho (`erp_warehouse`) | **Backend**; các màn chứng từ, tồn kho và vị trí kho vẫn dùng dữ liệu mẫu trong trình duyệt |
+| Kho › Danh mục nhà cung cấp (`erp_supplier`) | **Backend**: thêm, sửa, xóa, tra cứu, phân trang và Excel. Chạy `22-inventory-suppliers.sql`; phiếu nhập kho hiện vẫn dùng bộ chọn nhà cung cấp mẫu. |
 | API trình / duyệt / từ chối phiếu (`/api/approvals/...`) | Backend đã có, **frontend chưa gọi** |
 | Kho — Phiếu nhập kho (`erp_goods_receipt`, `erp_goods_receipt_line`, `erp_stock_movement`) | **Backend**: lưu phiếu, duyệt, ghi sổ và bỏ ghi sổ. Chạy `ServerService/sql/postgresql/20-inventory-goods-receipts.sql` sau các script Kho trước đó. Bộ chọn vật tư và nhà cung cấp vẫn dùng dữ liệu mẫu. |
 | Vật tư, phiếu xuất, báo cáo tồn kho, vị trí kho, bán hàng, tài chính, nhân sự | **Dữ liệu mẫu trong trình duyệt** (`Frontend/src/mock`, `localStorage['s_erp_database_state']`) |
@@ -139,7 +141,7 @@ Mỗi chức năng có một **mã** (ví dụ `inv_supplier_cat`) và thuộc m
 
 1. `types/index.ts`: thêm mã vào `SubMenuKey`.
 2. `config/functions.ts`: thêm một dòng `mã: fn(phân hệ, '/đường-dẫn', 'Nhãn', loại)`. Route, tiêu đề, lịch sử điều hướng và ma trận phân quyền tự lấy từ đây. Thiếu dòng này TypeScript báo lỗi.
-3. `mock/initialMenuData.ts`: thêm mục menu (chỉ cần `subKey`, tên, icon, thứ tự).
+3. Cập nhật metadata menu trên dòng chức năng trong `sys_command` (`menu_kind`, `menu_parent_id`, `menu_order_no`, `menu_icon`) và thêm bản dịch vào `sys_command_translation`.
 4. Thư mục chức năng trong `modules/<phân hệ>/<nhóm>/<tên>/`: màn hình + `api.ts` (gọi `apiRequest`, không gọi `fetch` trực tiếp). Kho dùng `categories/`, `documents/`, `reports/`; xem [cấu trúc module Kho](docs/cau-truc-module-kho.md).
 5. `modules/<phân hệ>/<Phân hệ>Module.tsx`: thêm `case 'mã'`.
 6. Chạy `npm run lint` và `npm run build`.

@@ -25,6 +25,8 @@ import { notificationService } from './services/notificationService';
 import { startNotificationStream } from './services/notificationStream';
 import { requestOpenDocument } from './utils/documentLinks';
 import { systemSettingsService } from './services/systemSettingsService';
+import { menuService } from './services/menuService';
+import type { SysModule } from './types/menu';
 import { getErrorMessage, UNAUTHORIZED_EVENT } from './services/apiClient';
 import { 
   ERPData, 
@@ -77,6 +79,7 @@ const ERPAppContent: React.FC = () => {
   const [companyUnits, setCompanyUnits] = useState<CompanyUnit[]>([]);
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [menuVisibility, setMenuVisibility] = useState<MenuVisibilityConfig>(EMPTY_MENU_VISIBILITY);
+  const [menuTree, setMenuTree] = useState<SysModule[]>([]);
 
   // Navigation State
   const [activeCategory, setActiveCategory] = useState<ModuleCategoryKey>('overview');
@@ -203,13 +206,17 @@ const ERPAppContent: React.FC = () => {
       showToast.warning(t('app.settingsLoadFailed'), getErrorMessage(error));
     }
     applyNumberFormat(systemSettingsService.getNumberFormat());
-    await Promise.all([refreshCompanyUnits(), refreshNotifications()]);
+    await Promise.all([
+      menuService.load().then(setMenuTree).catch(error => showToast.error(getErrorMessage(error))),
+      refreshCompanyUnits(), refreshNotifications()
+    ]);
   }, [refreshCompanyUnits, refreshNotifications, applyNumberFormat, setLanguage]);
 
   const handleLogout = useCallback(() => {
     authService.logout();
     systemSettingsService.clear();
     setMenuVisibility(EMPTY_MENU_VISIBILITY);
+    setMenuTree([]);
     setCurrentUser(null);
     setNotifications([]);
     seenNotificationIds.current = null;
@@ -265,6 +272,7 @@ const ERPAppContent: React.FC = () => {
   // Keep a local draft on the management screen until its user saves it.
   const reloadSettingsRef = useRef<() => void>(() => {});
   reloadSettingsRef.current = () => {
+    void menuService.load().then(setMenuTree).catch(() => {});
     if (activeSubMenu === 'sys_menu') return;
     void systemSettingsService.load()
       .then(() => setMenuVisibility(systemSettingsService.getMenuVisibility()))
@@ -525,6 +533,7 @@ const ERPAppContent: React.FC = () => {
         lowStockCount={lowStockCount}
         pendingOrderCount={pendingOrderCount}
         menuVisibility={menuVisibility}
+        menuTree={menuTree}
       />
 
       {/* Main Workspace Area */}
@@ -707,6 +716,7 @@ const ERPAppContent: React.FC = () => {
                     onCompanyUnitsChanged={refreshCompanyUnits}
                     onResetData={handleResetData}
                     menuVisibility={menuVisibility}
+                    menuTree={menuTree}
                     onMenuVisibilityChanged={setMenuVisibility}
                   />
                 )}

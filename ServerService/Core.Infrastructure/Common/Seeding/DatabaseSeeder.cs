@@ -35,6 +35,7 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
     public async Task RunAsync(CancellationToken ct = default)
     {
         await EnsureFunctionCatalogAsync(ct);
+        await EnsureMenuTreeAsync(ct);
         if (!await db.Users.AnyAsync(ct))
         {
             if (configuration.GetValue<bool>("Seed:DemoData")) await SeedDemoDataAsync(ct);
@@ -167,6 +168,57 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
         var existing = await db.Commands.Select(x => x.MenuId0).ToListAsync(ct);
         foreach (var (code, label) in FunctionCatalog.Functions.Where(x => !existing.Contains(x.Key)))
             db.Commands.Add(new SysCommand { MenuId0 = code, MenuId = code, Text = label, Type = "M" });
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Populate sys_command menu fields once; later changes to the database are never overwritten.</summary>
+    private async Task EnsureMenuTreeAsync(CancellationToken ct)
+    {
+        if (await db.Commands.AnyAsync(x => x.MenuKind != null, ct)) return;
+        var path = Path.Combine(environment.ContentRootPath, "SeedData", "menu.json");
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(path, ct));
+        var functions = await db.Commands.ToDictionaryAsync(x => x.MenuId0, StringComparer.Ordinal, ct);
+
+        static string? Optional(JsonElement item, string name) =>
+            item.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+        static int Order(JsonElement item) => item.TryGetProperty("orderNo", out var value) ? value.GetInt32() : 0;
+        static bool Active(JsonElement item) => !item.TryGetProperty("isActive", out var value) || value.GetBoolean();
+        void AddNode(JsonElement item, string? parentId, string kind, string code)
+        {
+            var id = kind == "function" ? code : item.GetProperty("id").GetString()!;
+            if (!functions.TryGetValue(id, out var row))
+            {
+                row = new SysCommand { MenuId0 = id, MenuId = id, Type = "M" };
+                db.Commands.Add(row);
+            }
+            row.Text = item.GetProperty("titleVi").GetString()!;
+            row.Text2 = item.GetProperty("titleEn").GetString()!;
+            row.MenuKind = kind;
+            row.MenuKey = code;
+            row.MenuParentId = parentId;
+            row.MenuIcon = Optional(item, "icon") ?? "";
+            row.MenuIconColor = Optional(item, "iconColor");
+            row.MenuBadgeType = Optional(item, "badgeType");
+            row.MenuDirectFunctionCode = Optional(item, "directSubKey");
+            row.MenuOrderNo = Order(item);
+            row.MenuIsActive = Active(item);
+            db.CommandTranslations.Add(new SysCommandTranslation { MenuId0 = id, LanguageCode = "vi", Title = row.Text });
+            db.CommandTranslations.Add(new SysCommandTranslation { MenuId0 = id, LanguageCode = "en", Title = row.Text2 });
+        }
+
+        foreach (var module in document.RootElement.EnumerateArray())
+        {
+            var moduleId = module.GetProperty("id").GetString()!;
+            AddNode(module, null, "module", module.GetProperty("key").GetString()!);
+            if (!module.TryGetProperty("subGroups", out var groups)) continue;
+            foreach (var group in groups.EnumerateArray())
+            {
+                var groupId = group.GetProperty("id").GetString()!;
+                AddNode(group, moduleId, "group", group.GetProperty("groupCode").GetString()!);
+                foreach (var item in group.GetProperty("items").EnumerateArray())
+                    AddNode(item, groupId, "function", item.GetProperty("subKey").GetString()!);
+            }
+        }
         await db.SaveChangesAsync(ct);
     }
 
