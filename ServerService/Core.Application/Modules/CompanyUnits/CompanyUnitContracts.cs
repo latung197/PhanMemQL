@@ -1,4 +1,5 @@
 using Core.Application.Common.Catalogs;
+using Core.Application.Common.Persistence;
 
 namespace Core.Application.Modules.CompanyUnits;
 
@@ -12,18 +13,20 @@ public static class CompanyUnitStatus
 public sealed record CompanyUnitTranslationDto(string LanguageCode, string Name);
 public sealed record CompanyUnitDto(string Id, string Code, string Name, string? ShortName,
     string? Address, string? Phone, string? Email, string? TaxCode, string Status, bool IsDefault, uint Version,
-    string? LocalizedName = null, IReadOnlyList<CompanyUnitTranslationDto>? Translations = null, bool IsActive = true);
+    string? LocalizedName = null, IReadOnlyList<CompanyUnitTranslationDto>? Translations = null, bool IsActive = true,
+    RecordStampDto? Stamp = null);
 
 public sealed record SaveCompanyUnitRequest(string Code, string Name, string? ShortName,
     string? Address, string? Phone, string? Email, string? TaxCode, string? Status, bool IsDefault, uint? Version = null,
-    IReadOnlyList<CompanyUnitTranslationDto>? Translations = null);
+    IReadOnlyList<CompanyUnitTranslationDto>? Translations = null) : ICatalogRequest;
 
-public interface ICompanyUnitService
+/// <summary>
+/// The catalog of company units on ICatalogService (paged list, export, create, update, delete, import). One unit is the
+/// default; the last active unit cannot be paused or deleted; a unit that users, month locks, number series, rules or
+/// vouchers use cannot be deleted. Signed-in users pick units with the lookup (GET /api/lookups/companyUnits).
+/// </summary>
+public interface ICompanyUnitService : ICatalogService<CompanyUnitDto, SaveCompanyUnitRequest>
 {
+    /// <summary>Every unit (or the active ones): the sign-in screen's list.</summary>
     Task<IReadOnlyList<CompanyUnitDto>> GetAllAsync(bool activeOnly, CancellationToken ct);
-    Task<CompanyUnitDto> CreateAsync(SaveCompanyUnitRequest request, CancellationToken ct);
-    Task<CompanyUnitDto> UpdateAsync(string code, SaveCompanyUnitRequest request, CancellationToken ct);
-    Task DeleteAsync(string code, CancellationToken ct);
-    Task<ImportResult> ImportAsync(ImportRequest<SaveCompanyUnitRequest> request, CancellationToken ct);
-    Task<DeleteManyResult> DeleteManyAsync(DeleteManyRequest request, CancellationToken ct);
 }

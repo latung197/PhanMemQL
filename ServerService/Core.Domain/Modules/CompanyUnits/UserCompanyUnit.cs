@@ -10,6 +10,7 @@ namespace Core.Domain.Modules.CompanyUnits;
 public class UserCompanyUnit
 {
     [Column("user_id")] public int UserId { get; set; }
+    [References<CompanyUnit>]
     [Required, Column("unit_code"), MaxLength(20)] public string UnitCode { get; set; } = string.Empty;
     public CompanyUnit Unit { get; set; } = null!;
 }

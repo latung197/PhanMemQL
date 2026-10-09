@@ -100,7 +100,7 @@ Trình duyệt ── fetch + Bearer token ──► ServerService (Core, contro
 | Quy tắc phê duyệt (Cài đặt › Phân quyền › Quy trình phê duyệt) | **Backend** |
 | Nhật ký thay đổi (Cài đặt › Nhật ký thay đổi) | **Backend** |
 | Quản lý menu (Cài đặt › Quản lý menu) | **Backend**: module ẩn lưu trong `sys_setting` (`MENU_VISIBILITY`), chức năng ẩn lưu tại `sys_command.hide_yn`. Ẩn menu không thay đổi quyền truy cập API. |
-| Cấu trúc menu (`sys_command`) | Backend trả menu qua `GET /api/menu`; chạy `23-menu-tree.sql` trước khi nâng cấp API. Menu được nạp một lần từ `Core/SeedData/menu.json`, sau đó tên, icon, thứ tự và quan hệ nhóm lấy từ DB. Tên dịch ở `sys_command_translation`. |
+| Cấu trúc menu (`sys_command`) | Backend trả menu qua `GET /api/menu`; chạy `23-menu-tree.sql` trước khi nâng cấp API. Mỗi lần khởi động, nút nào trong `Core/SeedData/menu.json` mà DB chưa có thì được thêm (nút đã có không bị ghi đè); tên, icon, thứ tự và quan hệ nhóm lấy từ DB. Tên dịch ở `sys_command_translation`. |
 | Kho › Danh mục đơn vị tính (`erp_uom`) | **Backend** |
 | Kho › Quy đổi đơn vị tính (`erp_uom_conversion`) | **Backend**; vật tư liên kết vẫn lấy từ danh mục mẫu trên frontend |
 | Kho › Nhóm vật tư (`erp_material_group`) | **Backend**; màn Vật tư mẫu chọn mã cho 5 trường nhóm qua tra cứu |
@@ -115,7 +115,7 @@ Khi làm một nghiệp vụ thật, làm theo quy trình bên dưới rồi b�
 ## Quy ước chung
 
 - Giao diện, thông báo lỗi và tài liệu viết **tiếng Việt**.
-- **Bảng:** `sys_*` cho bảng hệ thống, `erp_*` cho bảng nghiệp vụ. Tên bảng và cột viết `snake_case`. **Không dùng khóa ngoại**: liên kết bằng mã hoặc ID có index, và service tự kiểm tra.
+- **Bảng:** `sys_*` cho bảng hệ thống, `erp_*` cho bảng nghiệp vụ. Tên bảng và cột viết `snake_case`. **Không dùng khóa ngoại**: liên kết bằng mã hoặc ID có index. Cột `*_code` trỏ sang danh mục khai bằng `[References<T>]` trên entity (hoặc `[NotReference(lý do)]`): khung tự chặn xóa dòng đang được dùng và kiểm mã khi lưu, xem `docs/tham-chieu-danh-muc.md`.
 - **Truy vấn:** CRUD viết bằng EF Core. Báo cáo, tính toán và ghi sổ dùng SQL thuần qua `ISqlExecutor`, luôn truyền tham số, không nối chuỗi.
 - **Mã chức năng** (`SubMenuKey`, ví dụ `inv_receipt`) là khóa chung của menu, route, phân quyền và thông báo. Frontend khai báo một lần trong `src/config/functions.ts` (route, nhãn, ma trận quyền tự lấy từ đây); backend khai báo trong `FunctionCatalog.cs`.
 - **Quyền:** mỗi chức năng có 7 thao tác: `view` (xem), `create` (thêm, cả sao chép / nhập Excel), `edit` (sửa bản ghi đã lưu), `delete`, `approve`, `print` (in), `export` (xuất file). API thêm mới (`POST`) kiểm tra `Create`, sửa (`PUT`) kiểm tra `Edit`. Ngoài ra có quyền đặc biệt dạng `{chức năng}:{mã}`, ví dụ `inv_receipt:VIEW_PRICE`.
@@ -155,9 +155,9 @@ Quy trình triển khai thực tế danh mục quy đổi đơn vị tính, gồ
 Chống ghi đè khi nhiều người cùng sửa (phiên bản bản ghi, lỗi 409, các bước cho chức năng mới): **[docs/chong-ghi-de.md](docs/chong-ghi-de.md)**.
 
 
-- Backend: làm theo mẫu **Phòng ban** (`Core.Infrastructure/Modules/Departments/DepartmentService.cs`): kiểm tra dữ liệu bằng `Guard`, không trùng mã, không xóa bản ghi đang được dùng (tự kiểm tra vì không có khóa ngoại), cho phép "ngừng sử dụng".
-- Frontend: copy **`modules/settings/DepartmentCategoryView.tsx`**. Hook `useCatalog(api, ...)` lo phần tải, thêm, sửa, xóa kèm thông báo; màn hình chỉ khai báo cột (`GridView`) và form (`Modal` + `TextInput`, `SelectInput`, `Checkbox`).
-- Danh mục mà màn khác cần tra cứu thì cho `GET` không cần quyền riêng (chỉ cần đăng nhập), như phòng ban, ngoại tệ.
+- Backend: kế thừa `CatalogService` theo mẫu **Đơn vị tính** (`UomService.cs`; có bản dịch) hoặc **Phòng ban** (`DepartmentService.cs`; đơn giản, có đếm người dùng và chép tên mới sang người dùng): chỉ khai báo cột sắp xếp, tìm kiếm, kiểm tra dữ liệu bằng `Guard`, cột xuất Excel. Không xóa bản ghi đang được dùng: khai `[References<T>]` trên các cột `*_code` trỏ tới danh mục (không có khóa ngoại), khung tự chặn. Cho phép "ngừng sử dụng".
+- Frontend: copy **`modules/settings/DepartmentCategoryView.tsx`** (đơn giản nhất): `CatalogScreen` lo tải, phân trang ở máy chủ, tìm, lọc, thêm, sửa, xóa, nhập / xuất Excel; màn hình chỉ khai báo cột, form (`TextInput`, `SelectInput`, `Checkbox`) và cột Excel; `api.ts` là `createCatalogApi({ url, fileName })`.
+- Danh mục mà màn khác cần chọn mã thì khai một mục tra cứu (`LookupCatalogs.cs`, mở cho mọi người đăng nhập), như `departments`, `currencies`, `companyUnits`; danh sách đầy đủ của chính danh mục vẫn cần quyền Xem.
 - Nhật ký thay đổi: gắn `[Audited("mã", "loại", Label = "{Code} - {Name}")]` lên entity là thêm / sửa / xóa tự được ghi (ai, lúc nào, trước → sau). Xem tập trung ở **Cài đặt › Nhật ký thay đổi** (`sys_audit_log`), không hiện trên màn chức năng. Chi tiết: [ServerService/README.md](ServerService/README.md#nhật-ký-thay-đổi).
 
 ### Phiếu (chứng từ)

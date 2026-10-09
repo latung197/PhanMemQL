@@ -10,11 +10,8 @@ namespace Core.Domain.Modules.Languages;
 /// </summary>
 [Audited("sys_languages", "language", Label = "{Code} - {Name}")]
 [Table("sys_language")]
-public class Language : IVersioned
+public class Language : ErpEntity, ICatalogRecord
 {
-    /// <summary>Row version (xmin) against lost updates; see IVersioned.</summary>
-    public uint Version { get; set; }
-
     public const string Vietnamese = "vi";
 
     [Key, Column("code"), MaxLength(10)] public string Code { get; set; } = string.Empty;

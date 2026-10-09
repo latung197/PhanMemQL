@@ -6,6 +6,7 @@ using Core.Application.Modules.CompanyUnits;
 using Core.Application.Modules.Currencies;
 using Core.Application.Modules.Departments;
 using Core.Application.Modules.SystemConfig;
+using Core.Domain.Common;
 using Core.Domain.Modules.CompanyUnits;
 using Core.Domain.Modules.Currencies;
 using Core.Domain.Modules.Departments;
@@ -15,6 +16,7 @@ using Core.Domain.Modules.SystemConfig;
 using Core.Domain.Modules.Users;
 using Core.Domain.Modules.VoucherNumbering;
 using Core.Infrastructure.Common.Persistence;
+using Core.Infrastructure.Common.References;
 using Core.Infrastructure.Modules.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -36,6 +38,7 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
     {
         await EnsureFunctionCatalogAsync(ct);
         await EnsureMenuTreeAsync(ct);
+        await SyncTableReferencesAsync(ct);
         if (!await db.Users.AnyAsync(ct))
         {
             if (configuration.GetValue<bool>("Seed:DemoData")) await SeedDemoDataAsync(ct);
@@ -171,18 +174,65 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
         await db.SaveChangesAsync(ct);
     }
 
-    /// <summary>Populate sys_command menu fields once; later changes to the database are never overwritten.</summary>
+    /// <summary>
+    /// Makes sys_table_ref match the [References] attributes of the entities (what points to which catalog), so the map
+    /// can be read in the database. Derived data: rows that are no longer declared are removed.
+    /// </summary>
+    private async Task SyncTableReferencesAsync(CancellationToken ct)
+    {
+        var declared = TableReferences.Of(db.Model).All;
+        var rows = await db.TableRefs.ToListAsync(ct);
+        var now = DateTime.UtcNow;
+        var changed = 0;
+        foreach (var row in rows.Where(r => !declared.Any(d => d.Table == r.TableName && d.Column == r.ColumnName)).ToList())
+        {
+            db.TableRefs.Remove(row);
+            changed++;
+        }
+        foreach (var reference in declared)
+        {
+            var row = rows.FirstOrDefault(r => r.TableName == reference.Table && r.ColumnName == reference.Column);
+            if (row is null)
+            {
+                db.TableRefs.Add(new TableRef
+                {
+                    TableName = reference.Table, ColumnName = reference.Column, RefTable = reference.RefTable, RefColumn = reference.RefColumn,
+                    TableKind = reference.TableKind, BlocksDelete = reference.BlocksDelete, Optional = reference.Optional,
+                    EntityType = reference.EntityType.Name, SyncedAt = now
+                });
+                changed++;
+            }
+            else if (row.RefTable != reference.RefTable || row.RefColumn != reference.RefColumn || row.TableKind != reference.TableKind
+                || row.BlocksDelete != reference.BlocksDelete || row.Optional != reference.Optional || row.EntityType != reference.EntityType.Name)
+            {
+                row.RefTable = reference.RefTable; row.RefColumn = reference.RefColumn; row.TableKind = reference.TableKind;
+                row.BlocksDelete = reference.BlocksDelete; row.Optional = reference.Optional; row.EntityType = reference.EntityType.Name;
+                row.SyncedAt = now;
+                changed++;
+            }
+        }
+        if (changed == 0) return;
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Đã đồng bộ {Count} dòng tham chiếu cột vào sys_table_ref.", changed);
+    }
+
+    /// <summary>
+    /// Insert-only: a node of menu.json that sys_command has no menu row for yet (a new function, group or module)
+    /// is added; a node that already has one is never touched, so edits made in the database stay.
+    /// </summary>
     private async Task EnsureMenuTreeAsync(CancellationToken ct)
     {
-        if (await db.Commands.AnyAsync(x => x.MenuKind != null, ct)) return;
         var path = Path.Combine(environment.ContentRootPath, "SeedData", "menu.json");
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(path, ct));
         var functions = await db.Commands.ToDictionaryAsync(x => x.MenuId0, StringComparer.Ordinal, ct);
+        var translated = (await db.CommandTranslations.Select(x => new { x.MenuId0, x.LanguageCode }).ToListAsync(ct))
+            .Select(x => (x.MenuId0, x.LanguageCode)).ToHashSet();
 
         static string? Optional(JsonElement item, string name) =>
             item.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
         static int Order(JsonElement item) => item.TryGetProperty("orderNo", out var value) ? value.GetInt32() : 0;
         static bool Active(JsonElement item) => !item.TryGetProperty("isActive", out var value) || value.GetBoolean();
+        var added = 0;
         void AddNode(JsonElement item, string? parentId, string kind, string code)
         {
             var id = kind == "function" ? code : item.GetProperty("id").GetString()!;
@@ -190,7 +240,9 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
             {
                 row = new SysCommand { MenuId0 = id, MenuId = id, Type = "M" };
                 db.Commands.Add(row);
+                functions[id] = row;
             }
+            if (row.MenuKind != null) return;
             row.Text = item.GetProperty("titleVi").GetString()!;
             row.Text2 = item.GetProperty("titleEn").GetString()!;
             row.MenuKind = kind;
@@ -202,8 +254,9 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
             row.MenuDirectFunctionCode = Optional(item, "directSubKey");
             row.MenuOrderNo = Order(item);
             row.MenuIsActive = Active(item);
-            db.CommandTranslations.Add(new SysCommandTranslation { MenuId0 = id, LanguageCode = "vi", Title = row.Text });
-            db.CommandTranslations.Add(new SysCommandTranslation { MenuId0 = id, LanguageCode = "en", Title = row.Text2 });
+            if (translated.Add((id, "vi"))) db.CommandTranslations.Add(new SysCommandTranslation { MenuId0 = id, LanguageCode = "vi", Title = row.Text });
+            if (translated.Add((id, "en"))) db.CommandTranslations.Add(new SysCommandTranslation { MenuId0 = id, LanguageCode = "en", Title = row.Text2 });
+            added++;
         }
 
         foreach (var module in document.RootElement.EnumerateArray())
@@ -219,7 +272,9 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
                     AddNode(item, groupId, "function", item.GetProperty("subKey").GetString()!);
             }
         }
+        if (added == 0) return;
         await db.SaveChangesAsync(ct);
+        logger.LogInformation("Đã thêm {Count} mục menu còn thiếu từ menu.json.", added);
     }
 
     private async Task SeedDemoDataAsync(CancellationToken ct)
@@ -316,10 +371,10 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
                 IsBase = item.IsBase, IsActive = item.IsActive, SortOrder = ++order
             });
         db.ExchangeRates.AddRange(rates.Where(r => currencies.Any(c => c.Code == r.CurrencyCode && !c.IsBase))
-            .Select(r => new ExchangeRate
+            .Select((r, i) => new ExchangeRate
             {
-                CurrencyCode = r.CurrencyCode, RateDate = r.Date, BuyRate = r.BuyRate, SellRate = r.SellRate,
-                AccountingRate = r.AccountingRate, UpdatedAtUtc = DateTime.UtcNow, UpdatedByUserId = 0
+                SortOrder = i + 1, CurrencyCode = r.CurrencyCode, RateDate = r.Date, BuyRate = r.BuyRate, SellRate = r.SellRate,
+                AccountingRate = r.AccountingRate, Code = r.Code, IsActive = r.IsActive
             }));
         await db.SaveChangesAsync(ct);
     }

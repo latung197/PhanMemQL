@@ -14,7 +14,8 @@ import {
   COSTING_METHODS, costingMethodLabel, CostingMethod, DEFAULT_SYSTEM_CONFIG, PrintSignatureLabels, systemSettingsService,
   SystemDefaultConfig, UnitDefaultsConfig, VAT_RATES
 } from '../../services/systemSettingsService';
-import { currenciesApi, Currency } from '../../services/settingsApi';
+import type { Currency } from '../../services/settingsApi';
+import { loadCurrencyOptions } from '../../services/lookupOptions';
 import { Warehouse } from '../../types';
 import { VoucherNumberingPanel } from './VoucherNumberingPanel';
 import { NumberFormatSettings } from './NumberFormatSettings';
@@ -45,7 +46,7 @@ export const DefaultConfigView: React.FC<DefaultConfigViewProps> = ({ canEdit, w
   const [unit, setUnit] = useState<UnitDefaultsConfig>(() => systemSettingsService.getUnitDefaults());
   const [currencies, setCurrencies] = useState<Currency[]>([]);
 
-  useEffect(() => { currenciesApi.getAll().then(setCurrencies).catch(() => setCurrencies([])); }, []);
+  useEffect(() => { loadCurrencyOptions().then(setCurrencies).catch(() => setCurrencies([])); }, []);
 
   const confirm = useConfirm();
   const baseCurrency = currencies.find(c => c.isBase);

@@ -1,14 +1,7 @@
-import { apiRequest } from '../../../../services/apiClient';
-import type { CatalogScreenApi, DeleteManyResult, ImportMode, ImportResult } from '../../../../components/catalog/catalogTypes';
+// Kho › Danh mục nhóm vật tư (backend /api/inventory/material-groups, function inv_material_group_cat).
+import { createCatalogApi } from '../../../../components/catalog/createCatalogApi';
 import type { MaterialGroupRecord, SaveMaterialGroupInput } from './types';
 
-const url = '/api/inventory/material-groups';
-
-export const materialGroupsApi: CatalogScreenApi<MaterialGroupRecord, SaveMaterialGroupInput> = {
-  getAll: () => apiRequest<MaterialGroupRecord[]>('GET', url),
-  create: input => apiRequest<MaterialGroupRecord>('POST', url, input),
-  update: (code, input) => apiRequest<MaterialGroupRecord>('PUT', `${url}/${encodeURIComponent(code)}`, input),
-  remove: code => apiRequest<void>('DELETE', `${url}/${encodeURIComponent(code)}`),
-  importMany: (rows, mode: ImportMode) => apiRequest<ImportResult>('POST', `${url}/import`, { rows, mode }),
-  removeMany: keys => apiRequest<DeleteManyResult>('POST', `${url}/delete-many`, { keys })
-};
+export const materialGroupsApi = createCatalogApi<MaterialGroupRecord, SaveMaterialGroupInput>({
+  url: '/api/inventory/material-groups', fileName: 'DanhMucNhomVatTu'
+});

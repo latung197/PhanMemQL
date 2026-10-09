@@ -24,6 +24,7 @@ public class SysCommand
     [Column("menu_icon"), MaxLength(64)] public string MenuIcon { get; set; } = string.Empty;
     [Column("menu_icon_color"), MaxLength(64)] public string? MenuIconColor { get; set; }
     [Column("menu_badge_type"), MaxLength(32)] public string? MenuBadgeType { get; set; }
+    [NotReference("mã chức năng (FunctionCatalog), không phải danh mục")]
     [Column("menu_direct_function_code"), MaxLength(64)] public string? MenuDirectFunctionCode { get; set; }
     [Column("menu_order_no")] public int MenuOrderNo { get; set; }
     [Column("menu_is_active")] public bool MenuIsActive { get; set; } = true;

@@ -22,8 +22,8 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
 {
     private const string Function = "inv_receipt";
 
-    public async Task<GoodsReceiptOptionsDto> GetOptionsAsync(CancellationToken ct) => new(
-        await db.Warehouses.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.Name)
+    public async Task<GoodsReceiptOptionsDto> GetOptionsAsync(string unitCode, CancellationToken ct) => new(
+        await db.UsableBy(unitCode).AsNoTracking().OrderBy(x => x.Name)
             .Select(x => new GoodsReceiptOption(x.Code, x.Name)).ToListAsync(ct),
         await db.Currencies.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.SortOrder).ThenBy(x => x.Code)
             .Select(x => new GoodsReceiptOption(x.Code, x.Name)).ToListAsync(ct));
@@ -209,6 +209,9 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
         var warehouseCode = Guard.Code(request.WarehouseCode, 20, "field.warehouseCode");
         if (!await db.Warehouses.AnyAsync(x => x.Code == warehouseCode && x.IsActive, ct))
             throw new BusinessRuleException("receipt.warehouseInvalid");
+        // The unit of the receipt must be one of the units the warehouse is for (shared warehouses suit every unit).
+        if (!await db.UsableBy(unitCode).AnyAsync(x => x.Code == warehouseCode, ct))
+            throw new BusinessRuleException("receipt.warehouseNotForUnit", warehouseCode, unitCode);
         var currencyCode = Guard.Code(request.CurrencyCode, 10, "field.currencyCode");
         if (!await db.Currencies.AnyAsync(x => x.Code == currencyCode && x.IsActive, ct))
             throw new BusinessRuleException("receipt.currencyInvalid");

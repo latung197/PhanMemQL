@@ -11,6 +11,7 @@ public class SysRoleRight : AuditableEntity
 {
     [Column("role_id")] public int RoleId { get; set; }
     [Column("menuid0"), MaxLength(64)] public string MenuId0 { get; set; } = string.Empty;
+    [NotReference("mã quyền đặc biệt khai báo trong SpecialRightCatalog")]
     [Column("right_code"), MaxLength(50)] public string RightCode { get; set; } = string.Empty;
 }
 
@@ -24,6 +25,7 @@ public class SysUserRight : AuditableEntity
 {
     [Column("user_id")] public int UserId { get; set; }
     [Column("menuid0"), MaxLength(64)] public string MenuId0 { get; set; } = string.Empty;
+    [NotReference("mã quyền đặc biệt khai báo trong SpecialRightCatalog")]
     [Column("right_code"), MaxLength(50)] public string RightCode { get; set; } = string.Empty;
     [Column("is_granted")] public bool IsGranted { get; set; } = true;
 }

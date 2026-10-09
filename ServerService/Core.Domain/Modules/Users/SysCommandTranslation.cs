@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Core.Domain.Common;
+using Core.Domain.Modules.Languages;
 
 namespace Core.Domain.Modules.Users;
 
@@ -10,6 +11,7 @@ namespace Core.Domain.Modules.Users;
 public sealed class SysCommandTranslation
 {
     [Column("menuid0"), MaxLength(64)] public string MenuId0 { get; set; } = string.Empty;
+    [References<Language>(BlocksDelete = false)]
     [Column("language_code"), MaxLength(10)] public string LanguageCode { get; set; } = string.Empty;
     [Required, Column("title"), MaxLength(200)] public string Title { get; set; } = string.Empty;
 }

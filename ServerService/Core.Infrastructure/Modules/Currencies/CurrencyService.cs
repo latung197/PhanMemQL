@@ -1,88 +1,89 @@
 using Core.Application.Common.Auditing;
+using Core.Application.Common.Catalogs;
 using Core.Application.Common.Exceptions;
+using Core.Application.Common.Export;
 using Core.Application.Common.Persistence;
 using Core.Application.Common.Validation;
 using Core.Application.Modules.Currencies;
+using Core.Domain.Common;
 using Core.Domain.Modules.Currencies;
+using Core.Infrastructure.Common.Catalogs;
+using Core.Infrastructure.Common.Paging;
 using Core.Infrastructure.Common.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Modules.Currencies;
 
-public sealed class CurrencyService(CoreContext db, IUnitOfWork unitOfWork, IAuditLog auditLog) : ICurrencyService
+/// <summary>Danh mục ngoại tệ: a catalog on CatalogService with one base (accounting) currency.</summary>
+public sealed class CurrencyService(CoreContext db, CatalogBatch batch, IExcelExporter excel, IAuditLog audit, IUnitOfWork unitOfWork)
+    : CatalogService<Currency, CurrencyDto, SaveCurrencyRequest>(db, batch, excel, audit), ICurrencyService
 {
-    public async Task<IReadOnlyList<CurrencyDto>> GetAllAsync(CancellationToken ct) =>
-        (await db.Currencies.AsNoTracking().OrderByDescending(x => x.IsBase).ThenBy(x => x.SortOrder).ThenBy(x => x.Code)
-            .ToListAsync(ct)).Select(ToDto).ToList();
+    private static readonly CatalogSpec Info = new("sys_currencies", "currency", "field.currencyCode", 10, "DanhMucNgoaiTe");
 
-    public async Task<CurrencyDto> CreateAsync(SaveCurrencyRequest request, CancellationToken ct)
+    private static readonly SortMap<Currency> SortColumns = SortMap<Currency>.By(x => x.Code, "order")
+        .Add("order", x => x.SortOrder).Add("code", x => x.Code).Add("name", x => x.Name).Add("symbol", x => x.Symbol)
+        .Add("decimalPlaces", x => x.DecimalPlaces).Add("isBase", x => x.IsBase).Add("isActive", x => x.IsActive).AddRecordStamps();
+
+    protected override CatalogSpec Spec => Info;
+    protected override SortMap<Currency> Sorts => SortColumns;
+
+    protected override IQueryable<Currency> Search(IQueryable<Currency> rows, string pattern) =>
+        rows.Where(x => SearchFunctions.Matches(x.Code, pattern) || SearchFunctions.Matches(x.Name, pattern)
+            || SearchFunctions.Matches(x.Symbol, pattern));
+
+    protected override IReadOnlyList<ExportColumn<Currency>> ExportColumns() =>
+    [
+        new("export.currency.code", x => x.Code), new("export.currency.name", x => x.Name), new("export.currency.symbol", x => x.Symbol),
+        new("export.currency.decimalPlaces", x => x.DecimalPlaces), new("export.currency.isBase", x => YesNo(x.IsBase)),
+        new("export.currency.isActive", x => YesNo(x.IsActive))
+    ];
+
+    protected override SaveCurrencyRequest WithoutVersion(SaveCurrencyRequest request) => request with { Version = null };
+
+    protected override Task<IReadOnlyList<CurrencyDto>> MapAsync(IReadOnlyList<Currency> rows,
+        Func<ErpEntity, RecordStampDto> stamp, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<CurrencyDto>>(rows.Select(x =>
+            new CurrencyDto(x.Code, x.Name, x.Symbol, x.DecimalPlaces, x.IsBase, x.IsActive, stamp(x), x.Version)).ToList());
+
+    public async Task<IReadOnlyList<CurrencyDto>> GetAllAsync(CancellationToken ct)
     {
-        var code = Guard.Code(request.Code, 10, "field.currencyCode");
-        if (await db.Currencies.AnyAsync(x => x.Code == code, ct))
-            throw new BusinessRuleException("currency.codeExists", code);
-        var currency = new Currency
-        {
-            Code = code,
-            SortOrder = (await db.Currencies.MaxAsync(x => (int?)x.SortOrder, ct) ?? 0) + 1
-        };
-        Apply(currency, request);
-        db.Currencies.Add(currency);
-        await SaveAsync(currency, ct);
-        return ToDto(currency);
+        var rows = await Db.Currencies.AsNoTracking().OrderByDescending(x => x.IsBase).ThenBy(x => x.SortOrder).ThenBy(x => x.Code).ToListAsync(ct);
+        return await MapAsync(rows, await RecordStamps.ForAsync(Db, rows, ct), ct);
     }
 
-    public async Task<CurrencyDto> UpdateAsync(string code, SaveCurrencyRequest request, CancellationToken ct)
-    {
-        var currency = await FindAsync(code, ct);
-        db.ExpectVersion(currency, request.Version);
-        if (currency.IsBase && !request.IsBase)
-            throw new BusinessRuleException("currency.keepBase");
-        Apply(currency, request);
-        await SaveAsync(currency, ct);
-        return ToDto(currency);
-    }
-
-    public async Task DeleteAsync(string code, CancellationToken ct)
-    {
-        var currency = await FindAsync(code, ct);
-        if (currency.IsBase) throw new BusinessRuleException("currency.deleteBase");
-        if (await db.ExchangeRates.AnyAsync(x => x.CurrencyCode == currency.Code, ct))
-            throw new BusinessRuleException("currency.hasRates", currency.Code);
-        db.Currencies.Remove(currency);
-        await db.SaveChangesAsync(ct);
-    }
-
-    private async Task<Currency> FindAsync(string code, CancellationToken ct) =>
-        await db.Currencies.FirstOrDefaultAsync(x => x.Code == code, ct)
-        ?? throw new NotFoundException("currency.notFound");
-
-    private static void Apply(Currency currency, SaveCurrencyRequest request)
+    protected override Task ApplyAsync(Currency currency, SaveCurrencyRequest request, CancellationToken ct)
     {
         if (request.DecimalPlaces is < 0 or > 6) throw new BusinessRuleException("currency.decimalPlaces");
+        if (currency.IsBase && !request.IsBase) throw new BusinessRuleException("currency.keepBase");
         currency.Name = Guard.Required(request.Name, 100, "field.currencyName");
         currency.Symbol = Guard.Optional(request.Symbol, 10, "field.symbol") ?? string.Empty;
         currency.DecimalPlaces = (short)request.DecimalPlaces;
         currency.IsBase = request.IsBase;
         currency.IsActive = request.IsActive || request.IsBase;
+        return Task.CompletedTask;
     }
 
     /// <summary>
     /// Only one base currency (unique index ux_sys_currency_base): choosing a new one clears the old one first, in the
     /// same transaction. EF would otherwise write the new base before clearing the old one and break the index.
     /// </summary>
-    private Task SaveAsync(Currency currency, CancellationToken ct) => unitOfWork.ExecuteAsync(async token =>
+    protected override Task SaveAsync(CancellationToken ct) => unitOfWork.ExecuteAsync(async token =>
     {
-        if (currency.IsBase)
+        var chosen = Db.ChangeTracker.Entries<Currency>()
+            .FirstOrDefault(e => e.State is EntityState.Added or EntityState.Modified && e.Entity.IsBase)?.Entity;
+        if (chosen is not null)
         {
-            var old = db.Currencies.Where(x => x.IsBase && x.Code != currency.Code);
+            var old = Db.Currencies.Where(x => x.IsBase && x.Code != chosen.Code);
             // ExecuteUpdate bypasses the automatic log: the old base currency is logged by hand.
             foreach (var x in await old.AsNoTracking().ToListAsync(token))
-                await auditLog.RecordAsync(new AuditEntry("sys_currencies", "currency", x.Code, $"{x.Code} - {x.Name}",
+                await AuditLog.RecordAsync(new AuditEntry("sys_currencies", "currency", x.Code, $"{x.Code} - {x.Name}",
                     AuditActions.Update, [new AuditChange("isBase", "true", "false")]), token);
             await old.ExecuteUpdateAsync(s => s.SetProperty(x => x.IsBase, false), token);
         }
-        await db.SaveChangesAsync(token);
+        await Db.SaveChangesAsync(token);
     }, ct);
 
-    private static CurrencyDto ToDto(Currency x) => new(x.Code, x.Name, x.Symbol, x.DecimalPlaces, x.IsBase, x.IsActive, x.Version);
+    protected override Task BeforeDeleteAsync(Currency currency, CancellationToken ct) =>
+        // Exchange rates and vouchers are checked from their [References<Currency>] columns.
+        currency.IsBase ? throw new BusinessRuleException("currency.deleteBase") : Task.CompletedTask;
 }

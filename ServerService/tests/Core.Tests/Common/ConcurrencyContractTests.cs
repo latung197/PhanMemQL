@@ -24,7 +24,9 @@ public sealed partial class ConcurrencyContractTests
             .Where(x => !Exempt.ContainsKey($"{x.t.Name}.UpdateAsync"));
 
     [Fact]
-    public void ThereAreUpdateMethodsToCheck() => Assert.True(UpdateMethods().Count() >= 10);
+    // Catalogs on CatalogService get the version check from the base class (UpdateAsync lives there), so only the services
+    // written by hand are counted here; the number falls as catalogs move to the framework.
+    public void ThereAreUpdateMethodsToCheck() => Assert.True(UpdateMethods().Count() >= 3);
 
     [Fact]
     public void UpdateRequestsCarryTheLoadedVersion()

@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Core.Domain.Common;
+using Core.Domain.Modules.CompanyUnits;
 
 namespace Core.Domain.Modules.VoucherNumbering;
 
@@ -34,6 +35,7 @@ public class VoucherNumberingRule : IVersioned
 public class VoucherSequence
 {
     [Required, Column("voucher_type"), MaxLength(20)] public string VoucherType { get; set; } = string.Empty;
+    [References<CompanyUnit>]
     [Required, Column("unit_code"), MaxLength(20)] public string UnitCode { get; set; } = string.Empty;
     [Required, Column("period_key"), MaxLength(8)] public string PeriodKey { get; set; } = string.Empty;
     [Column("last_number")] public int LastNumber { get; set; }

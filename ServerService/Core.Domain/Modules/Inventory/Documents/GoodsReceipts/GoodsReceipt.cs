@@ -1,6 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Core.Domain.Common;
+using Core.Domain.Modules.CompanyUnits;
+using Core.Domain.Modules.Currencies;
+using Core.Domain.Modules.Inventory;
 
 namespace Core.Domain.Modules.Inventory.Documents.GoodsReceipts;
 
@@ -10,11 +13,14 @@ public class GoodsReceipt : ErpEntity
 {
     [Key, Column("id"), DatabaseGenerated(DatabaseGeneratedOption.Identity)] public long Id { get; set; }
     [Required, Column("code"), MaxLength(64)] public string Code { get; set; } = string.Empty;
+    [References<CompanyUnit>]
     [Required, Column("unit_code"), MaxLength(20)] public string UnitCode { get; set; } = string.Empty;
     [Column("document_date")] public DateOnly DocumentDate { get; set; }
     [Column("created_date")] public DateOnly CreatedDate { get; set; }
+    [References<Warehouse>]
     [Required, Column("warehouse_code"), MaxLength(20)] public string WarehouseCode { get; set; } = string.Empty;
     [Required, Column("voucher_type"), MaxLength(100)] public string VoucherType { get; set; } = string.Empty;
+    [References<Currency>]
     [Required, Column("currency_code"), MaxLength(10)] public string CurrencyCode { get; set; } = "VND";
     [Column("exchange_rate", TypeName = "numeric(18,6)")] public decimal ExchangeRate { get; set; } = 1;
     [Column("supplier_name"), MaxLength(200)] public string? SupplierName { get; set; }
@@ -34,6 +40,7 @@ public class GoodsReceiptLine : ErpEntity
     [Column("receipt_id")] public long ReceiptId { get; set; }
     [Required, Column("kind"), MaxLength(20)] public string Kind { get; set; } = "ITEM";
     [Column("line_no")] public int LineNo { get; set; }
+    [NotReference("vật tư còn là dữ liệu mẫu trong trình duyệt; thêm [References<Material>] khi vật tư có backend")]
     [Required, Column("product_code"), MaxLength(64)] public string ProductCode { get; set; } = string.Empty;
     [Required, Column("product_name"), MaxLength(200)] public string ProductName { get; set; } = string.Empty;
     [Required, Column("unit"), MaxLength(30)] public string Unit { get; set; } = string.Empty;

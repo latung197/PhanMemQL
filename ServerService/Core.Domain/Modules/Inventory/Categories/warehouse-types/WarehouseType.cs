@@ -6,7 +6,7 @@ namespace Core.Domain.Modules.Inventory;
 
 [Audited("inv_warehouse_type_cat", "warehouseType", Label = "{Code} - {Name}")]
 [Table("erp_warehouse_type")]
-public sealed class WarehouseType : ErpEntity
+public sealed class WarehouseType : ErpEntity, ICatalogRecord
 {
     [Key, Column("code"), MaxLength(20)] public string Code { get; set; } = string.Empty;
     [Required, Column("name"), MaxLength(100)] public string Name { get; set; } = string.Empty;

@@ -43,6 +43,7 @@ public static class FunctionCatalog
             ["sys_users"] = "Người dùng và phân quyền",
             ["inv_company_unit_cat"] = "Đơn vị cơ sở",
             ["sys_departments"] = "Phòng ban",
+            ["sys_tax_rates"] = "Mã thuế",
             ["sys_default_config"] = "Cài đặt mặc định",
             ["sys_fiscal_year"] = "Năm làm việc và khóa sổ",
             ["sys_currencies"] = "Ngoại tệ",

@@ -1,3 +1,4 @@
+using Core.Application.Common.Security;
 using Core.Application.Modules.Auth;
 using Core.Application.Modules.Users;
 using Core.Domain.Modules.Users;
@@ -9,6 +10,8 @@ namespace Core.Common.Authorization;
 public sealed class UnitAccessRequirement : IAuthorizationRequirement;
 
 public sealed class AdminRequirement : IAuthorizationRequirement;
+
+public sealed class SuperAdminRequirement : IAuthorizationRequirement;
 
 public sealed record PermissionRequirement(string Function, PermissionAction Action) : IAuthorizationRequirement;
 
@@ -32,6 +35,17 @@ public sealed class AdminHandler(IPermissionService permissions) : Authorization
     {
         var userId = context.User.GetUserId();
         if (userId > 0 && await permissions.IsAdminAsync(userId)) context.Succeed(requirement);
+    }
+}
+
+public sealed class SuperAdminHandler(IPermissionService permissions, ISuperAdmin superAdmin) : AuthorizationHandler<SuperAdminRequirement>
+{
+    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context,
+        SuperAdminRequirement requirement)
+    {
+        var userId = context.User.GetUserId();
+        if (userId > 0 && superAdmin.IsSuperAdminName(context.User.Identity?.Name) && await permissions.IsAdminAsync(userId))
+            context.Succeed(requirement);
     }
 }
 

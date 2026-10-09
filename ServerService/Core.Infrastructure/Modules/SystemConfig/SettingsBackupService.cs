@@ -49,7 +49,7 @@ public sealed class SettingsBackupService(CoreContext db, IUnitOfWork unitOfWork
 
         return new SettingsBackup(CurrentVersion, DateTime.UtcNow, sections,
             (await currencies.GetAllAsync(ct)).Select(x => new SaveCurrencyRequest(x.Code, x.Name, x.Symbol, x.DecimalPlaces, x.IsBase, x.IsActive)).ToList(),
-            (await rates.GetAllAsync(null, ct)).Select(x => new SaveExchangeRateRequest(x.CurrencyCode, x.Date, x.BuyRate, x.SellRate, x.AccountingRate)).ToList(),
+            (await rates.GetAllAsync(ct)).Select(x => new SaveExchangeRateRequest(x.CurrencyCode, x.Date, x.BuyRate, x.SellRate, x.AccountingRate, x.IsActive)).ToList(),
             (await departments.GetAllAsync(ct)).Select(x => new SaveDepartmentRequest(x.Code, x.Name, x.Note, x.IsActive)).ToList(),
             await db.VoucherNumberingRules.AsNoTracking().OrderBy(x => x.VoucherType)
                 .Select(x => new VoucherNumberingBackup(x.VoucherType, x.Prefix, x.Pattern, x.Digits)).ToListAsync(ct),
@@ -70,11 +70,10 @@ public sealed class SettingsBackupService(CoreContext db, IUnitOfWork unitOfWork
                 if (existingCurrencies.Contains(item.Code.Trim().ToUpperInvariant())) await currencies.UpdateAsync(item.Code.Trim().ToUpperInvariant(), item, token);
                 else await currencies.CreateAsync(item, token);
 
-            var existingRates = await rates.GetAllAsync(null, token);
+            var existingRates = (await rates.GetAllAsync(token)).Select(x => x.Code).ToHashSet();
             foreach (var item in backup.ExchangeRates ?? [])
-                if (existingRates.FirstOrDefault(x => x.CurrencyCode == item.CurrencyCode && x.Date == item.Date) is { } found)
-                    await rates.UpdateAsync(userId, long.Parse(found.Id), item, token);
-                else await rates.CreateAsync(userId, item, token);
+                if (existingRates.Contains(item.Code)) await rates.UpdateAsync(item.Code, item, token);
+                else await rates.CreateAsync(item, token);
 
             // Older backups may hold sections in the wrong scope (e.g. a unit copy of systemDefaults); they are skipped.
             foreach (var (section, value) in (backup.Sections ?? new Dictionary<string, JsonElement>())

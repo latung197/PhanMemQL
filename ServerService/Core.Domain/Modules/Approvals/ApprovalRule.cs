@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Core.Domain.Common;
+using Core.Domain.Modules.CompanyUnits;
 
 namespace Core.Domain.Modules.Approvals;
 
@@ -35,6 +36,7 @@ public class ApprovalRule : IVersioned
     [AuditField("function"), Required, Column("menuid0"), MaxLength(64)] public string MenuId0 { get; set; } = string.Empty;
 
     /// <summary>Null = every company unit.</summary>
+    [References<CompanyUnit>(Optional = true)]
     [Column("unit_code"), MaxLength(20)] public string? UnitCode { get; set; }
 
     [Column("level")] public int Level { get; set; } = 1;

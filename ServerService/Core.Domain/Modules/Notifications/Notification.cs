@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Core.Domain.Common;
+using Core.Domain.Modules.CompanyUnits;
 
 namespace Core.Domain.Modules.Notifications;
 
@@ -21,6 +22,7 @@ public class Notification
     /// <summary>Function code (SubMenuKey) of the linked document, e.g. inv_receipt.</summary>
     [Column("link_function"), MaxLength(64)] public string? LinkFunction { get; set; }
     [Column("link_document_id"), MaxLength(64)] public string? LinkDocumentId { get; set; }
+    [References<CompanyUnit>(Optional = true, BlocksDelete = false)]
     [Column("unit_code"), MaxLength(20)] public string? UnitCode { get; set; }
     [Column("recipient_user_id")] public int? RecipientUserId { get; set; }
     [Column("created_at_utc")] public DateTime CreatedAtUtc { get; set; }

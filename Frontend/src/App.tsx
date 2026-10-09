@@ -21,6 +21,7 @@ import { showToast } from './utils/toast';
 import { canView } from './utils/permissions';
 import { authService } from './services/authService';
 import { companyUnitsApi } from './services/settingsApi';
+import { loadCompanyUnits } from './services/lookupOptions';
 import { notificationService } from './services/notificationService';
 import { startNotificationStream } from './services/notificationStream';
 import { requestOpenDocument } from './utils/documentLinks';
@@ -189,7 +190,7 @@ const ERPAppContent: React.FC = () => {
 
   const refreshCompanyUnits = useCallback(async () => {
     try {
-      setCompanyUnits(await companyUnitsApi.getAll());
+      setCompanyUnits(await loadCompanyUnits());
     } catch (error) {
       showToast.error(getErrorMessage(error));
     }
@@ -645,7 +646,6 @@ const ERPAppContent: React.FC = () => {
                     vouchers={erpData.vouchers}
                     companyUnits={companyUnits}
                     activeCompanyUnitCode={activeCompanyUnitCode}
-                    materialTypes={erpData.materialTypes}
                     unitsOfMeasure={erpData.unitsOfMeasure}
                     stockNorms={erpData.stockNorms}
                     lots={erpData.lots}
@@ -718,6 +718,7 @@ const ERPAppContent: React.FC = () => {
                     menuVisibility={menuVisibility}
                     menuTree={menuTree}
                     onMenuVisibilityChanged={setMenuVisibility}
+                    onMenuStructureChanged={() => { void menuService.load().then(setMenuTree).catch(error => showToast.error(getErrorMessage(error))); }}
                   />
                 )}
               </>

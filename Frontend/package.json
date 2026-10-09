@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit",
     "export-seed": "tsx scripts/export-seed.ts",
     "check-policy": "tsx scripts/check-document-policy.ts",
+    "check-menu": "tsx scripts/check-menu.ts",
     "check-i18n": "tsx scripts/check-i18n.ts"
   },
   "dependencies": {

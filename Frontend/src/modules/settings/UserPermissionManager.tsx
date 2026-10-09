@@ -7,7 +7,8 @@ import { useConfirm } from '../../components/common/ConfirmDialog';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/StateViews';
 import { showToast } from '../../utils/toast';
 import { getErrorMessage } from '../../services/apiClient';
-import { Department, departmentsApi, PermissionCatalog, permissionCatalogApi, rolesApi, usersApi } from '../../services/settingsApi';
+import { DepartmentOption, PermissionCatalog, permissionCatalogApi, rolesApi, usersApi } from '../../services/settingsApi';
+import { loadDepartmentOptions } from '../../services/lookupOptions';
 import { CompanyUnit, RoleDefinition, UserProfile } from '../../types';
 import { getActionPermission } from '../../utils/permissions';
 import { CreateRoleModal, CreateUserModal, EditUserModal } from './UserAccountModals';
@@ -32,7 +33,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
   const { t } = useLanguage();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [roles, setRoles] = useState<RoleDefinition[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [catalog, setCatalog] = useState<PermissionCatalog>({ specialRights: [], groups: { data: '', scope: '', status: '', feature: '' } });
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -48,7 +49,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
   const loadData = useCallback(async () => {
     try {
       const [userList, roleList, rightCatalog, departmentList] = await Promise.all(
-        [usersApi.getAll(), rolesApi.getAll(), permissionCatalogApi.get(), departmentsApi.getAll()]);
+        [usersApi.getAll(), rolesApi.getAll(), permissionCatalogApi.get(), loadDepartmentOptions()]);
       setUsers(userList);
       setRoles(roleList);
       setCatalog(rightCatalog);

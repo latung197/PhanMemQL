@@ -71,9 +71,7 @@ public sealed class UomService(CoreContext db, CatalogBatch batch, IExcelExporte
 
     protected override async Task BeforeDeleteAsync(Uom uom, CancellationToken ct)
     {
-        if (await Db.UomConversions.AnyAsync(x => x.FromUomCode == uom.Code || x.ToUomCode == uom.Code, ct))
-            throw new BusinessRuleException("uom.inUse", uom.Name);
-        // Materials and voucher lines still use browser data; check them when those modules move to the backend.
+        // Conversions (and later materials, voucher lines) are checked from their [References<Uom>] columns.
         Db.UomTranslations.RemoveRange(await Db.UomTranslations.Where(x => x.UomCode == uom.Code).ToListAsync(ct));
     }
 

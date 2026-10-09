@@ -27,6 +27,7 @@ import {
   Calculator,
   Calendar,
   Languages,
+  Percent,
   History,
   CheckCircle2,
   CheckSquare,
@@ -41,6 +42,8 @@ import {
   Sliders,
   TrendingUp,
   Upload,
+  Tags,
+  PanelLeft,
   LucideProps
 } from 'lucide-react';
 
@@ -76,6 +79,7 @@ const iconMap: Record<string, React.FC<LucideProps>> = {
   Calculator,
   Calendar,
   Languages,
+  Percent,
   History,
   CheckCircle2,
   CheckSquare,
@@ -89,8 +93,13 @@ const iconMap: Record<string, React.FC<LucideProps>> = {
   ShieldCheck,
   Sliders,
   TrendingUp,
-  Upload
+  Upload,
+  Tags,
+  PanelLeft
 };
+
+/** Icon names a menu item may use (the structure editor offers these). */
+export const ICON_NAMES = Object.keys(iconMap).sort();
 
 export const DynamicIcon: React.FC<DynamicIconProps> = ({ name, ...props }) => {
   const IconComponent = iconMap[name] || FileText;

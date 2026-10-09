@@ -466,6 +466,7 @@ export type SubMenuKey =
   | 'sys_currencies'            // Danh mục ngoại tệ
   | 'sys_exchange_rates'        // Cập nhật tỷ giá
   | 'sys_languages'             // Danh mục ngôn ngữ
+  | 'sys_tax_rates'            // Danh mục mã thuế
   | 'sys_audit_log'             // Nhật ký thay đổi (mọi chức năng)
   | 'sys_menu'                  // Quản lý ẩn/hiện menu
 

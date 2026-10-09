@@ -1,7 +1,8 @@
 // Settings screens backed by the API: users, roles and company units (backend: /api/settings/*).
 import { apiRequest } from './apiClient';
 import { ActionPermissions, CompanyUnit, RoleDefinition, SubMenuKey, UserProfile } from '../types';
-import type { DeleteManyResult, ImportMode, ImportResult } from '../components/catalog/catalogTypes';
+import { createCatalogApi } from '../components/catalog/createCatalogApi';
+import type { RecordStamp } from '../components/common/RecordStamp';
 
 export type PermissionMatrix = Partial<Record<SubMenuKey, ActionPermissions>>;
 
@@ -129,17 +130,12 @@ export const approvalRulesApi = {
     apiRequest<ApprovalPreview>('POST', '/api/settings/approval-rules/preview', { function: fn, requesterUserId, amount, unitCode })
 };
 
-export const companyUnitsApi = {
-  getAll: () => apiRequest<CompanyUnit[]>('GET', '/api/settings/company-units'),
-  create: (input: SaveCompanyUnitInput) => apiRequest<CompanyUnit>('POST', '/api/settings/company-units', input),
-  update: (code: string, input: SaveCompanyUnitInput) =>
-    apiRequest<CompanyUnit>('PUT', `/api/settings/company-units/${encodeURIComponent(code)}`, input),
-  remove: (code: string) => apiRequest<void>('DELETE', `/api/settings/company-units/${encodeURIComponent(code)}`),
-  importMany: (rows: SaveCompanyUnitInput[], mode: ImportMode) =>
-    apiRequest<ImportResult>('POST', '/api/settings/company-units/import', { rows, mode }),
-  removeMany: (keys: string[]) =>
-    apiRequest<DeleteManyResult>('POST', '/api/settings/company-units/delete-many', { keys })
-};
+/** A company unit row of the catalog screen (the list of signed-in users comes from the lookup, see lookupOptions.ts). */
+export type CompanyUnitRow = CompanyUnit & { stamp: RecordStamp };
+
+export const companyUnitsApi = createCatalogApi<CompanyUnitRow, SaveCompanyUnitInput>({
+  url: '/api/settings/company-units', fileName: 'DanhMucDonViCoSo'
+});
 
 // ----- Organization and accounting settings (tables on the backend) -----
 
@@ -170,14 +166,11 @@ export interface Language {
 
 export type SaveLanguageInput = Omit<Language, 'userCount'>;
 
-export const languagesApi = {
-  getAll: () => apiRequest<Language[]>('GET', '/api/settings/languages'),
-  create: (input: SaveLanguageInput) => apiRequest<Language>('POST', '/api/settings/languages', input),
-  update: (code: string, input: SaveLanguageInput) =>
-    apiRequest<Language>('PUT', `/api/settings/languages/${encodeURIComponent(code)}`, input),
-  /** Refused for the default language and while accounts use it. */
-  remove: (code: string) => apiRequest<void>('DELETE', `/api/settings/languages/${encodeURIComponent(code)}`)
-};
+export type LanguageRow = Language & { stamp: RecordStamp };
+
+export const languagesApi = createCatalogApi<LanguageRow, SaveLanguageInput>({
+  url: '/api/settings/languages', fileName: 'DanhMucNgonNgu'
+});
 
 export interface Currency {
   code: string;
@@ -192,20 +185,20 @@ export interface Currency {
 }
 
 export interface ExchangeRate {
-  id: string;
+  /** "USD@2026-10-08": currency and day, the key of the rate in URLs. */
+  code: string;
   currencyCode: string;
   /** yyyy-MM-dd */
   date: string;
   buyRate: number;
   sellRate: number;
   accountingRate: number;
-  updatedBy?: string | null;
-  updatedAt: string;
+  isActive: boolean;
   /** Row version from the backend; sent back when saving so a change made meanwhile by someone else is not overwritten. */
   version?: number;
 }
 
-export type SaveExchangeRateInput = Pick<ExchangeRate, 'currencyCode' | 'date' | 'buyRate' | 'sellRate' | 'accountingRate' | 'version'>;
+export type SaveExchangeRateInput = Pick<ExchangeRate, 'currencyCode' | 'date' | 'buyRate' | 'sellRate' | 'accountingRate' | 'isActive' | 'version'>;
 
 export interface FiscalMonth {
   year: number;
@@ -230,30 +223,50 @@ export interface VoucherNumbering {
 
 export type SaveVoucherNumberingInput = Pick<VoucherNumbering, 'prefix' | 'pattern' | 'digits' | 'version'>;
 
-export const departmentsApi = {
-  getAll: () => apiRequest<Department[]>('GET', '/api/settings/departments'),
-  create: (input: SaveDepartmentInput) => apiRequest<Department>('POST', '/api/settings/departments', input),
-  update: (code: string, input: SaveDepartmentInput) =>
-    apiRequest<Department>('PUT', `/api/settings/departments/${encodeURIComponent(code)}`, input),
-  /** Refused while users or approval rules use the department. */
-  remove: (code: string) => apiRequest<void>('DELETE', `/api/settings/departments/${encodeURIComponent(code)}`)
-};
+/** What a picker needs of a department (GET /api/lookups/departments). */
+export interface DepartmentOption {
+  code: string;
+  name: string;
+  isActive: boolean;
+}
 
-export const currenciesApi = {
-  getAll: () => apiRequest<Currency[]>('GET', '/api/settings/currencies'),
-  create: (input: Currency) => apiRequest<Currency>('POST', '/api/settings/currencies', input),
-  update: (code: string, input: Currency) =>
-    apiRequest<Currency>('PUT', `/api/settings/currencies/${encodeURIComponent(code)}`, input),
-  remove: (code: string) => apiRequest<void>('DELETE', `/api/settings/currencies/${encodeURIComponent(code)}`)
-};
+export type DepartmentRow = Department & { stamp: RecordStamp };
+
+export const departmentsApi = createCatalogApi<DepartmentRow, SaveDepartmentInput>({
+  url: '/api/settings/departments', fileName: 'DanhMucPhongBan'
+});
+
+export interface TaxRate {
+  code: string;
+  name: string;
+  /** VAT, IMPORT or OTHER. */
+  taxType: string;
+  /** Percent, 0 to 100. */
+  rate: number;
+  isExempt: boolean;
+  note?: string | null;
+  isActive: boolean;
+  version?: number;
+}
+
+export type TaxRateRow = TaxRate & { stamp: RecordStamp };
+export type SaveTaxRateInput = Omit<TaxRate, 'note'> & { note: string };
+
+export const taxRatesApi = createCatalogApi<TaxRateRow, SaveTaxRateInput>({
+  url: '/api/settings/tax-rates', fileName: 'DanhMucMaThue'
+});
+
+export type CurrencyRow = Currency & { stamp: RecordStamp };
+
+export const currenciesApi = createCatalogApi<CurrencyRow, Currency>({
+  url: '/api/settings/currencies', fileName: 'DanhMucNgoaiTe'
+});
+
+export type ExchangeRateRow = ExchangeRate & { stamp: RecordStamp };
 
 export const exchangeRatesApi = {
-  getAll: (currency?: string) =>
-    apiRequest<ExchangeRate[]>('GET', `/api/settings/exchange-rates${currency ? `?currency=${encodeURIComponent(currency)}` : ''}`),
-  create: (input: SaveExchangeRateInput) => apiRequest<ExchangeRate>('POST', '/api/settings/exchange-rates', input),
-  update: (id: string, input: SaveExchangeRateInput) => apiRequest<ExchangeRate>('PUT', `/api/settings/exchange-rates/${id}`, input),
-  remove: (id: string) => apiRequest<void>('DELETE', `/api/settings/exchange-rates/${id}`),
-  /** Accounting rate for a voucher dated `date` (yyyy-MM-dd); 1 for the base currency. */
+  ...createCatalogApi<ExchangeRateRow, SaveExchangeRateInput>({ url: '/api/settings/exchange-rates', fileName: 'DanhMucTyGia' }),
+  /** Accounting rate for a voucher dated `date` (yyyy-MM-dd); 1 for the base currency. Open to every signed-in user. */
   getRate: async (currency: string, date: string) =>
     (await apiRequest<{ rate: number }>('GET', `/api/settings/exchange-rates/rate?currency=${encodeURIComponent(currency)}&date=${date}`)).rate
 };

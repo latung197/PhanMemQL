@@ -1,36 +1,49 @@
+using Core.Application.Common.Security;
+using Core.Application.Modules.Menu;
+using Core.Application.Modules.Users;
+using Core.Common.Authorization;
 using Core.Common.Controllers;
-using Core.Infrastructure.Common.Persistence;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Core.Modules.Menu;
 
 [Route("api/menu")]
-public sealed class MenuController(CoreContext db) : ApiControllerBase
+public sealed class MenuController(IMenuService menu, IPermissionService permissions, ISuperAdmin superAdmin) : ApiControllerBase
 {
-    /// <summary>Menu structure from sys_command; rights and visibility are applied separately.</summary>
+    /// <summary>
+    /// Menu structure from sys_command, only the part the user may open (View right; the landing page is always
+    /// there). The whole tree is cached and cut per user. Hiding by choice (hide_yn) is applied by the frontend.
+    /// </summary>
     [HttpGet]
     public async Task<List<MenuNodeDto>> Get(CancellationToken ct)
     {
-        var nodes = await db.Commands.AsNoTracking().Where(x => x.MenuKind != null)
-            .OrderBy(x => x.MenuOrderNo).ThenBy(x => x.MenuId0).ToListAsync(ct);
-        var ids = nodes.Select(x => x.MenuId0).ToArray();
-        var translations = await db.CommandTranslations.AsNoTracking()
-            .Where(x => ids.Contains(x.MenuId0)).ToListAsync(ct);
-        var titles = translations.GroupBy(x => x.MenuId0, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => g.ToDictionary(x => x.LanguageCode, x => x.Title, StringComparer.OrdinalIgnoreCase),
-                StringComparer.Ordinal);
-        return nodes.Select(x =>
-        {
-            var localized = titles.GetValueOrDefault(x.MenuId0) ?? new Dictionary<string, string>();
-            return new MenuNodeDto(x.MenuId0, x.MenuParentId, x.MenuKind!, x.MenuKey ?? x.MenuId0,
-                localized.GetValueOrDefault("vi") ?? x.Text, localized.GetValueOrDefault("en") ?? x.Text2,
-                localized, x.MenuIcon, x.MenuIconColor, x.MenuBadgeType, x.MenuDirectFunctionCode,
-                x.MenuOrderNo, x.MenuIsActive);
-        }).ToList();
+        var tree = await menu.GetTreeAsync(ct);
+        var rights = await permissions.GetEffectiveAsync(CurrentUserId, ct);
+        return MenuFilter.ForUser(tree, code => rights.TryGetValue(code, out var actions) && actions.View);
+    }
+
+    /// <summary>Whether the signed-in account may change the structure (screen Settings › Quản lý menu).</summary>
+    [HttpGet("access")]
+    public async Task<MenuAccessDto> Access(CancellationToken ct) =>
+        new(superAdmin.IsSuperAdminName(User.Identity?.Name) && await permissions.IsAdminAsync(CurrentUserId, ct));
+
+    /// <summary>The whole tree, nothing cut by rights, for the structure editor.</summary>
+    [HttpGet("manage"), Authorize(Policy = Policies.SuperAdmin)]
+    public Task<List<MenuNodeDto>> Manage(CancellationToken ct) => menu.GetTreeAsync(ct);
+
+    [HttpPut("nodes/{id}"), Authorize(Policy = Policies.SuperAdmin)]
+    public Task<MenuNodeDto> UpdateNode(string id, SaveMenuNodeRequest request, CancellationToken ct) =>
+        menu.UpdateNodeAsync(id, request, ct);
+
+    [HttpPost("groups"), Authorize(Policy = Policies.SuperAdmin)]
+    public Task<MenuNodeDto> CreateGroup(CreateMenuGroupRequest request, CancellationToken ct) =>
+        menu.CreateGroupAsync(request, ct);
+
+    [HttpPut("order"), Authorize(Policy = Policies.SuperAdmin)]
+    public async Task<IActionResult> Reorder(ReorderMenuRequest request, CancellationToken ct)
+    {
+        await menu.ReorderAsync(request, ct);
+        return NoContent();
     }
 }
-
-public sealed record MenuNodeDto(string Id, string? ParentId, string NodeType, string Code,
-    string TitleVi, string TitleEn, IReadOnlyDictionary<string, string> Titles,
-    string Icon, string? IconColor, string? BadgeType, string? DirectFunctionCode, int OrderNo, bool IsActive);

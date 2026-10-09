@@ -1,86 +1,94 @@
+using Core.Application.Common.Auditing;
+using Core.Application.Common.Catalogs;
 using Core.Application.Common.Exceptions;
+using Core.Application.Common.Export;
 using Core.Application.Common.Persistence;
 using Core.Application.Common.Validation;
 using Core.Application.Modules.Departments;
+using Core.Domain.Common;
 using Core.Domain.Modules.Approvals;
 using Core.Domain.Modules.Departments;
+using Core.Infrastructure.Common.Catalogs;
+using Core.Infrastructure.Common.Paging;
 using Core.Infrastructure.Common.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Modules.Departments;
 
-/// <summary>Danh mục phòng ban: a plain catalog (code + name) and the model for new catalogs.</summary>
-public sealed class DepartmentService(CoreContext db, IUnitOfWork unitOfWork) : IDepartmentService
+/// <summary>Danh mục phòng ban: a plain catalog (code + name) on the shared CatalogService.</summary>
+public sealed class DepartmentService(CoreContext db, CatalogBatch batch, IExcelExporter excel, IAuditLog audit, IUnitOfWork unitOfWork)
+    : CatalogService<Department, DepartmentDto, SaveDepartmentRequest>(db, batch, excel, audit), IDepartmentService
 {
-    public async Task<IReadOnlyList<DepartmentDto>> GetAllAsync(CancellationToken ct)
+    private static readonly CatalogSpec Info = new("sys_departments", "department", "field.departmentCode", 20, "DanhMucPhongBan");
+
+    private static readonly SortMap<Department> SortColumns = SortMap<Department>.By(x => x.Code, "order")
+        .Add("order", x => x.SortOrder).Add("code", x => x.Code).Add("name", x => x.Name)
+        .Add("note", x => x.Note).Add("isActive", x => x.IsActive).AddRecordStamps();
+
+    protected override CatalogSpec Spec => Info;
+    protected override SortMap<Department> Sorts => SortColumns;
+
+    protected override IQueryable<Department> Search(IQueryable<Department> rows, string pattern) =>
+        rows.Where(x => SearchFunctions.Matches(x.Code, pattern) || SearchFunctions.Matches(x.Name, pattern)
+            || SearchFunctions.Matches(x.Note, pattern));
+
+    protected override IReadOnlyList<ExportColumn<Department>> ExportColumns() =>
+    [
+        new("export.department.code", x => x.Code), new("export.department.name", x => x.Name),
+        new("export.department.note", x => x.Note), new("export.department.isActive", x => YesNo(x.IsActive))
+    ];
+
+    protected override SaveDepartmentRequest WithoutVersion(SaveDepartmentRequest request) => request with { Version = null };
+
+    /// <summary>The number of accounts per department is read once for the whole page.</summary>
+    protected override async Task<IReadOnlyList<DepartmentDto>> MapAsync(IReadOnlyList<Department> rows,
+        Func<ErpEntity, RecordStampDto> stamp, CancellationToken ct)
     {
-        var departments = await db.Departments.AsNoTracking().OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync(ct);
-        var counts = await db.Users.AsNoTracking().Where(x => x.ValidFlg == 1 && x.DepartmentCode != null)
+        var codes = rows.Select(x => x.Code).ToList();
+        var counts = await Db.Users.AsNoTracking().Where(x => x.ValidFlg == 1 && x.DepartmentCode != null && codes.Contains(x.DepartmentCode))
             .GroupBy(x => x.DepartmentCode!).Select(g => new { Code = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Code, x => x.Count, ct);
-        return departments.Select(x => ToDto(x, counts.GetValueOrDefault(x.Code))).ToList();
+        return rows.Select(x => new DepartmentDto(x.Code, x.Name, x.Note, x.IsActive, counts.GetValueOrDefault(x.Code), stamp(x), x.Version)).ToList();
     }
 
-    public async Task<DepartmentDto> CreateAsync(SaveDepartmentRequest request, CancellationToken ct)
+    public async Task<IReadOnlyList<DepartmentDto>> GetAllAsync(CancellationToken ct)
     {
-        var code = Guard.Code(request.Code, 20, "field.departmentCode");
-        if (await db.Departments.AnyAsync(x => x.Code == code, ct))
-            throw new BusinessRuleException("department.codeExists", code);
-        var department = new Department
-        {
-            Code = code,
-            SortOrder = (await db.Departments.MaxAsync(x => (int?)x.SortOrder, ct) ?? 0) + 1
-        };
-        await ApplyAsync(department, request, ct);
-        db.Departments.Add(department);
-        await db.SaveChangesAsync(ct);
-        return ToDto(department, 0);
+        var rows = await Db.Departments.AsNoTracking().OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync(ct);
+        return await MapAsync(rows, await RecordStamps.ForAsync(Db, rows, ct), ct);
     }
 
-    public async Task<DepartmentDto> UpdateAsync(string code, SaveDepartmentRequest request, CancellationToken ct)
-    {
-        var department = await FindAsync(code, ct);
-        db.ExpectVersion(department, request.Version);
-        await ApplyAsync(department, request, ct);
-        await unitOfWork.ExecuteAsync(async token =>
-        {
-            await db.SaveChangesAsync(token);
-            // Users keep the department name next to the code; copy a renamed department to them.
-            await db.Users.Where(x => x.DepartmentCode == department.Code && x.Department != department.Name)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.Department, department.Name), token);
-        }, ct);
-        var users = await db.Users.CountAsync(x => x.ValidFlg == 1 && x.DepartmentCode == department.Code, ct);
-        return ToDto(department, users);
-    }
-
-    public async Task DeleteAsync(string code, CancellationToken ct)
-    {
-        var department = await FindAsync(code, ct);
-        // No foreign keys: check every table that refers to a department.
-        var users = await db.Users.CountAsync(x => x.ValidFlg == 1 && x.DepartmentCode == department.Code, ct);
-        if (users > 0)
-            throw new BusinessRuleException(
-                "department.hasUsers", department.Name, users);
-        if (await db.ApprovalRules.AnyAsync(x => x.RequesterType == RequesterTypes.Department && x.RequesterValue == department.Code, ct))
-            throw new BusinessRuleException("department.inApprovalRules", department.Name);
-        db.Departments.Remove(department);
-        await db.SaveChangesAsync(ct);
-    }
-
-    private async Task<Department> FindAsync(string code, CancellationToken ct) =>
-        await db.Departments.FirstOrDefaultAsync(x => x.Code == code, ct)
-        ?? throw new NotFoundException("department.notFound");
-
-    private async Task ApplyAsync(Department department, SaveDepartmentRequest request, CancellationToken ct)
+    protected override async Task ApplyAsync(Department department, SaveDepartmentRequest request, CancellationToken ct)
     {
         var name = Guard.Required(request.Name, 100, "field.departmentName");
-        if (await db.Departments.AnyAsync(x => x.Code != department.Code && x.Name.ToLower() == name.ToLower(), ct))
+        if (await Db.Departments.AnyAsync(x => x.Code != department.Code && x.Name.ToLower() == name.ToLower(), ct))
             throw new BusinessRuleException("department.nameExists", name);
         department.Name = name;
         department.Note = Guard.Optional(request.Note, 300, "field.note");
         department.IsActive = request.IsActive;
     }
 
-    private static DepartmentDto ToDto(Department x, int userCount) =>
-        new(x.Code, x.Name, x.Note, x.IsActive, userCount, x.Version);
+    /// <summary>Users keep the department name next to the code; a renamed department is copied to them in the same transaction.</summary>
+    protected override Task SaveAsync(CancellationToken ct)
+    {
+        Db.ChangeTracker.DetectChanges();
+        var renamed = Db.ChangeTracker.Entries<Department>()
+            .Where(e => e.State == EntityState.Modified && e.Property(x => x.Name).IsModified)
+            .Select(e => (e.Entity.Code, e.Entity.Name)).ToList();
+        return unitOfWork.ExecuteAsync(async token =>
+        {
+            await Db.SaveChangesAsync(token);
+            foreach (var (code, name) in renamed)
+                await Db.Users.Where(x => x.DepartmentCode == code && x.Department != name)
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.Department, name), token);
+        }, ct);
+    }
+
+    protected override async Task BeforeDeleteAsync(Department department, CancellationToken ct)
+    {
+        // Users keep the department by code but the column is not a [References] one (it counts only active accounts).
+        var users = await Db.Users.CountAsync(x => x.ValidFlg == 1 && x.DepartmentCode == department.Code, ct);
+        if (users > 0) throw new BusinessRuleException("department.hasUsers", department.Name, users);
+        if (await Db.ApprovalRules.AnyAsync(x => x.RequesterType == RequesterTypes.Department && x.RequesterValue == department.Code, ct))
+            throw new BusinessRuleException("department.inApprovalRules", department.Name);
+    }
 }

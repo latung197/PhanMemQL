@@ -67,13 +67,16 @@ public static class ApiServiceExtensions
         services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
         services.AddScoped<IAuthorizationHandler, UnitAccessHandler>();
         services.AddScoped<IAuthorizationHandler, AdminHandler>();
+        services.AddScoped<IAuthorizationHandler, SuperAdminHandler>();
         services.AddScoped<IAuthorizationHandler, PermissionHandler>();
         services.AddScoped<IAuthorizationHandler, SpecialRightHandler>();
         services.AddScoped<CatalogPermissionFilter>();
         services.AddAuthorizationBuilder()
             .AddPolicy(Policies.UnitAccess, p => p.RequireAuthenticatedUser().AddRequirements(new UnitAccessRequirement()))
             .AddPolicy(Policies.Admin, p => p.RequireAuthenticatedUser()
-                .AddRequirements(new UnitAccessRequirement(), new AdminRequirement()));
+                .AddRequirements(new UnitAccessRequirement(), new AdminRequirement()))
+            .AddPolicy(Policies.SuperAdmin, p => p.RequireAuthenticatedUser()
+                .AddRequirements(new UnitAccessRequirement(), new SuperAdminRequirement()));
     }
 
     private static void AddFrontendCors(this IServiceCollection services, IConfiguration configuration)

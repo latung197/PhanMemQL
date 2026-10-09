@@ -1,80 +1,57 @@
-using Core.Application.Common.Caching;
+using Core.Application.Common.Auditing;
 using Core.Application.Common.Catalogs;
 using Core.Application.Common.Exceptions;
+using Core.Application.Common.Export;
 using Core.Application.Common.Persistence;
 using Core.Application.Common.Validation;
 using Core.Application.Modules.Inventory;
+using Core.Domain.Common;
 using Core.Domain.Modules.Inventory;
-using Core.Infrastructure.Common.Caching;
 using Core.Infrastructure.Common.Catalogs;
+using Core.Infrastructure.Common.Paging;
 using Core.Infrastructure.Common.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Modules.Inventory;
 
-public sealed class MaterialGroupService(CoreContext db, IAppCache cache, CatalogBatch batch) : IMaterialGroupService
+/// <summary>Danh mục nhóm vật tư: a plain catalog on the shared CatalogService (code, name, note, status).</summary>
+public sealed class MaterialGroupService(CoreContext db, CatalogBatch batch, IExcelExporter excel, IAuditLog audit)
+    : CatalogService<MaterialGroup, MaterialGroupDto, SaveMaterialGroupRequest>(db, batch, excel, audit), IMaterialGroupService
 {
-    public Task<IReadOnlyList<MaterialGroupDto>> GetAllAsync(CancellationToken ct) =>
-        db.CachedAsync(cache, "material-groups:all", ["erp_material_group", "sys_users"], LoadAllAsync, ct);
+    private static readonly CatalogSpec Info = new("inv_material_group_cat", "materialGroup", "field.materialGroupCode", 20, "DanhMucNhomVatTu");
 
-    private async Task<IReadOnlyList<MaterialGroupDto>> LoadAllAsync(CancellationToken ct)
-    {
-        var rows = await db.MaterialGroups.AsNoTracking().OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync(ct);
-        var stamp = await RecordStamps.ForAsync(db, rows, ct);
-        return rows.Select(x => ToDto(x, stamp(x))).ToList();
-    }
+    private static readonly SortMap<MaterialGroup> SortColumns = SortMap<MaterialGroup>.By(x => x.Code, "order")
+        .Add("order", x => x.SortOrder).Add("code", x => x.Code).Add("name", x => x.Name)
+        .Add("note", x => x.Note).Add("isActive", x => x.IsActive).AddRecordStamps();
 
-    public async Task<MaterialGroupDto> CreateAsync(SaveMaterialGroupRequest request, CancellationToken ct)
-    {
-        var code = Guard.Code(request.Code, 20, "field.materialGroupCode");
-        if (await db.MaterialGroups.AnyAsync(x => x.Code == code, ct))
-            throw new BusinessRuleException("materialGroup.codeExists", code);
-        var row = new MaterialGroup { Code = code, SortOrder = (await db.MaterialGroups.MaxAsync(x => (int?)x.SortOrder, ct) ?? 0) + 1 };
-        await ApplyAsync(row, request, ct);
-        db.MaterialGroups.Add(row);
-        await db.SaveChangesAsync(ct);
-        return ToDto(row, await RecordStamps.OfAsync(db, row, ct));
-    }
+    protected override CatalogSpec Spec => Info;
+    protected override SortMap<MaterialGroup> Sorts => SortColumns;
 
-    public async Task<MaterialGroupDto> UpdateAsync(string code, SaveMaterialGroupRequest request, CancellationToken ct)
-    {
-        var row = await FindAsync(code, ct);
-        db.ExpectVersion(row, request.Version);
-        await ApplyAsync(row, request, ct);
-        await db.SaveChangesAsync(ct);
-        return ToDto(row, await RecordStamps.OfAsync(db, row, ct));
-    }
+    protected override IQueryable<MaterialGroup> Search(IQueryable<MaterialGroup> rows, string pattern) =>
+        rows.Where(x => SearchFunctions.Matches(x.Code, pattern) || SearchFunctions.Matches(x.Name, pattern)
+            || SearchFunctions.Matches(x.Note, pattern));
 
-    public async Task DeleteAsync(string code, CancellationToken ct)
-    {
-        db.MaterialGroups.Remove(await FindAsync(code, ct));
-        // Materials still live in browser storage; enforce reference checks when their backend is added.
-        await db.SaveChangesAsync(ct);
-    }
+    protected override IReadOnlyList<ExportColumn<MaterialGroup>> ExportColumns() =>
+    [
+        new("export.materialGroup.code", x => x.Code), new("export.materialGroup.name", x => x.Name),
+        new("export.materialGroup.note", x => x.Note), new("export.materialGroup.isActive", x => YesNo(x.IsActive))
+    ];
 
-    public Task<ImportResult> ImportAsync(ImportRequest<SaveMaterialGroupRequest> request, CancellationToken ct) =>
-        batch.ImportAsync(request, row => (row.Code ?? string.Empty).Trim().ToUpperInvariant(),
-            (code, token) => db.MaterialGroups.AnyAsync(x => x.Code == code, token),
-            (row, token) => CreateAsync(row, token),
-            (code, row, token) => UpdateAsync(code, row with { Version = null }, token), ct);
+    protected override SaveMaterialGroupRequest WithoutVersion(SaveMaterialGroupRequest request) => request with { Version = null };
 
-    public Task<DeleteManyResult> DeleteManyAsync(DeleteManyRequest request, CancellationToken ct) =>
-        batch.DeleteManyAsync(request, DeleteAsync, ct);
+    protected override Task<IReadOnlyList<MaterialGroupDto>> MapAsync(IReadOnlyList<MaterialGroup> rows,
+        Func<ErpEntity, RecordStampDto> stamp, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<MaterialGroupDto>>(rows.Select(x =>
+            new MaterialGroupDto(x.Code, x.Name, x.Note, x.IsActive, stamp(x), x.Version)).ToList());
 
-    private async Task<MaterialGroup> FindAsync(string code, CancellationToken ct) =>
-        await db.MaterialGroups.FirstOrDefaultAsync(x => x.Code == code, ct)
-        ?? throw new NotFoundException("materialGroup.notFound");
-
-    private async Task ApplyAsync(MaterialGroup row, SaveMaterialGroupRequest request, CancellationToken ct)
+    protected override async Task ApplyAsync(MaterialGroup row, SaveMaterialGroupRequest request, CancellationToken ct)
     {
         var name = Guard.Required(request.Name, 100, "field.materialGroupName");
-        if (await db.MaterialGroups.AnyAsync(x => x.Code != row.Code && x.Name.ToLower() == name.ToLower(), ct))
+        if (await Db.MaterialGroups.AnyAsync(x => x.Code != row.Code && x.Name.ToLower() == name.ToLower(), ct))
             throw new BusinessRuleException("materialGroup.nameExists", name);
         row.Name = name;
         row.Note = Guard.Optional(request.Note, 300, "field.note");
         row.IsActive = request.IsActive;
     }
-
-    private static MaterialGroupDto ToDto(MaterialGroup row, RecordStampDto stamp) =>
-        new(row.Code, row.Name, row.Note, row.IsActive, stamp, row.Version);
+    // Materials are checked from their [References<MaterialGroup>] column once they have a backend; nothing else to do on delete.
 }

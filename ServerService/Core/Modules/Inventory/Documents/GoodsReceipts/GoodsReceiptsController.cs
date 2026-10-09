@@ -17,7 +17,7 @@ public sealed class GoodsReceiptsController(IGoodsReceiptService receipts) : Api
         receipts.GetAllAsync(CurrentUserId, CurrentUnitCode, ct);
 
     [HttpGet("options"), RequirePermission(Function, PermissionAction.View)]
-    public Task<GoodsReceiptOptionsDto> Options(CancellationToken ct) => receipts.GetOptionsAsync(ct);
+    public Task<GoodsReceiptOptionsDto> Options(CancellationToken ct) => receipts.GetOptionsAsync(CurrentUnitCode, ct);
 
     [HttpGet("{id:long}"), RequirePermission(Function, PermissionAction.View)]
     public Task<GoodsReceiptDto> Get(long id, CancellationToken ct) =>

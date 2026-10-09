@@ -5,6 +5,7 @@ using Core.Domain.Modules.Approvals;
 using Core.Domain.Modules.CompanyUnits;
 using Core.Domain.Modules.Currencies;
 using Core.Domain.Modules.Departments;
+using Core.Domain.Modules.TaxRates;
 using Core.Domain.Modules.Fiscal;
 using Core.Domain.Modules.Inventory;
 using Core.Domain.Modules.Inventory.Categories.suppliers;
@@ -57,6 +58,7 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
 
     // Organization and accounting settings
     public DbSet<Department> Departments => Set<Department>();
+    public DbSet<TaxRate> TaxRates => Set<TaxRate>();
     public DbSet<Currency> Currencies => Set<Currency>();
     public DbSet<ExchangeRate> ExchangeRates => Set<ExchangeRate>();
     public DbSet<FiscalPeriod> FiscalPeriods => Set<FiscalPeriod>();
@@ -72,9 +74,11 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<UomTranslation> UomTranslations => Set<UomTranslation>();
     public DbSet<UomConversion> UomConversions => Set<UomConversion>();
     public DbSet<MaterialGroup> MaterialGroups => Set<MaterialGroup>();
+    public DbSet<MaterialType> MaterialTypes => Set<MaterialType>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<WarehouseType> WarehouseTypes => Set<WarehouseType>();
     public DbSet<WarehouseTypeTranslation> WarehouseTypeTranslations => Set<WarehouseTypeTranslation>();
+    public DbSet<WarehouseUnit> WarehouseUnits => Set<WarehouseUnit>();
     public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
     public DbSet<GoodsReceiptLine> GoodsReceiptLines => Set<GoodsReceiptLine>();
 
@@ -83,6 +87,7 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
 
     // How lists are shown (per user / company default)
     public DbSet<GridLayout> GridLayouts => Set<GridLayout>();
+    public DbSet<TableRef> TableRefs => Set<TableRef>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -94,6 +99,7 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
 
         model.Entity<SysRoleCommand>().HasKey(x => new { x.RoleId, x.MenuId0 });
         model.Entity<SysCommandTranslation>().HasKey(x => new { x.MenuId0, x.LanguageCode });
+        model.Entity<TableRef>().HasKey(x => new { x.TableName, x.ColumnName });
         model.Entity<SysRole>().HasMany(x => x.Permissions).WithOne().HasForeignKey(x => x.RoleId);
         model.Entity<SysRoleCommand>().HasOne<SysCommand>().WithMany().HasForeignKey(x => x.MenuId0);
 
@@ -113,10 +119,12 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<SystemSetting>().HasIndex(x => new { x.Key, x.Scope }).IsUnique();
 
         model.Entity<ExchangeRate>().HasIndex(x => new { x.CurrencyCode, x.RateDate }).IsUnique();
+        model.Entity<ExchangeRate>().HasIndex(x => x.Code).IsUnique();
         model.Entity<FiscalPeriod>().HasKey(x => new { x.UnitCode, x.Year, x.Month });
         model.Entity<VoucherSequence>().HasKey(x => new { x.VoucherType, x.UnitCode, x.PeriodKey });
         model.Entity<UomTranslation>().HasKey(x => new { x.UomCode, x.LanguageCode });
         model.Entity<WarehouseTypeTranslation>().HasKey(x => new { x.WarehouseTypeCode, x.LanguageCode });
+        model.Entity<WarehouseUnit>().HasKey(x => new { x.WarehouseCode, x.UnitCode });
         model.Entity<GoodsReceipt>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.ReceiptId);
 
         // Row version of records edited in forms (IVersioned): PostgreSQL's xmin system column, changed by every update

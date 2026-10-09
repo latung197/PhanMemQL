@@ -24,10 +24,10 @@ export const DEMO_CURRENCIES: Currency[] = [
 ];
 
 export const DEMO_EXCHANGE_RATES: SaveExchangeRateInput[] = [
-  { currencyCode: 'USD', date: '2026-09-01', buyRate: 25420, sellRate: 25790, accountingRate: 25550 },
-  { currencyCode: 'EUR', date: '2026-09-01', buyRate: 27500, sellRate: 28050, accountingRate: 27700 },
-  { currencyCode: 'JPY', date: '2026-09-01', buyRate: 164.2, sellRate: 169.5, accountingRate: 166.5 },
-  { currencyCode: 'CNY', date: '2026-09-01', buyRate: 3510, sellRate: 3620, accountingRate: 3550 },
-  { currencyCode: 'USD', date: '2026-08-01', buyRate: 25350, sellRate: 25720, accountingRate: 25500 },
-  { currencyCode: 'EUR', date: '2026-08-01', buyRate: 27400, sellRate: 27950, accountingRate: 27600 }
+  { currencyCode: 'USD', date: '2026-09-01', buyRate: 25420, sellRate: 25790, accountingRate: 25550, isActive: true },
+  { currencyCode: 'EUR', date: '2026-09-01', buyRate: 27500, sellRate: 28050, accountingRate: 27700, isActive: true },
+  { currencyCode: 'JPY', date: '2026-09-01', buyRate: 164.2, sellRate: 169.5, accountingRate: 166.5, isActive: true },
+  { currencyCode: 'CNY', date: '2026-09-01', buyRate: 3510, sellRate: 3620, accountingRate: 3550, isActive: true },
+  { currencyCode: 'USD', date: '2026-08-01', buyRate: 25350, sellRate: 25720, accountingRate: 25500, isActive: true },
+  { currencyCode: 'EUR', date: '2026-08-01', buyRate: 27400, sellRate: 27950, accountingRate: 27600, isActive: true }
 ];

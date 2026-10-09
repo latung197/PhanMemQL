@@ -4,7 +4,7 @@ Tài liệu này hướng dẫn từng bước thêm một danh mục chạy th�
 
 > **Tài liệu này đã được kiểm chứng.** Danh mục nhà cung cấp trong ví dụ được dựng lại **đúng từ các khối mã ở đây** (không sửa tay): biên dịch 0 lỗi, toàn bộ test qua, `npm run lint` sạch, thử đủ API (phân trang, sắp xếp, tìm không dấu, lọc, xuất Excel, tra cứu, chống ghi đè, nhật ký) và màn hình trên trình duyệt. Làm theo đúng thứ tự thì ra đúng như vậy. Gặp lỗi mà tài liệu không nói thì xem §7.3.
 
-Mẫu để copy là **Danh mục đơn vị tính**. Đây là mẫu đầy đủ và mới nhất: bảng `erp_*`, nhật ký tự động, cột người tạo / người sửa, chống ghi đè, Excel, xóa nhiều, tra cứu, hai ngôn ngữ.
+Mẫu để copy là **Danh mục đơn vị tính** (danh mục khác trong dự án đã theo khung này: quy đổi, nhà cung cấp, nhóm vật tư, loại vật tư, loại kho, kho, phòng ban, ngoại tệ, tỷ giá, mã thuế, ngôn ngữ, đơn vị cơ sở; Phần 5.1 mô tả mẫu danh mục có danh sách chọn nhiều, Phần 5.2 mẫu khóa ghép). Đây là mẫu đầy đủ và mới nhất: bảng `erp_*`, nhật ký tự động, cột người tạo / người sửa, chống ghi đè, Excel, xóa nhiều, tra cứu, hai ngôn ngữ.
 
 | Lớp | File mẫu |
 | --- | --- |
@@ -65,7 +65,7 @@ ServerService/                       Backend (.NET). Phụ thuộc một chiều
   Core.Application/Common/Localization/Messages.*.json  Thông báo lỗi (vi, en)
 Frontend/src/                        Frontend (React)
   types/index.ts, config/functions.ts                   Mã chức năng, đường dẫn
-  mock/initialMenuData.ts                               Menu bên trái
+  (menu bên trái nằm trong DB; khai báo ở ServerService/Core/SeedData/menu.json, xem bước 3.3)
   modules/<phan-he>/categories/<ten>/                   Màn hình của danh mục (4 file)
   locales/vi|en/*.json                                  Chữ hiển thị (không gõ cứng chữ trong màn)
   components/catalog/                                   Khung màn danh mục dùng chung (không sửa khi thêm danh mục)
@@ -93,18 +93,18 @@ Thêm một danh mục là **khai báo**, không phải viết lại chức năn
 | --- | --- | --- | --- |
 | 1 | Bảng SQL, chạy trên database | `sql/postgresql/NN-<ten>.sql` | 1 |
 | 2 | Mã chức năng | `FunctionCatalog.cs` | 2.1 |
-| 3 | Entity (`: ErpEntity, ICatalogRecord`, `[Audited]`) và `DbSet` | `Core.Domain/...`, `CoreContext.cs` | 2.2, 2.3 |
+| 3 | Entity (`: ErpEntity, ICatalogRecord`, `[Audited]`, `[References]` / `[NotReference]` cho cột `*_code`) và `DbSet` | `Core.Domain/...`, `CoreContext.cs` | 2.2, 2.3 |
 | 4 | DTO, request, interface (kế thừa khung) | `<Ten>Contracts.cs` | 2.4 |
 | 5 | Service **khai báo** (cột sắp xếp, tìm kiếm, bộ lọc, kiểm tra, cột xuất) | `<Ten>Service.cs` | 2.5 |
 | 6 | Đăng ký service và tra cứu | `DependencyInjection.cs`, `LookupCatalogs.cs` | 2.6 |
 | 7 | Controller 5 dòng | `<Ten>sController.cs` | 2.7 |
 | 8 | Thông báo lỗi và tiêu đề Excel (vi + en) | `Messages.vi.json`, `Messages.en.json` | 2.8 |
-| 9 | Mã chức năng, menu, đường dẫn ở frontend | `types/index.ts`, `config/functions.ts`, `initialMenuData.ts`, `locales/*/common.json` | 3.1 - 3.3 |
+| 9 | Mã chức năng, menu, đường dẫn ở frontend | `types/index.ts`, `config/functions.ts`, `locales/*/common.json`; menu: `Core/SeedData/menu.json` | 3.1 - 3.3 |
 | 10 | Thư mục màn hình: `types.ts`, `api.ts` (3 dòng), View (`CatalogDefinition`), `index.ts` | `modules/<phan-he>/categories/<ten>/` | 3.4 |
 | 11 | Chữ hiển thị và gắn màn vào phân hệ | `locales/*/<khu>.json`, `<PhanHe>Module.tsx` | 3.6, 3.7 |
 | 12 | Cấp quyền, build, test, chạy thử, dọn dữ liệu thử | | 6, 7 |
 
-Việc thêm tùy chọn khi cần: tham chiếu danh mục khác (Phần 5), bộ lọc riêng (§2.5), bản dịch / bảng con (`AfterApplyAsync`), tra cứu riêng nhiều bảng hoặc có tham số (§4.3).
+Việc thêm tùy chọn khi cần: tham chiếu danh mục khác (Phần 5, chi tiết ở `docs/tham-chieu-danh-muc.md`), bộ lọc riêng (§2.5), bản dịch / bảng con (`AfterApplyAsync`), tra cứu riêng nhiều bảng hoặc có tham số (§4.3).
 
 ---
 
@@ -139,7 +139,8 @@ Việc thêm tùy chọn khi cần: tham chiếu danh mục khác (Phần 5), b�
 | --- | --- |
 | Bảng SQL | Cột người tạo / người sửa (điền khi lưu) |
 | Entity + `[Audited]` | Nhật ký thay đổi từng trường (trước → sau) |
-| DTO, request, service **khai báo** (cột được sắp xếp, trường tìm kiếm, kiểm tra dữ liệu, chặn xóa khi đang dùng, cột xuất Excel) | Tạo / sửa / xóa / danh sách phân trang / xuất Excel / nhập Excel / xóa nhiều (lớp `CatalogService`) |
+| DTO, request, service **khai báo** (cột được sắp xếp, trường tìm kiếm, kiểm tra dữ liệu, cột xuất Excel) | Tạo / sửa / xóa / danh sách phân trang / xuất Excel / nhập Excel / xóa nhiều (lớp `CatalogService`) |
+| `[References<T>]` trên mỗi cột `*_code` trỏ sang danh mục khác (và index cho cột đó) | Chặn xóa khi bảng khác đang dùng mã, kiểm tra mã tham chiếu có thật khi lưu, bảng `sys_table_ref` để xem ai trỏ tới ai |
 | Controller 5 dòng: route + mã chức năng | Mọi API và quyền của từng API (lớp `CatalogControllerBase`) |
 | Chống ghi đè khi hai người cùng sửa (lỗi 409) | Báo trùng mã / trùng tên dạng dễ hiểu kể cả khi lọt kiểm tra (409) |
 | 1 mục đăng ký tra cứu (kèm các bảng nó đọc) | Nhập Excel cả file hoặc không dòng nào, lỗi theo từng dòng |
@@ -193,7 +194,7 @@ Quy ước tên: loại đối tượng `<loai>` (camelCase: `supplier`, `uomCon
 | Cột trỏ sang danh mục khác | `<bảng đích>_code`, cho dễ đọc khi nối bảng | `uom_code`, `warehouse_code`, `material_code`, `from_uom_code` |
 | Tên hiển thị | Chữ tiếng Việt (Mã vật tư, Tên vật tư) nằm ở file ngôn ngữ `locales/*`, **không** đặt trong tên cột kiểu `ma_vt`, `ten_vt` | |
 
-Danh mục không có `name` hoặc có khóa ghép (tỷ giá theo ngày...) không dùng khung này.
+Danh mục không có `name` vẫn dùng được khung (xem mẫu tỷ giá ở Phần 5.2 cho khóa ghép; không có tên thì `NameOf` lấy mã để đặt tên trong thông báo).
 
 ---
 
@@ -320,6 +321,7 @@ public class Supplier : ErpEntity, ICatalogRecord
 {
     [Key, Column("code"), MaxLength(20)] public string Code { get; set; } = string.Empty;
     [Required, Column("name"), MaxLength(200)] public string Name { get; set; } = string.Empty;
+    [NotReference("mã số thuế, không phải mã danh mục")]
     [Column("tax_code"), MaxLength(30)] public string? TaxCode { get; set; }
     [Column("phone"), MaxLength(30)] public string? Phone { get; set; }
     [Column("address"), MaxLength(300)] public string? Address { get; set; }
@@ -336,6 +338,7 @@ Bắt buộc (thiếu là test báo đỏ):
 | `: ErpEntity` | 4 cột người tạo / người sửa (`CoreContext` tự điền, **không gán tay**) và `Version` (chống ghi đè, ánh xạ vào `xmin`) |
 | `, ICatalogRecord` | Báo cho lớp `CatalogService` biết entity có `Code` (khóa), `IsActive`, `SortOrder`; cần đúng ba property này |
 | `[Audited("mã chức năng", "loại đối tượng", Label = ...)]` | Mọi thêm / sửa / xóa tự ghi vào Nhật ký thay đổi: ai, lúc nào, trường nào trước → sau. `Label` là chữ hiện ở cột "Đối tượng", dùng tên property trong `{}`. Bảng không cần nhật ký thì ghi `[NotAudited("lý do")]` |
+| `[References<T>]` hoặc `[NotReference("lý do")]` trên **mỗi** cột tên `*_code` (trừ khóa `code`) | Cột trỏ sang danh mục `T` thì khung tự chặn xóa dòng của `T` khi cột này còn dùng mã và kiểm mã tồn tại khi lưu; cột `*_code` không phải tham chiếu (mã số thuế, mã chức năng...) phải ghi lý do. Thiếu thì test `TableReferenceTests` báo đỏ. Chi tiết: `docs/tham-chieu-danh-muc.md` |
 
 Tùy chọn:
 
@@ -346,6 +349,8 @@ Tùy chọn:
 | `[AuditJson]` | Cột chứa JSON: ghi từng khóa thay đổi |
 | `SoftDelete = nameof(Cột)` trong `[Audited]` | Danh mục xóa mềm: cờ về 0 / false thì ghi là "Xóa" |
 | `[AuditedChild]` | Bảng dòng con (danh sách chi tiết) ghi chung vào nhật ký của bản ghi cha |
+| `[References<T>(Optional = true)]` | Cột trỏ danh mục được phép để trống (giá trị khác rỗng vẫn được kiểm tra) |
+| `[References<T>(BlocksDelete = false)]` | Bảng dòng con tự xóa cùng dòng cha (bản dịch): không coi là "đang dùng" |
 
 ### 2.3. Đăng ký bảng — `Core.Infrastructure/Common/Persistence/CoreContext.cs` (sửa)
 
@@ -491,12 +496,9 @@ public sealed class SupplierService(CoreContext db, CatalogBatch batch, IExcelEx
         row.IsActive = request.IsActive;
     }
 
-    // Tùy chọn: chặn xóa khi dữ liệu khác đang dùng (và xóa dòng con).
-    // protected override async Task BeforeDeleteAsync(Supplier row, CancellationToken ct)
-    // {
-    //     if (await Db.GoodsReceipts.AnyAsync(x => x.SupplierCode == row.Code, ct))
-    //         throw new BusinessRuleException("supplier.inUse", row.Name);
-    // }
+    // Chặn xóa khi dữ liệu khác đang dùng KHÔNG cần viết ở đây: bảng nào có cột [References<Supplier>]
+    // (ví dụ erp_goods_receipt.supplier_code) thì khung tự từ chối xóa, kèm tên bảng và số dòng.
+    // BeforeDeleteAsync chỉ để xóa dòng con hoặc thêm điều kiện mà tham chiếu không diễn đạt được.
 }
 ```
 
@@ -506,9 +508,9 @@ public sealed class SupplierService(CoreContext db, CatalogBatch batch, IExcelEx
 | --- | --- |
 | Danh sách | Lọc theo ô tìm kiếm (`Search`) và trạng thái `active` / `inactive`, sắp xếp theo `SortMap` (cột lạ → lỗi 400), cắt trang tối đa 200 dòng, đọc người tạo / sửa một lần (`RecordStamps`) |
 | Xuất Excel | Cùng bộ lọc với danh sách nhưng mọi dòng (tối đa `PagingLimits.MaxExportRows`), ghi dòng nhật ký `EXPORT` |
-| Tạo | `Guard.Code` cho mã, báo trùng mã (`<loai>.codeExists`), gán `SortOrder`, gọi `ApplyAsync` rồi `AfterApplyAsync` |
-| Sửa | Tìm bản ghi (`<loai>.notFound`), `ExpectVersion` (409 khi có người sửa trước), `ApplyAsync`, `AfterApplyAsync` |
-| Xóa | Tìm bản ghi, gọi `BeforeDeleteAsync`, xóa |
+| Tạo | `Guard.Code` cho mã, báo trùng mã (`<loai>.codeExists`), gán `SortOrder`, gọi `ApplyAsync` rồi `AfterApplyAsync`, kiểm các cột `[References]` có mã thật (`ref.notFound`) |
+| Sửa | Tìm bản ghi (`<loai>.notFound`), `ExpectVersion` (409 khi có người sửa trước), `ApplyAsync`, `AfterApplyAsync`, kiểm các cột `[References]` đã đổi |
+| Xóa | Tìm bản ghi, **từ chối nếu bảng nào có cột `[References<TEntity>]` còn dùng mã này** (`record.inUse`, nêu tên bảng và số dòng), gọi `BeforeDeleteAsync`, xóa |
 | Nhập Excel / xóa nhiều | `CatalogBatch`: mỗi dòng đi qua đúng `CreateAsync` / `UpdateAsync` / `DeleteAsync` ở trên, tất cả hoặc không dòng nào |
 
 **Điểm móc tùy chọn** (ghi đè khi cần):
@@ -516,7 +518,10 @@ public sealed class SupplierService(CoreContext db, CatalogBatch batch, IExcelEx
 | Móc | Dùng khi |
 | --- | --- |
 | `AfterApplyAsync(row, request, isNew, ct)` | Có bảng dòng con, ví dụ bản dịch (xem `UomService`) |
-| `BeforeDeleteAsync(row, ct)` | Chặn xóa khi đang dùng, hoặc xóa kèm dòng con |
+| `NormalizeCode(code)` / `KeyText(code)` | Mã không viết hoa như thường lệ (mã ngôn ngữ là chữ thường: `vi`, `zh-cn`): ghi đè để chuẩn hóa mã khi tạo (`NormalizeCode`, ném lỗi nếu sai) và mã gõ trong URL hay file Excel (`KeyText`, không ném lỗi). Xem `LanguageService` |
+| `SaveAsync(ct)` | Việc phải làm cùng giao dịch với lưu, ví dụ bỏ chọn dòng "mặc định" cũ trước khi lưu dòng mới, hoặc chép tên mới sang bảng khác. Bọc trong `IUnitOfWork.ExecuteAsync`. Xem `CurrencyService` (đồng tiền hạch toán), `LanguageService` (mặc định), `DepartmentService` (đổi tên chép sang người dùng) |
+| `BeforeExportAsync(rows, ct)` | Cột xuất Excel cần dữ liệu ngoài entity (danh sách dòng con, tên): đọc một lần cho cả các dòng sắp xuất vào một trường của service rồi để `ExportColumns` lấy ra (xem `WarehouseService`: đơn vị cơ sở sử dụng) |
+| `BeforeDeleteAsync(row, ct)` | Xóa kèm dòng con (bản dịch) hoặc chặn thêm điều khiển mà tham chiếu không diễn đạt được. **Không** cần viết kiểm tra "đang dùng" cho bảng đã khai `[References]` |
 | `ApplyFilters(rows, filters)` | Có bộ lọc riêng ngoài trạng thái. Khóa của `filters` là tên tham số URL, giá trị đã cắt khoảng trắng, đã bỏ giá trị rỗng. Luôn so sánh bằng tham số của EF (`x.Cột == value`), không ghép chuỗi SQL |
 
 Quy tắc:
@@ -603,7 +608,6 @@ Chỉ có vậy. `CatalogControllerBase` đã có sẵn 7 API, mỗi API gắn �
 "supplier.notFound": "Nhà cung cấp không tồn tại.",
 "supplier.codeExists": "Mã nhà cung cấp {0} đã tồn tại.",
 "supplier.nameExists": "Tên nhà cung cấp \"{0}\" đã tồn tại.",
-"supplier.inUse": "Nhà cung cấp \"{0}\" đang được dùng. Hãy đặt ngừng sử dụng thay vì xóa.",
 "dbfield.tax_code": "Mã số thuế",
 "export.supplier.sheet": "Danh mục nhà cung cấp",
 "export.supplier.code": "Mã nhà cung cấp",
@@ -615,7 +619,9 @@ Chỉ có vậy. `CatalogControllerBase` đã có sẵn 7 API, mỗi API gắn �
 - Bản tiếng Anh thêm đúng các khóa đó (`"supplier.notFound": "The supplier does not exist."`...).
 - `{0}`, `{1}` là tham số truyền vào `BusinessRuleException`.
 - Khóa có sẵn thì dùng lại, không thêm trùng: `field.phone`, `field.address`, `field.taxCode`, `field.note`... (tìm trong file trước khi thêm).
-- `dbfield.*` chỉ cần cho cột có unique index mà chưa có khóa.
+- `dbfield.*` chỉ cần cho cột có unique index mà chưa có khóa; cột `[References]` cũng dùng `dbfield.<cột>` làm tên trường trong thông báo `ref.notFound`.
+- Danh mục mới **được** các bảng khác trỏ tới thì mỗi bảng đó cần nhãn `table.<tên bảng>` ở cả hai file (ví dụ `"table.erp_goods_receipt": "Phiếu nhập kho"`) để thông báo "đang được dùng ở: Phiếu nhập kho (12)" nêu đúng tên. `TableReferenceTests` báo đỏ khi thiếu.
+- Thông báo chặn xóa `record.inUse` và `ref.notFound` dùng chung, không viết `<loai>.inUse` riêng.
 - `MessagesTests` báo đỏ khi một khóa thiếu ở một trong hai file, hoặc `throw` chứa câu tiếng Việt.
 - Lớp nền `CatalogService` dùng các khóa theo loại đối tượng `<loai>` của `CatalogSpec`: **`<loai>.notFound`, `<loai>.codeExists`, `export.<loai>.sheet`** và nhãn mã (`field.<...>Code`) bắt buộc phải có ở cả hai file; `CatalogFrameworkTests` báo đỏ khi thiếu.
 
@@ -715,27 +721,29 @@ Tên trên menu / tab theo ngôn ngữ — `locales/vi/common.json` và `locales
 "inv_supplier_cat": "Danh mục nhà cung cấp"
 ```
 
-### 3.3. Mục menu — `mock/initialMenuData.ts` (sửa)
+### 3.3. Mục menu — `ServerService/Core/SeedData/menu.json` (sửa)
 
-> **Giải thích.** Menu bên trái là danh sách tĩnh; mục menu chỉ hiện với người có quyền **Xem** chức năng. Mã `subKey` phải đúng mã chức năng. `orderNo` quyết định vị trí trong nhóm (số nhỏ đứng trước).
+> **Giải thích.** Menu bên trái được lưu trong database (`sys_command`, tên theo ngôn ngữ ở `sys_command_translation`) và frontend lấy qua `GET /api/menu`. `menu.json` là danh sách khai báo: mỗi lần backend khởi động, nút nào trong file mà database chưa có thì được **thêm tự động** (kể cả database cũ). Nút đã có thì không bị ghi đè, nên sửa tên, icon, thứ tự trong database vẫn được giữ. Vì vậy bạn **không viết SQL cho menu**. Mục menu chỉ hiện với người có quyền **Xem** chức năng.
 
-Thêm vào nhóm danh mục của phân hệ (copy mục `MNU_INV_UOM`):
+Thêm vào mảng `items` của nhóm danh mục thuộc phân hệ (copy nút `MNU_INV_UOM`):
 
-```ts
-          {
-            id: 'MNU_INV_SUPPLIER',
-            subKey: 'inv_supplier_cat',
-            titleVi: 'Danh mục nhà cung cấp',
-            titleEn: 'Suppliers',
-            icon: 'Truck',
-            orderNo: 55,
-            isActive: true
-          },
+```json
+{
+  "id": "MNU_INV_SUPPLIER",
+  "subKey": "inv_supplier_cat",
+  "titleVi": "Danh mục nhà cung cấp",
+  "titleEn": "Suppliers",
+  "icon": "Truck",
+  "orderNo": 55,
+  "isActive": true
+}
 ```
 
+- `subKey` phải đúng mã chức năng (bước 2.1 và 3.1); `id` không được trùng nút nào khác.
 - `icon` là tên icon của lucide-react. Icon chưa dùng ở đâu thì thêm tên đó vào **cả hai chỗ** trong `components/common/DynamicIcon.tsx` (dòng `import` và bảng tên icon); không thêm thì menu hiện icon mặc định.
-- `orderNo` quyết định thứ tự trong nhóm.
-- Menu chỉ hiện với người có quyền Xem chức năng.
+- `orderNo` quyết định thứ tự trong nhóm (số nhỏ đứng trước), không nên trùng với nút cùng nhóm.
+- Test `MenuSeedFileTests` báo đỏ khi mã chức năng không có trong `menu.json`, hoặc nút trong `menu.json` không có trong `FunctionCatalog`, hoặc `id` trùng.
+- Sau khi khởi động lại backend, log ghi "Đã thêm N mục menu còn thiếu từ menu.json". Sửa nút đã có thì sửa trong database (hoặc màn Quản lý menu); sửa `menu.json` không đổi được nút đã tồn tại.
 
 ### 3.4. Thư mục chức năng — `modules/inventory/categories/suppliers/` (thêm mới, copy từ `modules/inventory/categories/uom/`)
 
@@ -1156,24 +1164,23 @@ services.AddLookupProvider<UomFullLookup>();
 
 ## Phần 5. Danh mục có trường tham chiếu danh mục khác
 
-Ví dụ nhà cung cấp có **nhóm nhà cung cấp** (`group_code`, tra cứu `supplierGroups`). Không có khóa ngoại, nên tự làm 4 việc:
+Ví dụ nhà cung cấp có **nhóm nhà cung cấp** (`group_code`, tra cứu `supplierGroups`). Không có khóa ngoại, nên **khai báo tham chiếu** để khung làm phần còn lại (tài liệu đầy đủ: `docs/tham-chieu-danh-muc.md`):
 
 1. **SQL**: thêm cột và index.
    ```sql
    ALTER TABLE erp_supplier ADD COLUMN IF NOT EXISTS group_code varchar(20);
    CREATE INDEX IF NOT EXISTS ix_erp_supplier_group_code ON erp_supplier (group_code);
    ```
-2. **Service danh mục con**: trong `ApplyAsync`, kiểm tra mã có và đang dùng.
+2. **Entity danh mục con**: khai báo cột trỏ sang nhóm. Khung tự kiểm mã có thật khi lưu và tự chặn xóa nhóm khi còn nhà cung cấp dùng.
+   ```csharp
+   [References<SupplierGroup>(Optional = true)]
+   [Column("group_code"), MaxLength(20)] public string? GroupCode { get; set; }
+   ```
+3. **Service danh mục con**: trong `ApplyAsync`, chuẩn hóa mã (nếu muốn kiểm thêm "đang dùng" thì tự thêm, khung chỉ kiểm mã tồn tại).
    ```csharp
    row.GroupCode = Guard.Optional(request.GroupCode, 20, "field.supplierGroup")?.ToUpperInvariant();
-   if (row.GroupCode is not null && !await db.SupplierGroups.AnyAsync(x => x.Code == row.GroupCode && x.IsActive, ct))
-       throw new BusinessRuleException("supplierGroup.notFound", row.GroupCode);
    ```
-3. **Service danh mục cha**: trong `BeforeDeleteAsync`, chặn xóa khi còn được dùng.
-   ```csharp
-   if (await db.Suppliers.AnyAsync(x => x.GroupCode == row.Code, ct))
-       throw new BusinessRuleException("supplierGroup.inUse", row.Name);
-   ```
+   Thêm nhãn `table.erp_supplier` ("Nhà cung cấp") vào `Messages.vi.json` / `Messages.en.json` để thông báo xóa nhóm nêu đúng tên bảng. **Không** viết `BeforeDeleteAsync` kiểm tra nhà cung cấp trong service của nhóm.
 4. **Form**: dùng `CatalogLookup` trong `renderForm`, thêm cột vào `excel.columns` (người dùng nhập mã nhóm trong file; sai mã thì lỗi hiện đúng dòng).
    ```tsx
    <CatalogLookup lookup="supplierGroups" label={t('suppliers.group')} value={form.groupCode}
@@ -1183,6 +1190,36 @@ Ví dụ nhà cung cấp có **nhóm nhà cung cấp** (`group_code`, tra cứu 
 Muốn hiện **tên** nhóm trong lưới: trả thêm `GroupName` trong DTO. Đọc tên các nhóm của **cả trang** bằng một truy vấn trong `MapAsync` (`Where(g => codes.Contains(g.Code))`, giống cách `UomConversionService` lấy tên đơn vị), không đọc từng dòng. Danh sách phân trang không có bộ nhớ đệm nên đổi tên nhóm là danh sách thấy ngay; nếu tra cứu nhà cung cấp cũng hiện tên nhóm thì thêm `"erp_supplier_group"` vào danh sách bảng của mục tra cứu.
 
 Muốn lọc theo nhóm: thêm bộ lọc `groupCode` (frontend `filters`, backend `ApplyFilters`, §2.5). Muốn tìm theo tên nhóm: thêm điều kiện vào `Search`.
+
+### 5.1. Danh mục có danh sách chọn nhiều (mẫu: kho → đơn vị cơ sở sử dụng)
+
+Một dòng danh mục có **nhiều** mã của danh mục khác (kho dùng cho nhiều đơn vị cơ sở). Mẫu chạy thật: `WarehouseService`, bảng `erp_warehouse_unit`.
+
+| Việc | Cách làm |
+| --- | --- |
+| Bảng con | Script `25-inventory-warehouse-units.sql`: khóa `(warehouse_code, unit_code)`, 4 cột dấu vết, **index trên `unit_code`** (tra khi xóa đơn vị) |
+| Entity con | `WarehouseUnit : ErpEntity` với `[AuditedChild(typeof(Warehouse), nameof(WarehouseCode), "units", nameof(UnitCode))]` (nhật ký ghi danh sách như một trường của kho), `[References<Warehouse>(BlocksDelete = false)]` trên `warehouse_code` (xóa cùng kho), `[References<CompanyUnit>]` trên `unit_code` (đơn vị còn được kho dùng thì không xóa được). Khai khóa ghép trong `CoreContext` |
+| Request / DTO | Request nhận `string? UnitCodes` (mã cách nhau dấu phẩy hoặc chấm phẩy: cũng là dạng một ô Excel); `null` = giữ nguyên, rỗng = xóa hết. DTO trả `IReadOnlyList<string> UnitCodes` |
+| Lưu | `AfterApplyAsync`: tách mã, kiểm tra đơn vị mới có thật và đang dùng (đơn vị đã gán thì giữ dù về sau bị ngừng), thêm / xóa dòng con, nếu có đổi và đang sửa thì đánh dấu `Name` đã đổi để **phiên bản bản ghi cha tăng** (chống ghi đè) |
+| Xóa | `BeforeDeleteAsync` xóa các dòng con |
+| Danh sách | `MapAsync` đọc dòng con của cả trang một lần; `Search` thêm điều kiện tìm theo dòng con; `ApplyFilters` đọc `unitCode` |
+| Xuất Excel | `BeforeExportAsync` đọc dòng con của các dòng sắp xuất vào một trường, `ExportColumns` lấy ra |
+| Màn hình | `CatalogMultiLookup lookup="companyUnits"` (giá trị là mảng mã; trong input lưu thành chuỗi nối bằng dấu phẩy), cột "Dùng chung" khi trống, cột Excel `unitCodes` |
+| Dùng ở nơi khác | Truy vấn dùng lại ở một nơi: `db.UsableBy(unitCode)` (`WarehouseQueries`): kho đang dùng mà đơn vị này được dùng hoặc kho dùng chung. Phiếu nhập dùng nó cho ô chọn kho và khi lưu |
+
+Quy ước nghiệp vụ của mẫu này: **không chọn đơn vị nào = dùng chung cho mọi đơn vị cơ sở**.
+
+### 5.2. Danh mục có khóa ghép (mẫu: tỷ giá = ngoại tệ + ngày)
+
+Khung chỉ biết một khóa văn bản là `code`. Khi khóa thật là một cặp giá trị (tỷ giá theo ngoại tệ và ngày), **mã của dòng là chuỗi ghép** và bảng vẫn giữ khóa chính `id`:
+
+| Việc | Cách làm (xem `ExchangeRateService`, script `27-exchange-rate-catalog.sql`) |
+|---|---|
+| Bảng | Thêm cột `code` (duy nhất, ví dụ `USD@2026-10-08`), giữ cặp cột thật (`currency_code`, `rate_date`) và chỉ mục duy nhất của cặp đó, thêm `is_active`, `sort_order` và 4 cột dấu vết |
+| Request | `Code` là thuộc tính **tính từ** các trường khóa (`ExchangeRateKey.Of(CurrencyCode, Date)`), nên file Excel và form không có cột mã; nhập Excel nhận dòng theo ngoại tệ + ngày |
+| Sửa | `ApplyAsync` từ chối đổi cặp khóa của dòng đã lưu (`exchangeRate.keyChanged`); muốn đổi hãy xóa và thêm mới. Form khóa hai ô đó khi sửa |
+| Bộ lọc | `ApplyFilters` đọc `currency`, `from`, `to`; màn dùng `filters` của `CatalogDefinition` cho ô ngoại tệ |
+| Đọc ở nơi khác | Hàm riêng (`GetRateAsync`) ở interface của danh mục; endpoint mở cho mọi người đăng nhập tách ra **controller riêng** (controller danh mục từ chối action không khai `CatalogRight`) |
 
 ---
 
@@ -1234,6 +1271,7 @@ Test tự bắt các điểm hay quên:
 | `ConcurrencyContractTests` | `UpdateAsync` thiếu `Version` ở request / DTO, hoặc thiếu `db.ExpectVersion(...)` |
 | `ReadAccessContractTests` | `GET` của controller viết tay (có `const string Function`) thiếu `RequirePermission` |
 | `CatalogFrameworkTests` | Controller danh mục thiếu `[CatalogFunction]` hoặc mã chức năng không có thật, thiếu `[Route]`; API của lớp nền thiếu quyền; service thiếu khóa thông báo `<loai>.notFound` / `<loai>.codeExists` / `export.<loai>.sheet` / nhãn mã ở vi hoặc en |
+| `TableReferenceTests` | Cột `*_code` thiếu `[References]` / `[NotReference]`; tên cột không kết thúc bằng tên bảng đích; cột tham chiếu chưa có index trong script SQL; bảng được tham chiếu thiếu nhãn `table.<tên bảng>` |
 | `CatalogPermissionFilterTests` | Một API của controller danh mục cho qua khi thiếu đúng quyền của nó (Xem, Thêm, Sửa, Xóa; xuất cần cả Xem và Xuất) |
 | `PagingTests` | Kích thước trang không bị kẹp, sắp xếp theo cột lạ không bị từ chối, tìm kiếm không thoát `%` / `_`, bộ lọc riêng không lấy đúng tham số, xuất Excel sai tiêu đề |
 | `LookupCacheTests` | Tra cứu khai thiếu bảng mà phép chiếu đọc (bản đệm không được xóa khi bảng đó đổi), tìm kiếm / chia trang trong bộ nhớ sai |
@@ -1275,7 +1313,7 @@ Thử xong thì xóa dữ liệu thử (bản ghi, tài khoản thử, dòng nh�
 
 | Hiện tượng | Nguyên nhân thường gặp |
 | --- | --- |
-| Menu không có mục mới | Thiếu mục trong `initialMenuData.ts`, hoặc tài khoản chưa có quyền Xem |
+| Menu không có mục mới | Thiếu nút trong `Core/SeedData/menu.json` (hoặc `subKey` khác mã chức năng), backend chưa khởi động lại, hoặc tài khoản chưa có quyền Xem |
 | Mở màn báo không có quyền dù đã cấp | Backend chưa khởi động lại nên mã chưa có trong `sys_command`; hoặc mã ở frontend và `FunctionCatalog.cs` khác nhau |
 | API lỗi 500 "column ... does not exist" | Chưa chạy script SQL, hoặc tên trong `[Column("...")]` khác tên cột |
 | `/api/lookups/suppliers` trả 404 "Không có danh mục tra cứu" | Thiếu mục trong `LookupCatalogs.All`, hoặc tên tra cứu khác nhau giữa backend và `lookup="..."` |
@@ -1297,8 +1335,8 @@ Thử xong thì xóa dữ liệu thử (bản ghi, tài khoản thử, dòng nh�
 ## Danh sách kiểm tra nhanh
 
 **Thêm mới**
-- [ ] `ServerService/sql/postgresql/NN-<ten>.sql` (đã chạy trên database)
-- [ ] `Core.Domain/Modules/<PhanHe>/<Ten>.cs` (`: ErpEntity, ICatalogRecord`, `[Audited]`)
+- [ ] `ServerService/sql/postgresql/NN-<ten>.sql` (đã chạy trên database; mỗi cột `*_code` trỏ danh mục khác có `CREATE INDEX` bắt đầu bằng chính cột đó)
+- [ ] `Core.Domain/Modules/<PhanHe>/<Ten>.cs` (`: ErpEntity, ICatalogRecord`, `[Audited]`, mỗi cột `*_code` có `[References<T>]` hoặc `[NotReference("lý do")]`)
 - [ ] `Core.Application/Modules/<PhanHe>/<Ten>Contracts.cs` (DTO có `Stamp`, `uint Version`; request `: ICatalogRequest` có `uint? Version = null`; interface `: ICatalogService<Dto, Request>`)
 - [ ] `Core.Infrastructure/Modules/<PhanHe>/<Ten>Service.cs` (`: CatalogService<...>`: `Spec`, `Sorts`, `Search`, `ExportColumns`, `WithoutVersion`, `MapAsync`, `ApplyAsync`; tùy chọn `ApplyFilters`, `AfterApplyAsync`, `BeforeDeleteAsync`)
 - [ ] `Core/Modules/<PhanHe>/<Ten>sController.cs` (`: CatalogControllerBase<Dto, Request>` với `[Route]` và `[CatalogFunction("<mã>")]`, không viết API nào)
@@ -1306,13 +1344,13 @@ Thử xong thì xóa dữ liệu thử (bản ghi, tài khoản thử, dòng nh�
 
 **Sửa**
 - [ ] `FunctionCatalog.cs`: mã chức năng
-- [ ] `Messages.vi.json` + `Messages.en.json`: `<loai>.notFound`, `<loai>.codeExists`, khóa lỗi riêng, `field.*`, `dbfield.*` (nếu cần), `function.<mã>` (bản en), `export.<loai>.sheet` + `export.<loai>.<cột>` (tiêu đề trùng file nhập)
+- [ ] `Messages.vi.json` + `Messages.en.json`: `<loai>.notFound`, `<loai>.codeExists`, khóa lỗi riêng, `field.*`, `dbfield.*` (nếu cần), `function.<mã>` (bản en), `export.<loai>.sheet` + `export.<loai>.<cột>` (tiêu đề trùng file nhập), `table.<tên bảng>` cho bảng của danh mục này khi bảng khác sẽ trỏ tới nó
 - [ ] `CoreContext.cs`: `DbSet`
 - [ ] `DependencyInjection.cs`: đăng ký service; `LookupCatalogs.cs`: mục tra cứu (kèm các bảng nó đọc)
 - [ ] `types/index.ts`: `SubMenuKey`
 - [ ] `config/functions.ts`: `FUNCTION_REGISTRY`
 - [ ] `locales/vi|en/common.json`: `navigation.subMenus.<mã>` (cả hai), `function.<mã>` (en); tùy chọn `audit.objectType.*` (cả hai)
-- [ ] `mock/initialMenuData.ts`: mục menu (+ `DynamicIcon.tsx` nếu icon mới)
+- [ ] `ServerService/Core/SeedData/menu.json`: nút menu (+ `DynamicIcon.tsx` nếu icon mới)
 - [ ] `locales/vi|en/<phan-he>.json`: chữ của màn
 - [ ] `modules/<phan-he>/<PhanHe>Module.tsx`: `case` mở màn
 - [ ] Cài đặt › Người dùng & phân quyền: cấp quyền cho vai trò

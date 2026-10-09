@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { SubMenuKey, Product, Warehouse, GoodsVoucher, MaterialType, UnitOfMeasure, StockNorm, MaterialLot, StorageLocation, UserProfile, CompanyUnit } from '../../types';
+import { loadMaterialTypeOptions } from '../../services/lookupOptions';
 import { MaterialCategoryView } from './categories/materials';
 import { CompanyUnitCategoryView } from './categories/company-units/CompanyUnitCategoryView';
 import { WarehouseCategoryView } from './categories/warehouses';
@@ -36,7 +37,6 @@ interface InventoryModuleProps {
   vouchers: GoodsVoucher[];
   companyUnits?: CompanyUnit[];
   activeCompanyUnitCode?: string;
-  materialTypes?: MaterialType[];
   unitsOfMeasure?: UnitOfMeasure[];
   stockNorms?: StockNorm[];
   lots?: MaterialLot[];
@@ -61,7 +61,6 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
   vouchers,
   companyUnits = [],
   activeCompanyUnitCode = 'DVCS01',
-  materialTypes = [],
   unitsOfMeasure = [],
   stockNorms = [],
   lots = [],
@@ -74,6 +73,9 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
   onCompanyUnitsChanged,
   currentUser
 }) => {
+  // The materials screen still runs on browser data; its type picker reads the real catalog through the lookup.
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
+  useEffect(() => { loadMaterialTypeOptions().then(setMaterialTypes).catch(() => setMaterialTypes([])); }, []);
 
   const renderActiveView = () => {
     switch (subKey) {
@@ -129,7 +131,7 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
       case 'inv_supplier_cat':
         return <SupplierCategoryView currentUser={currentUser} />;
       case 'inv_material_type_cat':
-        return <MaterialTypeCategoryView materialTypes={materialTypes} currentUser={currentUser} />;
+        return <MaterialTypeCategoryView currentUser={currentUser} />;
       case 'inv_material_group_cat':
         return <MaterialGroupCategoryView currentUser={currentUser} />;
       case 'inv_uom_cat':

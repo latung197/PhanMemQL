@@ -11,6 +11,9 @@ public static class Policies
     /// <summary>Administrator only (ADMIN role or legacy flag).</summary>
     public const string Admin = "Admin";
 
+    /// <summary>The one configured super administrator (Security:SuperAdmin) who is also an ADMIN.</summary>
+    public const string SuperAdmin = "SuperAdmin";
+
     /// <summary>Prefix of the dynamic policies created by <see cref="RequirePermissionAttribute"/>.</summary>
     public const string PermissionPrefix = "perm:";
 

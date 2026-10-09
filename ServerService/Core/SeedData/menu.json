@@ -773,6 +773,27 @@
             "isActive": true
           }
         ]
+      },
+      {
+        "id": "GRP_SYS_TAX",
+        "groupCode": "taxes",
+        "titleVi": "Thuế",
+        "titleEn": "Taxes",
+        "icon": "Percent",
+        "iconColor": "text-rose-400",
+        "orderNo": 50,
+        "isActive": true,
+        "items": [
+          {
+            "id": "MNU_SYS_TAX_RATES",
+            "subKey": "sys_tax_rates",
+            "titleVi": "Danh mục mã thuế",
+            "titleEn": "Tax Codes",
+            "icon": "Percent",
+            "orderNo": 10,
+            "isActive": true
+          }
+        ]
       }
     ]
   }

@@ -13,7 +13,7 @@ Tài liệu này ghi lại các bước đã dùng để đưa **Kho › Quy đ�
 | Tra cứu cho màn hình khác | `uomConversions` |
 | Tra cứu đơn vị nguồn/đích | `uoms` |
 
-Mã chức năng đã có trong danh sách chức năng backend, `Frontend/src/types/index.ts`, `Frontend/src/config/functions.ts` và `Frontend/src/mock/initialMenuData.ts`; khi triển khai chỉ kiểm tra và dùng lại mã đó. Giữ cùng một mã trong controller, `CatalogDefinition`, menu, phân quyền và `[Audited]`.
+Mã chức năng đã có trong danh sách chức năng backend, `Frontend/src/types/index.ts`, `Frontend/src/config/functions.ts` và `ServerService/Core/SeedData/menu.json`; khi triển khai chỉ kiểm tra và dùng lại mã đó. Giữ cùng một mã trong controller, `CatalogDefinition`, menu, phân quyền và `[Audited]`.
 
 Quy tắc nghiệp vụ: `1` đơn vị nguồn bằng `factor` đơn vị đích. Ví dụ `THUNG → HOP`, hệ số `20` nghĩa là một thùng bằng 20 hộp. Quy đổi có thể áp dụng chung (`material_code` rỗng) hoặc cho một mã vật tư. Mỗi bộ `(vật tư hoặc áp dụng chung, đơn vị nguồn, đơn vị đích)` chỉ có một dòng. Cặp chiều ngược lại là một dòng riêng.
 

@@ -17,6 +17,8 @@ public class SysRole : AuditableEntity, IVersioned
     [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity), Column("role_id")]
     public int RoleId { get; set; }
 
+    [NotReference("mã của chính vai trò")]
+
     [AuditField("code"), Required, Column("role_code"), StringLength(50)] public string RoleCode { get; set; } = string.Empty;
     [AuditField("name"), Required, Column("role_name"), StringLength(100)] public string RoleName { get; set; } = string.Empty;
     [Column("description")] public string? Description { get; set; }

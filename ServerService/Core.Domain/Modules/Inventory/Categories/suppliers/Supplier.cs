@@ -14,6 +14,7 @@ namespace Core.Domain.Modules.Inventory.Categories.suppliers
     {
         [Key, Column("code"), MaxLength(20)] public string Code { get; set; } = string.Empty;
         [Required, Column("name"), MaxLength(200)] public string Name { get; set; } = string.Empty;
+        [NotReference("mã số thuế, không phải mã danh mục")]
         [Column("tax_code"), MaxLength(30)] public string? TaxCode { get; set; }
         [Column("phone"), MaxLength(30)] public string? Phone { get; set; }
         [Column("address"), MaxLength(300)] public string? Address { get; set; }

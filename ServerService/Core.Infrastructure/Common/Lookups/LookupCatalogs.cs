@@ -34,6 +34,32 @@ public static class LookupCatalogs
         new LookupDefinition("materialGroups", db => db.MaterialGroups.Select(x =>
             new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive }), ["erp_material_group"]),
 
+        new LookupDefinition("materialTypes", db => db.MaterialTypes.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.GroupName }), ["erp_material_type"], "groupName"),
+
+        new LookupDefinition("departments", db => db.Departments.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive }), ["sys_department"]),
+
+        // Extras: type (VAT / IMPORT / OTHER), rate in percent, 1 when exempt.
+        new LookupDefinition("taxRates", db => db.TaxRates.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.TaxType,
+                Extra2 = x.Rate.ToString(), Extra3 = x.IsExempt ? "1" : "0" }), ["sys_tax_rate"], "taxType", "rate", "isExempt"),
+
+        new LookupDefinition("currencies", db => db.Currencies.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.Symbol, Extra2 = x.DecimalPlaces.ToString(),
+                Extra3 = x.IsBase ? "1" : "0" }), ["sys_currency"], "symbol", "decimalPlaces", "isBase"),
+
+        new LookupDefinition("companyUnits", db =>
+        {
+            var language = Messages.CurrentLanguage;
+            var baseLanguage = language.Split('-')[0];
+            return db.CompanyUnits.Select(x => new LookupRow { Code = x.Code,
+                Name = db.CompanyUnitTranslations.Where(t => t.UnitCode == x.Code && t.LanguageCode == language).Select(t => t.Name).FirstOrDefault()
+                    ?? db.CompanyUnitTranslations.Where(t => t.UnitCode == x.Code && t.LanguageCode == baseLanguage).Select(t => t.Name).FirstOrDefault()
+                    ?? x.Name,
+                IsActive = x.IsActive, Extra1 = x.ShortName, Extra2 = x.IsDefault ? "1" : "0" });
+        }, ["sys_company_unit", "sys_company_unit_translation"], "shortName", "isDefault"),
+
         new LookupDefinition("warehouses", db => db.Warehouses.Select(x =>
             new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.Address }), ["erp_warehouse"], "address"),
 

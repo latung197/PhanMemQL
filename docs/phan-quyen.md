@@ -261,7 +261,7 @@ Mọi thay đổi về quyền được ghi ở Cài đặt › Nhật ký thay 
 | Quyền khác nhau theo đơn vị cơ sở | Chưa có; hiện quyền giống nhau ở mọi đơn vị |
 | Phạm vi dữ liệu chi tiết hơn "của mình / tất cả" (theo kho, theo phòng ban) | Chưa có |
 | Nhiều vai trò cho một người | Bảng dữ liệu cho phép, màn hình và API hiện chỉ gán một vai trò |
-| Danh sách đầy đủ của các danh mục hệ thống (đơn vị, ngoại tệ, tỷ giá, phòng ban) cần quyền Xem | Đang mở cho mọi người đăng nhập vì form khác còn đọc; chuyển sang ô tra cứu khi làm lại các màn đó |
+| Danh sách đầy đủ của các danh mục hệ thống cần quyền Xem | Đã làm cho đơn vị cơ sở, ngoại tệ, phòng ban, ngôn ngữ: ô chọn ở màn khác đọc qua tra cứu `departments`, `currencies`, `companyUnits`. Còn **tỷ giá** (`GET /api/settings/exchange-rates`) đang mở cho mọi người đăng nhập vì phiếu cần tỷ giá của ngày chứng từ |
 
 ---
 

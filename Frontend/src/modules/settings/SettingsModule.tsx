@@ -8,10 +8,11 @@ import { CompanyUnitCategoryView } from '../inventory/categories/company-units/C
 import { DefaultConfigView } from './DefaultConfigView';
 import { FiscalYearView } from './FiscalYearView';
 import { CurrencyCategoryView } from './CurrencyCategoryView';
-import { ExchangeRateView } from './ExchangeRateView';
+import { ExchangeRateCategoryView } from './ExchangeRateCategoryView';
 import { DepartmentCategoryView } from './DepartmentCategoryView';
 import { CompanySettingsView } from './CompanySettingsView';
 import { LanguageCategoryView } from './LanguageCategoryView';
+import { TaxRateCategoryView } from './TaxRateCategoryView';
 import { AuditLogView } from './AuditLogView';
 import { MenuManagementView } from './MenuManagementView';
 import type { MenuVisibilityConfig } from '../../services/menuVisibility';
@@ -31,6 +32,7 @@ interface SettingsModuleProps {
   menuVisibility: MenuVisibilityConfig;
   menuTree: SysModule[];
   onMenuVisibilityChanged: (value: MenuVisibilityConfig) => void;
+  onMenuStructureChanged: () => void;
 }
 
 /** A new settings screen needs sys_command menu fields and a case in renderScreen. */
@@ -43,7 +45,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   onResetData,
   menuVisibility,
   menuTree,
-  onMenuVisibilityChanged
+  onMenuVisibilityChanged,
+  onMenuStructureChanged
 }) => {
   // App only renders this module when the user may view subKey.
   const perms = getActionPermission(user, subKey);
@@ -53,12 +56,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     switch (subKey) {
       case 'sys_default_config': return <DefaultConfigView {...rights} warehouses={warehouses} unitCode={user.ma_dvcs ?? ''} />;
       case 'sys_fiscal_year': return <FiscalYearView {...rights} unitCode={user.ma_dvcs ?? ''} />;
-      case 'sys_currencies': return <CurrencyCategoryView {...rights} />;
-      case 'sys_exchange_rates': return <ExchangeRateView {...rights} />;
-      case 'sys_departments': return <DepartmentCategoryView {...rights} />;
-      case 'sys_languages': return <LanguageCategoryView {...rights} />;
+      case 'sys_currencies': return <CurrencyCategoryView currentUser={user} />;
+      case 'sys_exchange_rates': return <ExchangeRateCategoryView currentUser={user} />;
+      case 'sys_departments': return <DepartmentCategoryView currentUser={user} />;
+      case 'sys_languages': return <LanguageCategoryView currentUser={user} />;
+      case 'sys_tax_rates': return <TaxRateCategoryView currentUser={user} />;
       case 'sys_audit_log': return <AuditLogView {...rights} />;
-      case 'sys_menu': return <MenuManagementView canEdit={perms.edit} visibility={menuVisibility} menuTree={menuTree} onSaved={onMenuVisibilityChanged} />;
+      case 'sys_menu': return <MenuManagementView canEdit={perms.edit} visibility={menuVisibility} menuTree={menuTree} onSaved={onMenuVisibilityChanged} onStructureChanged={onMenuStructureChanged} />;
       case 'sys_users': return <UserPermissionManager currentUser={user} companyUnits={companyUnits} />;
       case 'inv_company_unit_cat':
         return (

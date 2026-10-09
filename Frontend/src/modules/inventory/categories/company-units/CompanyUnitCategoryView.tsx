@@ -7,7 +7,8 @@ import { CatalogScreen } from '../../../../components/catalog/CatalogScreen';
 import type { CatalogDefinition } from '../../../../components/catalog/catalogTypes';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { authService, type LanguageOption } from '../../../../services/authService';
-import { companyUnitsApi, type SaveCompanyUnitInput } from '../../../../services/settingsApi';
+import { companyUnitsApi, type CompanyUnitRow, type SaveCompanyUnitInput } from '../../../../services/settingsApi';
+import { recordStampColumns } from '../../../../components/common/recordStampColumns';
 import type { CompanyUnit, UserProfile } from '../../../../types';
 
 const ACTIVE = 'Hoạt động';
@@ -28,7 +29,7 @@ export const CompanyUnitCategoryView: React.FC<{
     return () => { active = false; };
   }, []);
 
-  const definition = useMemo((): CatalogDefinition<CompanyUnit, SaveCompanyUnitInput> => ({
+  const definition = useMemo((): CatalogDefinition<CompanyUnitRow, SaveCompanyUnitInput> => ({
     functionCode: 'inv_company_unit_cat',
     api: companyUnitsApi,
     keyOf: unit => unit.code,
@@ -45,22 +46,23 @@ export const CompanyUnitCategoryView: React.FC<{
         render: unit => <span className="font-mono font-bold">{unit.code}</span> },
       { key: 'localizedName', header: t('companyUnits.name'), sortable: true,
         render: unit => unit.localizedName || unit.name },
-      { key: 'shortName', header: t('companyUnits.shortName'), render: unit => unit.shortName || '—' },
-      { key: 'address', header: t('companyUnits.address'), render: unit => unit.address || '—' },
-      { key: 'taxCode', header: t('companyUnits.taxCode'), render: unit => unit.taxCode || '—' },
-      { key: 'isDefault', header: t('companyUnits.default'), width: '110px', align: 'center',
+      { key: 'shortName', header: t('companyUnits.shortName'), sortable: true, render: unit => unit.shortName || '—' },
+      { key: 'address', header: t('companyUnits.address'), sortable: true, render: unit => unit.address || '—' },
+      { key: 'taxCode', header: t('companyUnits.taxCode'), sortable: true, render: unit => unit.taxCode || '—' },
+      { key: 'isDefault', header: t('companyUnits.default'), width: '110px', align: 'center', sortable: true,
         render: unit => unit.isDefault ? <Badge variant="info" size="sm">{t('companyUnits.default')}</Badge> : '—' },
-      { key: 'isActive', header: t('companyUnits.status'), width: '125px', align: 'center',
+      { key: 'isActive', header: t('companyUnits.status'), width: '125px', align: 'center', sortable: true,
         render: unit => unit.isActive
           ? <Badge variant="success" size="sm">{t('companyUnits.active')}</Badge>
-          : <Badge variant="slate" size="sm">{t('companyUnits.paused')}</Badge> }
+          : <Badge variant="slate" size="sm">{t('companyUnits.paused')}</Badge> },
+      ...recordStampColumns<CompanyUnitRow>(t)
     ],
     searchText: unit => `${unit.code} ${unit.name} ${unit.localizedName ?? ''} ${unit.shortName ?? ''} ` +
       `${unit.translations?.map(item => item.name).join(' ') ?? ''} ${unit.address ?? ''} ${unit.taxCode ?? ''}`,
     excel: {
       columns: [
         { key: 'code', header: t('companyUnits.code'), required: true, width: 18, example: 'CN-HCM' },
-        { key: 'name', header: t('companyUnits.baseName'), required: true, width: 34, example: 'Chi nhánh Hồ Chí Minh' },
+        { key: 'name', header: t('companyUnits.name'), required: true, width: 34, example: 'Chi nhánh Hồ Chí Minh' },
         { key: 'shortName', header: t('companyUnits.shortName'), width: 20, example: 'CN HCM' },
         { key: 'address', header: t('companyUnits.address'), width: 40, example: '' },
         { key: 'phone', header: t('companyUnits.phone'), width: 20, example: '' },

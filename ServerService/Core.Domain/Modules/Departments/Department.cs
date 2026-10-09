@@ -7,11 +7,8 @@ namespace Core.Domain.Modules.Departments;
 /// <summary>Phòng ban. Users and approval rules (requester type DEPARTMENT) link to it by code.</summary>
 [Audited("sys_departments", "department", Label = "{Code} - {Name}")]
 [Table("sys_department")]
-public class Department : IVersioned
+public class Department : ErpEntity, ICatalogRecord
 {
-    /// <summary>Row version (xmin) against lost updates; see IVersioned.</summary>
-    public uint Version { get; set; }
-
     [Key, Column("code"), MaxLength(20)] public string Code { get; set; } = string.Empty;
     [Required, Column("name"), MaxLength(100)] public string Name { get; set; } = string.Empty;
     [Column("note"), MaxLength(300)] public string? Note { get; set; }

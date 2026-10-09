@@ -9,6 +9,7 @@ using Core.Application.Common.Validation;
 using Core.Domain.Common;
 using Core.Infrastructure.Common.Paging;
 using Core.Infrastructure.Common.Persistence;
+using Core.Infrastructure.Common.References;
 using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Common.Catalogs;
@@ -42,6 +43,9 @@ public abstract class CatalogService<TEntity, TDto, TRequest>(CoreContext db, Ca
 {
     protected CoreContext Db { get; } = db;
 
+    /// <summary>For entries a catalog logs by hand (changes made with ExecuteUpdate, which the automatic log cannot see).</summary>
+    protected IAuditLog AuditLog => audit;
+
     protected abstract CatalogSpec Spec { get; }
 
     /// <summary>Sortable columns by the names of the grid columns; the default order is usually "order" (SortOrder).</summary>
@@ -68,11 +72,32 @@ public abstract class CatalogService<TEntity, TDto, TRequest>(CoreContext db, Ca
     /// </summary>
     protected virtual IQueryable<TEntity> ApplyFilters(IQueryable<TEntity> rows, IReadOnlyDictionary<string, string> filters) => rows;
 
+    /// <summary>Called with the rows of an Excel export before it is written: load what <see cref="ExportColumns"/> needs for all rows at once (child rows, names).</summary>
+    protected virtual Task BeforeExportAsync(IReadOnlyList<TEntity> rows, CancellationToken ct) => Task.CompletedTask;
+
     /// <summary>Called after <see cref="ApplyAsync"/>, before saving: child rows such as translations.</summary>
     protected virtual Task AfterApplyAsync(TEntity row, TRequest request, bool isNew, CancellationToken ct) => Task.CompletedTask;
 
-    /// <summary>Called before deleting: refuse when other data uses the record, delete child rows.</summary>
+    /// <summary>
+    /// Called before deleting, after the check that no table points to the record (see <see cref="ReferenceChecks"/>):
+    /// extra refusals the references cannot express (data in the browser mock...), delete child rows such as translations.
+    /// </summary>
     protected virtual Task BeforeDeleteAsync(TEntity row, CancellationToken ct) => Task.CompletedTask;
+
+    /// <summary>
+    /// The code of a new record from the request: trimmed, upper-case, no spaces, ':' or ',' (<c>Guard.Code</c>). A catalog
+    /// whose codes follow another form (language tags are lower-case: "vi", "zh-cn") overrides it and <see cref="KeyText"/>.
+    /// </summary>
+    protected virtual string NormalizeCode(string? code) => Guard.Code(code, Spec.CodeLength, Spec.CodeField);
+
+    /// <summary>A code typed in an Excel file or a URL, in the form it is stored (no validation: the save reports errors).</summary>
+    protected virtual string KeyText(string? code) => (code ?? string.Empty).Trim().ToUpperInvariant();
+
+    /// <summary>
+    /// Writes the changes of Create / Update / Delete. A catalog overrides it to do more in the same transaction, e.g. clear
+    /// the previous "default" row before the new one is saved (wrap it in IUnitOfWork.ExecuteAsync).
+    /// </summary>
+    protected virtual Task SaveAsync(CancellationToken ct) => Db.SaveChangesAsync(ct);
 
     protected static string YesNo(bool value) => Messages.T(value ? "export.yes" : "export.no");
 
@@ -106,6 +131,7 @@ public abstract class CatalogService<TEntity, TDto, TRequest>(CoreContext db, Ca
         var total = await rows.CountAsync(ct);
         if (total > PagingLimits.MaxExportRows) throw new BusinessRuleException("export.tooMany", PagingLimits.MaxExportRows);
         var list = await Sorts.Apply(rows, query.Sort, query.Dir).ToListAsync(ct);
+        await BeforeExportAsync(list, ct);
         var content = excel.Write($"export.{Spec.ObjectType}.sheet", ExportColumns(), list);
         // RecordAsync only adds the row to the context: it is written by this SaveChanges.
         await audit.RecordAsync(new AuditEntry(Spec.Function, Spec.ObjectType, "export", null, AuditActions.Export, [],
@@ -119,13 +145,14 @@ public abstract class CatalogService<TEntity, TDto, TRequest>(CoreContext db, Ca
 
     public async Task<TDto> CreateAsync(TRequest request, CancellationToken ct)
     {
-        var code = Guard.Code(request.Code, Spec.CodeLength, Spec.CodeField);
+        var code = NormalizeCode(request.Code);
         if (await Rows.AnyAsync(x => x.Code == code, ct)) throw new BusinessRuleException($"{Spec.ObjectType}.codeExists", code);
         var row = new TEntity { Code = code, SortOrder = (await Rows.MaxAsync(x => (int?)x.SortOrder, ct) ?? 0) + 1 };
         await ApplyAsync(row, request, ct);
         Rows.Add(row);
         await AfterApplyAsync(row, request, isNew: true, ct);
-        await Db.SaveChangesAsync(ct);
+        await Db.EnsureReferencesExistAsync(row, ct);
+        await SaveAsync(ct);
         return await ResultAsync(row, ct);
     }
 
@@ -135,22 +162,25 @@ public abstract class CatalogService<TEntity, TDto, TRequest>(CoreContext db, Ca
         Db.ExpectVersion(row, request.Version);
         await ApplyAsync(row, request, ct);
         await AfterApplyAsync(row, request, isNew: false, ct);
-        await Db.SaveChangesAsync(ct);
+        await Db.EnsureReferencesExistAsync(row, ct);
+        await SaveAsync(ct);
         return await ResultAsync(row, ct);
     }
 
     public async Task DeleteAsync(string code, CancellationToken ct)
     {
         var row = await FindAsync(code, ct);
+        // Tables that declare [References<TEntity>] on a column keep the record in use (sys_table_ref lists them).
+        await Db.EnsureNotInUseAsync<TEntity>(row.Code, NameOf(row), ct);
         await BeforeDeleteAsync(row, ct);
         Rows.Remove(row);
-        await Db.SaveChangesAsync(ct);
+        await SaveAsync(ct);
     }
 
     // ---- Excel import and bulk delete (every row goes through the methods above) ------------------------------------
 
     public Task<ImportResult> ImportAsync(ImportRequest<TRequest> request, CancellationToken ct) =>
-        batch.ImportAsync(request, row => (row.Code ?? string.Empty).Trim().ToUpperInvariant(),
+        batch.ImportAsync(request, row => KeyText(row.Code),
             (code, token) => Rows.AnyAsync(x => x.Code == code, token),
             (row, token) => CreateAsync(row, token),
             (code, row, token) => UpdateAsync(code, WithoutVersion(row), token), ct);
@@ -161,8 +191,14 @@ public abstract class CatalogService<TEntity, TDto, TRequest>(CoreContext db, Ca
     // ---- Helpers for the catalog -----------------------------------------------------------------------------------
 
     /// <summary>The tracked record of this code, or "{ObjectType}.notFound".</summary>
-    protected async Task<TEntity> FindAsync(string code, CancellationToken ct) =>
-        await Rows.FirstOrDefaultAsync(x => x.Code == code, ct) ?? throw new NotFoundException($"{Spec.ObjectType}.notFound");
+    protected async Task<TEntity> FindAsync(string code, CancellationToken ct)
+    {
+        var key = KeyText(code);
+        return await Rows.FirstOrDefaultAsync(x => x.Code == key, ct) ?? throw new NotFoundException($"{Spec.ObjectType}.notFound");
+    }
+
+    /// <summary>The record's Name when it has one, else its code (for messages).</summary>
+    private static string NameOf(TEntity row) => typeof(TEntity).GetProperty("Name")?.GetValue(row) as string is { Length: > 0 } name ? name : row.Code;
 
     private async Task<TDto> ResultAsync(TEntity row, CancellationToken ct) =>
         (await MapAsync([row], await RecordStamps.ForAsync(Db, [row], ct), ct))[0];

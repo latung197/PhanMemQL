@@ -1,14 +1,14 @@
 # DANH MỤC KHO — HƯỚNG DẪN SỬ DỤNG VÀ QUY TRÌNH THÊM MỚI
 
-Phiên bản: 1.0 · Cập nhật: 04/10/2026 · Áp dụng cho S-ERP tại `Frontend/` và `ServerService/`.
+Phiên bản: 2.0 · Cập nhật: 08/10/2026 · Áp dụng cho S-ERP tại `Frontend/` và `ServerService/`.
 
 ## 1. Phạm vi và trạng thái hiện tại
 
-Danh mục kho là chức năng `inv_warehouse_cat`, truy cập ở **Kho hàng → Danh mục kho**. Dữ liệu của màn này được lưu ở bảng PostgreSQL `erp_warehouse` thông qua API `/api/inventory/warehouses`. Màn hỗ trợ thêm, sửa, ngừng sử dụng, xóa, tìm kiếm, lọc trạng thái, xuất và nhập Excel.
+Danh mục kho là chức năng `inv_warehouse_cat`, truy cập ở **Kho hàng → Danh mục kho**. Dữ liệu của màn này được lưu ở bảng PostgreSQL `erp_warehouse` thông qua API `/api/inventory/warehouses`. Màn hỗ trợ thêm, sửa, ngừng sử dụng, xóa, tìm kiếm, lọc theo trạng thái, loại kho và đơn vị cơ sở, xuất và nhập Excel. Danh sách phân trang và xuất Excel làm ở máy chủ; mỗi kho có **loại kho** (danh mục loại kho) và danh sách **đơn vị cơ sở sử dụng** (chọn nhiều).
 
 Các màn phiếu nhập, phiếu xuất, tồn kho, định mức tồn và vị trí lưu kho vẫn dùng dữ liệu mẫu trong `localStorage` của trình duyệt. Kho mới tạo trong danh mục **chưa tự động xuất hiện** ở các màn đó. Khi tích hợp các nghiệp vụ này với backend, cần chuyển chúng sang dùng `/api/lookups/warehouses` và thống nhất mã kho.
 
-Danh mục hiện là danh sách kho dùng chung, chưa có trường liên kết kho với đơn vị cơ sở. Nếu nghiệp vụ cần giới hạn kho theo chi nhánh, phải bổ sung quy tắc phân quyền và dữ liệu đơn vị cơ sở trước khi áp dụng.
+**Kho theo đơn vị cơ sở.** Mỗi kho có danh sách đơn vị cơ sở được dùng (bảng `erp_warehouse_unit`). **Để trống nghĩa là kho dùng chung**: mọi đơn vị cơ sở đều dùng được. Khi đã chọn đơn vị thì chỉ các đơn vị đó dùng kho: ô chọn kho của phiếu nhập kho chỉ liệt kê kho dùng được cho đơn vị đang đăng nhập, và lưu phiếu với kho không dành cho đơn vị đó bị từ chối. Chỉ chọn thêm được đơn vị đang hoạt động; đơn vị đã gán sẵn thì giữ lại dù sau này bị tạm dừng. Một đơn vị cơ sở còn được kho dùng thì không xóa được.
 
 ### 1.1. Quyền thao tác
 
@@ -18,7 +18,7 @@ Danh mục hiện là danh sách kho dùng chung, chưa có trường liên kế
 | Thêm | Tạo kho; mở màn nhập Excel ở chế độ chỉ thêm. |
 | Sửa | Sửa thông tin hoặc đổi trạng thái; kết hợp với Thêm để nhập Excel kiểu cập nhật bản ghi có sẵn. |
 | Xóa | Xóa một kho hoặc xóa nhiều kho đã chọn. |
-| Xuất | Xuất danh sách đang hiển thị ra Excel. |
+| Xuất | Xuất ra Excel mọi dòng khớp bộ lọc hiện tại (máy chủ làm file và ghi nhật ký). Cần cả quyền Xem. |
 
 Quản trị viên có toàn quyền. Nếu không thấy nút thao tác, kiểm tra quyền của tài khoản tại **Cài đặt → Người dùng & phân quyền**. Không có quyền Xem thì chức năng không xuất hiện trong menu.
 
@@ -35,6 +35,8 @@ Quản trị viên có toàn quyền. Nếu không thấy nút thao tác, kiểm
 1. Bấm **Thêm kho**.
 2. Nhập **Mã kho**: bắt buộc, tối đa 20 ký tự; hệ thống lưu bằng chữ hoa. Không dùng khoảng trắng, dấu hai chấm `:` hoặc dấu phẩy `,`. Ví dụ: `KH-HCM-01`.
 3. Nhập **Tên kho**: bắt buộc, tối đa 100 ký tự và không trùng tên kho đã có. Ví dụ: `Kho Tổng TP. Hồ Chí Minh`.
+   Chọn **Đơn vị cơ sở sử dụng**: gõ mã rồi Enter, hoặc bấm kính lúp / F2 để tìm và đánh dấu nhiều đơn vị. Để trống nếu mọi đơn vị cơ sở đều dùng kho này.
+   Chọn **Loại kho** (tra cứu danh mục loại kho; không bắt buộc).
 4. Nhập **Địa chỉ** (tối đa 300 ký tự), **Thủ kho phụ trách** (tối đa 100 ký tự) và **Sức chứa** (tối đa 100 ký tự). Các trường này có thể bỏ trống; sức chứa hiện là mô tả văn bản, ví dụ `5.000 m²`.
 5. Giữ chọn **Đang hoạt động** nếu kho được phép sử dụng. Bỏ chọn để tạo kho ở trạng thái tạm dừng.
 6. Bấm **Lưu**. Màn hình tự tải lại danh sách và hiện thông báo kết quả.
@@ -51,8 +53,8 @@ Mã kho là khóa của bản ghi và không đổi được sau khi tạo. Nế
 
 ### 2.4. Tìm kiếm, lọc và làm mới
 
-1. Gõ mã, tên, địa chỉ hoặc thủ kho vào ô tìm kiếm. Tìm kiếm không phân biệt chữ hoa/chữ thường và hỗ trợ tiếng Việt không dấu.
-2. Mở **Bộ lọc** để chọn **Đang hoạt động** hoặc **Tạm dừng**. Xóa bộ lọc khi cần xem lại toàn bộ.
+1. Gõ mã, tên, mã loại kho, địa chỉ, thủ kho, sức chứa hoặc mã đơn vị cơ sở vào ô tìm kiếm. Tìm kiếm không phân biệt chữ hoa/chữ thường và hỗ trợ tiếng Việt không dấu.
+2. Mở **Bộ lọc** để chọn trạng thái (**Đang hoạt động** hoặc **Tạm dừng**), **Loại kho** hoặc **Đơn vị cơ sở sử dụng** (kho đơn vị đó dùng được, kể cả kho dùng chung). Xóa bộ lọc khi cần xem lại toàn bộ.
 3. Bấm **Làm mới** để nạp lại từ API sau khi người khác cập nhật.
 4. Có thể chỉnh cột hiển thị, độ rộng, thứ tự sắp xếp và số dòng mỗi trang; bố cục được lưu theo người dùng.
 
@@ -62,7 +64,7 @@ Mã kho là khóa của bản ghi và không đổi được sau khi tạo. Nế
 
 **Nhập:**
 
-1. Bấm **Nhập Excel → Tải file mẫu**. Sử dụng file `.xlsx` có các cột Mã kho, Tên kho, Địa chỉ, Thủ kho phụ trách, Sức chứa, Đang hoạt động.
+1. Bấm **Nhập Excel → Tải file mẫu**. Sử dụng file `.xlsx` có các cột Mã kho, Tên kho, Đơn vị cơ sở sử dụng (mã cách nhau dấu phẩy, ví dụ `DVCS01, DVCS02`; ô trống = dùng chung), Mã loại kho, Địa chỉ, Thủ kho phụ trách, Sức chứa, Đang hoạt động. File xuất ra dùng đúng các cột này nên sửa xong nhập lại được; nếu file nhập không có cột đơn vị thì kho giữ nguyên đơn vị đang có.
 2. Điền dữ liệu; mỗi dòng là một kho. Mã kho và Tên kho là bắt buộc. Không lặp mã trong cùng file.
 3. Chọn file để xem trước các dòng và lỗi trước khi gửi.
 4. Chọn **Chỉ thêm** nếu các mã đều mới. Chọn chế độ **Thêm hoặc cập nhật** khi muốn sửa mã đã có; chế độ này cần cả quyền Thêm và Sửa.
@@ -72,7 +74,7 @@ Mã kho là khóa của bản ghi và không đổi được sau khi tạo. Nế
 
 1. Bấm **Xóa** ở một dòng hoặc đánh dấu nhiều dòng rồi chọn **Xóa đã chọn**.
 2. Đọc hộp xác nhận và xác nhận nếu đúng kho cần xóa.
-3. Xóa là thao tác xóa bản ghi khỏi `erp_warehouse`. Hiện các chứng từ mẫu còn ở trình duyệt nên backend chưa kiểm tra tham chiếu của chúng. Kiểm tra dữ liệu nghiệp vụ trước khi xóa; ưu tiên tạm dừng kho đang dùng.
+3. Xóa là thao tác xóa bản ghi khỏi `erp_warehouse`. Kho đã có phiếu nhập kho thì không xóa được: hệ thống báo "đang được dùng ở: Phiếu nhập kho (n)". Các chứng từ mẫu còn ở trình duyệt thì backend chưa kiểm tra được. Kiểm tra dữ liệu nghiệp vụ trước khi xóa; ưu tiên tạm dừng kho đang dùng.
 
 ### 2.7. Lỗi thường gặp
 
@@ -83,15 +85,17 @@ Mã kho là khóa của bản ghi và không đổi được sau khi tạo. Nế
 | Không lưu được vì dữ liệu đã thay đổi | Tải lại danh sách và sửa trên bản mới nhất. |
 | Nhập Excel bị từ chối | Xem lỗi theo dòng, kiểm tra cột bắt buộc, mã trùng và giới hạn ký tự. |
 | Danh mục rỗng dù màn chứng từ có kho | Hai nguồn dữ liệu hiện chưa đồng bộ; xem Mục 1. |
+| Phiếu nhập báo "Kho X không dành cho đơn vị cơ sở Y" | Kho chỉ dành cho một số đơn vị; chọn kho khác hoặc thêm đơn vị Y vào danh mục kho |
+| Không chọn được đơn vị cơ sở cho kho | Đơn vị đó đang tạm dừng hoặc không tồn tại; kiểm tra ở Cài đặt → Đơn vị cơ sở |
 | API không kết nối | Kiểm tra frontend `:3000`, API `:2512` và `/health` của API. |
 
 ## 3. Kiểm tra cấu trúc triển khai hiện tại
 
 ### 3.1. Sơ đồ luồng dữ liệu
 
-`WarehouseCategoryView` → `CatalogScreen` / `useCatalog` → `warehousesApi` → `WarehousesController` → `WarehouseService` → `CoreContext` → `erp_warehouse`.
+`WarehouseCategoryView` → `CatalogScreen` → `warehousesApi` (`createCatalogApi`) → `WarehousesController : CatalogControllerBase` → `WarehouseService : CatalogService` → `CoreContext` → `erp_warehouse`, `erp_warehouse_unit`.
 
-API kiểm tra quyền `inv_warehouse_cat`; service chuẩn hóa và kiểm tra dữ liệu; EF Core lưu bản ghi. `[Audited]` ghi nhật ký thay đổi, `xmin` ngăn ghi đè và cache danh sách được xóa khi bảng thay đổi. `CatalogBatch` xử lý nhập Excel và xóa nhiều trong giao dịch. `AddLookup("warehouses")` cung cấp tra cứu mã kho cho màn khác.
+API kiểm tra quyền `inv_warehouse_cat` cho từng việc; service chỉ khai báo phần riêng của kho (cột sắp xếp, tìm kiếm, bộ lọc, cột xuất, kiểm tra tên, danh sách đơn vị); khung `CatalogService` lo phân trang, xuất, tạo, sửa, xóa, nhập. Khai báo `[References]` của `erp_warehouse.warehouse_type_code`, `erp_warehouse_unit.unit_code` và `erp_goods_receipt.warehouse_code` giúp chặn xóa kho, loại kho, đơn vị đang được dùng và kiểm tra mã khi lưu. `[Audited]` ghi nhật ký thay đổi, `xmin` ngăn ghi đè và cache danh sách được xóa khi bảng thay đổi. `CatalogBatch` xử lý nhập Excel và xóa nhiều trong giao dịch. Mục tra cứu `warehouses` cung cấp mã kho cho màn khác (`LookupCatalogs.cs`); các ô chọn đơn vị cơ sở và loại kho trên màn kho dùng tra cứu `companyUnits` và `warehouseTypes`.
 
 ### 3.2. Đối chiếu với quy ước dự án
 
@@ -105,26 +109,26 @@ API kiểm tra quyền `inv_warehouse_cat`; service chuẩn hóa và kiểm tra 
 | Frontend dùng API chung và `CatalogScreen` | `modules/inventory/categories/warehouses/` | Đúng |
 | Việt/Anh, nhật ký, chống ghi đè, Excel, tra cứu | Đã đăng ký và kiểm tra | Đúng |
 | Dữ liệu danh mục dùng trong nghiệp vụ | Chứng từ/tồn kho vẫn dùng mock trình duyệt | Chưa tích hợp |
-| Phạm vi kho theo đơn vị cơ sở | Chưa có `unit_code` trên `erp_warehouse` | Chưa thiết kế |
+| Phạm vi kho theo đơn vị cơ sở | `erp_warehouse_unit` (chọn nhiều; trống = dùng chung); phiếu nhập kiểm tra | Đúng (phiếu nhập); các chứng từ khác khi chuyển lên backend |
 
 ### 3.3. Bản đồ tệp
 
 | Thành phần | Đường dẫn |
 | --- | --- |
-| SQL | `ServerService/sql/postgresql/17-inventory-warehouses.sql` |
-| Entity | `ServerService/Core.Domain/Modules/Inventory/Categories/warehouses/Warehouse.cs` |
+| SQL | `ServerService/sql/postgresql/17-inventory-warehouses.sql`, `19-inventory-warehouse-types.sql` (loại kho), `25-inventory-warehouse-units.sql` (đơn vị cơ sở sử dụng) |
+| Entity | `ServerService/Core.Domain/Modules/Inventory/Categories/warehouses/Warehouse.cs` (có `WarehouseUnit`) |
 | DTO, request, interface | `ServerService/Core.Application/Modules/Inventory/Categories/warehouses/WarehouseContracts.cs` |
 | Service | `ServerService/Core.Infrastructure/Modules/Inventory/Categories/warehouses/WarehouseService.cs` |
 | EF DbSet | `ServerService/Core.Infrastructure/Common/Persistence/CoreContext.cs` |
 | DI và tra cứu | `ServerService/Core.Infrastructure/DependencyInjection.cs` |
 | API | `ServerService/Core/Modules/Inventory/Categories/warehouses/WarehousesController.cs` |
-| Menu/quyền | `FunctionCatalog.cs`, `Frontend/src/config/functions.ts`, `Frontend/src/mock/initialMenuData.ts` |
+| Menu/quyền | `FunctionCatalog.cs`, `Frontend/src/config/functions.ts`, `ServerService/Core/SeedData/menu.json` |
 | UI và API client | `Frontend/src/modules/inventory/categories/warehouses/` |
 | Ngôn ngữ | `Messages.vi.json`, `Messages.en.json`, `Frontend/src/locales/{vi,en}/inventory.json` |
 
 ## 4. Quy trình thêm một danh mục mới cho lập trình viên
 
-Ví dụ dưới đây dùng **danh mục kho** để chỉ rõ vị trí và thứ tự công việc. Khi tạo danh mục khác, thay `warehouse`, `warehouses`, `Warehouse` và `inv_warehouse_cat` bằng tên tương ứng. Hướng dẫn tổng quát và mẫu khác ở `docs/them-danh-muc.md`.
+Ví dụ dưới đây dùng **danh mục kho** để chỉ rõ vị trí và thứ tự công việc. Khi tạo danh mục khác, thay `warehouse`, `warehouses`, `Warehouse` và `inv_warehouse_cat` bằng tên tương ứng. Hướng dẫn tổng quát ở `docs/them-danh-muc.md`; mẫu danh mục có danh sách chọn nhiều là Phần 5.1 của tài liệu đó; khai báo tham chiếu giữa các bảng ở `docs/tham-chieu-danh-muc.md`.
 
 ### Bước 1. Chốt mã và trường dữ liệu
 
@@ -152,7 +156,7 @@ Trong `Core.Infrastructure/DependencyInjection.cs`, đăng ký `IWarehouseServic
 
 ### Bước 7. Thêm mã chức năng và menu
 
-Thêm cùng mã `inv_warehouse_cat` vào `FunctionCatalog.cs`, `SubMenuKey` trong `Frontend/src/types/index.ts`, `FUNCTION_REGISTRY` trong `Frontend/src/config/functions.ts`, menu `Frontend/src/mock/initialMenuData.ts` và case trong `InventoryModule.tsx`. Với danh mục kho các mục này đã tồn tại; danh mục mới phải tự bổ sung. Mã này cũng là khóa của quyền, nhật ký và bố cục lưới.
+Thêm cùng mã `inv_warehouse_cat` vào `FunctionCatalog.cs`, `SubMenuKey` trong `Frontend/src/types/index.ts`, `FUNCTION_REGISTRY` trong `Frontend/src/config/functions.ts`, nút menu trong `ServerService/Core/SeedData/menu.json` và case trong `InventoryModule.tsx`. Với danh mục kho các mục này đã tồn tại; danh mục mới phải tự bổ sung. Mã này cũng là khóa của quyền, nhật ký và bố cục lưới.
 
 ### Bước 8. Viết API client và màn hình
 
@@ -172,8 +176,10 @@ Thêm nhãn UI vào `Frontend/src/locales/vi/inventory.json` và `en/inventory.j
 6. Thử `/api/lookups/warehouses` và xác nhận màn nghiệp vụ dùng mã kho thống nhất trước khi tuyên bố tích hợp hoàn toàn.
 7. Cập nhật README và hướng dẫn sử dụng; ghi rõ phần còn dùng dữ liệu mẫu.
 
-## 5. Kết quả xác minh tại thời điểm viết
+## 5. Kết quả xác minh tại thời điểm viết (08/10/2026)
 
-Danh mục kho đã qua `dotnet build`, 233 bài kiểm thử backend, `npm run lint` và `npm run build`. Kiểm thử API tạo → sửa → liệt kê → xóa bản ghi tạm đã thành công. Script bảng kho đã áp dụng vào PostgreSQL cục bộ. Cổng frontend `3000` và API `2512` trả phản hồi thành công; `/health` báo `Healthy`.
+- `dotnet build` 0 lỗi, 0 cảnh báo; 339 bài kiểm thử backend đạt; `tsc` sạch.
+- Kiểm tra API trên backend chạy thật: phân trang, tìm không dấu, sắp xếp, xuất `.xlsx`, nhập Excel (có dòng sai thì không lưu dòng nào), xóa nhiều, tra cứu, 401 / 403 / 409; nhiều đơn vị cơ sở cho một kho (tách bằng dấu phẩy hoặc chấm phẩy, mã lạ bị từ chối, bỏ trường thì giữ nguyên, để trống thì thành dùng chung), lọc theo đơn vị, tìm theo mã đơn vị, phiếu nhập từ chối kho không dành cho đơn vị, xóa đơn vị đang gán cho kho bị chặn.
+- Màn hình `Kho hàng → Danh mục kho` mở đúng, hộp thêm mới có ô chọn nhiều đơn vị cơ sở.
 
-Giới hạn hiện tại: danh mục kho và các màn chứng từ/tồn kho dùng hai nguồn dữ liệu khác nhau; kho chưa gắn với đơn vị cơ sở. Việc chuyển chứng từ và tồn kho sang backend và thiết kế phạm vi kho theo chi nhánh là công việc tiếp theo, không thuộc chức năng danh mục kho này.
+Giới hạn hiện tại: danh mục kho đã gắn với phiếu nhập kho (backend); các chứng từ và tồn kho còn lại vẫn dùng dữ liệu mẫu ở trình duyệt, khi chuyển lên backend phải khai `[References<Warehouse>]` và kiểm tra kho theo đơn vị bằng `db.UsableBy(unitCode)`.

@@ -24,7 +24,8 @@ public sealed record GoodsReceiptOptionsDto(IReadOnlyList<GoodsReceiptOption> Wa
 public interface IGoodsReceiptService
 {
     Task<IReadOnlyList<GoodsReceiptDto>> GetAllAsync(int userId, string unitCode, CancellationToken ct);
-    Task<GoodsReceiptOptionsDto> GetOptionsAsync(CancellationToken ct);
+    /// <summary>Warehouses the company unit may use (shared ones included) and the active currencies.</summary>
+    Task<GoodsReceiptOptionsDto> GetOptionsAsync(string unitCode, CancellationToken ct);
     Task<GoodsReceiptDto> GetAsync(int userId, string unitCode, long id, CancellationToken ct);
     Task<GoodsReceiptDto> CreateAsync(int userId, string unitCode, SaveGoodsReceiptRequest request, CancellationToken ct);
     Task<GoodsReceiptDto> UpdateAsync(int userId, string unitCode, long id, SaveGoodsReceiptRequest request, CancellationToken ct);

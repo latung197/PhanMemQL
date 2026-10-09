@@ -1,15 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Eye, EyeOff, Save } from 'lucide-react';
 import { Button } from '../../components/common/Button';
+import { Tabs } from '../../components/common/Tabs';
+import { MenuStructureEditor } from './MenuStructureEditor';
 import { Checkbox } from '../../components/common/Checkbox';
 import { useLanguage } from '../../context/LanguageContext';
 import type { SysModule } from '../../types/menu';
-import { menuTitle } from '../../services/menuService';
+import { menuService, menuTitle } from '../../services/menuService';
 import type { ModuleCategoryKey, SubMenuKey } from '../../types';
 import type { MenuVisibilityConfig } from '../../services/menuVisibility';
 import { systemSettingsService } from '../../services/systemSettingsService';
 import { getErrorMessage } from '../../services/apiClient';
 import { showToast } from '../../utils/toast';
+
+type MenuTab = 'visibility' | 'structure';
 
 const protectedModules: ModuleCategoryKey[] = ['overview', 'settings'];
 const protectedFunctions: SubMenuKey[] = ['overview_main', 'sys_menu'];
@@ -19,11 +23,16 @@ export const MenuManagementView: React.FC<{
   visibility: MenuVisibilityConfig;
   menuTree: SysModule[];
   onSaved: (value: MenuVisibilityConfig) => void;
-}> = ({ canEdit, visibility, menuTree, onSaved }) => {
+  onStructureChanged: () => void;
+}> = ({ canEdit, visibility, menuTree, onSaved, onStructureChanged }) => {
   const { language, t } = useLanguage();
   const [draft, setDraft] = useState<MenuVisibilityConfig>(visibility);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  // Structure changes belong to the super administrator only; the server decides, the tab is just hidden for the rest.
+  const [canEditStructure, setCanEditStructure] = useState(false);
+  const [tab, setTab] = useState<MenuTab>('visibility');
+  useEffect(() => { void menuService.canEditStructure().then(setCanEditStructure); }, []);
 
   useEffect(() => setDraft(visibility), [visibility]);
 
@@ -71,8 +80,23 @@ export const MenuManagementView: React.FC<{
     }
   };
 
+  const tabBar = canEditStructure ? (
+    <Tabs<MenuTab> value={tab} onChange={setTab} items={[
+        { key: 'visibility', label: t('menuManager.tabVisibility') },
+        { key: 'structure', label: t('menuManager.tabStructure') }
+      ]} />
+  ) : null;
+
+  if (canEditStructure && tab === 'structure') return (
+    <div className="space-y-4">
+      {tabBar}
+      <MenuStructureEditor onChanged={onStructureChanged} />
+    </div>
+  );
+
   return (
     <div className="space-y-4">
+      {tabBar}
       <div className="sticky top-0 z-10 space-y-3 border-b border-slate-200 bg-slate-50 py-3 dark:border-slate-800 dark:bg-slate-950">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

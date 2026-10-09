@@ -3,18 +3,15 @@ using Core.Application.Common.Persistence;
 
 namespace Core.Application.Modules.Inventory;
 
+/// <param name="UnitCodes">Company units that may use the warehouse; empty = shared, every unit may use it.</param>
 public sealed record WarehouseDto(string Code, string Name, string? WarehouseTypeCode, string? WarehouseTypeName, string? Address, string? Manager,
-    string? Capacity, bool IsActive, RecordStampDto Stamp, uint Version);
+    string? Capacity, bool IsActive, RecordStampDto Stamp, uint Version, IReadOnlyList<string> UnitCodes);
 
+/// <param name="UnitCodes">Unit codes separated by comma or semicolon (also the form of an Excel cell); null keeps the units
+/// the warehouse has, an empty text makes the warehouse shared.</param>
 public sealed record SaveWarehouseRequest(string Code, string Name, string? Address, string? Manager,
-    string? Capacity, bool IsActive = true, uint? Version = null, string? WarehouseTypeCode = null);
+    string? Capacity, bool IsActive = true, uint? Version = null, string? WarehouseTypeCode = null,
+    string? UnitCodes = null) : ICatalogRequest;
 
-public interface IWarehouseService
-{
-    Task<IReadOnlyList<WarehouseDto>> GetAllAsync(CancellationToken ct);
-    Task<WarehouseDto> CreateAsync(SaveWarehouseRequest request, CancellationToken ct);
-    Task<WarehouseDto> UpdateAsync(string code, SaveWarehouseRequest request, CancellationToken ct);
-    Task DeleteAsync(string code, CancellationToken ct);
-    Task<ImportResult> ImportAsync(ImportRequest<SaveWarehouseRequest> request, CancellationToken ct);
-    Task<DeleteManyResult> DeleteManyAsync(DeleteManyRequest request, CancellationToken ct);
-}
+/// <summary>Everything a catalog service offers (list, export, create, update, delete, import) comes from ICatalogService.</summary>
+public interface IWarehouseService : ICatalogService<WarehouseDto, SaveWarehouseRequest>;

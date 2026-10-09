@@ -12,6 +12,7 @@ namespace Core.Domain.Common;
 public class GridLayout
 {
     [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity), Column("id")] public long Id { get; set; }
+    [NotReference("mã chức năng (FunctionCatalog), không phải danh mục")]
     [Required, Column("function_code"), MaxLength(64)] public string FunctionCode { get; set; } = string.Empty;
     [Required, Column("grid_key"), MaxLength(64)] public string GridKey { get; set; } = "main";
     [Column("user_id")] public int? UserId { get; set; }

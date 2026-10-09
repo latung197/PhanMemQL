@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Core.Domain.Common;
+using Core.Domain.Modules.CompanyUnits;
 
 namespace Core.Domain.Modules.Fiscal;
 
@@ -12,6 +13,7 @@ namespace Core.Domain.Modules.Fiscal;
 [Table("sys_fiscal_period")]
 public class FiscalPeriod
 {
+    [References<CompanyUnit>]
     [Required, Column("unit_code"), MaxLength(20)] public string UnitCode { get; set; } = string.Empty;
     [Column("year")] public int Year { get; set; }
     [Column("month")] public int Month { get; set; }

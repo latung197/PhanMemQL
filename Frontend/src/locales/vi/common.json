@@ -599,6 +599,10 @@
       }
     },
     "field": {
+      "icon": "Biểu tượng",
+      "iconColor": "Màu biểu tượng",
+      "orderNo": "Thứ tự",
+      "parent": "Thuộc về",
       "username": "Tên đăng nhập",
       "fullName": "Họ và tên",
       "employeeCode": "Mã nhân viên",
@@ -721,7 +725,10 @@
       "setting": "Tham số hệ thống",
       "uom": "Đơn vị tính",
       "materialGroup": "Nhóm vật tư",
-      "auditLog": "Nhật ký thay đổi"
+      "materialType": "Loại vật tư",
+      "taxRate": "Mã thuế",
+      "auditLog": "Nhật ký thay đổi",
+      "menu": "Mục menu"
     },
     "objectLabel": {
       "auditLog": "Dọn nhật ký cũ"
@@ -758,6 +765,32 @@
     "save": "Lưu cấu hình menu",
     "saving": "Đang lưu...",
     "saved": "Đã lưu cấu hình menu"
+,
+    "tabVisibility": "Ẩn / hiện",
+    "tabStructure": "Cấu trúc menu",
+    "structureNote": "Chỉ tài khoản super admin sửa được cấu trúc. Chức năng không thêm hoặc xóa ở đây (do mã nguồn quyết định); muốn bỏ một mục hãy tắt \"Đang dùng\". Mục cần để vào màn này luôn bật.",
+    "addGroup": "Thêm nhóm",
+    "edit": "Sửa",
+    "moveUp": "Lên",
+    "moveDown": "Xuống",
+    "inactive": "Đã tắt",
+    "editTitle": "Sửa mục menu",
+    "createGroupTitle": "Thêm nhóm menu",
+    "nameIn": "Tên ({lang})",
+    "icon": "Biểu tượng",
+    "iconColor": "Màu biểu tượng (tùy chọn)",
+    "order": "Thứ tự",
+    "parent": "Thuộc về",
+    "active": "Đang dùng",
+    "groupCode": "Mã nhóm",
+    "groupCodeHint": "Chữ thường, số, gạch dưới; không đổi được sau khi tạo.",
+    "module": "Phân hệ",
+    "group": "Nhóm",
+    "function": "Chức năng",
+    "cancel": "Hủy",
+    "saveNode": "Lưu",
+    "structureSaved": "Đã lưu cấu trúc menu",
+    "loadFailed": "Không tải được cấu trúc menu"
   },
   "recordStamp": {
     "created": "Người tạo",

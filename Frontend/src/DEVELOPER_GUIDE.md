@@ -74,7 +74,7 @@ src/modules/inventory/categories/suppliers/
    ```typescript
    inv_supplier_cat: fn('inventory', '/inventory/suppliers', 'Nhà cung cấp', 'catalog'),
    ```
-3. Cập nhật dòng `sys_command` của chức năng: `menu_kind = 'function'`, `menu_parent_id` là ID nhóm, `menu_key = 'inv_supplier_cat'`, `menu_icon` và `menu_order_no`. Thêm tên hiển thị theo từng ngôn ngữ vào `sys_command_translation`. Cây menu được lấy qua `GET /api/menu`; `Core/SeedData/menu.json` chỉ dùng khi khởi tạo DB trống.
+3. Thêm nút vào nhóm tương ứng trong `ServerService/Core/SeedData/menu.json` (`subKey`: `inv_supplier_cat`, `titleVi`, `titleEn`, `icon`, `orderNo`). Khi khởi động, backend tự thêm nút chưa có vào `sys_command` và `sys_command_translation` (nút đã có không bị ghi đè); cây menu được lấy qua `GET /api/menu`.
 4. Backend: thêm mã vào `ServerService/Core.Application/Common/Permissions/FunctionCatalog.cs` (xem README gốc, mục "Thêm một chức năng mới").
 
 > Không copy state mock từ `_templates/category-feature-template/` vào danh mục thật.

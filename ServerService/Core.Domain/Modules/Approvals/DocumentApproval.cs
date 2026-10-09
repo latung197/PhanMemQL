@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Core.Domain.Common;
+using Core.Domain.Modules.CompanyUnits;
 
 namespace Core.Domain.Modules.Approvals;
 
@@ -28,6 +29,7 @@ public class DocumentApproval
     [Required, Column("menuid0"), MaxLength(64)] public string MenuId0 { get; set; } = string.Empty;
     [Required, Column("document_id"), MaxLength(64)] public string DocumentId { get; set; } = string.Empty;
     [Column("document_title"), MaxLength(200)] public string? DocumentTitle { get; set; }
+    [References<CompanyUnit>]
     [Required, Column("unit_code"), MaxLength(20)] public string UnitCode { get; set; } = string.Empty;
     [Column("amount", TypeName = "numeric(18,2)")] public decimal? Amount { get; set; }
 

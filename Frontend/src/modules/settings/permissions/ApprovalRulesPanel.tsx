@@ -10,7 +10,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../../components/common
 import { useConfirm } from '../../../components/common/ConfirmDialog';
 import { CompanyUnit, RoleDefinition, SubMenuKey, UserProfile } from '../../../types';
 import {
-  approvalRulesApi, ApprovalPreview, ApprovalRule, ApproverType, Department, RequesterType, SaveApprovalRuleInput, SpecialRightDef
+  approvalRulesApi, ApprovalPreview, ApprovalRule, ApproverType, DepartmentOption, RequesterType, SaveApprovalRuleInput, SpecialRightDef
 } from '../../../services/settingsApi';
 import { getErrorMessage } from '../../../services/apiClient';
 import { showToast } from '../../../utils/toast';
@@ -25,7 +25,7 @@ interface ApprovalRulesPanelProps {
   roles: RoleDefinition[];
   companyUnits: CompanyUnit[];
   rightDefs: SpecialRightDef[];
-  departments: Department[];
+  departments: DepartmentOption[];
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
@@ -264,7 +264,7 @@ const RuleModal: React.FC<{
   users: UserProfile[];
   roles: RoleDefinition[];
   companyUnits: CompanyUnit[];
-  departments: Department[];
+  departments: DepartmentOption[];
   onClose: () => void;
   onSaved: (rule: ApprovalRule) => void;
 }> = ({ rule, fn, users, roles, companyUnits, departments, onClose, onSaved }) => {

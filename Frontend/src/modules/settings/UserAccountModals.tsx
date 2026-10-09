@@ -6,7 +6,7 @@ import { Button } from '../../components/common/Button';
 import { Checkbox } from '../../components/common/Checkbox';
 import { FormSection, PasswordInput, SelectInput, TextArea, TextInput } from '../../components/common/FormField';
 import { CompanyUnit, RoleDefinition, UserProfile } from '../../types';
-import { Department, rolesApi, usersApi } from '../../services/settingsApi';
+import { DepartmentOption, rolesApi, usersApi } from '../../services/settingsApi';
 import { getErrorMessage } from '../../services/apiClient';
 import { showToast } from '../../utils/toast';
 import { countViewable, toFullMatrix } from './permissions/permissionCatalog';
@@ -14,7 +14,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { translate } from '../../utils/i18n';
 
 /** Department picker; inactive departments are only listed when already selected. */
-const DepartmentSelect: React.FC<{ departments: Department[]; value: string; onChange: (code: string) => void }> = ({ departments, value, onChange }) => {
+const DepartmentSelect: React.FC<{ departments: DepartmentOption[]; value: string; onChange: (code: string) => void }> = ({ departments, value, onChange }) => {
   const { t } = useLanguage();
   return (
     <SelectInput label={t('users.form.department')} value={value} onChange={(e) => onChange(e.target.value)}
@@ -120,7 +120,7 @@ const RolePicker: React.FC<{ roles: RoleDefinition[]; value: string; onChange: (
 export const CreateUserModal: React.FC<{
   roles: RoleDefinition[];
   units: CompanyUnit[];
-  departments: Department[];
+  departments: DepartmentOption[];
   defaultUnitCode: string;
   suggestedEmployeeCode: string;
   onClose: () => void;
@@ -242,7 +242,7 @@ export const CreateUserModal: React.FC<{
 export const EditUserModal: React.FC<{
   user: UserProfile;
   units: CompanyUnit[];
-  departments: Department[];
+  departments: DepartmentOption[];
   isSelf: boolean;
   onClose: () => void;
   onSaved: (user: UserProfile) => void;

@@ -6,7 +6,7 @@ namespace Core.Domain.Modules.Inventory;
 
 [Audited("inv_material_group_cat", "materialGroup", Label = "{Code} - {Name}")]
 [Table("erp_material_group")]
-public class MaterialGroup : ErpEntity
+public class MaterialGroup : ErpEntity, ICatalogRecord
 {
     [Key, Column("code"), MaxLength(20)] public string Code { get; set; } = string.Empty;
     [Required, Column("name"), MaxLength(100)] public string Name { get; set; } = string.Empty;

@@ -50,7 +50,7 @@ export const WarehouseTypeCategoryView: React.FC<{ currentUser?: UserProfile }> 
     excel: {
       columns: [
         { key: 'code', header: t('warehouseTypes.code'), required: true, width: 20, example: 'KHO-THANH-PHAM' },
-        { key: 'name', header: t('warehouseTypes.baseName'), required: true, width: 32, example: 'Kho thành phẩm' },
+        { key: 'name', header: t('warehouseTypes.name'), required: true, width: 32, example: 'Kho thành phẩm' },
         { key: 'note', header: t('warehouseTypes.note'), width: 40, example: '' },
         { key: 'isActive', header: t('warehouseTypes.isActive'), type: 'boolean', width: 14, example: true }
       ],

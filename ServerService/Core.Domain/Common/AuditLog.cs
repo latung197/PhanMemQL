@@ -13,6 +13,7 @@ public class AuditLog
 {
     [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity), Column("id")] public long Id { get; set; }
     [Column("log_time", TypeName = "timestamp without time zone")] public DateTime LogTime { get; set; }
+    [NotReference("mã chức năng (FunctionCatalog), không phải danh mục")]
     [Required, Column("function_code"), MaxLength(64)] public string FunctionCode { get; set; } = string.Empty;
     [Required, Column("object_type"), MaxLength(50)] public string ObjectType { get; set; } = string.Empty;
     [Required, Column("object_id"), MaxLength(64)] public string ObjectId { get; set; } = string.Empty;
@@ -24,6 +25,7 @@ public class AuditLog
     [Column("actor_id")] public int? ActorId { get; set; }
     [Column("actor_username"), MaxLength(50)] public string? ActorUsername { get; set; }
     [Column("actor_name"), MaxLength(100)] public string? ActorName { get; set; }
+    [NotReference("nhật ký giữ mã đơn vị lúc ghi, không chặn xóa đơn vị")]
     [Column("unit_code"), MaxLength(20)] public string? UnitCode { get; set; }
     [Column("ip_address"), MaxLength(64)] public string? IpAddress { get; set; }
 }

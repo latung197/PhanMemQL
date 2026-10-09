@@ -599,6 +599,7 @@
     "sys_currencies": "Currencies",
     "sys_exchange_rates": "Exchange rates",
     "sys_languages": "Languages",
+    "sys_tax_rates": "Tax codes",
     "sales_customers": "Customers",
     "sales_orders": "Sales orders",
     "sales_delivery": "Deliveries",
@@ -652,6 +653,10 @@
       }
     },
     "field": {
+      "icon": "Icon",
+      "iconColor": "Icon colour",
+      "orderNo": "Order",
+      "parent": "Belongs to",
       "username": "Username",
       "fullName": "Full name",
       "employeeCode": "Employee code",
@@ -774,7 +779,10 @@
       "setting": "System parameter",
       "uom": "Unit of measure",
       "materialGroup": "Material group",
-      "auditLog": "Change log"
+      "materialType": "Material type",
+      "taxRate": "Tax code",
+      "auditLog": "Change log",
+      "menu": "Menu item"
     },
     "objectLabel": {
       "auditLog": "Old entries removed"
@@ -808,6 +816,32 @@
     "save": "Save menu settings",
     "saving": "Saving...",
     "saved": "Menu settings saved"
+,
+    "tabVisibility": "Show / hide",
+    "tabStructure": "Menu structure",
+    "structureNote": "Only the super admin account can change the structure. Functions are not added or removed here (the source code decides); to drop an item turn off \"In use\". The item needed to open this screen always stays on.",
+    "addGroup": "Add group",
+    "edit": "Edit",
+    "moveUp": "Up",
+    "moveDown": "Down",
+    "inactive": "Off",
+    "editTitle": "Edit menu item",
+    "createGroupTitle": "Add menu group",
+    "nameIn": "Name ({lang})",
+    "icon": "Icon",
+    "iconColor": "Icon colour (optional)",
+    "order": "Order",
+    "parent": "Belongs to",
+    "active": "In use",
+    "groupCode": "Group code",
+    "groupCodeHint": "Lowercase letters, digits, underscores; cannot change after creating.",
+    "module": "Module",
+    "group": "Group",
+    "function": "Function",
+    "cancel": "Cancel",
+    "saveNode": "Save",
+    "structureSaved": "Menu structure saved",
+    "loadFailed": "Could not load the menu structure"
   },
   "recordStamp": {
     "created": "Created by",

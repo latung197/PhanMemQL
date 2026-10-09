@@ -7,7 +7,7 @@ import type { Language } from '../utils/i18n';
 import { canView } from '../utils/permissions';
 import { EMPTY_MENU_VISIBILITY, isMenuFunctionVisible, isMenuModuleVisible, type MenuVisibilityConfig } from './menuVisibility';
 
-interface MenuNode {
+export interface MenuNode {
   id: string;
   parentId: string | null;
   nodeType: 'module' | 'group' | 'function';
@@ -33,7 +33,7 @@ export const menuTitle = (item: { titleVi: string; titleEn: string; titles?: Rec
   return translated?.trim() || (code.startsWith('en') ? item.titleEn?.trim() : '') || item.titleVi;
 };
 
-const toTree = (nodes: MenuNode[]): SysModule[] => {
+export const toTree = (nodes: MenuNode[]): SysModule[] => {
   const ordered = [...nodes].sort((a, b) => a.orderNo - b.orderNo || a.id.localeCompare(b.id));
   const modules = ordered.filter(n => n.nodeType === 'module' && knownModule(n.code));
   return modules.map(mod => {
@@ -56,8 +56,50 @@ const toTree = (nodes: MenuNode[]): SysModule[] => {
   });
 };
 
+export interface SaveMenuNodeInput {
+  titles: Record<string, string>;
+  icon: string;
+  iconColor: string | null;
+  orderNo: number;
+  isActive: boolean;
+  parentId: string | null;
+}
+
+export interface CreateMenuGroupInput {
+  moduleId: string;
+  code: string;
+  titles: Record<string, string>;
+  icon: string;
+  iconColor: string | null;
+  orderNo: number;
+}
+
 export const menuService = {
-  load: async (): Promise<SysModule[]> => toTree(await apiRequest<MenuNode[]>('GET', '/api/menu')),
+  /** Only the super administrator (Security:SuperAdmin) may change the structure; everybody else gets false. */
+  canEditStructure: async (): Promise<boolean> => {
+    try {
+      return (await apiRequest<{ canEditStructure: boolean }>('GET', '/api/menu/access')).canEditStructure;
+    } catch {
+      return false;
+    }
+  },
+  /** Every node, whatever the user may view, for the structure editor. */
+  loadAllNodes: (): Promise<MenuNode[]> => apiRequest<MenuNode[]>('GET', '/api/menu/manage'),
+  saveNode: (id: string, input: SaveMenuNodeInput): Promise<MenuNode> =>
+    apiRequest<MenuNode>('PUT', `/api/menu/nodes/${encodeURIComponent(id)}`, input),
+  createGroup: (input: CreateMenuGroupInput): Promise<MenuNode> => apiRequest<MenuNode>('POST', '/api/menu/groups', input),
+  reorder: (parentId: string | null, ids: string[]): Promise<void> =>
+    apiRequest<void>('PUT', '/api/menu/order', { parentId, ids }),
+
+  /** One retry after a short wait: a failed load leaves the sidebar empty. */
+  load: async (): Promise<SysModule[]> => {
+    try {
+      return toTree(await apiRequest<MenuNode[]>('GET', '/api/menu'));
+    } catch {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      return toTree(await apiRequest<MenuNode[]>('GET', '/api/menu'));
+    }
+  },
 
   getUserMenuTree(
     tree: SysModule[], lang: Language = 'vi', currentUser?: UserProfile,

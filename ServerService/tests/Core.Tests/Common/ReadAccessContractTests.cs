@@ -17,11 +17,6 @@ public sealed class ReadAccessContractTests
 {
     private static readonly Dictionary<string, string> Exempt = new(StringComparer.Ordinal)
     {
-        ["CompanyUnitsController.GetAll"] = "Đơn vị ở thanh đầu trang, form người dùng, quy tắc duyệt; sang tra cứu khi chuyển màn",
-        ["CurrenciesController.GetAll"] = "Chọn ngoại tệ ở màn tỷ giá và phiếu; sang tra cứu khi chuyển màn",
-        ["ExchangeRatesController.GetAll"] = "Màn tỷ giá đọc cả khi chỉ có quyền tiền tệ; xem lại khi chuyển màn",
-        ["ExchangeRatesController.Rate"] = "Tỷ giá cho một phiếu: mọi người lập phiếu cần",
-        ["DepartmentsController.GetAll"] = "Chọn phòng ban ở form người dùng và quy tắc duyệt; sang tra cứu khi chuyển màn",
         ["FiscalPeriodsController.GetYear"] = "Trạng thái khóa sổ hiện trên phiếu; chỉ đọc",
         ["FiscalPeriodsController.Check"] = "Mọi người lập phiếu cần biết ngày đã khóa sổ chưa",
         ["VoucherNumberingController.Preview"] = "Số phiếu dự kiến hiện khi lập phiếu",
