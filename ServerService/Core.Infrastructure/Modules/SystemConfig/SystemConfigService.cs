@@ -70,6 +70,31 @@ public sealed class SystemConfigService(CoreContext db, IAppCache cache, INotifi
         return result;
     }
 
+    public Task<LoginBrandingDto> GetLoginBrandingAsync(CancellationToken ct) =>
+        db.CachedAsync(cache, "settings:loginBranding", ["sys_setting"], async token =>
+        {
+            var json = await db.SystemSettings.AsNoTracking()
+                .Where(x => x.Key == SystemConfigSections.Keys["companyProfile"] && x.Scope == SystemSetting.GlobalScope && x.IsPublic)
+                .Select(x => x.Value).FirstOrDefaultAsync(token);
+            static string Text(JsonElement root, string name, int max)
+            {
+                var text = root.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String ? (p.GetString() ?? "").Trim() : "";
+                return text.Length > max ? text[..max] : text;
+            }
+            if (json is null) return new LoginBrandingDto("", "", "");
+            try
+            {
+                using var document = JsonDocument.Parse(json);
+                var root = document.RootElement;
+                var name = Text(root, "shortName", 100);
+                return new LoginBrandingDto(name.Length > 0 ? name : Text(root, "companyName", 100), Text(root, "slogan", 200), Text(root, "loginFooter", 200));
+            }
+            catch (JsonException)
+            {
+                return new LoginBrandingDto("", "", "");
+            }
+        }, ct);
+
     public async Task SaveAsync(int userId, string section, JsonElement value, string? unitCode, CancellationToken ct)
     {
         var name = SystemConfigSections.Validate(section, value);

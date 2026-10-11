@@ -14,7 +14,13 @@ public interface ISystemConfigService
 
     /// <summary>Saves a section globally, or only for <paramref name="unitCode"/> when given.</summary>
     Task SaveAsync(int userId, string section, JsonElement value, string? unitCode, CancellationToken ct);
+
+    /// <summary>The company name, slogan and footer line for the login screen, from the company profile. Open to everyone, so only these fields are returned.</summary>
+    Task<LoginBrandingDto> GetLoginBrandingAsync(CancellationToken ct);
 }
+
+/// <summary>Texts of the login screen taken from the company profile; an empty text means "use the built-in one".</summary>
+public sealed record LoginBrandingDto(string Name, string Slogan, string Footer);
 
 /// <summary>
 /// auditLog section: rows of sys_audit_log older than retentionMonths are deleted automatically (0 = kept forever).

@@ -69,6 +69,10 @@ export interface CompanyProfileConfig {
   legalRepresentative: string;
   chiefAccountant: string;
   logoUrl?: string;
+  /** Shown under the company name on the login screen; empty = the built-in text. */
+  slogan?: string;
+  /** Footer line of the login screen; empty = the built-in text. */
+  loginFooter?: string;
 }
 
 /** How numbers and money are displayed, the same for every user of the company. */

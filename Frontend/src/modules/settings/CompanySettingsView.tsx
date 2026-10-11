@@ -72,6 +72,9 @@ const CompanyProfileForm: React.FC<{ canEdit: boolean }> = ({ canEdit }) => {
           <TextInput label="Website" {...field('website')} />
           <TextInput label="Người đại diện pháp luật" {...field('legalRepresentative')} />
           <TextInput label="Kế toán trưởng" {...field('chiefAccountant')} />
+          <p className="md:col-span-2 pt-2 text-xs font-bold uppercase tracking-wider text-slate-500">Hiển thị ở trang đăng nhập</p>{/* i18n-ignore */}
+          <TextInput label="Khẩu hiệu" hint="Dòng chữ dưới tên công ty. Để trống thì dùng câu có sẵn." maxLength={200} wrapperClassName="md:col-span-2" {...field('slogan')} />{/* i18n-ignore */}
+          <TextInput label="Dòng chân trang" hint="Ví dụ bản quyền. Để trống thì dùng câu có sẵn." maxLength={200} wrapperClassName="md:col-span-2" {...field('loginFooter')} />{/* i18n-ignore */}
         </fieldset>
         {canEdit && (
           <div className="flex justify-end">

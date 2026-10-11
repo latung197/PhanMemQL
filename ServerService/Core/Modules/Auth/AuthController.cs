@@ -1,6 +1,8 @@
 using Core.Application.Modules.Auth;
 using Core.Application.Modules.CompanyUnits;
 using Core.Application.Modules.Languages;
+using Core.Application.Modules.LoginNotices;
+using Core.Application.Modules.SystemConfig;
 using Core.Application.Modules.Users;
 using Core.Common.Controllers;
 using Core.Common.Extensions;
@@ -26,7 +28,26 @@ public sealed class AuthController(IAuthService auth, IUserService users, ICompa
     public Task<IReadOnlyList<LanguageOptionDto>> Languages([FromServices] ILanguageService languages, CancellationToken ct) =>
         languages.GetActiveAsync(ct);
 
-    [HttpPost("login"), AllowAnonymous, EnableRateLimiting(ApiServiceExtensions.LoginRateLimit)]
+    /// <summary>Company name, slogan and footer line of the login screen (from the company profile).</summary>
+    [HttpGet("branding"), AllowAnonymous]
+    public Task<LoginBrandingDto> Branding([FromServices] ISystemConfigService config, CancellationToken ct) => config.GetLoginBrandingAsync(ct);
+
+    /// <summary>Notices beside the login form (welcome, maintenance, rules), in the visitor's language.</summary>
+    [HttpGet("notices"), AllowAnonymous]
+    public Task<IReadOnlyList<LoginNoticePublicDto>> Notices([FromServices] ILoginNoticeService notices, CancellationToken ct) =>
+        notices.GetPublicAsync(Request.Headers.AcceptLanguage.ToString().Split(',')[0], ct);
+
+    /// <summary>A picture of a login notice. The code changes with every upload, so it is cached for a year.</summary>
+    [HttpGet("notice-images/{code}"), AllowAnonymous]
+    public async Task<IActionResult> NoticeImage(string code, [FromServices] ILoginNoticeService notices, CancellationToken ct)
+    {
+        var image = await notices.GetImageAsync(code, ct);
+        if (image is null) return NotFound();
+        Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        return File(image.Data, image.ContentType);
+    }
+
+    [HttpPost("login"), AllowAnonymous,EnableRateLimiting(ApiServiceExtensions.LoginRateLimit)]
     public Task<AuthResult> Login(LoginRequest request, CancellationToken ct) => auth.LoginAsync(request, ct);
 
     [HttpGet("me")]

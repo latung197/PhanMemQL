@@ -741,6 +741,15 @@
             "icon": "Languages",
             "orderNo": 30,
             "isActive": true
+          },
+          {
+            "id": "MNU_SYS_LOGIN_NOTICES",
+            "subKey": "sys_login_notices",
+            "titleVi": "Thông báo trang đăng nhập",
+            "titleEn": "Login Screen Notices",
+            "icon": "Megaphone",
+            "orderNo": 40,
+            "isActive": true
           }
         ]
       },

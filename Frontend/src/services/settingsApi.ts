@@ -1,5 +1,6 @@
 // Settings screens backed by the API: users, roles and company units (backend: /api/settings/*).
-import { apiRequest } from './apiClient';
+import { API_BASE_URL, apiRequest } from './apiClient';
+import { prepareImage } from '../utils/imageCompress';
 import { ActionPermissions, CompanyUnit, RoleDefinition, SubMenuKey, UserProfile } from '../types';
 import { createCatalogApi } from '../components/catalog/createCatalogApi';
 import type { RecordStamp } from '../components/common/RecordStamp';
@@ -376,5 +377,46 @@ export const auditLogApi = {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== '') params.set(key, String(value));
     return apiRequest<AuditPage>('GET', `/api/audit-logs?${params}`);
+  }
+};
+
+export type LoginNoticeKind = 'INFO' | 'WELCOME' | 'MAINTENANCE' | 'RULE' | 'BACKGROUND';
+
+export interface LoginNotice {
+  code: string;
+  title: string;
+  content: string;
+  titleEn?: string | null;
+  contentEn?: string | null;
+  kind: LoginNoticeKind;
+  /** yyyy-MM-dd, inclusive; empty = already shown / no end. */
+  startDate?: string | null;
+  endDate?: string | null;
+  /** A pinned notice keeps the big slot of the login screen. */
+  pinned: boolean;
+  /** Code of the picture (see loginNoticeImagesApi); empty = text only. */
+  loginImageCode?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  version?: number;
+}
+
+export type LoginNoticeRow = LoginNotice & { stamp: RecordStamp };
+export type SaveLoginNoticeInput = Omit<LoginNotice, 'titleEn' | 'contentEn' | 'loginImageCode'> & { titleEn: string; contentEn: string; loginImageCode: string };
+
+export const loginNoticesApi = createCatalogApi<LoginNoticeRow, SaveLoginNoticeInput>({
+  url: '/api/settings/login-notices', fileName: 'ThongBaoTrangDangNhap'
+});
+
+/** The picture of a login notice is read without signing in (the login screen shows it). */
+export const loginImageUrl = (code: string): string => `${API_BASE_URL}/api/auth/notice-images/${encodeURIComponent(code)}`;
+
+export const loginNoticeImagesApi = {
+  /** Shrinks the picture in the browser, uploads it and returns its code. */
+  async upload(file: File): Promise<string> {
+    const image = await prepareImage(file);
+    const result = await apiRequest<{ code: string }>('POST', '/api/settings/login-notice-images',
+      { contentType: image.contentType, dataBase64: image.dataBase64 });
+    return result.code;
   }
 };

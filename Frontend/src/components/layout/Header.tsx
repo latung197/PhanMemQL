@@ -26,6 +26,10 @@ import { authService } from '../../services/authService';
 import { getErrorMessage } from '../../services/apiClient';
 import { showToast } from '../../utils/toast';
 
+// Shared look of the toolbar controls: same height, white chip on the brand header.
+const PILL = 'relative flex h-9 items-center gap-1.5 px-2 rounded-[7px] bg-white dark:bg-slate-900 border border-brand-300/60 dark:border-slate-700 shadow-2xs hover:bg-brand-50 dark:hover:bg-slate-800 transition-colors';
+const ICON_BTN = 'flex h-9 w-9 items-center justify-center rounded-[7px] bg-white dark:bg-slate-900 border border-brand-300/60 dark:border-slate-700 shadow-2xs text-slate-600 dark:text-slate-300 hover:bg-brand-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-hidden';
+
 interface HeaderProps {
   user: UserProfile;
   activeTitle: string;
@@ -111,46 +115,47 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Right Toolbar Controls: Menu bên phải */}
-      <div className="flex items-center gap-1 sm:gap-1.5 p-1 shrink-0 bg-brand-50 dark:bg-slate-800/80 border border-brand-200 dark:border-slate-700/80 rounded-[7px] shadow-2xs">
+      {/* Right toolbar: working unit, language, theme, notifications, account */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
 
-        {/* Business Unit Selector in Header */}
+        {/* Working company unit */}
         {companyUnits.length > 0 && onSelectCompanyUnit && (
-          <div className="relative hidden sm:block">
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-[5px] bg-white dark:bg-slate-900 border border-brand-200 dark:border-indigo-800/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold shadow-2xs">
-              <Building2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-              <select
-                value={activeCompanyUnitCode || currentUnit?.code || ''}
-                onChange={(e) => onSelectCompanyUnit(e.target.value)}
-                className="bg-transparent font-bold cursor-pointer focus:outline-none text-xs"
-                title={t('common.workingCompanyUnit')}
-              >
-                {companyUnits.map(u => (
-                  <option key={u.id} value={u.code} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
-                    {u.code} - {u.localizedName || u.shortName || u.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <label className={`${PILL} hidden sm:flex max-w-[260px]`} title={t('common.workingCompanyUnit')}>
+            <span className="flex h-5 w-5 items-center justify-center rounded-[4px] bg-brand-100 dark:bg-slate-700 shrink-0">
+              <Building2 className="h-3 w-3 text-brand-700 dark:text-brand-300" />
+            </span>
+            <select
+              value={activeCompanyUnitCode || currentUnit?.code || ''}
+              onChange={(e) => onSelectCompanyUnit(e.target.value)}
+              aria-label={t('common.workingCompanyUnit')}
+              className="min-w-0 flex-1 appearance-none bg-transparent pr-4 text-xs font-semibold text-slate-800 dark:text-slate-100 cursor-pointer outline-hidden truncate"
+            >
+              {companyUnits.map(u => (
+                <option key={u.id} value={u.code} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+                  {u.code} - {u.localizedName || u.shortName || u.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-slate-400" />
+          </label>
         )}
 
         {/* Language picker: the active languages of Settings › Ngôn ngữ */}
         {languages.length > 1 && (
-          <label className="px-2 py-1 rounded-[5px] text-xs font-extrabold bg-white dark:bg-slate-900 hover:bg-brand-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1 cursor-pointer border border-brand-200 dark:border-slate-700/60 shadow-2xs"
-            title={t('common.language')}>
-            <Globe className="h-3.5 w-3.5 text-indigo-500" />
+          <label className={PILL} title={t('common.language')}>
+            <Globe className="h-3.5 w-3.5 text-brand-600 dark:text-brand-300 shrink-0" />
             <select value={language} onChange={(e) => changeLanguage(e.target.value)} aria-label={t('common.language')}
-              className="bg-transparent outline-hidden cursor-pointer uppercase">
-              {languages.map(l => <option key={l.code} value={l.code}>{l.code.toUpperCase()} · {l.nativeName}</option>)}
+              className="appearance-none bg-transparent pr-4 text-xs font-semibold text-slate-800 dark:text-slate-100 cursor-pointer outline-hidden">
+              {languages.map(l => <option key={l.code} value={l.code} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">{l.code.toUpperCase()} · {l.nativeName}</option>)}
             </select>
+            <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-slate-400" />
           </label>
         )}
-        
+
         {/* Theme Toggle Button */}
         <button
           onClick={toggleTheme}
-          className="p-1.5 rounded-[5px] text-slate-600 dark:text-slate-300 hover:bg-brand-100 dark:hover:bg-slate-700 transition-colors cursor-pointer focus:outline-hidden"
+          className={ICON_BTN}
           title={theme === 'dark' ? t('common.switchToLight') : t('common.switchToDark')}
         >
           {theme === 'dark' ? (
@@ -181,22 +186,22 @@ export const Header: React.FC<HeaderProps> = ({
           />
         )}
 
-        <div className="h-4 w-px bg-brand-200 dark:bg-slate-700 mx-0.5"></div>
+        <div className="h-5 w-px bg-brand-300/60 dark:bg-slate-700 mx-0.5"></div>
 
         {/* User Profile Menu Dropdown */}
         <div className="relative">
           <button
             onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-[5px] bg-white dark:bg-slate-900 hover:bg-brand-100 dark:hover:bg-slate-700 transition-colors cursor-pointer focus:outline-hidden border border-brand-200 dark:border-slate-700/60 shadow-2xs"
+            className="flex h-9 items-center gap-2 pl-1.5 pr-2 rounded-[7px] bg-white dark:bg-slate-900 hover:bg-brand-50 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-hidden border border-brand-300/60 dark:border-slate-700 shadow-2xs"
           >
-            <div className="h-6 w-6 bg-indigo-600 text-white rounded-[5px] flex items-center justify-center font-bold text-xs shadow-xs">
+            <div className="h-6 w-6 bg-brand-600 text-white rounded-[5px] flex items-center justify-center font-bold text-xs">
               {user.fullName.charAt(0)}
             </div>
             <div className="text-left hidden sm:block">
               <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 leading-tight">
                 {user.fullName}
               </p>
-              <p className="text-[9px] text-slate-400 font-medium">@{user.username}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-tight">@{user.username}</p>
             </div>
             <ChevronDown className="h-3 w-3 text-slate-400 hidden sm:block" />
           </button>

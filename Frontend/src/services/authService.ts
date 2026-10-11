@@ -2,6 +2,24 @@
 import { apiRequest, tokenStore } from './apiClient';
 import { UserProfile } from '../types';
 
+/** A notice beside the login form, already in the visitor's language. */
+export interface LoginNotice {
+  code: string;
+  kind: 'INFO' | 'WELCOME' | 'MAINTENANCE' | 'RULE' | 'BACKGROUND';
+  title: string;
+  content: string;
+  pinned: boolean;
+  /** Picture code; for the kind BACKGROUND it is the background of the login screen. */
+  imageCode?: string | null;
+}
+
+/** Company name, slogan and footer of the login screen (company profile); an empty text = the built-in one. */
+export interface LoginBranding {
+  name: string;
+  slogan: string;
+  footer: string;
+}
+
 export interface LoginUnitOption {
   id: string;
   code: string;
@@ -39,6 +57,10 @@ const acceptSession = (result: AuthResult): UserProfile => {
 
 export const authService = {
   hasSession: () => tokenStore.get() !== null,
+
+  getLoginBranding: () => apiRequest<LoginBranding>('GET', '/api/auth/branding', undefined, { anonymous: true }),
+
+  getLoginNotices: () => apiRequest<LoginNotice[]>('GET', '/api/auth/notices', undefined, { anonymous: true }),
 
   getLoginUnits: () => apiRequest<LoginUnitOption[]>('GET', '/api/auth/company-units', undefined, { anonymous: true }),
 

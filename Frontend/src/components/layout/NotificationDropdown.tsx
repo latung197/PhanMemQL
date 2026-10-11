@@ -68,13 +68,13 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-1.5 rounded-[5px] text-slate-600 dark:text-slate-300 hover:bg-brand-100 dark:hover:bg-slate-700 relative transition-colors focus:outline-hidden cursor-pointer"
+        className="relative flex h-9 w-9 items-center justify-center rounded-[7px] bg-white dark:bg-slate-900 border border-brand-300/60 dark:border-slate-700 shadow-2xs text-slate-600 dark:text-slate-300 hover:bg-brand-50 dark:hover:bg-slate-800 transition-colors focus:outline-hidden cursor-pointer"
         title={unreadCount > 0 ? t('layout.notifications.unreadTitle', { n: unreadCount }) : t('layout.notifications.title')}
         aria-label={t('layout.notifications.title')}
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+          <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}

@@ -526,6 +526,12 @@
     "loadingUnits": "Đang tải đơn vị cơ sở...",
     "selectUnit": "Vui lòng chọn đơn vị cơ sở.",
     "rememberUsername": "Ghi nhớ tên đăng nhập",
+    "kind": {
+      "WELCOME": "Chào mừng",
+      "INFO": "Thông tin",
+      "RULE": "Quy tắc",
+      "MAINTENANCE": "Bảo trì"
+    },
     "login": "Đăng nhập",
     "footer": "© 2026 S-ERP Enterprise Solution. Bảo mật dữ liệu doanh nghiệp."
   },
@@ -727,6 +733,7 @@
       "materialGroup": "Nhóm vật tư",
       "materialType": "Loại vật tư",
       "taxRate": "Mã thuế",
+      "loginNotice": "Thông báo đăng nhập",
       "auditLog": "Nhật ký thay đổi",
       "menu": "Mục menu"
     },

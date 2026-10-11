@@ -88,5 +88,5 @@ export interface CatalogDefinition<T, TInput> {
   normalize?: (input: TInput) => TInput;
   renderForm: (props: CatalogFormProps<T, TInput>) => React.ReactNode;
   /** Modal width of the form. */
-  formWidth?: 'md' | 'lg' | 'xl' | '2xl';
+  formWidth?: 'md' | 'lg' | 'xl' | '2xl' | '3xl';
 }

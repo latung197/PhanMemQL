@@ -526,6 +526,12 @@
     "loadingUnits": "Loading company units...",
     "selectUnit": "Please select a company unit.",
     "rememberUsername": "Remember username",
+    "kind": {
+      "WELCOME": "Welcome",
+      "INFO": "Information",
+      "RULE": "Rule",
+      "MAINTENANCE": "Maintenance"
+    },
     "login": "Sign in",
     "footer": "© 2026 S-ERP Enterprise Solution. Enterprise data security."
   },
@@ -599,6 +605,7 @@
     "sys_currencies": "Currencies",
     "sys_exchange_rates": "Exchange rates",
     "sys_languages": "Languages",
+    "sys_login_notices": "Login screen notices",
     "sys_tax_rates": "Tax codes",
     "sales_customers": "Customers",
     "sales_orders": "Sales orders",
@@ -781,6 +788,7 @@
       "materialGroup": "Material group",
       "materialType": "Material type",
       "taxRate": "Tax code",
+      "loginNotice": "Login notice",
       "auditLog": "Change log",
       "menu": "Menu item"
     },

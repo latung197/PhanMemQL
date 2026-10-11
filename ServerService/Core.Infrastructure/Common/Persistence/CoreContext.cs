@@ -5,6 +5,7 @@ using Core.Domain.Modules.Approvals;
 using Core.Domain.Modules.CompanyUnits;
 using Core.Domain.Modules.Currencies;
 using Core.Domain.Modules.Departments;
+using Core.Domain.Modules.LoginNotices;
 using Core.Domain.Modules.TaxRates;
 using Core.Domain.Modules.Fiscal;
 using Core.Domain.Modules.Inventory;
@@ -59,6 +60,8 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     // Organization and accounting settings
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<TaxRate> TaxRates => Set<TaxRate>();
+    public DbSet<LoginNotice> LoginNotices => Set<LoginNotice>();
+    public DbSet<LoginImage> LoginImages => Set<LoginImage>();
     public DbSet<Currency> Currencies => Set<Currency>();
     public DbSet<ExchangeRate> ExchangeRates => Set<ExchangeRate>();
     public DbSet<FiscalPeriod> FiscalPeriods => Set<FiscalPeriod>();
