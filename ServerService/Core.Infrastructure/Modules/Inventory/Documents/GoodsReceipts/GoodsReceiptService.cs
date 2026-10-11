@@ -11,12 +11,12 @@ using Core.Application.Modules.Users;
 using Core.Application.Modules.VoucherNumbering;
 using Core.Domain.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Infrastructure.Common.Persistence;
-using Core.Infrastructure.Common.Persistence.Sql;
+using Core.Application.Modules.Inventory.Stock;
 using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Modules.Inventory.Documents.GoodsReceipts;
 
-public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, ISqlExecutor sql,
+public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, IStockLedger ledger,
     IVoucherNumberService numbers, IFiscalPeriodService fiscal, IExchangeRateService rates, IPermissionService permissions,
     IDocumentApprovalService approvals, IAuditLog audit) : IGoodsReceiptService
 {
@@ -137,20 +137,38 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
             }
             else if (normalized == "post")
             {
-                await sql.ExecuteAsync(SqlScripts.Get("Inventory.Documents.GoodsReceipts", "PostReceipt"),
-                    new { receiptId = row.Id }, token);
+                await ledger.PostAsync(userId, await ToPostingAsync(row, unitCode, token), token);
                 row.Status = "Posted";
             }
             else if (normalized == "unpost")
             {
-                await sql.ExecuteAsync("DELETE FROM erp_stock_movement WHERE source_function = @function AND source_id = @id",
-                    new { function = Function, id = row.Id }, token);
+                await ledger.UnpostAsync(userId, Function, row.Id, token);
                 row.Status = "Approved";
             }
             else row.Status = "Cancelled";
             await db.SaveChangesAsync(token);
         }, ct);
         return await ResultAsync(userId, unitCode, id, ct);
+    }
+
+    /// <summary>
+    /// The ledger posting of a receipt: its item lines (the material lines are the bill of materials, not stock in), valued in the
+    /// base currency. The lot number and position typed on a line only go to the ledger for materials that track lots / locations
+    /// (until the receipt picks them from the catalogs, other materials may still carry them as plain notes).
+    /// </summary>
+    private async Task<StockPosting> ToPostingAsync(GoodsReceipt row, string unitCode, CancellationToken ct)
+    {
+        var codes = row.Lines.Select(x => x.ProductCode).Distinct().ToList();
+        var flags = await db.Materials.AsNoTracking().Where(x => codes.Contains(x.Code))
+            .ToDictionaryAsync(x => x.Code, x => (x.TrackLot, x.TrackLocation), ct);
+        string? Text(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        var lines = row.Lines.Where(x => x.Kind == "ITEM").OrderBy(x => x.LineNo).Select(x =>
+        {
+            var tracked = flags.GetValueOrDefault(x.ProductCode);
+            return new StockLineInput(x.Id, x.ProductCode, x.Quantity, null, decimal.Round(x.Amount * row.ExchangeRate, 2),
+                tracked.TrackLot ? Text(x.LotNumber) : null, null, null, tracked.TrackLocation ? Text(x.Position) : null);
+        }).ToList();
+        return new StockPosting(Function, row.Id, unitCode, row.WarehouseCode, row.DocumentDate, StockDirection.In, lines);
     }
 
     public async Task DeleteAsync(int userId, string unitCode, long id, CancellationToken ct)

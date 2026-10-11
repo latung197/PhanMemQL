@@ -1,6 +1,6 @@
 // Declaration of one catalog screen (danh mục) for CatalogScreen: the screen only says what is specific to it
 // (columns, form, Excel columns, extra filters); loading, search, filters, Excel import / export, bulk delete,
-// permissions and messages are the same for every catalog. See docs/them-danh-muc.md.
+// permissions and messages are the same for every catalog. See docs/phat-trien/them-danh-muc.md.
 import type React from 'react';
 import type { GridViewColumn } from '../common/GridView';
 import type { CatalogApi } from '../../hooks/useCatalog';

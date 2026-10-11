@@ -6,8 +6,8 @@ using Core.Domain.Modules.CompanyUnits;
 namespace Core.Domain.Modules.VoucherNumbering;
 
 /// <summary>
-/// How numbers of one voucher type are built, e.g. PNK with pattern "{PREFIX}-{YYYY}{MM}-{SEQ}" gives
-/// PNK-202609-0001. Rows are created at startup from VoucherCatalog; users edit prefix, pattern and digits.
+/// How numbers of one voucher type are built, e.g. PNK with pattern "{PREFIX}-{DVCS}-{YYYY}{MM}-{SEQ}" gives
+/// PNK-DVCS01-202609-0001. Rows are created at startup from VoucherCatalog; users edit prefix, pattern and digits.
 /// </summary>
 [Audited("sys_default_config", "voucherNumbering", Label = "{VoucherType} - {Name}")]
 [Table("sys_voucher_numbering")]

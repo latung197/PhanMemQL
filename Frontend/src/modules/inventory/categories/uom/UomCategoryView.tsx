@@ -1,6 +1,6 @@
 // Kho › Danh mục đơn vị tính (inv_uom_cat), backed by the API (erp_uom). The model for catalogs: the screen only
 // declares its columns, form and Excel columns; CatalogScreen does the rest (search, filters, Excel import / export,
-// bulk delete, permissions, change log, lost-update protection). See docs/them-danh-muc.md.
+// bulk delete, permissions, change log, lost-update protection). See docs/phat-trien/them-danh-muc.md.
 import React, { useEffect, useMemo, useState } from 'react';
 import { Ruler } from 'lucide-react';
 import { Badge } from '../../../../components/common/Badge';

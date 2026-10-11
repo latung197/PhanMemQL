@@ -446,7 +446,7 @@ Lưu quyền và vai trò có **chống ghi đè**: gửi `version` lúc mở. N
 
 ## B10. Thêm mới
 
-**Một chức năng mới.** Khai báo mã ở `FunctionCatalog.cs` và `functions.ts`. Mã tự có trong ma trận với 7 hành động; chỉ cần gắn `RequirePermission` cho từng API (danh mục: theo skill `/them-danh-muc`, [them-danh-muc.md](them-danh-muc.md)).
+**Một chức năng mới.** Khai báo mã ở `FunctionCatalog.cs` và `functions.ts`. Mã tự có trong ma trận với 7 hành động; chỉ cần gắn `RequirePermission` cho từng API (danh mục: theo skill `/them-danh-muc`, [them-danh-muc.md](../phat-trien/them-danh-muc.md)).
 
 **Một chứng từ mới.** Thêm vào `VoucherCatalog.All`. Tự có: dãy số phiếu, đủ bộ quyền đặc biệt của chứng từ, chỗ trong quy tắc duyệt. Có màn phê duyệt riêng thì thêm vào `ApprovalScreens` (và `APPROVAL_SCREENS` ở frontend).
 

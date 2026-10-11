@@ -1,6 +1,6 @@
 # Cấu trúc module Kho
 
-> Cập nhật: phiếu nhập kho đã có API và bảng PostgreSQL tại `ServerService/.../Modules/Inventory/Documents/GoodsReceipts/` và `ServerService/sql/postgresql/20-inventory-goods-receipts.sql`. Phần danh mục vật tư và các báo cáo tồn kho hiện vẫn dùng dữ liệu mẫu; dữ liệu nhập kho đã ghi sổ sẽ được dùng khi các chức năng đó chuyển sang backend.
+> Cập nhật: phiếu nhập kho, danh mục vật tư, vị trí lưu kho, lô và hạn sử dụng đã chạy trên backend; mọi phiếu ghi sổ qua **sổ kho** (`ServerService/.../Modules/Inventory/Stock/`, bảng `erp_stock_movement` và ba bảng tồn, script `34-inventory-stock-ledger.sql`). Giải thích chi tiết các bảng và luồng nhập kho: `docs/kho/so-kho-va-phieu-nhap-kho.md`. Phiếu xuất, điều chuyển, kiểm kê, định mức tồn và các báo cáo tồn kho vẫn dùng dữ liệu mẫu.
 
 Mã nguồn Kho được chia theo `phân hệ → nhóm → chức năng` ở frontend và backend.
 
@@ -20,4 +20,4 @@ Mỗi thư mục chức năng frontend giữ giao diện, `types.ts`, `api.ts` v
 
 Backend đã có API danh mục Kho và phiếu nhập kho trong `Documents/GoodsReceipts/`. Báo cáo và các chứng từ khác sẽ có thư mục tương ứng ở từng tầng khi triển khai. Namespace C# của các lớp hiện có được giữ để không đổi hợp đồng mã nguồn; đường dẫn API, mã quyền, route và tên bảng cũng giữ nguyên.
 
-Khi thêm chức năng, chọn nhóm theo trách nhiệm, tạo thư mục riêng cho mã chức năng và đăng ký tại `InventoryModule.tsx`. Các thành phần dùng chung giữa nhiều chức năng đặt tại cấp nhóm gần nhất. Hướng dẫn danh mục đầy đủ: [Thêm danh mục](them-danh-muc.md).
+Khi thêm chức năng, chọn nhóm theo trách nhiệm, tạo thư mục riêng cho mã chức năng và đăng ký tại `InventoryModule.tsx`. Các thành phần dùng chung giữa nhiều chức năng đặt tại cấp nhóm gần nhất. Hướng dẫn danh mục đầy đủ: [Thêm danh mục](../phat-trien/them-danh-muc.md).

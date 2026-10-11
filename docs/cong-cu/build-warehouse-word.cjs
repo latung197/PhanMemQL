@@ -1,9 +1,9 @@
-// Regenerate the Word guide from its reviewed Markdown source: node docs/build-warehouse-word.cjs
+// Regenerate the Word guide from its reviewed Markdown source: node docs/cong-cu/build-warehouse-word.cjs
 const fs = require('node:fs');
 const path = require('node:path');
-const JSZip = require('../Frontend/node_modules/jszip');
+const JSZip = require('../../Frontend/node_modules/jszip');
 
-const root = __dirname;
+const root = path.join(__dirname, '..', 'kho');
 const source = path.join(root, 'huong-dan-danh-muc-kho.md');
 const target = path.join(root, 'Huong-dan-danh-muc-kho.docx');
 const lines = fs.readFileSync(source, 'utf8').replace(/\r\n/g, '\n').split('\n');

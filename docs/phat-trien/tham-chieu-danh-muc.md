@@ -1,6 +1,6 @@
 # Tham chiếu cột và quy trình tạo danh mục
 
-Tài liệu chuẩn về cách S-ERP biết **bảng nào dùng mã của danh mục nào**, và quy trình thêm một danh mục (hoặc một cột trỏ sang danh mục) cho đúng chuẩn. Phần này làm cho việc xóa an toàn: không thể xóa đơn vị tính khi quy đổi hay phiếu nhập còn dùng nó, và không thể lưu một mã không tồn tại. Các bước viết code từng file nằm ở `docs/them-danh-muc.md`; tài liệu này nói về khai báo tham chiếu, quy ước đặt tên và quy trình tổng thể.
+Tài liệu chuẩn về cách S-ERP biết **bảng nào dùng mã của danh mục nào**, và quy trình thêm một danh mục (hoặc một cột trỏ sang danh mục) cho đúng chuẩn. Phần này làm cho việc xóa an toàn: không thể xóa đơn vị tính khi quy đổi hay phiếu nhập còn dùng nó, và không thể lưu một mã không tồn tại. Các bước viết code từng file nằm ở `docs/phat-trien/them-danh-muc.md`; tài liệu này nói về khai báo tham chiếu, quy ước đặt tên và quy trình tổng thể.
 
 ---
 
@@ -214,7 +214,7 @@ Cả bảng và view nằm trong `sql/postgresql/24-table-ref.sql` (chạy lại
 
 ### 6.1. Thêm một danh mục mới
 
-Theo `docs/them-danh-muc.md` (ví dụ đầy đủ nhà cung cấp), thêm các việc về tham chiếu:
+Theo `docs/phat-trien/them-danh-muc.md` (ví dụ đầy đủ nhà cung cấp), thêm các việc về tham chiếu:
 
 | Bước | Việc | Phần tham chiếu |
 | --- | --- | --- |
@@ -235,7 +235,7 @@ Theo `docs/them-danh-muc.md` (ví dụ đầy đủ nhà cung cấp), thêm các
 2. Thêm property vào entity với `[References<SupplierGroup>(Optional = true)]`.
 3. Thêm `table.erp_supplier` (nếu chưa có) vào hai file thông báo.
 4. Ở service, chuẩn hóa mã trong `ApplyAsync` (`ToUpperInvariant`); không cần kiểm mã tồn tại.
-5. Form dùng `CatalogLookup` (xem `docs/them-danh-muc.md`, Phần 4 và 5).
+5. Form dùng `CatalogLookup` (xem `docs/phat-trien/them-danh-muc.md`, Phần 4 và 5).
 6. Chạy `dotnet test` và khởi động lại backend (đồng bộ `sys_table_ref`).
 
 ### 6.3. Chứng từ dùng danh mục

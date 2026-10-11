@@ -3,7 +3,7 @@ using Core.Application.Common.Localization;
 namespace Core.Infrastructure.Common.Lookups;
 
 /// <summary>
-/// Every catalog offered by GET /api/lookups/{name} (ô chọn mã + F2): one entry per catalog, see docs/them-danh-muc.md.
+/// Every catalog offered by GET /api/lookups/{name} (ô chọn mã + F2): one entry per catalog, see docs/phat-trien/them-danh-muc.md.
 /// The list is also read by tests, which check that each entry names every table its projection reads
 /// (<see cref="LookupDefinition.Tables"/>), because the cached copy of a lookup is dropped when one of them is written.
 /// </summary>

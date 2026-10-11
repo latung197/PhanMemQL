@@ -1,554 +1,107 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, MapPin, Search, Edit, Trash2, Warehouse as WarehouseIcon, CheckCircle2, Filter, X } from 'lucide-react';
-import { CategoryHeaderToolbar } from '../../../../components/common/CategoryHeaderToolbar';
-import { showToast } from '../../../../utils/toast';
-import { Card } from '../../../../components/common/Card';
-import { Button } from '../../../../components/common/Button';
-import { Modal } from '../../../../components/common/Modal';
+// Kho › Danh mục vị trí lưu kho (inv_location_cat), on the shared catalog screen. A location belongs to one warehouse
+// (fixed once saved); its code is unique across the system. See docs/phat-trien/them-danh-muc.md.
+import React, { useEffect, useMemo, useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { Badge } from '../../../../components/common/Badge';
-import { SearchInput } from '../../../../components/common/SearchInput';
-import { Pagination } from '../../../../components/common/Pagination';
-import { LookupField } from '../../../../components/common/LookupField';
-import { MasterLookupModal } from '../../../../components/common/MasterLookupModal';
-import { StorageLocation, Warehouse, UserProfile } from '../../../../types';
-import { getActionPermission } from '../../../../mock/initialRoles';
+import { Checkbox } from '../../../../components/common/Checkbox';
+import { TextArea, TextInput } from '../../../../components/common/FormField';
+import { recordStampColumns } from '../../../../components/common/recordStampColumns';
+import { CatalogLookup, lookupApi } from '../../../../components/catalog/CatalogLookup';
+import { CatalogScreen } from '../../../../components/catalog/CatalogScreen';
+import type { CatalogDefinition, CatalogFilter } from '../../../../components/catalog/catalogTypes';
+import { useLanguage } from '../../../../context/LanguageContext';
+import type { UserProfile } from '../../../../types';
+import { locationsApi } from './api';
+import type { SaveStorageLocationInput, StorageLocationRecord } from './types';
 
-interface LocationCategoryViewProps {
-  storageLocations: StorageLocation[];
-  warehouses: Warehouse[];
-  onAddLocation?: (loc: StorageLocation) => void;
-  onUpdateLocation?: (id: string, loc: Partial<StorageLocation>) => void;
-  onDeleteLocation?: (id: string) => void;
-  currentUser?: UserProfile;
-}
+export const LocationCategoryView: React.FC<{ currentUser?: UserProfile }> = ({ currentUser }) => {
+  const { t } = useLanguage();
+  const [warehouseOptions, setWarehouseOptions] = useState<{ value: string; label: string }[]>([]);
 
-export const LocationCategoryView: React.FC<LocationCategoryViewProps> = ({
-  storageLocations: initialLocations = [],
-  warehouses = [],
-  onAddLocation,
-  onUpdateLocation,
-  onDeleteLocation,
-  currentUser
-}) => {
-  const perms = getActionPermission(currentUser, 'inv_location_cat');
+  // Choices of the warehouse filter (a handful of rows, read through the lookup).
+  useEffect(() => {
+    let alive = true;
+    void lookupApi.search('warehouses', '', 1, 200, true)
+      .then(page => { if (alive) setWarehouseOptions(page.items.map(x => ({ value: x.code, label: `${x.code} - ${x.name}` }))); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
-  const [localLocations, setLocalLocations] = useState<StorageLocation[]>(initialLocations);
-  const storageLocations = initialLocations.length > 0 ? initialLocations : localLocations;
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [zoneFilter, setZoneFilter] = useState('Tất cả');
-  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
-  const [filterCode, setFilterCode] = useState('');
-  const [filterName, setFilterName] = useState('');
-  const [filterWarehouse, setFilterWarehouse] = useState('ALL');
-
-  const filteredLocations = useMemo(() => {
-    return storageLocations.filter(loc => {
-      const matchSearch = !searchTerm || (
-        loc.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        loc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        loc.warehouseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        loc.zone.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      if (!matchSearch) return false;
-      if (zoneFilter !== 'Tất cả' && loc.zone !== zoneFilter) return false;
-      if (filterCode && !loc.code.toLowerCase().includes(filterCode.toLowerCase())) return false;
-      if (filterName && !loc.name.toLowerCase().includes(filterName.toLowerCase())) return false;
-      if (filterWarehouse !== 'ALL' && loc.warehouseName !== filterWarehouse) return false;
-      return true;
-    });
-  }, [storageLocations, searchTerm, zoneFilter, filterCode, filterName, filterWarehouse]);
-
-  const activeFilterCount = (zoneFilter !== 'Tất cả' ? 1 : 0) + (filterCode ? 1 : 0) + (filterName ? 1 : 0) + (filterWarehouse !== 'ALL' ? 1 : 0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(8);
-
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingLoc, setEditingLoc] = useState<StorageLocation | null>(null);
-
-  // Form states
-  const [code, setCode] = useState('');
-  const [name, setName] = useState('');
-  const [warehouseId, setWarehouseId] = useState('');
-  const [warehouseName, setWarehouseName] = useState('');
-  const [zone, setZone] = useState('Khu A');
-  const [rack, setRack] = useState('A1');
-  const [shelf, setShelf] = useState('Tầng 1');
-  const [capacity, setCapacity] = useState(100);
-  const [currentOccupancy, setCurrentOccupancy] = useState(0);
-  const [status, setStatus] = useState<'Còn chỗ' | 'Đầy' | 'Bảo trì'>('Còn chỗ');
-
-  // Lookup Modal State
-  const [showWarehouseLookup, setShowWarehouseLookup] = useState(false);
-
-  const zonesList = ['Tất cả', ...Array.from(new Set(storageLocations.map(l => l.zone)))];
-
-  const totalPages = Math.ceil(filteredLocations.length / pageSize) || 1;
-  const paginatedList = filteredLocations.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  const handleOpenAddModal = () => {
-    if (!perms.create) {
-      alert('Bạn không có quyền THÊM vị trí kho!');
-      return;
-    }
-    const defaultWh = warehouses[0];
-    setCode(`VT-A${Date.now().toString().slice(-3)}`);
-    setName('Kệ A1 - Tầng 1 (Cửa vào)');
-    setWarehouseId(defaultWh?.id || '');
-    setWarehouseName(defaultWh?.name || '');
-    setZone('Khu A');
-    setRack('A1');
-    setShelf('Tầng 1');
-    setCapacity(100);
-    setCurrentOccupancy(0);
-    setStatus('Còn chỗ');
-    setShowAddModal(true);
-  };
-
-  const handleOpenEditModal = (l: StorageLocation) => {
-    if (!perms.edit) {
-      alert('Bạn không có quyền CHỈNH SỬA vị trí kho!');
-      return;
-    }
-    setEditingLoc(l);
-    setCode(l.code);
-    setName(l.name);
-    setWarehouseId(l.warehouseId);
-    setWarehouseName(l.warehouseName);
-    setZone(l.zone);
-    setRack(l.rack);
-    setShelf(l.shelf);
-    setCapacity(l.capacity);
-    setCurrentOccupancy(l.currentOccupancy);
-    setStatus(l.status);
-  };
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!code.trim() || !name.trim() || !warehouseId) return;
-
-    if (editingLoc) {
-      const updated = {
-        code,
-        name,
-        warehouseId,
-        warehouseName,
-        zone,
-        rack,
-        shelf,
-        capacity,
-        currentOccupancy,
-        status
-      };
-      if (onUpdateLocation) {
-        onUpdateLocation(editingLoc.id, updated);
-      } else {
-        setLocalLocations(prev => prev.map(l => l.id === editingLoc.id ? { ...l, ...updated } : l));
-      }
-      setEditingLoc(null);
-    } else {
-      const newLoc: StorageLocation = {
-        id: `LOC${Date.now().toString().slice(-4)}`,
-        code: code.trim().toUpperCase(),
-        name: name.trim(),
-        warehouseId,
-        warehouseName,
-        zone,
-        rack,
-        shelf,
-        capacity,
-        currentOccupancy,
-        status
-      };
-      if (onAddLocation) {
-        onAddLocation(newLoc);
-      } else {
-        setLocalLocations(prev => [newLoc, ...prev]);
-      }
-      setShowAddModal(false);
-    }
-  };
-
-  const handleDelete = (id: string, name: string) => {
-    if (!perms.delete) {
-      alert('Bạn KHÔNG CÓ QUYỀN XÓA vị trí kho!');
-      return;
-    }
-    if (confirm(`Xác nhận xóa vị trí "${name}"?`)) {
-      if (onDeleteLocation) {
-        onDeleteLocation(id);
-      } else {
-        setLocalLocations(prev => prev.filter(l => l.id !== id));
-      }
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Header Toolbar */}
-      <div className="sticky top-0 z-20 w-full min-w-full space-y-2">
-        <CategoryHeaderToolbar
-          icon={<MapPin />}
-          title="Danh Mục Vị Trí Kho (Bin & Shelf Storage Locations)"
-          count={filteredLocations.length}
-          countLabel="Vị trí kho"
-          subtitle="Quản lý chi tiết từng Phân Khu, Dãy, Kệ, Tầng, Hộc lưu trữ hàng hóa trong kho bãi"
-          showAdvancedFilter={showAdvancedFilter}
-          onToggleAdvancedFilter={() => setShowAdvancedFilter(!showAdvancedFilter)}
-          activeFilterCount={activeFilterCount}
-          onRefresh={() => {
-            setLocalLocations([...initialLocations]);
-            showToast.info('Đã tải lại danh mục vị trí kho!');
-          }}
-          onExportExcel={perms.export ? () => showToast.success('Đã xuất Excel vị trí kho!') : undefined}
-          onImportExcel={perms.create ? () => showToast.info('Tính năng nhập Excel đang xử lý!') : undefined}
-          addLabel="Thêm Vị Trí Kho"
-          onOpenAdd={handleOpenAddModal}
-          canCreate={perms.create}
-          filterPanelContent={
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-              <div>
-                <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">Mã Vị Trí Kho</label>
-                <input
-                  type="text"
-                  placeholder="Mã vị trí..."
-                  value={filterCode}
-                  onChange={(e) => setFilterCode(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-[5px] px-3 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">Tên Kệ / Vị Trí</label>
-                <input
-                  type="text"
-                  placeholder="Tên kệ..."
-                  value={filterName}
-                  onChange={(e) => setFilterName(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-[5px] px-3 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">Kho Bãi</label>
-                <select
-                  value={filterWarehouse}
-                  onChange={(e) => setFilterWarehouse(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-[5px] px-3 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-indigo-500"
-                >
-                  <option value="ALL">Tất cả kho</option>
-                  {warehouses.map(w => (
-                    <option key={w.id} value={w.name}>{w.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-600 dark:text-slate-400 font-medium mb-1">Phân Khu (Zone)</label>
-                <select
-                  value={zoneFilter}
-                  onChange={(e) => setZoneFilter(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-[5px] px-3 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-indigo-500"
-                >
-                  {zonesList.map(z => (
-                    <option key={z} value={z}>{z}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          }
-          onClearFilter={() => {
-            setFilterCode('');
-            setFilterName('');
-            setFilterWarehouse('ALL');
-            setZoneFilter('Tất cả');
-            setSearchTerm('');
-          }}
-        />
-      </div>
-
-      {/* Table Card */}
-      <Card>
-        <div className="p-4 space-y-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="max-w-md w-full">
-              <SearchInput
-                value={searchTerm}
-                onChange={setSearchTerm}
-                placeholder="Tìm kiếm mã vị trí, tên kệ, kho bãi, phân khu..."
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500">Phân khu:</span>
-              <select
-                value={zoneFilter}
-                onChange={(e) => {
-                  setZoneFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-lg px-3 py-1.5 text-xs focus:outline-hidden"
-              >
-                {zonesList.map(z => (
-                  <option key={z} value={z}>{z}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
-                <tr>
-                  <th className="p-3 w-12 text-center">STT</th>
-                  <th className="p-3">Mã Vị Trí</th>
-                  <th className="p-3">Tên Kệ / Hộc Chứa</th>
-                  <th className="p-3">Kho Bãi</th>
-                  <th className="p-3">Phân Khu / Dãy / Tầng</th>
-                  <th className="p-3 text-center">Sức Chứa Tối Đa</th>
-                  <th className="p-3 text-center">Đang Tồn Chứa</th>
-                  <th className="p-3">Trạng Thái</th>
-                  <th className="p-3 text-right">Thao Tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {paginatedList.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="p-8 text-center text-slate-400">
-                      Chưa có vị trí kho nào. Bấm nút Thêm để bắt đầu khai báo.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedList.map((l, idx) => (
-                    <tr key={l.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="p-3 text-center text-slate-400">
-                        {(currentPage - 1) * pageSize + idx + 1}
-                      </td>
-                      <td className="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        {l.code}
-                      </td>
-                      <td className="p-3 font-bold text-slate-900 dark:text-slate-100">
-                        {l.name}
-                      </td>
-                      <td className="p-3 text-slate-700 dark:text-slate-300 font-medium">
-                        {l.warehouseName}
-                      </td>
-                      <td className="p-3">
-                        <span className="text-[11px] font-medium bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md text-slate-600 dark:text-slate-300">
-                          {l.zone} • Dãy {l.rack} • {l.shelf}
-                        </span>
-                      </td>
-                      <td className="p-3 text-center font-bold text-slate-600 dark:text-slate-400">
-                        {l.capacity}
-                      </td>
-                      <td className="p-3 text-center font-bold text-indigo-600 dark:text-indigo-400">
-                        {l.currentOccupancy}
-                      </td>
-                      <td className="p-3">
-                        {l.status === 'Còn chỗ' ? (
-                          <Badge variant="emerald" size="sm" className="flex items-center gap-1 w-fit">
-                            <CheckCircle2 className="h-3 w-3" /> Còn chỗ
-                          </Badge>
-                        ) : l.status === 'Đầy' ? (
-                          <Badge variant="amber" size="sm" className="flex items-center gap-1 w-fit">
-                            Đầy
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" size="sm" className="flex items-center gap-1 w-fit">
-                            Bảo trì
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="p-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {perms.edit && (
-                            <button
-                              onClick={() => handleOpenEditModal(l)}
-                              className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950 rounded-lg transition-colors cursor-pointer"
-                              title="Sửa vị trí"
-                            >
-                              <Edit className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                          {perms.delete && (
-                            <button
-                              onClick={() => handleDelete(l.id, l.name)}
-                              className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-lg transition-colors cursor-pointer"
-                              title="Xóa vị trí"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            totalItems={filteredLocations.length}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={setPageSize}
-          />
+  const definition = useMemo((): CatalogDefinition<StorageLocationRecord, SaveStorageLocationInput> => ({
+    functionCode: 'inv_location_cat', api: locationsApi,
+    keyOf: row => row.code, describe: row => `${row.code} - ${row.name}`,
+    icon: <MapPin className="h-4 w-4" />,
+    texts: {
+      title: t('locations.title'), subtitle: t('locations.subtitle'), noun: t('locations.noun'),
+      add: t('locations.add'), searchPlaceholder: t('locations.search'),
+      addTitle: t('locations.addTitle'), editTitle: row => t('locations.editTitle', { code: row.code }),
+      fileName: 'DanhMucViTriLuuKho'
+    },
+    columns: [
+      { key: 'code', header: t('locations.code'), width: '170px', sortable: true,
+        render: row => <span className="font-mono font-bold">{row.code}</span> },
+      { key: 'name', header: t('locations.name'), sortable: true },
+      { key: 'warehouseName', header: t('locations.warehouse'), sortable: true, render: row => row.warehouseName || row.warehouseCode },
+      { key: 'zone', header: t('locations.zone'), sortable: true, render: row => row.zone || '—' },
+      { key: 'rack', header: t('locations.rack'), sortable: true, render: row => row.rack || '—' },
+      { key: 'shelf', header: t('locations.shelf'), sortable: true, render: row => row.shelf || '—' },
+      { key: 'capacity', header: t('locations.capacity'), align: 'right', sortable: true,
+        render: row => <span className="font-mono">{row.capacity?.toLocaleString('vi-VN', { maximumFractionDigits: 4 }) ?? '—'}</span> },
+      { key: 'isActive', header: t('locations.status'), align: 'center', width: '140px', sortable: true,
+        render: row => row.isActive
+          ? <Badge variant="success" size="sm">{t('locations.active')}</Badge>
+          : <Badge variant="slate" size="sm">{t('locations.inactive')}</Badge> },
+      ...recordStampColumns<StorageLocationRecord>(t)
+    ],
+    filters: [{ key: 'warehouseCode', label: t('locations.warehouse'), options: warehouseOptions }] as CatalogFilter<StorageLocationRecord>[],
+    excel: {
+      columns: [
+        { key: 'code', header: t('locations.code'), required: true, width: 20, example: 'KHO1-A-01' },
+        { key: 'name', header: t('locations.name'), required: true, width: 32, example: 'Kệ A - Tầng 1' },
+        { key: 'warehouseCode', header: t('locations.warehouse'), required: true, width: 16, example: 'KHO1' },
+        { key: 'zone', header: t('locations.zone'), width: 16, example: 'Khu A' },
+        { key: 'rack', header: t('locations.rack'), width: 14, example: 'A' },
+        { key: 'shelf', header: t('locations.shelf'), width: 14, example: '1' },
+        { key: 'capacity', header: t('locations.capacity'), type: 'number', width: 14, example: '' },
+        { key: 'note', header: t('locations.note'), width: 40, example: '' },
+        { key: 'isActive', header: t('locations.isActive'), type: 'boolean', width: 14, example: true }
+      ],
+      toRow: row => ({ code: row.code, name: row.name, warehouseCode: row.warehouseCode, zone: row.zone ?? '', rack: row.rack ?? '',
+        shelf: row.shelf ?? '', capacity: row.capacity ?? null, note: row.note ?? '', isActive: row.isActive })
+    },
+    emptyInput: { code: '', name: '', warehouseCode: '', zone: '', rack: '', shelf: '', capacity: null, note: '', isActive: true },
+    toInput: row => ({ code: row.code, name: row.name, warehouseCode: row.warehouseCode, zone: row.zone ?? '', rack: row.rack ?? '',
+      shelf: row.shelf ?? '', capacity: row.capacity ?? null, note: row.note ?? '', isActive: row.isActive }),
+    normalize: input => ({ ...input, code: input.code.trim().toUpperCase(), name: input.name.trim(),
+      warehouseCode: input.warehouseCode.trim().toUpperCase(), zone: (input.zone ?? '').trim(), rack: (input.rack ?? '').trim(),
+      shelf: (input.shelf ?? '').trim(), note: (input.note ?? '').trim() }),
+    renderForm: ({ form, setForm, editing }) => (
+      <>
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <TextInput label={t('locations.code')} required autoFocus={!editing} disabled={!!editing} maxLength={30}
+            value={form.code} hint={t('locations.codeHint')}
+            onChange={e => setForm({ ...form, code: e.target.value.toUpperCase().replace(/\s/g, '') })} />
+          <TextInput label={t('locations.name')} required autoFocus={!!editing} maxLength={100}
+            value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
         </div>
-      </Card>
-
-      {/* Modal Add/Edit */}
-      <Modal
-        isOpen={showAddModal || !!editingLoc}
-        onClose={() => { setShowAddModal(false); setEditingLoc(null); }}
-        title={editingLoc ? 'Sửa Vị Trí Kho' : 'Khai Báo Vị Trí Kho / Kệ Chứa Mới'}
-        maxWidth="3xl"
-      >
-        <form onSubmit={handleSave} className="space-y-4 text-xs">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Mã Vị Trí <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={code}
-                onChange={e => setCode(e.target.value)}
-                placeholder="VD: VT-A1-T1, KE-B2..."
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-hidden dark:text-slate-100 font-mono font-bold"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Sức Chứa Tối Đa
-              </label>
-              <input
-                type="number"
-                min={1}
-                required
-                value={capacity}
-                onChange={e => setCapacity(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-hidden dark:text-slate-100 font-bold"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Tên Vị Trí / Mô Tả Kệ <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="VD: Kệ A1 - Tầng 1 (Khu Điện tử cửa vào)..."
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-hidden dark:text-slate-100"
-            />
-          </div>
-
-          <LookupField
-            label="Thuộc Kho Bãi"
-            required
-            value={warehouseName}
-            placeholder="Tra cứu chọn kho bãi..."
-            onLookupClick={() => setShowWarehouseLookup(true)}
-          />
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Phân Khu (Zone)
-              </label>
-              <input
-                type="text"
-                value={zone}
-                onChange={e => setZone(e.target.value)}
-                placeholder="Khu A"
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-hidden dark:text-slate-100"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Dãy / Kệ (Rack)
-              </label>
-              <input
-                type="text"
-                value={rack}
-                onChange={e => setRack(e.target.value)}
-                placeholder="A1"
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-hidden dark:text-slate-100"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Tầng / Hộc (Shelf)
-              </label>
-              <input
-                type="text"
-                value={shelf}
-                onChange={e => setShelf(e.target.value)}
-                placeholder="Tầng 1"
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-hidden dark:text-slate-100"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Trạng Thái Vị Trí
-            </label>
-            <select
-              value={status}
-              onChange={e => setStatus(e.target.value as any)}
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-hidden dark:text-slate-100"
-            >
-              <option value="Còn chỗ">Còn chỗ</option>
-              <option value="Đầy">Đầy</option>
-              <option value="Bảo trì">Bảo trì</option>
-            </select>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-            <Button variant="secondary" onClick={() => { setShowAddModal(false); setEditingLoc(null); }}>
-              Hủy
-            </Button>
-            <Button variant="primary" type="submit">
-              Lưu Vị Trí Kho
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Warehouse Lookup */}
-      {showWarehouseLookup && (
-        <MasterLookupModal
-          isOpen={true}
-          onClose={() => setShowWarehouseLookup(false)}
-          title="Tra Cứu & Chọn Kho Bãi"
-          data={warehouses}
-          columns={[
-            { key: 'code', label: 'Mã Kho' },
-            { key: 'name', label: 'Tên Kho Bãi' },
-            { key: 'manager', label: 'Thủ Kho' }
-          ]}
-          searchFields={['code', 'name', 'manager']}
-          selectionMode="single"
-          selectedIds={warehouseId ? [warehouseId] : []}
-          onConfirm={(selected) => {
-            if (selected[0]) {
-              setWarehouseId(selected[0].id);
-              setWarehouseName(selected[0].name);
-            }
-          }}
-        />
-      )}
-    </div>
-  );
+        <div className="space-y-1">
+          <CatalogLookup lookup="warehouses" label={t('locations.warehouse')} required disabled={!!editing}
+            value={form.warehouseCode} onChange={code => setForm({ ...form, warehouseCode: code })} />
+          {editing && <p className="text-[11px] text-slate-500 dark:text-slate-400">{t('locations.warehouseLocked')}</p>}
+        </div>
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-3">
+          <TextInput label={t('locations.zone')} maxLength={50} value={form.zone} onChange={e => setForm({ ...form, zone: e.target.value })} />
+          <TextInput label={t('locations.rack')} maxLength={50} value={form.rack} onChange={e => setForm({ ...form, rack: e.target.value })} />
+          <TextInput label={t('locations.shelf')} maxLength={50} value={form.shelf} onChange={e => setForm({ ...form, shelf: e.target.value })} />
+        </div>
+        <TextInput label={t('locations.capacity')} type="number" min={0} step="any" className="text-right font-mono"
+          value={form.capacity ?? ''} onChange={e => setForm({ ...form, capacity: e.target.value === '' ? null : Number(e.target.value) })} />
+        <TextArea label={t('locations.note')} rows={2} maxLength={300} value={form.note}
+          onChange={e => setForm({ ...form, note: e.target.value })} />
+        <Checkbox label={t('locations.isActive')} checked={form.isActive} onChange={isActive => setForm({ ...form, isActive })} />
+      </>
+    ),
+    formWidth: 'xl'
+  }), [t, warehouseOptions]);
+  return <CatalogScreen definition={definition} currentUser={currentUser} />;
 };

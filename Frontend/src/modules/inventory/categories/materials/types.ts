@@ -1,10 +1,69 @@
-import { Product } from '../../../../types';
+import type { RecordStamp } from '../../../../components/common/RecordStamp';
 
-export type MaterialFilter = {
-  search?: string;
-  category?: string;
-  skus?: string[];
-  sortOption?: 'name_asc' | 'name_desc' | 'sku_asc' | 'qty_desc' | 'price_desc';
-};
+export type CostingMethod = 'AVERAGE' | 'FIFO';
 
-export type MaterialFormData = Omit<Product, 'id'>;
+/** A material from the backend catalog (erp_material); the code is the key. */
+export interface MaterialRecord {
+  code: string;
+  name: string;
+  customerMaterialCode?: string | null;
+  partNo?: string | null;
+  materialTypeCode?: string | null;
+  materialTypeName?: string | null;
+  materialGroupCode?: string | null;
+  materialGroupName?: string | null;
+  /** Base unit of measure: stock is kept in it. */
+  uomCode: string;
+  uomName?: string | null;
+  vatTaxRateCode?: string | null;
+  importTaxRateCode?: string | null;
+  /** False for a service / expense item: no stock, none of the tracking flags apply. */
+  isStockItem: boolean;
+  trackLot: boolean;
+  /** The expiry date lives on the lot, so this needs trackLot. */
+  hasExpiry: boolean;
+  shelfLifeDays?: number | null;
+  trackLocation: boolean;
+  isCycleCounted: boolean;
+  costingMethod: CostingMethod;
+  minStock?: number | null;
+  maxStock?: number | null;
+  length?: number | null;
+  width?: number | null;
+  height?: number | null;
+  weight?: number | null;
+  volume?: number | null;
+  note?: string | null;
+  isActive: boolean;
+  stamp: RecordStamp;
+  version: number;
+}
+
+export interface SaveMaterialInput {
+  code: string;
+  name: string;
+  uomCode: string;
+  customerMaterialCode: string;
+  partNo: string;
+  materialTypeCode: string;
+  materialGroupCode: string;
+  vatTaxRateCode: string;
+  importTaxRateCode: string;
+  isStockItem: boolean;
+  trackLot: boolean;
+  hasExpiry: boolean;
+  shelfLifeDays: number | null;
+  trackLocation: boolean;
+  isCycleCounted: boolean;
+  costingMethod: CostingMethod;
+  minStock: number | null;
+  maxStock: number | null;
+  length: number | null;
+  width: number | null;
+  height: number | null;
+  weight: number | null;
+  volume: number | null;
+  note: string;
+  isActive: boolean;
+  version?: number;
+}

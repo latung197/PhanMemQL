@@ -1,6 +1,6 @@
 # Quản lý menu S-ERP
 
-Tài liệu này mô tả menu bên trái của S-ERP: dữ liệu nằm ở đâu, ai được sửa gì, cách thêm chức năng mới vào menu và cách super admin chỉnh cấu trúc menu trên màn hình **Cài đặt › Quản lý menu**. Cách thêm một danh mục đầy đủ nằm ở `docs/them-danh-muc.md`; tài liệu này chỉ nói về menu và quyền liên quan.
+Tài liệu này mô tả menu bên trái của S-ERP: dữ liệu nằm ở đâu, ai được sửa gì, cách thêm chức năng mới vào menu và cách super admin chỉnh cấu trúc menu trên màn hình **Cài đặt › Quản lý menu**. Cách thêm một danh mục đầy đủ nằm ở `docs/phat-trien/them-danh-muc.md`; tài liệu này chỉ nói về menu và quyền liên quan.
 
 ---
 

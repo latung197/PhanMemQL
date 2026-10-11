@@ -1,5 +1,5 @@
 // Kho › Danh mục kho (inv_warehouse_cat), on the shared catalog screen. A warehouse has a type and the company units
-// that may use it (several; none = shared by every unit). See docs/them-danh-muc.md.
+// that may use it (several; none = shared by every unit). See docs/phat-trien/them-danh-muc.md.
 import React, { useEffect, useMemo, useState } from 'react';
 import { Warehouse as WarehouseIcon } from 'lucide-react';
 import { Badge } from '../../../../components/common/Badge';
@@ -18,6 +18,8 @@ const splitCodes = (text: string): string[] => text.split(/[\s,;]+/).map(code =>
 
 export const WarehouseCategoryView: React.FC<{ currentUser?: UserProfile }> = ({ currentUser }) => {
   const { t } = useLanguage();
+  // The working company unit (part of the token): the default unit of a new warehouse.
+  const activeUnitCode = currentUser?.ma_dvcs ?? '';
   const [typeOptions, setTypeOptions] = useState<{ value: string; label: string }[]>([]);
   const [unitOptions, setUnitOptions] = useState<{ value: string; label: string }[]>([]);
 
@@ -44,6 +46,8 @@ export const WarehouseCategoryView: React.FC<{ currentUser?: UserProfile }> = ({
       { key: 'code', header: t('warehouses.code'), width: '150px', sortable: true,
         render: row => <span className="font-mono font-bold">{row.code}</span> },
       { key: 'name', header: t('warehouses.name'), sortable: true },
+      { key: 'unitCode', header: t('warehouses.unitCode'), width: '130px', sortable: true,
+        render: row => <span className="font-mono text-[11px]">{row.unitCode || '—'}</span> },
       { key: 'units', header: t('warehouses.units'),
         render: row => row.unitCodes.length === 0
           ? <Badge variant="slate" size="sm">{t('warehouses.shared')}</Badge>
@@ -61,12 +65,14 @@ export const WarehouseCategoryView: React.FC<{ currentUser?: UserProfile }> = ({
     ],
     filters: [
       { key: 'warehouseTypeCode', label: t('warehouses.type'), options: typeOptions },
+      { key: 'ownerUnitCode', label: t('warehouses.filterOwnerUnit'), options: unitOptions },
       { key: 'unitCode', label: t('warehouses.filterUnit'), options: unitOptions }
     ] as CatalogFilter<WarehouseRecord>[],
     excel: {
       columns: [
         { key: 'code', header: t('warehouses.code'), required: true, width: 20, example: 'KH-HCM-01' },
         { key: 'name', header: t('warehouses.name'), required: true, width: 32, example: 'Kho Tổng TP. Hồ Chí Minh' },
+        { key: 'unitCode', header: t('warehouses.unitCode'), width: 16, example: 'DVCS01' },
         { key: 'unitCodes', header: t('warehouses.units'), width: 30, example: 'DVCS01, DVCS02' },
         { key: 'warehouseTypeCode', header: t('warehouses.typeCode'), width: 22, example: '' },
         { key: 'address', header: t('warehouses.address'), width: 40, example: '' },
@@ -74,40 +80,53 @@ export const WarehouseCategoryView: React.FC<{ currentUser?: UserProfile }> = ({
         { key: 'capacity', header: t('warehouses.capacity'), width: 20, example: '' },
         { key: 'isActive', header: t('warehouses.isActive'), type: 'boolean', width: 14, example: true }
       ],
-      toRow: row => ({ code: row.code, name: row.name, unitCodes: row.unitCodes.join(', '), warehouseTypeCode: row.warehouseTypeCode ?? '',
+      toRow: row => ({ code: row.code, name: row.name, unitCode: row.unitCode, unitCodes: row.unitCodes.join(', '), warehouseTypeCode: row.warehouseTypeCode ?? '',
         address: row.address ?? '', manager: row.manager ?? '', capacity: row.capacity ?? '', isActive: row.isActive })
     },
-    emptyInput: { code: '', name: '', unitCodes: '', warehouseTypeCode: '', address: '', manager: '', capacity: '', isActive: true },
-    toInput: row => ({ code: row.code, name: row.name, unitCodes: row.unitCodes.join(','), warehouseTypeCode: row.warehouseTypeCode ?? '',
+    emptyInput: { code: '', name: '', unitCode: activeUnitCode, unitCodes: '', warehouseTypeCode: '', address: '', manager: '', capacity: '', isActive: true },
+    toInput: row => ({ code: row.code, name: row.name, unitCode: row.unitCode, unitCodes: row.unitCodes.join(','), warehouseTypeCode: row.warehouseTypeCode ?? '',
       address: row.address ?? '', manager: row.manager ?? '', capacity: row.capacity ?? '', isActive: row.isActive }),
     normalize: input => ({ ...input, code: input.code.trim().toUpperCase(), name: input.name.trim(),
+      unitCode: (input.unitCode ?? '').trim().toUpperCase(),
       unitCodes: splitCodes(input.unitCodes ?? '').join(','),
       warehouseTypeCode: (input.warehouseTypeCode ?? '').trim().toUpperCase(),
       address: input.address.trim(), manager: input.manager.trim(), capacity: input.capacity.trim() }),
     renderForm: ({ form, setForm, editing }) => (
       <>
-        <TextInput label={t('warehouses.code')} required autoFocus={!editing} disabled={!!editing}
-          maxLength={20} value={form.code} hint={t('warehouses.codeHint')}
-          onChange={e => setForm({ ...form, code: e.target.value.toUpperCase().replace(/\s/g, '') })} />
-        <TextInput label={t('warehouses.name')} required autoFocus={!!editing} maxLength={100}
-          value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+          <TextInput label={t('warehouses.code')} required autoFocus={!editing} disabled={!!editing}
+            maxLength={20} value={form.code} hint={t('warehouses.codeHint')}
+            onChange={e => setForm({ ...form, code: e.target.value.toUpperCase().replace(/\s/g, '') })} />
+          <TextInput label={t('warehouses.name')} required autoFocus={!!editing} maxLength={100}
+            value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+        </div>
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <CatalogLookup lookup="companyUnits" label={t('warehouses.unitCode')} required
+              value={form.unitCode} onChange={code => setForm({ ...form, unitCode: code })} />
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">{t('warehouses.unitCodeHint')}</p>
+          </div>
+          <CatalogLookup lookup="warehouseTypes" label={t('warehouses.type')}
+            value={form.warehouseTypeCode} onChange={code => setForm({ ...form, warehouseTypeCode: code })} />
+        </div>
         <div className="space-y-1">
           <CatalogMultiLookup lookup="companyUnits" label={t('warehouses.units')} value={splitCodes(form.unitCodes)}
             onChange={codes => setForm({ ...form, unitCodes: codes.join(',') })} />
           <p className="text-[11px] text-slate-500 dark:text-slate-400">{t('warehouses.unitsHint')}</p>
         </div>
-        <CatalogLookup lookup="warehouseTypes" label={t('warehouses.type')}
-          value={form.warehouseTypeCode} onChange={code => setForm({ ...form, warehouseTypeCode: code })} />
         <TextInput label={t('warehouses.address')} maxLength={300} value={form.address}
           onChange={e => setForm({ ...form, address: e.target.value })} />
-        <TextInput label={t('warehouses.manager')} maxLength={100} value={form.manager}
-          onChange={e => setForm({ ...form, manager: e.target.value })} />
-        <TextInput label={t('warehouses.capacity')} maxLength={100} value={form.capacity}
-          onChange={e => setForm({ ...form, capacity: e.target.value })} />
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
+          <TextInput label={t('warehouses.manager')} maxLength={100} value={form.manager}
+            onChange={e => setForm({ ...form, manager: e.target.value })} />
+          <TextInput label={t('warehouses.capacity')} maxLength={100} value={form.capacity}
+            onChange={e => setForm({ ...form, capacity: e.target.value })} />
+        </div>
         <Checkbox label={t('warehouses.isActive')} checked={form.isActive}
           onChange={isActive => setForm({ ...form, isActive })} />
       </>
-    )
-  }), [t, typeOptions, unitOptions]);
+    ),
+    formWidth: '2xl'
+  }), [t, typeOptions, unitOptions, activeUnitCode]);
   return <CatalogScreen definition={definition} currentUser={currentUser} />;
 };

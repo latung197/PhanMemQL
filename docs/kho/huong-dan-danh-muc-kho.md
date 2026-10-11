@@ -35,6 +35,7 @@ Quản trị viên có toàn quyền. Nếu không thấy nút thao tác, kiểm
 1. Bấm **Thêm kho**.
 2. Nhập **Mã kho**: bắt buộc, tối đa 20 ký tự; hệ thống lưu bằng chữ hoa. Không dùng khoảng trắng, dấu hai chấm `:` hoặc dấu phẩy `,`. Ví dụ: `KH-HCM-01`.
 3. Nhập **Tên kho**: bắt buộc, tối đa 100 ký tự và không trùng tên kho đã có. Ví dụ: `Kho Tổng TP. Hồ Chí Minh`.
+   Chọn **Đơn vị cơ sở** (bắt buộc, một đơn vị): đơn vị cơ sở của kho. Khi thêm kho, ô này tự điền đơn vị đang đăng nhập; đổi sang đơn vị khác bằng cách gõ mã rồi Enter hoặc bấm F2. Đơn vị này luôn được dùng kho. Kho đã có trước khi có trường này được điền theo đơn vị nhỏ nhất trong danh sách đơn vị được dùng kho (kho dùng chung lấy đơn vị cơ sở đầu tiên).
    Chọn **Đơn vị cơ sở sử dụng**: gõ mã rồi Enter, hoặc bấm kính lúp / F2 để tìm và đánh dấu nhiều đơn vị. Để trống nếu mọi đơn vị cơ sở đều dùng kho này.
    Chọn **Loại kho** (tra cứu danh mục loại kho; không bắt buộc).
 4. Nhập **Địa chỉ** (tối đa 300 ký tự), **Thủ kho phụ trách** (tối đa 100 ký tự) và **Sức chứa** (tối đa 100 ký tự). Các trường này có thể bỏ trống; sức chứa hiện là mô tả văn bản, ví dụ `5.000 m²`.
@@ -54,7 +55,7 @@ Mã kho là khóa của bản ghi và không đổi được sau khi tạo. Nế
 ### 2.4. Tìm kiếm, lọc và làm mới
 
 1. Gõ mã, tên, mã loại kho, địa chỉ, thủ kho, sức chứa hoặc mã đơn vị cơ sở vào ô tìm kiếm. Tìm kiếm không phân biệt chữ hoa/chữ thường và hỗ trợ tiếng Việt không dấu.
-2. Mở **Bộ lọc** để chọn trạng thái (**Đang hoạt động** hoặc **Tạm dừng**), **Loại kho** hoặc **Đơn vị cơ sở sử dụng** (kho đơn vị đó dùng được, kể cả kho dùng chung). Xóa bộ lọc khi cần xem lại toàn bộ.
+2. Mở **Bộ lọc** để chọn trạng thái (**Đang hoạt động** hoặc **Tạm dừng**), **Loại kho**, **Đơn vị cơ sở** (kho thuộc đơn vị đó) hoặc **Đơn vị cơ sở sử dụng** (kho đơn vị đó dùng được, kể cả kho dùng chung). Xóa bộ lọc khi cần xem lại toàn bộ.
 3. Bấm **Làm mới** để nạp lại từ API sau khi người khác cập nhật.
 4. Có thể chỉnh cột hiển thị, độ rộng, thứ tự sắp xếp và số dòng mỗi trang; bố cục được lưu theo người dùng.
 
@@ -64,7 +65,7 @@ Mã kho là khóa của bản ghi và không đổi được sau khi tạo. Nế
 
 **Nhập:**
 
-1. Bấm **Nhập Excel → Tải file mẫu**. Sử dụng file `.xlsx` có các cột Mã kho, Tên kho, Đơn vị cơ sở sử dụng (mã cách nhau dấu phẩy, ví dụ `DVCS01, DVCS02`; ô trống = dùng chung), Mã loại kho, Địa chỉ, Thủ kho phụ trách, Sức chứa, Đang hoạt động. File xuất ra dùng đúng các cột này nên sửa xong nhập lại được; nếu file nhập không có cột đơn vị thì kho giữ nguyên đơn vị đang có.
+1. Bấm **Nhập Excel → Tải file mẫu**. Sử dụng file `.xlsx` có các cột Mã kho, Tên kho, Đơn vị cơ sở (một mã; để trống thì kho mới lấy đơn vị đang đăng nhập, kho đã có giữ đơn vị cũ), Đơn vị cơ sở sử dụng (mã cách nhau dấu phẩy, ví dụ `DVCS01, DVCS02`; ô trống = dùng chung), Mã loại kho, Địa chỉ, Thủ kho phụ trách, Sức chứa, Đang hoạt động. File xuất ra dùng đúng các cột này nên sửa xong nhập lại được; nếu file nhập không có cột đơn vị thì kho giữ nguyên đơn vị đang có.
 2. Điền dữ liệu; mỗi dòng là một kho. Mã kho và Tên kho là bắt buộc. Không lặp mã trong cùng file.
 3. Chọn file để xem trước các dòng và lỗi trước khi gửi.
 4. Chọn **Chỉ thêm** nếu các mã đều mới. Chọn chế độ **Thêm hoặc cập nhật** khi muốn sửa mã đã có; chế độ này cần cả quyền Thêm và Sửa.
@@ -128,7 +129,7 @@ API kiểm tra quyền `inv_warehouse_cat` cho từng việc; service chỉ khai
 
 ## 4. Quy trình thêm một danh mục mới cho lập trình viên
 
-Ví dụ dưới đây dùng **danh mục kho** để chỉ rõ vị trí và thứ tự công việc. Khi tạo danh mục khác, thay `warehouse`, `warehouses`, `Warehouse` và `inv_warehouse_cat` bằng tên tương ứng. Hướng dẫn tổng quát ở `docs/them-danh-muc.md`; mẫu danh mục có danh sách chọn nhiều là Phần 5.1 của tài liệu đó; khai báo tham chiếu giữa các bảng ở `docs/tham-chieu-danh-muc.md`.
+Ví dụ dưới đây dùng **danh mục kho** để chỉ rõ vị trí và thứ tự công việc. Khi tạo danh mục khác, thay `warehouse`, `warehouses`, `Warehouse` và `inv_warehouse_cat` bằng tên tương ứng. Hướng dẫn tổng quát ở `docs/phat-trien/them-danh-muc.md`; mẫu danh mục có danh sách chọn nhiều là Phần 5.1 của tài liệu đó; khai báo tham chiếu giữa các bảng ở `docs/phat-trien/tham-chieu-danh-muc.md`.
 
 ### Bước 1. Chốt mã và trường dữ liệu
 
@@ -183,3 +184,7 @@ Thêm nhãn UI vào `Frontend/src/locales/vi/inventory.json` và `en/inventory.j
 - Màn hình `Kho hàng → Danh mục kho` mở đúng, hộp thêm mới có ô chọn nhiều đơn vị cơ sở.
 
 Giới hạn hiện tại: danh mục kho đã gắn với phiếu nhập kho (backend); các chứng từ và tồn kho còn lại vẫn dùng dữ liệu mẫu ở trình duyệt, khi chuyển lên backend phải khai `[References<Warehouse>]` và kiểm tra kho theo đơn vị bằng `db.UsableBy(unitCode)`.
+
+## Ghi chú: kho trong sổ kho
+
+Kho đã có tồn hoặc lịch sử nhập xuất (bảng `erp_stock_movement` và các bảng tồn) thì không xóa được; hãy chuyển sang **Tạm dừng**. Vị trí lưu kho thuộc về một kho và không đổi kho sau khi lưu (xem `docs/kho/so-kho-va-phieu-nhap-kho.md`).

@@ -104,7 +104,7 @@ Thêm một danh mục là **khai báo**, không phải viết lại chức năn
 | 11 | Chữ hiển thị và gắn màn vào phân hệ | `locales/*/<khu>.json`, `<PhanHe>Module.tsx` | 3.6, 3.7 |
 | 12 | Cấp quyền, build, test, chạy thử, dọn dữ liệu thử | | 6, 7 |
 
-Việc thêm tùy chọn khi cần: tham chiếu danh mục khác (Phần 5, chi tiết ở `docs/tham-chieu-danh-muc.md`), bộ lọc riêng (§2.5), bản dịch / bảng con (`AfterApplyAsync`), tra cứu riêng nhiều bảng hoặc có tham số (§4.3).
+Việc thêm tùy chọn khi cần: tham chiếu danh mục khác (Phần 5, chi tiết ở `docs/phat-trien/tham-chieu-danh-muc.md`), bộ lọc riêng (§2.5), bản dịch / bảng con (`AfterApplyAsync`), tra cứu riêng nhiều bảng hoặc có tham số (§4.3).
 
 ---
 
@@ -338,7 +338,7 @@ Bắt buộc (thiếu là test báo đỏ):
 | `: ErpEntity` | 4 cột người tạo / người sửa (`CoreContext` tự điền, **không gán tay**) và `Version` (chống ghi đè, ánh xạ vào `xmin`) |
 | `, ICatalogRecord` | Báo cho lớp `CatalogService` biết entity có `Code` (khóa), `IsActive`, `SortOrder`; cần đúng ba property này |
 | `[Audited("mã chức năng", "loại đối tượng", Label = ...)]` | Mọi thêm / sửa / xóa tự ghi vào Nhật ký thay đổi: ai, lúc nào, trường nào trước → sau. `Label` là chữ hiện ở cột "Đối tượng", dùng tên property trong `{}`. Bảng không cần nhật ký thì ghi `[NotAudited("lý do")]` |
-| `[References<T>]` hoặc `[NotReference("lý do")]` trên **mỗi** cột tên `*_code` (trừ khóa `code`) | Cột trỏ sang danh mục `T` thì khung tự chặn xóa dòng của `T` khi cột này còn dùng mã và kiểm mã tồn tại khi lưu; cột `*_code` không phải tham chiếu (mã số thuế, mã chức năng...) phải ghi lý do. Thiếu thì test `TableReferenceTests` báo đỏ. Chi tiết: `docs/tham-chieu-danh-muc.md` |
+| `[References<T>]` hoặc `[NotReference("lý do")]` trên **mỗi** cột tên `*_code` (trừ khóa `code`) | Cột trỏ sang danh mục `T` thì khung tự chặn xóa dòng của `T` khi cột này còn dùng mã và kiểm mã tồn tại khi lưu; cột `*_code` không phải tham chiếu (mã số thuế, mã chức năng...) phải ghi lý do. Thiếu thì test `TableReferenceTests` báo đỏ. Chi tiết: `docs/phat-trien/tham-chieu-danh-muc.md` |
 
 Tùy chọn:
 
@@ -819,7 +819,7 @@ export const suppliersApi = createCatalogApi<Supplier, SaveSupplierInput>({
 Màn danh mục chỉ **khai báo** một `CatalogDefinition` rồi giao cho `CatalogScreen`. Không tự viết thanh công cụ, tìm kiếm, lọc, Excel, xóa nhiều, hộp xác nhận hay kiểm tra quyền.
 
 ```tsx
-// Kho › Danh mục nhà cung cấp (inv_supplier_cat), backed by the API (erp_supplier). See docs/them-danh-muc.md.
+// Kho › Danh mục nhà cung cấp (inv_supplier_cat), backed by the API (erp_supplier). See docs/phat-trien/them-danh-muc.md.
 import React, { useMemo } from 'react';
 import { Truck } from 'lucide-react';
 import { Badge } from '../../../../components/common/Badge';
@@ -1164,7 +1164,7 @@ services.AddLookupProvider<UomFullLookup>();
 
 ## Phần 5. Danh mục có trường tham chiếu danh mục khác
 
-Ví dụ nhà cung cấp có **nhóm nhà cung cấp** (`group_code`, tra cứu `supplierGroups`). Không có khóa ngoại, nên **khai báo tham chiếu** để khung làm phần còn lại (tài liệu đầy đủ: `docs/tham-chieu-danh-muc.md`):
+Ví dụ nhà cung cấp có **nhóm nhà cung cấp** (`group_code`, tra cứu `supplierGroups`). Không có khóa ngoại, nên **khai báo tham chiếu** để khung làm phần còn lại (tài liệu đầy đủ: `docs/phat-trien/tham-chieu-danh-muc.md`):
 
 1. **SQL**: thêm cột và index.
    ```sql

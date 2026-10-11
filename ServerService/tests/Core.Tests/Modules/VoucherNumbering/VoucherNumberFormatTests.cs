@@ -16,14 +16,14 @@ public sealed class VoucherNumberFormatTests
         // Same prefix and pattern on two voucher types: identical numbers.
         Assert.Equal(VoucherNumberFormat.Series(VoucherCatalog.DefaultPattern, "PXK"), VoucherNumberFormat.Series(VoucherCatalog.DefaultPattern, "PXK"));
         // A pattern without {PREFIX} that spells the same text clashes too.
-        Assert.Equal(VoucherNumberFormat.Series("PXK-{YYYY}{MM}-{SEQ}", "XX"), VoucherNumberFormat.Series(VoucherCatalog.DefaultPattern, "PXK"));
+        Assert.Equal(VoucherNumberFormat.Series("PXK-{DVCS}-{YYYY}{MM}-{SEQ}", "XX"), VoucherNumberFormat.Series(VoucherCatalog.DefaultPattern, "PXK"));
         Assert.NotEqual(VoucherNumberFormat.Series(VoucherCatalog.DefaultPattern, "PXK"), VoucherNumberFormat.Series(VoucherCatalog.DefaultPattern, "PXDC"));
     }
 
     [Fact]
     public void FormatsEveryToken()
     {
-        Assert.Equal("PNK-202609-0007", VoucherNumberFormat.Format(VoucherCatalog.DefaultPattern, "PNK", 4, "DVCS01", Date, 7));
+        Assert.Equal("PNK-DVCS01-202609-0007", VoucherNumberFormat.Format(VoucherCatalog.DefaultPattern, "PNK", 4, "DVCS01", Date, 7));
         Assert.Equal("DVCS01/PT/26/05/12", VoucherNumberFormat.Format("{DVCS}/{PREFIX}/{YY}/{DD}/{SEQ}", "PT", 2, "DVCS01", Date, 12));
     }
 
@@ -40,8 +40,25 @@ public sealed class VoucherNumberFormatTests
     [InlineData("{PREFIX}-{WEEK}-{SEQ}", "PNK", 4)]    // unknown token
     [InlineData("{PREFIX}-{SEQ}", "PNK", 0)]           // digits out of range
     [InlineData("{PREFIX}-{SEQ}", "P NK", 4)]          // space in prefix
+    [InlineData("{PREFIX}-{YYYY}{MM}-{SEQ}", "PNK", 4)] // no {DVCS}: numbers would repeat between units
     public void RejectsInvalidRules(string pattern, string prefix, int digits) =>
         Assert.Throws<BusinessRuleException>(() => VoucherNumberFormat.Validate(pattern, prefix, digits));
+
+    [Theory]
+    [InlineData("{PREFIX}-{YYYY}{MM}-{SEQ}", "{PREFIX}-{DVCS}-{YYYY}{MM}-{SEQ}")]  // the unit goes right after the prefix
+    [InlineData("{PREFIX}{YY}{MM}-{SEQ}", "{PREFIX}-{DVCS}{YY}{MM}-{SEQ}")]
+    [InlineData("PT/{YY}/{SEQ}", "{DVCS}-PT/{YY}/{SEQ}")]                          // no {PREFIX}: the unit goes in front
+    [InlineData("{DVCS}/{PREFIX}/{SEQ}", "{DVCS}/{PREFIX}/{SEQ}")]                // already has it: unchanged
+    public void WithUnitAddsTheCompanyUnitOnlyWhenMissing(string pattern, string expected)
+    {
+        Assert.Equal(expected, VoucherNumberFormat.WithUnit(pattern));
+        // What it returns is always a valid rule.
+        VoucherNumberFormat.Validate(VoucherNumberFormat.WithUnit(pattern), "PNK", 4);
+    }
+
+    [Fact]
+    public void TheDefaultPatternHasTheUnit() =>
+        VoucherNumberFormat.Validate(VoucherCatalog.DefaultPattern, "PNK", VoucherCatalog.DefaultDigits);
 
     [Fact]
     public void CatalogVouchersAreKnownFunctionsWithUniqueTypes()

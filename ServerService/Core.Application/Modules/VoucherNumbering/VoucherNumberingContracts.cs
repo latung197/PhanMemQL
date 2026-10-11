@@ -42,6 +42,9 @@ public static partial class VoucherNumberFormat
     {
         if (!pattern.Contains("{SEQ}", StringComparison.Ordinal))
             throw new BusinessRuleException("numbering.seqRequired");
+        // The sequence runs per company unit while a voucher number is unique across the system, so the unit has to be in it.
+        if (!pattern.Contains("{DVCS}", StringComparison.Ordinal))
+            throw new BusinessRuleException("numbering.unitRequired");
         var unknown = TokenPattern().Matches(pattern).Select(m => m.Value).FirstOrDefault(t => !Tokens.Contains(t));
         if (unknown is not null)
             throw new BusinessRuleException("numbering.unknownToken", unknown);
@@ -51,8 +54,18 @@ public static partial class VoucherNumberFormat
 
     /// <summary>
     /// What tells the numbers of a series apart from another series: the pattern with its prefix filled in. Two
-    /// voucher types with the same series would hand out identical numbers (e.g. both "PXK-{YYYY}{MM}-{SEQ}").
+    /// voucher types with the same series would hand out identical numbers (e.g. both "PXK-{DVCS}-{YYYY}{MM}-{SEQ}").
     /// </summary>
+    /// <summary>
+    /// The pattern with the company unit added when it has none: {DVCS} goes right after {PREFIX} (or in front when there is no
+    /// {PREFIX}). For rules written before the unit was required (older backups, old rows).
+    /// </summary>
+    public static string WithUnit(string pattern) =>
+        pattern.Contains("{DVCS}", StringComparison.Ordinal) ? pattern
+        : pattern.Contains("{PREFIX}", StringComparison.Ordinal)
+            ? pattern.Replace("{PREFIX}", "{PREFIX}-{DVCS}", StringComparison.Ordinal)
+            : "{DVCS}-" + pattern;
+
     public static string Series(string pattern, string prefix) =>
         pattern.Replace("{PREFIX}", prefix, StringComparison.Ordinal).ToUpperInvariant();
 

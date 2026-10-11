@@ -75,6 +75,13 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<UomConversion> UomConversions => Set<UomConversion>();
     public DbSet<MaterialGroup> MaterialGroups => Set<MaterialGroup>();
     public DbSet<MaterialType> MaterialTypes => Set<MaterialType>();
+    public DbSet<Material> Materials => Set<Material>();
+    public DbSet<StorageLocation> StorageLocations => Set<StorageLocation>();
+    public DbSet<Lot> Lots => Set<Lot>();
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<StockBalance> StockBalances => Set<StockBalance>();
+    public DbSet<StockLotBalance> StockLotBalances => Set<StockLotBalance>();
+    public DbSet<StockLocationBalance> StockLocationBalances => Set<StockLocationBalance>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<WarehouseType> WarehouseTypes => Set<WarehouseType>();
     public DbSet<WarehouseTypeTranslation> WarehouseTypeTranslations => Set<WarehouseTypeTranslation>();
@@ -125,6 +132,9 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<UomTranslation>().HasKey(x => new { x.UomCode, x.LanguageCode });
         model.Entity<WarehouseTypeTranslation>().HasKey(x => new { x.WarehouseTypeCode, x.LanguageCode });
         model.Entity<WarehouseUnit>().HasKey(x => new { x.WarehouseCode, x.UnitCode });
+        model.Entity<StockBalance>().HasKey(x => new { x.UnitCode, x.WarehouseCode, x.MaterialCode });
+        model.Entity<StockLotBalance>().HasKey(x => new { x.UnitCode, x.WarehouseCode, x.MaterialCode, x.LotCode });
+        model.Entity<StockLocationBalance>().HasKey(x => new { x.UnitCode, x.WarehouseCode, x.MaterialCode, x.LotCode, x.LocationCode });
         model.Entity<GoodsReceipt>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.ReceiptId);
 
         // Row version of records edited in forms (IVersioned): PostgreSQL's xmin system column, changed by every update

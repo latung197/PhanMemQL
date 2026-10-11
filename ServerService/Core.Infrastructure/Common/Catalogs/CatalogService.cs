@@ -34,7 +34,7 @@ public sealed record CatalogSpec(string Function, string ObjectType, string Code
 /// <item><see cref="ExportColumns"/> (same columns and texts as the Excel import file);</item>
 /// <item>optionally <see cref="AfterApplyAsync"/> (child rows such as translations) and <see cref="BeforeDeleteAsync"/> (in-use checks).</item>
 /// </list>
-/// The change log, record stamps, version and cache invalidation come from CoreContext. Guide: docs/them-danh-muc.md.
+/// The change log, record stamps, version and cache invalidation come from CoreContext. Guide: docs/phat-trien/them-danh-muc.md.
 /// </summary>
 public abstract class CatalogService<TEntity, TDto, TRequest>(CoreContext db, CatalogBatch batch, IExcelExporter excel, IAuditLog audit)
     : ICatalogService<TDto, TRequest>

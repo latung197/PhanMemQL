@@ -7,7 +7,7 @@ using Xunit;
 namespace Core.Tests.Common;
 
 /// <summary>
-/// Lost-update protection must not depend on remembering it (docs/chong-ghi-de.md): every UpdateAsync of a service
+/// Lost-update protection must not depend on remembering it (docs/phat-trien/chong-ghi-de.md): every UpdateAsync of a service
 /// returns the record's version, takes the version the screen loaded, and checks it with db.ExpectVersion.
 /// </summary>
 public sealed partial class ConcurrencyContractTests
@@ -37,7 +37,7 @@ public sealed partial class ConcurrencyContractTests
             Assert.True(request is not null, $"{service.Name}.UpdateAsync: no *Request parameter");
             var version = request!.ParameterType.GetProperty("Version");
             Assert.True(version?.PropertyType == typeof(uint?),
-                $"{request.ParameterType.Name} needs `uint? Version = null` (last parameter), see docs/chong-ghi-de.md");
+                $"{request.ParameterType.Name} needs `uint? Version = null` (last parameter), see docs/phat-trien/chong-ghi-de.md");
         }
     }
 
@@ -48,7 +48,7 @@ public sealed partial class ConcurrencyContractTests
         {
             var dto = method.ReturnType.GetGenericArguments().Single();
             Assert.True(dto.GetProperty("Version")?.PropertyType == typeof(uint),
-                $"{dto.Name} (result of {service.Name}.UpdateAsync) needs `uint Version` filled from the entity, see docs/chong-ghi-de.md");
+                $"{dto.Name} (result of {service.Name}.UpdateAsync) needs `uint Version` filled from the entity, see docs/phat-trien/chong-ghi-de.md");
         }
     }
 
@@ -70,7 +70,7 @@ public sealed partial class ConcurrencyContractTests
             var next = NextMember().Match(source, start.Index + start.Length);
             var body = source[start.Index..(next.Success ? next.Index : source.Length)];
             Assert.True(body.Contains("ExpectVersion(", StringComparison.Ordinal),
-                $"{implementation.Name}.UpdateAsync must call db.ExpectVersion(entity, request.Version) after loading the record, see docs/chong-ghi-de.md");
+                $"{implementation.Name}.UpdateAsync must call db.ExpectVersion(entity, request.Version) after loading the record, see docs/phat-trien/chong-ghi-de.md");
         }
     }
 

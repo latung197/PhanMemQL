@@ -1,5 +1,5 @@
 // Settings › Danh mục phòng ban (sys_departments), on the shared catalog screen: the view only declares columns,
-// form and Excel columns (see docs/them-danh-muc.md).
+// form and Excel columns (see docs/phat-trien/them-danh-muc.md).
 import React, { useMemo } from 'react';
 import { Network } from 'lucide-react';
 import { Badge } from '../../components/common/Badge';

@@ -2,7 +2,7 @@
 
 Thư mục này được đóng gói độc lập chuẩn ERP để bạn có thể **copy sang bất kỳ module nào** và tạo chức năng mới trong 4 bước đơn giản.
 
-**Lưu ý:** đây là bản minh họa trên dữ liệu mẫu. Danh mục lưu database phải dùng `CatalogScreen` như `src/modules/inventory/categories/uom/` và làm đủ SQL, API, quyền, dịch vi/en, Excel, lookup theo [quy trình chuẩn](../../../../../docs/them-danh-muc.md). Không dùng state và dữ liệu mẫu dưới đây làm nguồn dữ liệu cho danh mục thật.
+**Lưu ý:** đây là bản minh họa trên dữ liệu mẫu. Danh mục lưu database phải dùng `CatalogScreen` như `src/modules/inventory/categories/uom/` và làm đủ SQL, API, quyền, dịch vi/en, Excel, lookup theo [quy trình chuẩn](../../../../../docs/phat-trien/them-danh-muc.md). Không dùng state và dữ liệu mẫu dưới đây làm nguồn dữ liệu cho danh mục thật.
 
 ---
 

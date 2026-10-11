@@ -4,6 +4,7 @@ using Core.Application.Common.Exceptions;
 using Core.Application.Common.Export;
 using Core.Application.Common.Localization;
 using Core.Application.Common.Persistence;
+using Core.Application.Common.Security;
 using Core.Application.Common.Validation;
 using Core.Application.Modules.Inventory;
 using Core.Domain.Common;
@@ -16,17 +17,18 @@ using Microsoft.EntityFrameworkCore;
 namespace Core.Infrastructure.Modules.Inventory;
 
 /// <summary>
-/// Danh mục kho on the shared CatalogService. Besides its fields a warehouse has a type (a lookup) and the company
-/// units that may use it (several; none = shared by every unit), kept in erp_warehouse_unit.
+/// Danh mục kho on the shared CatalogService. Besides its fields a warehouse has a type (a lookup), its own company unit
+/// (unit_code; a new warehouse takes the unit it is created in) and the company units that may use it (several; none =
+/// shared by every unit), kept in erp_warehouse_unit.
 /// </summary>
-public sealed class WarehouseService(CoreContext db, CatalogBatch batch, IExcelExporter excel, IAuditLog audit)
+public sealed class WarehouseService(CoreContext db, CatalogBatch batch, IExcelExporter excel, IAuditLog audit, ICurrentUser currentUser)
     : CatalogService<Warehouse, WarehouseDto, SaveWarehouseRequest>(db, batch, excel, audit), IWarehouseService
 {
     private static readonly CatalogSpec Info = new("inv_warehouse_cat", "warehouse", "field.warehouseCode", 20, "DanhMucKho");
 
     /// <summary>"warehouseTypeName" sorts by the type code.</summary>
     private static readonly SortMap<Warehouse> SortColumns = SortMap<Warehouse>.By(x => x.Code, "order")
-        .Add("order", x => x.SortOrder).Add("code", x => x.Code).Add("name", x => x.Name)
+        .Add("order", x => x.SortOrder).Add("code", x => x.Code).Add("name", x => x.Name).Add("unitCode", x => x.UnitCode)
         .Add("warehouseTypeName", x => x.WarehouseTypeCode).Add("address", x => x.Address).Add("manager", x => x.Manager)
         .Add("capacity", x => x.Capacity).Add("isActive", x => x.IsActive).AddRecordStamps();
 
@@ -38,14 +40,16 @@ public sealed class WarehouseService(CoreContext db, CatalogBatch batch, IExcelE
 
     protected override IQueryable<Warehouse> Search(IQueryable<Warehouse> rows, string pattern) =>
         rows.Where(x => SearchFunctions.Matches(x.Code, pattern) || SearchFunctions.Matches(x.Name, pattern)
-            || SearchFunctions.Matches(x.WarehouseTypeCode, pattern) || SearchFunctions.Matches(x.Address, pattern)
+            || SearchFunctions.Matches(x.UnitCode, pattern) || SearchFunctions.Matches(x.WarehouseTypeCode, pattern) || SearchFunctions.Matches(x.Address, pattern)
             || SearchFunctions.Matches(x.Manager, pattern) || SearchFunctions.Matches(x.Capacity, pattern)
             || Db.WarehouseUnits.Any(u => u.WarehouseCode == x.Code && SearchFunctions.Matches(u.UnitCode, pattern)));
 
-    /// <summary>Filters <c>warehouseTypeCode=KHO-NL</c> and <c>unitCode=DVCS01</c> (warehouses that unit may use, shared ones included).</summary>
+    /// <summary>Filters <c>warehouseTypeCode=KHO-NL</c>, <c>ownerUnitCode=DVCS01</c> (warehouses of that unit) and
+    /// <c>unitCode=DVCS01</c> (warehouses that unit may use, shared ones included).</summary>
     protected override IQueryable<Warehouse> ApplyFilters(IQueryable<Warehouse> rows, IReadOnlyDictionary<string, string> filters)
     {
         if (filters.TryGetValue("warehouseTypeCode", out var type)) rows = rows.Where(x => x.WarehouseTypeCode == type);
+        if (filters.TryGetValue("ownerUnitCode", out var owner)) rows = rows.Where(x => x.UnitCode == owner);
         if (filters.TryGetValue("unitCode", out var unit))
             rows = rows.Where(x => !Db.WarehouseUnits.Any(u => u.WarehouseCode == x.Code)
                 || Db.WarehouseUnits.Any(u => u.WarehouseCode == x.Code && u.UnitCode == unit));
@@ -55,6 +59,7 @@ public sealed class WarehouseService(CoreContext db, CatalogBatch batch, IExcelE
     protected override IReadOnlyList<ExportColumn<Warehouse>> ExportColumns() =>
     [
         new("export.warehouse.code", x => x.Code), new("export.warehouse.name", x => x.Name),
+        new("export.warehouse.unitCode", x => x.UnitCode),
         new("export.warehouse.unitCodes", x => _exportUnits.GetValueOrDefault(x.Code, string.Empty)),
         new("export.warehouse.typeCode", x => x.WarehouseTypeCode), new("export.warehouse.address", x => x.Address),
         new("export.warehouse.manager", x => x.Manager), new("export.warehouse.capacity", x => x.Capacity),
@@ -81,7 +86,7 @@ public sealed class WarehouseService(CoreContext db, CatalogBatch batch, IExcelE
         var typeNames = await LoadTypeNamesAsync(rows.Select(x => x.WarehouseTypeCode).OfType<string>().Distinct().ToList(), ct);
         return rows.Select(x => new WarehouseDto(x.Code, x.Name, x.WarehouseTypeCode,
             typeNames.GetValueOrDefault(x.WarehouseTypeCode ?? ""), x.Address, x.Manager, x.Capacity, x.IsActive, stamp(x), x.Version,
-            unitsByWarehouse.GetValueOrDefault(x.Code) ?? [])).ToList();
+            unitsByWarehouse.GetValueOrDefault(x.Code) ?? [], x.UnitCode)).ToList();
     }
 
     protected override async Task ApplyAsync(Warehouse row, SaveWarehouseRequest request, CancellationToken ct)
@@ -90,6 +95,16 @@ public sealed class WarehouseService(CoreContext db, CatalogBatch batch, IExcelE
         if (await Db.Warehouses.AnyAsync(x => x.Code != row.Code && x.Name.ToLower() == name.ToLower(), ct))
             throw new BusinessRuleException("warehouse.nameExists", name);
         row.Name = name;
+        // Empty = keep the unit the warehouse has; a new warehouse (and an Excel row without the column) takes the
+        // unit the user is signed in to.
+        var unitCode = (request.UnitCode ?? string.Empty).Trim().ToUpperInvariant();
+        if (unitCode.Length == 0) unitCode = row.UnitCode.Length > 0 ? row.UnitCode : currentUser.UnitCode;
+        if (unitCode != row.UnitCode)
+        {
+            if (!await Db.CompanyUnits.AnyAsync(x => x.Code == unitCode && x.IsActive, ct))
+                throw new BusinessRuleException("warehouse.unitInvalid", unitCode);
+            row.UnitCode = unitCode;
+        }
         if (request.WarehouseTypeCode is not null)
         {
             var typeCode = request.WarehouseTypeCode.Trim().ToUpperInvariant();
@@ -115,14 +130,17 @@ public sealed class WarehouseService(CoreContext db, CatalogBatch batch, IExcelE
         if (request.UnitCodes is null) return;
         var wanted = request.UnitCodes.Split([',', ';', ' ', '\n', '\r', '\t'], StringSplitOptions.RemoveEmptyEntries)
             .Select(x => x.Trim().ToUpperInvariant()).Distinct(StringComparer.Ordinal).ToList();
+        // A warehouse kept for some units is always usable by its own unit.
+        if (wanted.Count > 0 && !wanted.Contains(row.UnitCode)) wanted.Add(row.UnitCode);
 
         var existing = await Db.WarehouseUnits.Where(x => x.WarehouseCode == row.Code).ToListAsync(ct);
         var added = wanted.Where(code => existing.All(x => x.UnitCode != code)).ToList();
         if (added.Count > 0)
         {
-            // A unit that is not there yet must exist and be active; units already on the warehouse stay even if stopped.
+            // A unit that is not there yet must exist and be active; units already on the warehouse stay even if stopped,
+            // and so does the warehouse's own unit (checked in ApplyAsync when it changes).
             var units = await Db.CompanyUnits.AsNoTracking().Where(x => added.Contains(x.Code)).ToListAsync(ct);
-            var bad = added.Where(code => units.All(x => x.Code != code || !x.IsActive)).ToList();
+            var bad = added.Where(code => code != row.UnitCode && units.All(x => x.Code != code || !x.IsActive)).ToList();
             if (bad.Count > 0) throw new BusinessRuleException("warehouse.unitInvalid", string.Join(", ", bad));
         }
         var removed = existing.Where(x => !wanted.Contains(x.UnitCode)).ToList();

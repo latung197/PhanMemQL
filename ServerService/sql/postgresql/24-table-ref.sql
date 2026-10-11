@@ -1,4 +1,4 @@
--- Tham chiếu cột -> danh mục (docs/tham-chieu-danh-muc.md).
+-- Tham chiếu cột -> danh mục (docs/phat-trien/tham-chieu-danh-muc.md).
 -- Hệ thống không dùng khóa ngoại, nên bảng này ghi lại cột nào chứa mã của danh mục nào. Nội dung do API ghi mỗi lần
 -- khởi động từ các thuộc tính [References<T>] của entity (không sửa tay); khung danh mục dùng nó để từ chối xóa dòng
 -- còn được dùng. Script chạy lại được.

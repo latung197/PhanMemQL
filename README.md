@@ -6,7 +6,7 @@ ERP gồm hai phần:
 | --- | --- | --- | --- |
 | [`Frontend/`](Frontend/README.md) | Giao diện web | React 19 + TypeScript, Vite 6, Tailwind v4, Express (`server.ts`) | `http://localhost:3000` |
 | [`ServerService/`](ServerService/README.md) | API | .NET 10, EF Core + Dapper, PostgreSQL | `http://localhost:2512` |
-| [`docs/`](docs/) | Tài liệu cho người dùng / nghiệp vụ | Word | — |
+| [`docs/`](docs/README.md) | Tài liệu theo chức năng: `kho/`, `he-thong/`, `phat-trien/`, `cong-cu/` (mục lục ở `docs/README.md`) | Markdown + Word | — |
 
 **Frontend là chuẩn.** Tên chức năng, kiểu dữ liệu và cách hiển thị lấy theo frontend (`Frontend/src/types/index.ts`). Backend làm theo cho khớp.
 
@@ -94,7 +94,7 @@ Trình duyệt ── fetch + Bearer token ──► ServerService (Core, contro
 | --- | --- |
 | Đăng nhập, người dùng, vai trò, phân quyền, quyền đặc biệt | **Backend / PostgreSQL** |
 | Đơn vị cơ sở, phòng ban | **Backend** |
-| Ngoại tệ, tỷ giá (bảng riêng), khóa sổ theo tháng từng đơn vị, đánh số chứng từ | **Backend** |
+| Ngoại tệ, tỷ giá (bảng riêng), khóa sổ theo tháng từng đơn vị, đánh số chứng từ | **Backend**. Mẫu số chứng từ bắt buộc có `{DVCS}` (mã đơn vị cơ sở), mặc định `{PREFIX}-{DVCS}-{YYYY}{MM}-{SEQ}` (ví dụ `PNK-DVCS01-202610-0001`), vì dải số chạy riêng từng đơn vị mà số chứng từ phải duy nhất toàn hệ thống. Chạy `35-voucher-numbering-unit.sql` để đổi các mẫu cũ. |
 | Tham số mặc định, năm tài chính, hồ sơ doanh nghiệp, định dạng số (JSON trong `sys_setting`), sao lưu / phục hồi cài đặt | **Backend** |
 | Thông báo (gửi, đọc, thời gian thực, tự dọn) | **Backend** |
 | Quy tắc phê duyệt (Cài đặt › Phân quyền › Quy trình phê duyệt) | **Backend** |
@@ -102,20 +102,22 @@ Trình duyệt ── fetch + Bearer token ──► ServerService (Core, contro
 | Quản lý menu (Cài đặt › Quản lý menu) | **Backend**: module ẩn lưu trong `sys_setting` (`MENU_VISIBILITY`), chức năng ẩn lưu tại `sys_command.hide_yn`. Ẩn menu không thay đổi quyền truy cập API. |
 | Cấu trúc menu (`sys_command`) | Backend trả menu qua `GET /api/menu`; chạy `23-menu-tree.sql` trước khi nâng cấp API. Mỗi lần khởi động, nút nào trong `Core/SeedData/menu.json` mà DB chưa có thì được thêm (nút đã có không bị ghi đè); tên, icon, thứ tự và quan hệ nhóm lấy từ DB. Tên dịch ở `sys_command_translation`. |
 | Kho › Danh mục đơn vị tính (`erp_uom`) | **Backend** |
-| Kho › Quy đổi đơn vị tính (`erp_uom_conversion`) | **Backend**; vật tư liên kết vẫn lấy từ danh mục mẫu trên frontend |
-| Kho › Nhóm vật tư (`erp_material_group`) | **Backend**; màn Vật tư mẫu chọn mã cho 5 trường nhóm qua tra cứu |
-| Kho › Danh mục kho (`erp_warehouse`) | **Backend**; các màn chứng từ, tồn kho và vị trí kho vẫn dùng dữ liệu mẫu trong trình duyệt |
+| Kho › Quy đổi đơn vị tính (`erp_uom_conversion`) | **Backend**; cột vật tư vẫn chọn từ danh mục mẫu trên frontend, chưa trỏ `erp_material` |
+| Kho › Nhóm vật tư (`erp_material_group`) | **Backend**; vật tư trỏ nhóm bằng `material_group_code` |
+| Kho › Danh mục kho (`erp_warehouse`) | **Backend**: có đơn vị cơ sở của kho (`unit_code`, mặc định đơn vị đang đăng nhập; chạy `30-inventory-warehouse-owner-unit.sql`) và danh sách đơn vị cơ sở được dùng kho (`erp_warehouse_unit`) |
 | Kho › Danh mục nhà cung cấp (`erp_supplier`) | **Backend**: thêm, sửa, xóa, tra cứu, phân trang và Excel. Chạy `22-inventory-suppliers.sql`; phiếu nhập kho hiện vẫn dùng bộ chọn nhà cung cấp mẫu. |
-| API trình / duyệt / từ chối phiếu (`/api/approvals/...`) | Backend đã có, **frontend chưa gọi** |
-| Kho — Phiếu nhập kho (`erp_goods_receipt`, `erp_goods_receipt_line`, `erp_stock_movement`) | **Backend**: lưu phiếu, duyệt, ghi sổ và bỏ ghi sổ. Chạy `ServerService/sql/postgresql/20-inventory-goods-receipts.sql` sau các script Kho trước đó. Bộ chọn vật tư và nhà cung cấp vẫn dùng dữ liệu mẫu. |
-| Vật tư, phiếu xuất, báo cáo tồn kho, vị trí kho, bán hàng, tài chính, nhân sự | **Dữ liệu mẫu trong trình duyệt** (`Frontend/src/mock`, `localStorage['s_erp_database_state']`) |
+| API trình / duyệt / từ chối phiếu (`/api/approvals/...`) | **Backend**; màn Phê duyệt nhập kho và phiếu nhập kho đã gọi. Các màn duyệt khác (xuất, điều chuyển) vẫn là dữ liệu mẫu |
+| Kho — Phiếu nhập kho (`erp_goods_receipt`, `erp_goods_receipt_line`) | **Backend**: lưu phiếu, trình duyệt, duyệt, ghi sổ và bỏ ghi sổ. Ghi sổ đi qua **sổ kho** (`IStockLedger`, xem `docs/kho/so-kho-va-phieu-nhap-kho.md`). Chạy script `20` rồi `34`. Bộ chọn vật tư, lô, vị trí và nhà cung cấp trên phiếu vẫn dùng dữ liệu mẫu / nhập tay (sẽ chuyển sang danh mục). |
+| Kho › Vật tư (`erp_material`), Vị trí lưu kho (`erp_location`), Lô và hạn sử dụng (`erp_lot`) | **Backend**: danh mục theo khung `CatalogService`, các cờ theo dõi lô / vị trí / hạn dùng. Chạy `31`, `32`, `33`. |
+| Kho — Sổ kho và tồn kho (`erp_stock_movement`, `erp_stock_balance`, `erp_stock_lot_balance`, `erp_stock_location_balance`) | **Backend**: sổ ghi thêm + ba bảng tồn (theo kho, lô, vị trí), API xem tồn và đối chiếu / dựng lại. Chưa có màn hình xem tồn. Chạy `34`. |
+| Phiếu xuất, báo cáo tồn kho, bán hàng, tài chính, nhân sự | **Dữ liệu mẫu trong trình duyệt** (`Frontend/src/mock`, `localStorage['s_erp_database_state']`) |
 
 Khi làm một nghiệp vụ thật, làm theo quy trình bên dưới rồi bỏ dữ liệu mẫu của màn đó.
 
 ## Quy ước chung
 
 - Giao diện, thông báo lỗi và tài liệu viết **tiếng Việt**.
-- **Bảng:** `sys_*` cho bảng hệ thống, `erp_*` cho bảng nghiệp vụ. Tên bảng và cột viết `snake_case`. **Không dùng khóa ngoại**: liên kết bằng mã hoặc ID có index. Cột `*_code` trỏ sang danh mục khai bằng `[References<T>]` trên entity (hoặc `[NotReference(lý do)]`): khung tự chặn xóa dòng đang được dùng và kiểm mã khi lưu, xem `docs/tham-chieu-danh-muc.md`.
+- **Bảng:** `sys_*` cho bảng hệ thống, `erp_*` cho bảng nghiệp vụ. Tên bảng và cột viết `snake_case`. **Không dùng khóa ngoại**: liên kết bằng mã hoặc ID có index. Cột `*_code` trỏ sang danh mục khai bằng `[References<T>]` trên entity (hoặc `[NotReference(lý do)]`): khung tự chặn xóa dòng đang được dùng và kiểm mã khi lưu, xem `docs/phat-trien/tham-chieu-danh-muc.md`.
 - **Truy vấn:** CRUD viết bằng EF Core. Báo cáo, tính toán và ghi sổ dùng SQL thuần qua `ISqlExecutor`, luôn truyền tham số, không nối chuỗi.
 - **Mã chức năng** (`SubMenuKey`, ví dụ `inv_receipt`) là khóa chung của menu, route, phân quyền và thông báo. Frontend khai báo một lần trong `src/config/functions.ts` (route, nhãn, ma trận quyền tự lấy từ đây); backend khai báo trong `FunctionCatalog.cs`.
 - **Quyền:** mỗi chức năng có 7 thao tác: `view` (xem), `create` (thêm, cả sao chép / nhập Excel), `edit` (sửa bản ghi đã lưu), `delete`, `approve`, `print` (in), `export` (xuất file). API thêm mới (`POST`) kiểm tra `Create`, sửa (`PUT`) kiểm tra `Edit`. Ngoài ra có quyền đặc biệt dạng `{chức năng}:{mã}`, ví dụ `inv_receipt:VIEW_PRICE`.
@@ -142,17 +144,17 @@ Mỗi chức năng có một **mã** (ví dụ `inv_supplier_cat`) và thuộc m
 1. `types/index.ts`: thêm mã vào `SubMenuKey`.
 2. `config/functions.ts`: thêm một dòng `mã: fn(phân hệ, '/đường-dẫn', 'Nhãn', loại)`. Route, tiêu đề, lịch sử điều hướng và ma trận phân quyền tự lấy từ đây. Thiếu dòng này TypeScript báo lỗi.
 3. Cập nhật metadata menu trên dòng chức năng trong `sys_command` (`menu_kind`, `menu_parent_id`, `menu_order_no`, `menu_icon`) và thêm bản dịch vào `sys_command_translation`.
-4. Thư mục chức năng trong `modules/<phân hệ>/<nhóm>/<tên>/`: màn hình + `api.ts` (gọi `apiRequest`, không gọi `fetch` trực tiếp). Kho dùng `categories/`, `documents/`, `reports/`; xem [cấu trúc module Kho](docs/cau-truc-module-kho.md).
+4. Thư mục chức năng trong `modules/<phân hệ>/<nhóm>/<tên>/`: màn hình + `api.ts` (gọi `apiRequest`, không gọi `fetch` trực tiếp). Kho dùng `categories/`, `documents/`, `reports/`; xem [cấu trúc module Kho](docs/kho/cau-truc-module-kho.md).
 5. `modules/<phân hệ>/<Phân hệ>Module.tsx`: thêm `case 'mã'`.
 6. Chạy `npm run lint` và `npm run build`.
 
 ### Danh mục
 
-Hướng dẫn từng bước, từng file (lấy danh mục đơn vị tính làm mẫu): **[docs/them-danh-muc.md](docs/them-danh-muc.md)**.
+Hướng dẫn từng bước, từng file (lấy danh mục đơn vị tính làm mẫu): **[docs/phat-trien/them-danh-muc.md](docs/phat-trien/them-danh-muc.md)**.
 
-Quy trình triển khai thực tế danh mục quy đổi đơn vị tính, gồm tra cứu chọn một/chọn nhiều: **[docs/them-quy-doi-don-vi-tinh.md](docs/them-quy-doi-don-vi-tinh.md)**.
+Quy trình triển khai thực tế danh mục quy đổi đơn vị tính, gồm tra cứu chọn một/chọn nhiều: **[docs/kho/them-quy-doi-don-vi-tinh.md](docs/kho/them-quy-doi-don-vi-tinh.md)**.
 
-Chống ghi đè khi nhiều người cùng sửa (phiên bản bản ghi, lỗi 409, các bước cho chức năng mới): **[docs/chong-ghi-de.md](docs/chong-ghi-de.md)**.
+Chống ghi đè khi nhiều người cùng sửa (phiên bản bản ghi, lỗi 409, các bước cho chức năng mới): **[docs/phat-trien/chong-ghi-de.md](docs/phat-trien/chong-ghi-de.md)**.
 
 
 - Backend: kế thừa `CatalogService` theo mẫu **Đơn vị tính** (`UomService.cs`; có bản dịch) hoặc **Phòng ban** (`DepartmentService.cs`; đơn giản, có đếm người dùng và chép tên mới sang người dùng): chỉ khai báo cột sắp xếp, tìm kiếm, kiểm tra dữ liệu bằng `Guard`, cột xuất Excel. Không xóa bản ghi đang được dùng: khai `[References<T>]` trên các cột `*_code` trỏ tới danh mục (không có khóa ngoại), khung tự chặn. Cho phép "ngừng sử dụng".
@@ -214,4 +216,4 @@ Quyền thực tế của một người = **quyền của vai trò + ngoại l�
 - [Frontend/src/DEVELOPER_GUIDE.md](Frontend/src/DEVELOPER_GUIDE.md): màn hình mẫu và các control dùng chung.
 - Mẫu màn hình: [danh mục](Frontend/src/modules/_templates/category-feature-template/README.md), [chứng từ](Frontend/src/modules/_templates/voucher-feature-template/README.md).
 - [CLAUDE.md](CLAUDE.md): tóm tắt kiến trúc và lệnh thường dùng.
-- Tài liệu phân quyền cho người dùng: [docs/Phan-quyen-S-ERP.docx](docs/Phan-quyen-S-ERP.docx)
+- Tài liệu phân quyền cho người dùng: [docs/he-thong/Phan-quyen-S-ERP.docx](docs/he-thong/Phan-quyen-S-ERP.docx)

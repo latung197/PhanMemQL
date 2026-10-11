@@ -94,7 +94,7 @@ public sealed class SettingsBackupService(CoreContext db, IUnitOfWork unitOfWork
 
             // Voucher types that no longer exist in VoucherCatalog are skipped.
             foreach (var item in (backup.Numbering ?? []).Where(x => VoucherCatalog.FindByType(x.VoucherType) is not null))
-                await numbering.UpdateAsync(userId, item.VoucherType, new SaveVoucherNumberingRequest(item.Prefix, item.Pattern, item.Digits), unitCode, token);
+                await numbering.UpdateAsync(userId, item.VoucherType, new SaveVoucherNumberingRequest(item.Prefix, VoucherNumberFormat.WithUnit(item.Pattern), item.Digits), unitCode, token);
         }, ct);
     }
 }

@@ -2,7 +2,7 @@
 
 Tài liệu này hướng dẫn bạn cách **tự nhân bản (copy-paste)** và phát triển thêm bất kỳ chức năng nào trong hệ thống S-ERP một cách nhanh chóng, đồng bộ và đúng kiến trúc chuẩn doanh nghiệp.
 
-**Quy trình chuẩn cho danh mục có dữ liệu thật:** xem [docs/them-danh-muc.md](../../docs/them-danh-muc.md), lấy `src/modules/inventory/categories/uom/` làm mẫu và dùng `CatalogDefinition` + `CatalogScreen`. Hai thư mục `_templates/` dưới đây chỉ minh họa giao diện với dữ liệu mẫu; chúng chưa có API, nhật ký, chống ghi đè và cấu hình số doanh nghiệp. Chứng từ thật cần thêm quy trình backend trong [README gốc](../../README.md#phiếu-chứng-từ).
+**Quy trình chuẩn cho danh mục có dữ liệu thật:** xem [docs/phat-trien/them-danh-muc.md](../../docs/phat-trien/them-danh-muc.md), lấy `src/modules/inventory/categories/uom/` làm mẫu và dùng `CatalogDefinition` + `CatalogScreen`. Hai thư mục `_templates/` dưới đây chỉ minh họa giao diện với dữ liệu mẫu; chúng chưa có API, nhật ký, chống ghi đè và cấu hình số doanh nghiệp. Chứng từ thật cần thêm quy trình backend trong [README gốc](../../README.md#phiếu-chứng-từ).
 
 ---
 
@@ -54,7 +54,7 @@ src/modules/inventory/categories/suppliers/
 1. `types.ts`: khai báo DTO và request khớp API; DTO có `stamp`, `version`.
 2. `api.ts`: triển khai `CatalogScreenApi` bằng `apiRequest`, gồm thêm, sửa, xóa, nhập Excel, xóa nhiều.
 3. `SupplierCategoryView.tsx`: khai báo `CatalogDefinition` (cột lưới, form, cột Excel, bản dịch) rồi truyền vào `CatalogScreen`; khung dựng thanh công cụ, modal, quyền và thông báo.
-4. Tạo SQL, entity, service, controller và lookup theo [quy trình thêm danh mục](../../docs/them-danh-muc.md).
+4. Tạo SQL, entity, service, controller và lookup theo [quy trình thêm danh mục](../../docs/phat-trien/them-danh-muc.md).
 5. Mở `index.ts`:
    ```typescript
    export * from './SupplierCategoryView';
@@ -91,7 +91,7 @@ Mở `src/modules/inventory/InventoryModule.tsx`:
      return <SupplierCategoryView currentUser={currentUser} />;
    ```
 
-Sau khi thêm mã vào `FunctionCatalog.cs`, dịch vi/en và chạy kiểm tra SQL, API, phân quyền, Excel, lookup theo `docs/them-danh-muc.md`, danh mục mới mới đủ luồng sử dụng.
+Sau khi thêm mã vào `FunctionCatalog.cs`, dịch vi/en và chạy kiểm tra SQL, API, phân quyền, Excel, lookup theo `docs/phat-trien/them-danh-muc.md`, danh mục mới mới đủ luồng sử dụng.
 
 ---
 

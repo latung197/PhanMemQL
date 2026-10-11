@@ -13,7 +13,7 @@ public sealed record VoucherDefinition(string Function, string VoucherType, stri
 /// </summary>
 public static class VoucherCatalog
 {
-    public const string DefaultPattern = "{PREFIX}-{YYYY}{MM}-{SEQ}";
+    public const string DefaultPattern = "{PREFIX}-{DVCS}-{YYYY}{MM}-{SEQ}";
     public const short DefaultDigits = 4;
 
     public static IReadOnlyList<VoucherDefinition> All { get; } =

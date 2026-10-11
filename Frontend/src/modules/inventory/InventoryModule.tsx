@@ -141,9 +141,9 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
       case 'inv_stock_norm_cat':
         return <StockNormCategoryView stockNorms={stockNorms} products={products} warehouses={warehouses} currentUser={currentUser} />;
       case 'inv_lot_cat':
-        return <LotCategoryView lots={lots} products={products} currentUser={currentUser} />;
+        return <LotCategoryView currentUser={currentUser} />;
       case 'inv_location_cat':
-        return <LocationCategoryView storageLocations={storageLocations} warehouses={warehouses} currentUser={currentUser} />;
+        return <LocationCategoryView currentUser={currentUser} />;
 
       // 4. Báo cáo hàng nhập
       case 'inv_report_inward':
@@ -163,21 +163,7 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
 
       case 'inv_material_cat':
       default:
-        return (
-          <MaterialCategoryView
-            products={products}
-            warehouses={warehouses}
-            materialTypes={materialTypes}
-            unitsOfMeasure={unitsOfMeasure}
-            companyUnits={companyUnits}
-            activeCompanyUnitCode={activeCompanyUnitCode}
-            onAddProduct={onAddProduct}
-            onUpdateProduct={onUpdateProduct}
-            onDeleteProduct={onDeleteProduct}
-            onAdjustStock={onAdjustStock}
-            currentUser={currentUser}
-          />
-        );
+        return <MaterialCategoryView currentUser={currentUser} />;
     }
   };
 

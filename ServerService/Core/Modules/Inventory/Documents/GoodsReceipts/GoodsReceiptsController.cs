@@ -31,9 +31,10 @@ public sealed class GoodsReceiptsController(IGoodsReceiptService receipts) : Api
     public Task<GoodsReceiptDto> Update(long id, SaveGoodsReceiptRequest request, CancellationToken ct) =>
         receipts.UpdateAsync(CurrentUserId, CurrentUnitCode, id, request, ct);
 
-    [HttpPost("{id:long}/{action}")]
-    public Task<GoodsReceiptDto> ChangeStatus(long id, string action, CancellationToken ct) =>
-        receipts.ChangeStatusAsync(CurrentUserId, CurrentUnitCode, id, action, ct);
+    // The segment is called "operation": "action" is a reserved route parameter name in ASP.NET Core and never matches.
+    [HttpPost("{id:long}/{operation}")]
+    public Task<GoodsReceiptDto> ChangeStatus(long id, string operation, CancellationToken ct) =>
+        receipts.ChangeStatusAsync(CurrentUserId, CurrentUnitCode, id, operation, ct);
 
     [HttpPost("{id:long}/reject")]
     public Task<GoodsReceiptDto> Reject(long id, ApprovalActionRequest request, CancellationToken ct) =>

@@ -16,6 +16,7 @@ using Core.Application.Modules.Fiscal;
 using Core.Application.Modules.Inventory;
 using Core.Application.Modules.Inventory.Categories.suppliers;
 using Core.Application.Modules.Inventory.Documents.GoodsReceipts;
+using Core.Application.Modules.Inventory.Stock;
 using Core.Application.Modules.Languages;
 using Core.Application.Modules.Menu;
 using Core.Application.Modules.Notifications;
@@ -43,6 +44,7 @@ using Core.Infrastructure.Modules.Fiscal;
 using Core.Infrastructure.Modules.Inventory;
 using Core.Infrastructure.Modules.Inventory.Categories.suppliers;
 using Core.Infrastructure.Modules.Inventory.Documents.GoodsReceipts;
+using Core.Infrastructure.Modules.Inventory.Stock;
 using Core.Infrastructure.Modules.Languages;
 using Core.Infrastructure.Modules.Notifications;
 using Core.Infrastructure.Modules.Roles;
@@ -86,10 +88,13 @@ public static class DependencyInjection
         services.AddScoped<IGridLayoutService, GridLayoutService>();
         services.AddScoped<ILookupService, LookupService>();
 
-        // Lookups (ô chọn mã + F2): the catalogs are listed in LookupCatalogs (see docs/them-danh-muc.md).
+        // Lookups (ô chọn mã + F2): the catalogs are listed in LookupCatalogs (see docs/phat-trien/them-danh-muc.md).
         foreach (var lookup in LookupCatalogs.All) services.AddLookup(lookup);
         // Custom lookups (typed columns, parameters, rights): one class each, see LookupProvider.
         services.AddLookupProvider<UomFullLookup>();
+        services.AddLookupProvider<MaterialsLookup>();
+        services.AddLookupProvider<LocationsLookup>();
+        services.AddLookupProvider<LotsLookup>();
 
         // Modules
         services.AddScoped<UserProfileBuilder>();
@@ -125,8 +130,13 @@ public static class DependencyInjection
         services.AddScoped<IUomConversionService, UomConversionService>();
         services.AddScoped<IMaterialGroupService, MaterialGroupService>();
         services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+        services.AddScoped<IMaterialService, MaterialService>();
+        services.AddScoped<IStorageLocationService, StorageLocationService>();
+        services.AddScoped<ILotService, LotService>();
         services.AddScoped<IWarehouseService, WarehouseService>();
         services.AddScoped<IWarehouseTypeService, WarehouseTypeService>();
+        services.AddScoped<IStockLedger, StockLedgerService>();
+        services.AddScoped<IStockQuery, StockQueryService>();
         services.AddScoped<IGoodsReceiptService, GoodsReceiptService>();
         return services;
     }

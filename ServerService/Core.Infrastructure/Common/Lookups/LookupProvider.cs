@@ -19,7 +19,7 @@ public sealed record LookupContext(int UserId, string UnitCode, IReadOnlyDiction
 /// <para>
 /// Write <see cref="LoadAsync"/> to return every record the caller may pick (for the given parameters); the framework
 /// searches (code / name, any case), orders, pages and caches them. Register with
-/// <c>services.AddLookupProvider&lt;MyLookup&gt;()</c>. Model: <c>UomFullLookup</c>. Guide: docs/them-danh-muc.md Part 4.3.
+/// <c>services.AddLookupProvider&lt;MyLookup&gt;()</c>. Model: <c>UomFullLookup</c>. Guide: docs/phat-trien/them-danh-muc.md Part 4.3.
 /// </para>
 /// </summary>
 public abstract class LookupProvider

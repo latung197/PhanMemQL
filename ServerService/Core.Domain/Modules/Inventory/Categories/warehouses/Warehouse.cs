@@ -11,6 +11,9 @@ public class Warehouse : ErpEntity, ICatalogRecord
 {
     [Key, Column("code"), MaxLength(20)] public string Code { get; set; } = string.Empty;
     [Required, Column("name"), MaxLength(100)] public string Name { get; set; } = string.Empty;
+    /// <summary>Đơn vị cơ sở of the warehouse; a new warehouse takes the unit it is created in.</summary>
+    [References<CompanyUnit>]
+    [Column("unit_code"), MaxLength(20)] public string UnitCode { get; set; } = string.Empty;
     [References<WarehouseType>(Optional = true)]
     [Column("warehouse_type_code"), MaxLength(20)] public string? WarehouseTypeCode { get; set; }
     [Column("address"), MaxLength(300)] public string? Address { get; set; }

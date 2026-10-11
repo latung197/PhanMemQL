@@ -9,7 +9,7 @@ using Xunit;
 namespace Core.Tests.Common;
 
 /// <summary>
-/// The declared references between tables ([References] / [NotReference], docs/tham-chieu-danh-muc.md): a new *_code
+/// The declared references between tables ([References] / [NotReference], docs/phat-trien/tham-chieu-danh-muc.md): a new *_code
 /// column cannot be forgotten, every reference points to a catalog code and is indexed, and the tables are named in messages.
 /// </summary>
 public sealed class TableReferenceTests
