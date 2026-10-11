@@ -420,3 +420,40 @@ export const loginNoticeImagesApi = {
     return result.code;
   }
 };
+
+export type BannerLevel = 'INFO' | 'WARNING' | 'URGENT';
+
+export interface Banner {
+  code: string;
+  message: string;
+  messageEn?: string | null;
+  level: BannerLevel;
+  /** ISO instants (UTC); empty = already shown / until switched off. */
+  startAt?: string | null;
+  endAt?: string | null;
+  /** Company unit codes separated by commas; empty = every unit. */
+  unitCodes: string;
+  sortOrder: number;
+  isActive: boolean;
+  version?: number;
+}
+
+export type BannerRow = Banner & { stamp: RecordStamp };
+export type SaveBannerInput = Omit<Banner, 'messageEn' | 'startAt' | 'endAt'> & { messageEn: string; startAt: string | null; endAt: string | null };
+
+export const bannersApi = createCatalogApi<BannerRow, SaveBannerInput>({
+  url: '/api/settings/banners', fileName: 'ThanhThongBaoHeThong'
+});
+
+/** A notice in force for the working unit, text already in the user's language. `version` changes when it is edited. */
+export interface ActiveBanner {
+  code: string;
+  level: BannerLevel;
+  message: string;
+  endAt?: string | null;
+  version: number;
+}
+
+export const activeBannersApi = {
+  list: () => apiRequest<ActiveBanner[]>('GET', '/api/banners/active')
+};

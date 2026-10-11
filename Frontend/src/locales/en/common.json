@@ -514,6 +514,11 @@
       "otherAccount": "Sign In With Another Account"
     }
   },
+  "banner": {
+    "close": "Close notice",
+    "closedCount": "{count} closed notice(s) · Show again",
+    "until": "Until {time}"
+  },
   "auth": {
     "subtitle": "Manufacturing & Enterprise Management System",
     "username": "Username",
@@ -606,6 +611,7 @@
     "sys_exchange_rates": "Exchange rates",
     "sys_languages": "Languages",
     "sys_login_notices": "Login screen notices",
+    "sys_banners": "System notice bar",
     "sys_tax_rates": "Tax codes",
     "sales_customers": "Customers",
     "sales_orders": "Sales orders",
@@ -789,6 +795,7 @@
       "materialType": "Material type",
       "taxRate": "Tax code",
       "loginNotice": "Login notice",
+      "banner": "Notice bar",
       "auditLog": "Change log",
       "menu": "Menu item"
     },

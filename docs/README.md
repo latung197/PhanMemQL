@@ -5,7 +5,7 @@ Tài liệu chia thư mục theo **chức năng**. Mỗi tài liệu có bản M
 ```
 docs/
   kho/          Nghiệp vụ Kho: cấu trúc module, danh mục kho, phiếu nhập kho và sổ kho, quy đổi đơn vị tính
-  he-thong/     Cài đặt hệ thống: phân quyền, quản lý menu
+  he-thong/     Cài đặt hệ thống: phân quyền, quản lý menu, thông báo đăng nhập và thanh thông báo
   phat-trien/   Khung kỹ thuật cho người viết code: thêm danh mục, tham chiếu danh mục, chống ghi đè
   cong-cu/      Script sinh file Word từ Markdown
 ```
@@ -25,6 +25,7 @@ docs/
 |---|---|---|
 | [phan-quyen.md](he-thong/phan-quyen.md) | Mô hình quyền: vai trò, ngoại lệ, quyền đặc biệt, trạng thái chứng từ, các bảng liên quan | `Phan-quyen-S-ERP.docx` (và bản cũ `Phan-quyen-S-ERP (cu).docx`) |
 | [quan-ly-menu.md](he-thong/quan-ly-menu.md) | Menu lưu ở đâu, thêm chức năng vào menu, ai thấy gì, sửa cấu trúc menu (super admin) | `Quan-ly-menu-S-ERP.docx` |
+| [thong-bao-dang-nhap-va-thanh-thong-bao.md](he-thong/thong-bao-dang-nhap-va-thanh-thong-bao.md) | Thông báo và ảnh nền ở trang đăng nhập, khẩu hiệu và chân trang lấy từ hồ sơ doanh nghiệp, thanh thông báo hệ thống dưới header (cách dùng, bảng, API, luồng ảnh, kiểm tra) | `Thong-bao-dang-nhap-va-thanh-thong-bao.docx` |
 
 ## Phát triển (`phat-trien/`)
 

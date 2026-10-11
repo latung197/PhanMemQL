@@ -222,6 +222,21 @@ h1, h2, h3, h4 {
   font-family: var(--font-mono) !important;
 }
 
+/* System notice strip: long text scrolls from the right edge to the left edge */
+.banner-marquee {
+  padding-left: 100%;
+  animation: bannerMarquee var(--banner-duration, 20s) linear infinite;
+}
+
+@keyframes bannerMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner-marquee { animation: none; padding-left: 0; }
+}
+
 /* Custom subtle transitions */
 .animate-fade-in {
   animation: fadeIn 0.2s ease-out forwards;

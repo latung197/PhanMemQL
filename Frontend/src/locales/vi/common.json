@@ -514,6 +514,11 @@
       "otherAccount": "Đăng Nhập Tài Khoản Khác"
     }
   },
+  "banner": {
+    "close": "Đóng thông báo",
+    "closedCount": "Có {count} thông báo đã đóng · Xem lại",
+    "until": "Đến {time}"
+  },
   "auth": {
     "subtitle": "Hệ thống Quản trị Sản Xuất & Doanh Nghiệp",
     "username": "Tên đăng nhập",
@@ -734,6 +739,7 @@
       "materialType": "Loại vật tư",
       "taxRate": "Mã thuế",
       "loginNotice": "Thông báo đăng nhập",
+      "banner": "Thanh thông báo",
       "auditLog": "Nhật ký thay đổi",
       "menu": "Mục menu"
     },

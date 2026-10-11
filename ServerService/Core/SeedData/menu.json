@@ -750,6 +750,15 @@
             "icon": "Megaphone",
             "orderNo": 40,
             "isActive": true
+          },
+          {
+            "id": "MNU_SYS_BANNERS",
+            "subKey": "sys_banners",
+            "titleVi": "Thanh thông báo hệ thống",
+            "titleEn": "System Notice Bar",
+            "icon": "BellRing",
+            "orderNo": 50,
+            "isActive": true
           }
         ]
       },

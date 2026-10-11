@@ -24,6 +24,7 @@ import { companyUnitsApi } from './services/settingsApi';
 import { loadCompanyUnits } from './services/lookupOptions';
 import { notificationService } from './services/notificationService';
 import { startNotificationStream } from './services/notificationStream';
+import { BANNERS_CHANGED_EVENT, SystemBanner, clearHiddenBanners } from './components/layout/SystemBanner';
 import { requestOpenDocument } from './utils/documentLinks';
 import { systemSettingsService } from './services/systemSettingsService';
 import { menuService } from './services/menuService';
@@ -215,6 +216,7 @@ const ERPAppContent: React.FC = () => {
 
   const handleLogout = useCallback(() => {
     authService.logout();
+    clearHiddenBanners();
     systemSettingsService.clear();
     setMenuVisibility(EMPTY_MENU_VISIBILITY);
     setMenuTree([]);
@@ -250,7 +252,7 @@ const ERPAppContent: React.FC = () => {
   useEffect(() => {
     if (!signedIn) return;
     return startNotificationStream(event => {
-      if (event === 'settings') reloadSettingsRef.current();
+      if (event === 'settings') { reloadSettingsRef.current(); window.dispatchEvent(new Event(BANNERS_CHANGED_EVENT)); }
       else void refreshNotifications();
     });
   }, [signedIn, activeCompanyUnitCode, refreshNotifications]);
@@ -563,6 +565,9 @@ const ERPAppContent: React.FC = () => {
           onUserUpdated={setCurrentUser}
           onLanguageChanged={refreshCompanyUnits}
         />
+
+        {/* System notices (Settings › Thanh thông báo hệ thống) */}
+        <SystemBanner unitCode={activeCompanyUnitCode} user={currentUser.username} />
 
         {/* Fixed Top Navigation History & Position Bar */}
         <NavigationHistoryBar

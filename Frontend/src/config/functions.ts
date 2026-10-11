@@ -84,6 +84,7 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
   sys_exchange_rates: fn('settings', '/settings/exchange-rates', 'Tỷ giá', 'system'),
   sys_languages: fn('settings', '/settings/languages', 'Ngôn ngữ', 'system'),
   sys_login_notices: fn('settings', '/settings/login-notices', 'Thông báo đăng nhập', 'system'),
+  sys_banners: fn('settings', '/settings/banners', 'Thanh thông báo', 'system'),
   sys_tax_rates: fn('settings', '/settings/tax-rates', 'Mã thuế', 'system'),
   sys_audit_log: fn('settings', '/settings/audit-log', 'Nhật ký thay đổi', 'system'),
   sys_menu: fn('settings', '/settings/menu', 'Quản lý menu', 'system')
