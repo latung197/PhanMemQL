@@ -1,7 +1,7 @@
 // Lists that other screens need from catalogs they have no right to open: read through the lookups (open to every
 // signed-in user, cached on the server), never through the catalog's own list (that needs its View right).
 import { lookupApi, type LookupItem } from '../components/catalog/CatalogLookup';
-import type { CompanyUnit, MaterialType } from '../types';
+import type { CompanyUnit, MaterialType, Product } from '../types';
 import type { Currency, DepartmentOption } from './settingsApi';
 
 const PAGE = 200;
@@ -33,3 +33,37 @@ export const loadMaterialTypeOptions = async (): Promise<MaterialType[]> =>
     id: x.code, code: x.code, name: x.name, group: text(x.extra.groupName), description: '',
     status: legacyStatus(x.isActive)
   }));
+
+/** Every row of a lookup (the server gives at most 200 per page). */
+const allPages = async (lookup: string, params: Record<string, string> = {}): Promise<LookupItem[]> => {
+  const items: LookupItem[] = [];
+  for (let page = 1; page <= 25; page++) {
+    const result = await lookupApi.search(lookup, '', page, PAGE, false, params);
+    items.push(...result.items);
+    if (items.length >= result.total || result.items.length === 0) break;
+  }
+  return items;
+};
+
+/**
+ * Materials for the voucher pickers, in the shape the voucher screens already use (Product): code, name, base unit and the
+ * material type. The catalog has no price, so the voucher line price starts at 0.
+ */
+export const loadMaterialOptions = async (): Promise<Product[]> =>
+  (await allPages('materials')).map(x => ({
+    id: x.code, sku: x.code, ma_vt: x.code, name: x.name, ten_vt: x.name,
+    category: text(x.extra.materialTypeCode), unit: text(x.extra.uomCode), dvt: text(x.extra.uomCode),
+    quantity: 0, price: 0, costPrice: 0, warehouseId: '', warehouseName: '', minThreshold: 0, position: ''
+  }));
+
+/** What the supplier picker of a voucher needs (GET /api/lookups/suppliers). */
+export interface SupplierOption {
+  id: string;
+  code: string;
+  name: string;
+  taxCode: string;
+  phone: string;
+}
+
+export const loadSupplierOptions = async (): Promise<SupplierOption[]> =>
+  (await allPages('suppliers')).map(x => ({ id: x.code, code: x.code, name: x.name, taxCode: text(x.extra.taxCode), phone: text(x.extra.phone) }));

@@ -239,7 +239,10 @@ h1, h2, h3, h4 {
 
 /* Custom subtle transitions */
 .animate-fade-in {
-  animation: fadeIn 0.2s ease-out forwards;
+  /* No "forwards": a transform animation that keeps filling after it ends still makes the element the containing block of
+     every position: fixed child (full-screen modals inside a page were placed and sized relative to the page, so their
+     bottom fell off the screen). The final frame equals the normal style anyway. */
+  animation: fadeIn 0.2s ease-out;
 }
 
 @keyframes fadeIn {
@@ -249,7 +252,7 @@ h1, h2, h3, h4 {
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: none;
   }
 }
 

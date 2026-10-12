@@ -7,6 +7,7 @@ using Core.Application.Common.Validation;
 using Core.Application.Modules.Approvals;
 using Core.Application.Modules.Notifications;
 using Core.Application.Modules.Users;
+using Core.Domain.Common;
 using Core.Domain.Modules.Approvals;
 using Core.Domain.Modules.Users;
 using Core.Infrastructure.Common.Persistence;
@@ -28,14 +29,13 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         // Whoever may add or change the document may send it (same rule as DocumentStatusPolicy Submit).
         await permissions.EnsureAnyAllowedAsync(userId, request.Function, [PermissionAction.Create, PermissionAction.Edit], ct);
         var documentId = Guard.Required(request.DocumentId, 64, "field.documentId");
-        var receipt = request.Function == "inv_receipt"
-            ? await db.GoodsReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct)
-            : null;
-        if (request.Function == "inv_receipt")
+        // A voucher kept in its own table (receipt, issue) must be a draft of the requester; other documents are only tracked here.
+        var voucher = await FindVoucherAsync(request.Function, documentId, unitCode, ct);
+        if (IsVoucherFunction(request.Function))
         {
-            if (receipt is null) throw new NotFoundException("receipt.notFound");
-            if (receipt.CreatedBy != userId) throw new ForbiddenException("policy.ownOnly");
-            if (receipt.Status != "Draft") throw new BusinessRuleException("policy.submitDraftOnly");
+            if (voucher is null) throw new NotFoundException(NotFoundKey(request.Function));
+            if (voucher.CreatedBy != userId) throw new ForbiddenException("policy.ownOnly");
+            if (voucher.Status != "Draft") throw new BusinessRuleException("policy.submitDraftOnly");
         }
         var steps = await LatestRoundAsync(request.Function, documentId, ct);
         if (steps.Any(x => x.Status is ApprovalStepStatus.Pending or ApprovalStepStatus.Waiting))
@@ -43,7 +43,7 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         if (steps.Count > 0 && steps.All(x => x.Status == ApprovalStepStatus.Approved))
             throw new BusinessRuleException("approval.alreadyApproved");
 
-        var amount = receipt?.TotalValue ?? request.Amount;
+        var amount = voucher?.TotalValue ?? request.Amount;
         var resolution = await resolver.ResolveAsync(request.Function, unitCode, userId, amount, ct);
         var empty = resolution.Levels.FirstOrDefault(x => x.UserIds.Count == 0);
         if (empty is not null)
@@ -63,7 +63,7 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         await unitOfWork.ExecuteAsync(async token =>
         {
             db.DocumentApprovals.AddRange(rows);
-            if (receipt is not null) receipt.Status = "Pending";
+            if (voucher is not null) voucher.Status = "Pending";
             await RecordAsync(rows[0], AuditActions.Submit, null, rows.Count, token);
             await db.SaveChangesAsync(token);
             await NotifyApproversAsync(userId, rows[0], token);
@@ -78,12 +78,11 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         Act(current, userId, ApprovalStepStatus.Approved, request.Note);
         var next = steps.Where(x => x.Status == ApprovalStepStatus.Waiting).OrderBy(x => x.Level).FirstOrDefault();
         if (next is not null) next.Status = ApprovalStepStatus.Pending;
-        if (next is null && function == "inv_receipt")
+        if (next is null && IsVoucherFunction(function))
         {
-            var receipt = await db.GoodsReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct)
-                ?? throw new NotFoundException("receipt.notFound");
-            receipt.Status = "Approved";
-            receipt.ApprovedByUserId = userId;
+            var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
+            voucher.Status = "Approved";
+            voucher.ApprovedByUserId = userId;
         }
         await unitOfWork.ExecuteAsync(async token =>
         {
@@ -102,11 +101,10 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         Guard.Required(request.Note, 1000, "field.rejectReason");
         Act(current, userId, ApprovalStepStatus.Rejected, request.Note);
         foreach (var waiting in steps.Where(x => x.Status == ApprovalStepStatus.Waiting)) waiting.Status = ApprovalStepStatus.Cancelled;
-        if (function == "inv_receipt")
+        if (IsVoucherFunction(function))
         {
-            var receipt = await db.GoodsReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct)
-                ?? throw new NotFoundException("receipt.notFound");
-            receipt.Status = "Draft";
+            var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
+            voucher.Status = "Draft";
         }
         await unitOfWork.ExecuteAsync(async token =>
         {
@@ -125,11 +123,10 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         if (open[0].RequestedByUserId != userId && !await permissions.IsAdminAsync(userId, ct))
             throw new ForbiddenException("approval.withdrawOwnOnly");
         foreach (var step in open) step.Status = ApprovalStepStatus.Cancelled;
-        if (function == "inv_receipt")
+        if (IsVoucherFunction(function))
         {
-            var receipt = await db.GoodsReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct)
-                ?? throw new NotFoundException("receipt.notFound");
-            receipt.Status = "Draft";
+            var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
+            voucher.Status = "Draft";
         }
         await RecordAsync(open[0], AuditActions.Withdraw, null, steps.Count, ct);
         await db.SaveChangesAsync(ct);
@@ -179,12 +176,28 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         var requesterIds = pending.Select(x => x.RequestedByUserId).Distinct().ToList();
         var users = await db.Users.AsNoTracking().Where(x => requesterIds.Contains(x.UserId))
             .ToDictionaryAsync(x => x.UserId, x => new ApproverUserDto(x.UserId.ToString(), x.UserName, x.FullName), ct);
-        var canSeeReceiptPrice = await permissions.HasRightAsync(userId, "inv_receipt", SpecialRightCatalog.ViewPrice, ct);
+        // The amount of a receipt / issue is a price: only for those who may see prices on that voucher.
+        var hiddenAmountFunctions = new HashSet<string>();
+        foreach (var function in pending.Select(x => x.MenuId0).Where(IsVoucherFunction).Distinct())
+            if (!await permissions.HasRightAsync(userId, function, SpecialRightCatalog.ViewPrice, ct)) hiddenAmountFunctions.Add(function);
         return pending.Select(x => new PendingApprovalDto(x.MenuId0, x.DocumentId, x.DocumentTitle,
-            x.MenuId0 == "inv_receipt" && !canSeeReceiptPrice ? null : x.Amount, x.Level,
+            hiddenAmountFunctions.Contains(x.MenuId0) ? null : x.Amount, x.Level,
             users.GetValueOrDefault(x.RequestedByUserId, new ApproverUserDto(x.RequestedByUserId.ToString(), "?", "?")),
             x.RequestedAtUtc)).ToList();
     }
+
+    /// <summary>Vouchers whose status this service moves with the approval steps (each has its own table).</summary>
+    private static bool IsVoucherFunction(string function) => function is "inv_receipt" or "inv_issue";
+
+    private static string NotFoundKey(string function) => function == "inv_issue" ? "issue.notFound" : "receipt.notFound";
+
+    private async Task<IApprovableDocument?> FindVoucherAsync(string function, string documentId, string unitCode, CancellationToken ct) =>
+        function switch
+        {
+            "inv_receipt" => await db.GoodsReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
+            "inv_issue" => await db.GoodsIssues.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
+            _ => null
+        };
 
     private async Task<List<DocumentApproval>> LatestRoundAsync(string function, string documentId, CancellationToken ct,
         bool tracking = false)

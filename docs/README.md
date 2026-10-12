@@ -4,7 +4,7 @@ Tài liệu chia thư mục theo **chức năng**. Mỗi tài liệu có bản M
 
 ```
 docs/
-  kho/          Nghiệp vụ Kho: cấu trúc module, danh mục kho, phiếu nhập kho và sổ kho, quy đổi đơn vị tính
+  kho/          Nghiệp vụ Kho: cấu trúc module, danh mục kho, phiếu nhập kho và sổ kho, phiếu xuất kho, quy đổi đơn vị tính
   he-thong/     Cài đặt hệ thống: phân quyền, quản lý menu, thông báo đăng nhập và thanh thông báo
   phat-trien/   Khung kỹ thuật cho người viết code: thêm danh mục, tham chiếu danh mục, chống ghi đè
   cong-cu/      Script sinh file Word từ Markdown
@@ -17,6 +17,7 @@ docs/
 | [cau-truc-module-kho.md](kho/cau-truc-module-kho.md) | Cấu trúc thư mục mã nguồn module Kho (phân hệ → nhóm → chức năng) và cách thêm chức năng | `Cau-truc-module-kho.docx` |
 | [huong-dan-danh-muc-kho.md](kho/huong-dan-danh-muc-kho.md) | Hướng dẫn dùng màn Danh mục kho (thêm, sửa, lọc, Excel) và quy trình thêm một danh mục theo mẫu kho | `Huong-dan-danh-muc-kho.docx` |
 | [so-kho-va-phieu-nhap-kho.md](kho/so-kho-va-phieu-nhap-kho.md) | Phiếu nhập kho từng bước, các bảng của phiếu, **sổ kho và ba bảng tồn**, danh mục và bảng hệ thống dùng chung, vận hành | `So-kho-va-phieu-nhap-kho.docx` |
+| [phieu-xuat-kho.md](kho/phieu-xuat-kho.md) | Phiếu xuất kho: giống phiếu nhập ở đâu, khác ở đâu (đối tác, loại xuất, trừ tồn theo giá bình quân, lô và vị trí bắt buộc), cấu trúc mã nguồn, API, lỗi thường gặp, cách đã kiểm tra | `Phieu-xuat-kho.docx` |
 | [them-quy-doi-don-vi-tinh.md](kho/them-quy-doi-don-vi-tinh.md) | Ghi lại các bước đưa Quy đổi đơn vị tính từ dữ liệu mẫu lên backend (ví dụ làm theo) | `Them-quy-doi-don-vi-tinh.docx` |
 
 ## Hệ thống (`he-thong/`)

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  ArrowUpRight, 
+  ArrowUpRight,
   Plus, 
   CheckCircle2, 
   Printer, 
@@ -33,9 +33,7 @@ import {
   Save,
   Undo2,
   RotateCcw,
-  XCircle,
-  Truck,
-  Users
+  XCircle
 } from 'lucide-react';
 import { Button } from '../../../../components/common/Button';
 import { Modal } from '../../../../components/common/Modal';
@@ -43,7 +41,7 @@ import { Badge } from '../../../../components/common/Badge';
 import { CategoryHeaderToolbar } from '../../../../components/common/CategoryHeaderToolbar';
 import { DeleteConfirmModal } from '../../../../components/common/DeleteConfirmModal';
 import { GridView, GridViewColumn } from '../../../../components/common/GridView';
-import { MasterLookupModal, ColumnDef, FilterConfig } from '../../../../components/common/MasterLookupModal';
+import { MasterLookupModal, ColumnDef } from '../../../../components/common/MasterLookupModal';
 import { NumberInput, QuantityInput, DateTimePicker, ComboBox, VoucherDetailGrid } from '../../../../components/common';
 import { goodsIssueItemsGridConfig, goodsIssueMaterialsGridConfig } from '../../../../mock/voucherGridConfigs';
 import { useNumberFormat } from '../../../../context/NumberFormatContext';
@@ -52,26 +50,23 @@ import { getActionPermission } from '../../../../mock/initialRoles';
 import { canApproveVoucher, hasRight, RIGHTS } from '../../../../utils/permissions';
 import { useOpenDocumentRequest } from '../../../../utils/documentLinks';
 import { showToast } from '../../../../utils/toast';
+import { getErrorMessage } from '../../../../services/apiClient';
+import { loadMaterialOptions } from '../../../../services/lookupOptions';
+import { voucherNumberingApi, exchangeRatesApi } from '../../../../services/settingsApi';
+import { goodsIssuesApi } from './api';
+import { exportExcel } from '../../../../components/catalog/excel';
+import type { ExcelColumn } from '../../../../components/catalog/catalogTypes';
+
+// Shared look of the header fields of a voucher form (goods receipt and goods issue keep the same layout).
+const VOUCHER_LABEL = 'block text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5 truncate';
+const VOUCHER_INPUT = 'w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]';
+const VOUCHER_LOOKUP_BUTTON = 'px-1.5 h-[26px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-2xs';
 
 interface GoodsIssueViewProps {
-  vouchers: GoodsVoucher[];
-  products: Product[];
-  warehouses: WarehouseType[];
   companyUnits?: CompanyUnit[];
-  onAddVoucher: (voucher: GoodsVoucher) => void;
+  activeUnitCode: string;
   currentUser?: UserProfile;
 }
-
-export const CURRENCY_OPTIONS_ISSUE = [
-  { code: 'VND', name: 'VNĐ - Đồng Việt Nam', defaultRate: 1, symbol: '₫' },
-  { code: 'USD', name: 'USD - Đô la Mỹ', defaultRate: 25400, symbol: '$' },
-  { code: 'EUR', name: 'EUR - Euro', defaultRate: 27200, symbol: '€' },
-  { code: 'JPY', name: 'JPY - Yên Nhật', defaultRate: 165, symbol: '¥' },
-  { code: 'CNY', name: 'CNY - Nhân dân tệ', defaultRate: 3550, symbol: '¥' },
-  { code: 'GBP', name: 'GBP - Bảng Anh', defaultRate: 32100, symbol: '£' },
-  { code: 'AUD', name: 'AUD - Đô la Úc', defaultRate: 16800, symbol: 'A$' },
-  { code: 'SGD', name: 'SGD - Đô la Singapore', defaultRate: 18900, symbol: 'S$' },
-];
 
 export const MOCK_CUSTOMERS = [
   { id: 'KH001', code: 'KH-VINFAST', name: 'Công ty Cổ phần Sản xuất và Kinh doanh VinFast', group: 'Ô tô & Xe điện', taxCode: '0108926224', phone: '1900 23 23 89', address: 'KĐT Vinhomes Riverside, Long Biên, Hà Nội' },
@@ -85,19 +80,33 @@ export const MOCK_CUSTOMERS = [
 ];
 
 export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
-  vouchers,
-  products,
-  warehouses,
   companyUnits = [],
-  onAddVoucher,
+  activeUnitCode,
   currentUser
 }) => {
-  // Sync local vouchers with prop vouchers
-  const [localVouchers, setLocalVouchers] = useState<GoodsVoucher[]>(vouchers);
+  const [localVouchers, setLocalVouchers] = useState<GoodsVoucher[]>([]);
+  const [warehouses, setWarehouses] = useState<WarehouseType[]>([]);
+  const [currencies, setCurrencies] = useState<{ code: string; name: string }[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  // The pickers read the real catalogs through the lookups (materials; suppliers on a receipt).
+  const [products, setProducts] = useState<Product[]>([]);
 
-  useEffect(() => {
-    setLocalVouchers(vouchers);
-  }, [vouchers]);
+  const loadData = async () => {
+    try {
+      const [issues, options, materials] = await Promise.all([goodsIssuesApi.getAll(), goodsIssuesApi.getOptions(), loadMaterialOptions()]);
+      setLocalVouchers(issues);
+      setProducts(materials);
+      setCurrencies(options.currencies);
+      setWarehouses(options.warehouses.map(w => ({
+        id: w.code, code: w.code, name: w.name, address: '',
+        manager: '', capacity: '', status: 'Đang hoạt động' as const
+      })));
+    } catch (error) {
+      showToast.error(getErrorMessage(error));
+    }
+  };
+
+  useEffect(() => { void loadData(); }, [activeUnitCode]);
 
   // Filter & Search state
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
@@ -111,7 +120,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const [toDate, setToDate] = useState('');
 
   // Selected Items for Bulk Action
-  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [itemToDelete, setItemToDelete] = useState<GoodsVoucher | null>(null);
   const [bulkToDeleteIds, setBulkToDeleteIds] = useState<string[] | null>(null);
 
@@ -119,12 +128,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null);
 
-  // Active Tab in Detail Modal Form: 'items' (Chi tiết hàng hóa xuất) | 'materials' (Nguyên vật liệu)
+  // Active Tab in Detail Modal Form: 'items' (Chi tiết) | 'materials' (Nguyên vật liệu)
   const [activeTab, setActiveTab] = useState<'items' | 'materials'>('items');
-
-  // Print Preview Modal State
-  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
-  const [printVoucher, setPrintVoucher] = useState<GoodsVoucher | null>(null);
 
   // Form Fields - Header Information
   // BÊN PHẢI: Mã đơn vị cơ sở, Ngày ct, Ngày lập ct, Số chứng từ, Trạng thái phiếu
@@ -135,12 +140,12 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const [formCreatedDate, setFormCreatedDate] = useState(new Date().toISOString().split('T')[0]);
   const [formStatus, setFormStatus] = useState<string>('Lập chứng từ');
 
-  // BÊN TRÁI: Loại xuất kho, Kho xuất, Khách hàng / Đối tác, Người nhận, Loại tiền & Tỷ giá, Người lập, Ghi chú
+  // BÊN TRÁI: Loại xuất xuất, Kho xuất, Khách hàng, Người nhận, Loại tiền & Tỷ giá, Người lập, Ghi chú
   const [formVoucherType, setFormVoucherType] = useState('Xuất bán hàng');
   const [formWarehouseId, setFormWarehouseId] = useState('');
   const [formWarehouseName, setFormWarehouseName] = useState('');
-  const [formPartnerName, setFormPartnerName] = useState('');
-  const [formRecipientName, setFormRecipientName] = useState('');
+  const [formCustomerName, setFormCustomerName] = useState('');
+  const [formReceiverName, setFormReceiverName] = useState('');
   const [formCurrencyCode, setFormCurrencyCode] = useState('VND');
   const [formExchangeRate, setFormExchangeRate] = useState<number>(1);
   const [formCreatedBy, setFormCreatedBy] = useState('');
@@ -157,13 +162,15 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const [isWarehouseLookupOpen, setIsWarehouseLookupOpen] = useState(false);
   const [isCustomerLookupOpen, setIsCustomerLookupOpen] = useState(false);
   const [lookupTargetRowIndex, setLookupTargetRowIndex] = useState<number | null>(null);
+  const [activeRowSearchIdx, setActiveRowSearchIdx] = useState<number | null>(null);
 
   const perm = getActionPermission(currentUser, 'inv_issue');
-  // "Duyệt" on the voucher or on its approval screen (Phê duyệt nhập / xuất kho), as the backend.
+  // "Duyệt" on the voucher or on its approval screen (Phê duyệt xuất kho), as the backend.
   const canApprove = canApproveVoucher(currentUser, 'inv_issue');
   // Quyền đặc biệt "Xem đơn giá & thành tiền": không có thì ẩn mọi cột/ô giá trị trên phiếu.
   const canViewPrice = hasRight(currentUser, 'inv_issue', RIGHTS.VIEW_PRICE);
   const hiddenPriceFields = canViewPrice ? undefined : ['unitPrice', 'amount'];
+  const canSaveForm = !editingVoucherId ? perm.create : perm.edit && formStatus === 'Lập chứng từ';
 
   // Filter issue vouchers only (type === 'Xuất kho')
   const issueVouchers = useMemo(() => {
@@ -193,9 +200,9 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
         const matchesNote = (v.note || '').toLowerCase().includes(term);
         const matchesWh = (v.warehouseName || '').toLowerCase().includes(term);
         const matchesUnit = (v.companyUnitName || '').toLowerCase().includes(term);
-        const matchesPartner = (v.partnerName || v.supplierName || '').toLowerCase().includes(term);
+        const matchesCustomer = (v.supplierName || '').toLowerCase().includes(term);
         const matchesProduct = v.items?.some(it => it.productName.toLowerCase().includes(term) || (it.sku || '').toLowerCase().includes(term));
-        if (!matchesCode && !matchesNote && !matchesWh && !matchesUnit && !matchesPartner && !matchesProduct) {
+        if (!matchesCode && !matchesNote && !matchesWh && !matchesUnit && !matchesCustomer && !matchesProduct) {
           return false;
         }
       }
@@ -255,12 +262,10 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   };
 
   // Currency Change Handler
-  const handleCurrencyChange = (cCode: string) => {
+  const handleCurrencyChange = async (cCode: string) => {
     setFormCurrencyCode(cCode);
-    const matched = CURRENCY_OPTIONS_ISSUE.find(c => c.code === cCode);
-    if (matched) {
-      setFormExchangeRate(matched.defaultRate);
-    }
+    try { setFormExchangeRate(await exchangeRatesApi.getRate(cCode, formDate)); }
+    catch (error) { showToast.error(getErrorMessage(error)); setFormExchangeRate(1); }
   };
 
   // Filter actions
@@ -280,44 +285,51 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     showToast.info('Đã xóa tất cả bộ lọc!');
   };
 
-  const handleRefresh = () => {
-    setLocalVouchers([...vouchers]);
-    showToast.success('Đã làm mới dữ liệu danh sách phiếu xuất kho!');
-  };
+  const handleRefresh = () => { void loadData(); };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!perm.export) {
       showToast.error('Tài khoản của bạn không có quyền Xuất Excel!');
       return;
     }
-    showToast.success('Đã xuất file dữ liệu danh mục Phiếu Xuất Kho (.xlsx) thành công!');
-  };
-
-  const handleImportExcel = () => {
-    if (!perm.create) {
-      showToast.error('Tài khoản của bạn không có quyền Nhập Excel!');
-      return;
-    }
-    showToast.info('Vui lòng chọn file Excel (.xlsx, .csv) chứa dữ liệu chứng từ xuất kho để tải lên.');
+    try {
+      const columns: ExcelColumn<GoodsVoucher>[] = [
+        { key: 'code', header: 'Số chứng từ' },
+        { key: 'date', header: 'Ngày chứng từ' },
+        { key: 'companyUnitName', header: 'Đơn vị cơ sở' },
+        { key: 'warehouseName', header: 'Kho xuất' },
+        { key: 'voucherType', header: 'Loại xuất' },
+        { key: 'supplierName', header: 'Khách hàng' },
+        { key: 'status', header: 'Trạng thái' }
+      ];
+      if (canViewPrice) columns.push({ key: 'totalValue', header: 'Tổng tiền', type: 'number' });
+      await exportExcel('phieu_xuat_kho', 'Phiếu xuất kho', columns, filteredVouchers);
+    } catch (error) { showToast.error(getErrorMessage(error)); }
   };
 
   // Open Add Modal
-  const handleOpenAdd = () => {
+  const handleOpenAdd = async () => {
     if (!perm.create) {
       showToast.error('Tài khoản của bạn không có quyền lập phiếu xuất kho mới!');
       return;
     }
 
-    const defaultUnit = companyUnits[0] || { id: 'DVCS01', name: 'Trụ sở chính TP. Hồ Chí Minh' };
-    const defaultWh = warehouses[0] || { id: 'KH001', name: 'Kho Tổng TP. Hồ Chí Minh' };
-    const newCode = `PXK-${new Date().toISOString().slice(0,7).replace('-','')}-${String(issueVouchers.length + 1).padStart(2, '0')}`;
+    if (warehouses.length === 0) {
+      showToast.error('Cần khai báo kho đang hoạt động trước khi lập phiếu xuất.');
+      return;
+    }
+    const defaultUnit = companyUnits.find(c => c.code === activeUnitCode) || companyUnits[0];
+    const defaultWh = warehouses[0];
+    let newCode = 'Số tự động';
+    try { newCode = await voucherNumberingApi.preview('PXK'); }
+    catch (error) { showToast.error(getErrorMessage(error)); return; }
 
     setEditingVoucherId(null);
     setActiveTab('items');
     
     // Set Right column defaults
-    setFormCompanyUnitId(defaultUnit.id);
-    setFormCompanyUnitName(defaultUnit.name);
+    setFormCompanyUnitId(activeUnitCode);
+    setFormCompanyUnitName(defaultUnit?.name || activeUnitCode);
     setFormCode(newCode);
     setFormDate(new Date().toISOString().split('T')[0]);
     setFormCreatedDate(new Date().toISOString().split('T')[0]);
@@ -327,28 +339,26 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     setFormVoucherType('Xuất bán hàng');
     setFormWarehouseId(defaultWh.id);
     setFormWarehouseName(defaultWh.name);
-    setFormPartnerName('Công ty Cổ phần Bán lẻ Kỹ thuật số FPT');
-    setFormRecipientName('Nguyễn Văn Tuấn (Khách hàng)');
+    setFormCustomerName('');
+    setFormReceiverName('');
     setFormCurrencyCode('VND');
     setFormExchangeRate(1);
     setFormCreatedBy(currentUser?.fullName || 'Trần Thịnh (Admin)');
-    setFormNote('Xuất kho bán hàng theo đơn đặt hàng');
+    setFormNote('');
 
-    // Default 1 line item for Tab 1
-    const firstProd = products[0];
-    setFormItems([
-      {
-        productId: firstProd?.id || '',
-        productName: firstProd?.name || '',
-        sku: firstProd?.sku || '',
-        unit: firstProd?.unit || 'Chiếc',
-        quantity: 5,
-        unitPrice: firstProd?.price || firstProd?.costPrice || 1200000,
-        totalPrice: 5 * (firstProd?.price || firstProd?.costPrice || 1200000),
-        lotNumber: 'LO-2026-01',
-        position: firstProd?.position || ''
-      }
-    ]);
+    // Default 1 line item for Tab 1 + 1 empty row for quick entry
+    const emptyItem: VoucherItem = {
+      productId: '',
+      productName: '',
+      sku: '',
+      unit: '',
+      quantity: 1,
+      unitPrice: 0,
+      totalPrice: 0,
+      lotNumber: '',
+      position: ''
+    };
+    setFormItems([emptyItem]);
 
     // Default empty array or sample for Tab 2 (Nguyên vật liệu)
     setFormMaterialItems([]);
@@ -380,57 +390,72 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     setFormVoucherType(voucher.voucherType || 'Xuất bán hàng');
     setFormWarehouseId(voucher.warehouseId);
     setFormWarehouseName(voucher.warehouseName);
-    setFormPartnerName(voucher.partnerName || voucher.supplierName || '');
-    setFormRecipientName(voucher.delivererName || '');
+    setFormCustomerName(voucher.supplierName || '');
+    setFormReceiverName(voucher.delivererName || '');
     setFormCurrencyCode(voucher.currencyCode || 'VND');
     setFormExchangeRate(voucher.exchangeRate || 1);
     setFormCreatedBy(voucher.createdBy || 'Administrator');
     setFormNote(voucher.note || '');
 
-    // Map items for Tab 1
+    const emptyItem: VoucherItem = {
+      productId: '',
+      productName: '',
+      sku: '',
+      unit: '',
+      quantity: 1,
+      unitPrice: 0,
+      totalPrice: 0,
+      lotNumber: '',
+      position: ''
+    };
+
+    // Map items for Tab 1 + append 1 blank row for fast entry
     if (voucher.items && voucher.items.length > 0) {
-      setFormItems(voucher.items.map(it => {
+      const mapped: VoucherItem[] = voucher.items.map(it => {
         const prod = products.find(p => p.id === it.productId || p.name === it.productName);
         return {
           productId: it.productId || prod?.id || '',
           productName: it.productName,
           sku: it.sku || prod?.sku || '',
-          unit: it.unit || prod?.unit || 'Chiếc',
+          unit: it.unit || prod?.unit || '',
           quantity: it.quantity || 1,
           unitPrice: it.unitPrice || 0,
           totalPrice: (it.quantity || 1) * (it.unitPrice || 0),
           lotNumber: it.lotNumber || '',
           position: it.position || prod?.position || ''
         };
-      }));
+      });
+      mapped.push({ ...emptyItem });
+      setFormItems(mapped);
     } else {
-      setFormItems([]);
+      setFormItems([{ ...emptyItem }]);
     }
 
-    // Map material items for Tab 2
+    // Map material items for Tab 2 + append 1 blank row
     if (voucher.materialItems && voucher.materialItems.length > 0) {
-      setFormMaterialItems(voucher.materialItems.map(it => {
+      const mappedMat: VoucherItem[] = voucher.materialItems.map(it => {
         const prod = products.find(p => p.id === it.productId || p.name === it.productName);
         return {
           productId: it.productId || prod?.id || '',
           productName: it.productName,
           sku: it.sku || prod?.sku || '',
-          unit: it.unit || prod?.unit || 'Kg',
+          unit: it.unit || prod?.unit || '',
           quantity: it.quantity || 1,
           unitPrice: it.unitPrice || 0,
           totalPrice: (it.quantity || 1) * (it.unitPrice || 0),
           lotNumber: it.lotNumber || '',
           position: it.position || prod?.position || ''
         };
-      }));
+      });
+      mappedMat.push({ ...emptyItem, unit: '' });
+      setFormMaterialItems(mappedMat);
     } else {
-      setFormMaterialItems([]);
+      setFormMaterialItems([{ ...emptyItem, unit: '' }]);
     }
 
     setIsModalOpen(true);
   };
 
-  // Material Lookup Handler
   // Material Lookup & Direct Code Input Handlers
   const handleCodeSubmit = (rowIndex: number, field: string, codeValue: string, targetTab: 'items' | 'materials' = activeTab): boolean => {
     const query = (codeValue || '').trim().toLowerCase();
@@ -459,7 +484,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   };
 
   const handleApplyProductToItem = (index: number, prod: Product, targetTab: 'items' | 'materials' = activeTab) => {
-    const defaultPrice = prod.price || prod.costPrice || 100000;
+    const defaultPrice = 0;
     
     if (targetTab === 'items') {
       setFormItems(prev => {
@@ -470,17 +495,18 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
           productId: prod.id,
           productName: prod.name || prod.ten_vt || '',
           sku: prod.sku || prod.ma_vt || '',
-          unit: prod.unit || prod.dvt || 'Chiếc',
+          unit: prod.unit || prod.dvt || '',
           unitPrice: defaultPrice,
           totalPrice: qty * defaultPrice,
           position: prod.position || ''
         };
+        // Tự động thêm 1 dòng trống bên dưới nếu dòng hiện tại là dòng cuối cùng
         if (index === updated.length - 1) {
           updated.push({
             productId: '',
             productName: '',
             sku: '',
-            unit: 'Chiếc',
+            unit: '',
             quantity: 1,
             unitPrice: 0,
             totalPrice: 0,
@@ -499,17 +525,18 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
           productId: prod.id,
           productName: prod.name || prod.ten_vt || '',
           sku: prod.sku || prod.ma_vt || '',
-          unit: prod.unit || prod.dvt || 'Kg',
+          unit: prod.unit || prod.dvt || '',
           unitPrice: defaultPrice,
           totalPrice: qty * defaultPrice,
           position: prod.position || ''
         };
+        // Tự động thêm 1 dòng trống bên dưới nếu dòng hiện tại là dòng cuối cùng
         if (index === updated.length - 1) {
           updated.push({
             productId: '',
             productName: '',
             sku: '',
-            unit: 'Kg',
+            unit: '',
             quantity: 1,
             unitPrice: 0,
             totalPrice: 0,
@@ -519,6 +546,32 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
         }
         return updated;
       });
+    }
+  };
+
+  const handleSkuInputChange = (index: number, skuQuery: string, targetTab: 'items' | 'materials' = activeTab) => {
+    if (targetTab === 'items') {
+      setFormItems(prev => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], sku: skuQuery };
+        return updated;
+      });
+    } else {
+      setFormMaterialItems(prev => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], sku: skuQuery };
+        return updated;
+      });
+    }
+
+    if (skuQuery.trim()) {
+      const exactMatch = products.find(p => 
+        (p.sku && p.sku.toLowerCase() === skuQuery.trim().toLowerCase()) ||
+        (p.ma_vt && p.ma_vt.toLowerCase() === skuQuery.trim().toLowerCase())
+      );
+      if (exactMatch) {
+        handleApplyProductToItem(index, exactMatch, targetTab);
+      }
     }
   };
 
@@ -546,12 +599,12 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     } else {
       // Bulk addition
       const newItems: VoucherItem[] = selectedProducts.map(prod => {
-        const defaultPrice = prod.price || prod.costPrice || 100000;
+        const defaultPrice = 0;
         return {
           productId: prod.id,
           productName: prod.name || prod.ten_vt || '',
           sku: prod.sku || prod.ma_vt || '',
-          unit: prod.unit || prod.dvt || (activeTab === 'materials' ? 'Kg' : 'Chiếc'),
+          unit: prod.unit || prod.dvt || (activeTab === 'materials' ? '' : ''),
           quantity: 1,
           unitPrice: defaultPrice,
           totalPrice: defaultPrice,
@@ -562,21 +615,41 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
 
       if (activeTab === 'items') {
         setFormItems(prev => {
-          if (prev.length === 1 && !prev[0].productId && !prev[0].sku) {
-            return newItems;
-          }
-          return [...prev, ...newItems];
+          let updated = prev.filter(it => Boolean(it.productId || it.sku || it.productName));
+          updated = [...updated, ...newItems];
+          updated.push({
+            productId: '',
+            productName: '',
+            sku: '',
+            unit: '',
+            quantity: 1,
+            unitPrice: 0,
+            totalPrice: 0,
+            lotNumber: '',
+            position: ''
+          });
+          return updated;
         });
       } else {
         setFormMaterialItems(prev => {
-          if (prev.length === 1 && !prev[0].productId && !prev[0].sku) {
-            return newItems;
-          }
-          return [...prev, ...newItems];
+          let updated = prev.filter(it => Boolean(it.productId || it.sku || it.productName));
+          updated = [...updated, ...newItems];
+          updated.push({
+            productId: '',
+            productName: '',
+            sku: '',
+            unit: '',
+            quantity: 1,
+            unitPrice: 0,
+            totalPrice: 0,
+            lotNumber: '',
+            position: ''
+          });
+          return updated;
         });
       }
 
-      showToast.success(`Đã thêm ${selectedProducts.length} vật tư từ danh mục vào tab ${activeTab === 'items' ? 'Chi tiết hàng hóa xuất' : 'Nguyên vật liệu'}!`);
+      showToast.success(`Đã thêm ${selectedProducts.length} vật tư từ danh mục vào tab ${activeTab === 'items' ? 'Chi tiết' : 'Nguyên vật liệu'}!`);
     }
 
     setIsMaterialLookupOpen(false);
@@ -590,19 +663,19 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       if (selected) {
         setFormWarehouseId(selected.id);
         setFormWarehouseName(selected.name);
-        showToast.success(`Đã chọn kho xuất: ${selected.name}`);
+        showToast.success(`Đã chọn kho: ${selected.name}`);
       }
     }
     setIsWarehouseLookupOpen(false);
   };
 
-  // Confirm Customer / Partner Lookup
+  // Confirm Customer Lookup
   const handleConfirmCustomerLookup = (selectedItems: typeof MOCK_CUSTOMERS) => {
     if (selectedItems.length > 0) {
       const selected = selectedItems[0];
       if (selected) {
-        setFormPartnerName(selected.name);
-        showToast.success(`Đã chọn khách hàng / đối tác: ${selected.name}`);
+        setFormCustomerName(selected.name);
+        showToast.success(`Đã chọn khách hàng: ${selected.name}`);
       }
     }
     setIsCustomerLookupOpen(false);
@@ -614,7 +687,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       key: 'code',
       label: 'Mã Kho',
       render: (w) => (
-        <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-xs">
+        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs">
           {w.code || w.id}
         </span>
       )
@@ -649,22 +722,22 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const customerLookupColumns: ColumnDef<typeof MOCK_CUSTOMERS[0]>[] = [
     {
       key: 'code',
-      label: 'Mã Khách Hàng',
+      label: 'Mã Đối Tác',
       render: (s) => (
-        <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-xs">
+        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs">
           {s.code}
         </span>
       )
     },
     {
       key: 'name',
-      label: 'Tên Khách Hàng / Đơn Vị Nhận',
+      label: 'Tên Khách Hàng / Đối Tác',
       render: (s) => <span className="font-extrabold text-slate-800 dark:text-slate-100 text-xs">{s.name}</span>
     },
     {
       key: 'group',
-      label: 'Lĩnh Vực Hoạt Động',
-      render: (s) => <span className="text-rose-600 dark:text-rose-300 font-medium text-xs">{s.group}</span>
+      label: 'Nhóm Ngành',
+      render: (s) => <span className="text-indigo-600 dark:text-indigo-300 font-medium text-xs">{s.group}</span>
     },
     {
       key: 'taxCode',
@@ -673,21 +746,21 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     },
     {
       key: 'address',
-      label: 'Địa Chỉ Đơn Vị',
+      label: 'Địa Chỉ Headquarters',
       render: (s) => <span className="text-slate-500 text-xs">{s.address}</span>
     }
   ];
 
   // Filter options for Master Lookup Modal
-  const productCategoriesFilter: FilterConfig[] = useMemo(() => {
+  const productCategoriesFilter = useMemo(() => {
     const cats = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
     return [
       {
         key: 'category',
-        label: 'Nhóm Vật Tư / Hàng Hóa',
+        label: 'Loại Vật Tư',
         options: [
-          { label: '-- Tất cả nhóm vật tư --', value: 'ALL' },
-          ...cats.map(c => ({ label: c as string, value: c as string }))
+          { label: '-- Tất cả loại vật tư --', value: 'ALL' },
+          ...cats.map(c => ({ label: c, value: c }))
         ]
       }
     ];
@@ -699,7 +772,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       key: 'sku',
       label: 'Mã VT / SKU',
       render: (p) => (
-        <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-xs">
+        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs">
           {p.sku || p.ma_vt || p.id}
         </span>
       )
@@ -717,41 +790,104 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     {
       key: 'unit',
       label: 'ĐVT',
-      render: (p) => <span className="text-center font-medium text-xs">{p.unit || p.dvt || 'Chiếc'}</span>
+      render: (p) => <span className="text-center font-medium text-xs">{p.unit || p.dvt || ''}</span>
     },
     {
       key: 'category',
-      label: 'Nhóm Hàng Hóa',
+      label: 'Loại Vật Tư',
       render: (p) => (
         <Badge variant="outline" className="text-[10px]">
           {p.category || 'Vật tư'}
         </Badge>
       )
-    },
-    {
-      key: 'price',
-      label: 'Đơn Giá Xuất (VNĐ)',
-      render: (p) => (
-        <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-xs">
-          {formatVND(p.price || p.costPrice || 0)}
-        </span>
-      )
-    },
-    {
-      key: 'quantity',
-      label: 'Tồn Kho Khả Dụng',
-      render: (p) => (
-        <span className="font-mono text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-          {formatQuantity(p.quantity || 0)}
-        </span>
-      )
     }
   ];
+
+  // Tab 1 Row actions
+  const handleAddFormItem = () => {
+    const firstProd = products[0];
+    const defaultPrice = 0;
+    const newItem: VoucherItem = {
+      productId: firstProd?.id || '',
+      productName: firstProd?.name || '',
+      sku: firstProd?.sku || '',
+      unit: firstProd?.unit || '',
+      quantity: 1,
+      unitPrice: defaultPrice,
+      totalPrice: defaultPrice,
+      lotNumber: '',
+      position: firstProd?.position || ''
+    };
+    setFormItems(prev => [...prev, newItem]);
+  };
+
+  const handleRemoveFormItem = (index: number) => {
+    if (formItems.length <= 1) {
+      showToast.error('Phiếu xuất kho phải chứa ít nhất 1 mặt hàng trong chi tiết!');
+      return;
+    }
+    setFormItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleItemFieldChange = (index: number, field: keyof VoucherItem, value: any) => {
+    setFormItems(prev => {
+      const updated = [...prev];
+      const current = { ...updated[index], [field]: value };
+
+      if (field === 'quantity' || field === 'unitPrice') {
+        const q = Number(field === 'quantity' ? value : current.quantity) || 0;
+        const p = Number(field === 'unitPrice' ? value : current.unitPrice) || 0;
+        current.totalPrice = q * p;
+      }
+
+      updated[index] = current;
+      return updated;
+    });
+  };
+
+  // Tab 2 Row actions (Nguyên vật liệu)
+  const handleAddMaterialItem = () => {
+    const firstProd = products.find(p => p.category?.toLowerCase().includes('vật tư') || p.category?.toLowerCase().includes('nguyên')) || products[0];
+    const defaultPrice = 0;
+    const newItem: VoucherItem = {
+      productId: firstProd?.id || '',
+      productName: firstProd?.name || '',
+      sku: firstProd?.sku || '',
+      unit: firstProd?.unit || '',
+      quantity: 1,
+      unitPrice: defaultPrice,
+      totalPrice: defaultPrice,
+      lotNumber: '',
+      position: firstProd?.position || ''
+    };
+    setFormMaterialItems(prev => [...prev, newItem]);
+  };
+
+  const handleRemoveMaterialItem = (index: number) => {
+    setFormMaterialItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleMaterialItemFieldChange = (index: number, field: keyof VoucherItem, value: any) => {
+    setFormMaterialItems(prev => {
+      const updated = [...prev];
+      const current = { ...updated[index], [field]: value };
+
+      if (field === 'quantity' || field === 'unitPrice') {
+        const q = Number(field === 'quantity' ? value : current.quantity) || 0;
+        const p = Number(field === 'unitPrice' ? value : current.unitPrice) || 0;
+        current.totalPrice = q * p;
+      }
+
+      updated[index] = current;
+      return updated;
+    });
+  };
 
   // Form Total Calculation (convert to VNĐ using formExchangeRate)
   const formTotalValue = useMemo(() => {
     const rate = formExchangeRate && formExchangeRate > 0 ? formExchangeRate : 1;
     const itemsTotal = formItems.reduce((sum, item) => {
+      if (!item.productId && !item.sku && !item.productName) return sum;
       const lineVal = item.totalPrice || ((item.quantity || 0) * (item.unitPrice || 0));
       return sum + lineVal;
     }, 0);
@@ -761,26 +897,35 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const formMaterialTotalValue = useMemo(() => {
     const rate = formExchangeRate && formExchangeRate > 0 ? formExchangeRate : 1;
     const matTotal = formMaterialItems.reduce((sum, item) => {
+      if (!item.productId && !item.sku && !item.productName) return sum;
       const lineVal = item.totalPrice || ((item.quantity || 0) * (item.unitPrice || 0));
       return sum + lineVal;
     }, 0);
     return matTotal * rate;
   }, [formMaterialItems, formExchangeRate]);
 
+  // Rows that already hold a material (the grid keeps one blank row at the end for the next entry).
+  const filledItemCount = formItems.filter(it => Boolean(it.productId || it.sku || it.productName)).length;
+  const filledMaterialCount = formMaterialItems.filter(it => Boolean(it.productId || it.sku || it.productName)).length;
+
   // Submit Form (Save Voucher)
-  const handleSubmitForm = (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSaveForm) return;
     if (!(editingVoucherId ? perm.edit : perm.create)) {
       showToast.error('Tài khoản của bạn không có quyền cập nhật dữ liệu!');
       return;
     }
 
     if (!formCode.trim()) {
-      showToast.error('Vui lòng nhập số chứng từ xuất kho!');
+      showToast.error('Vui lòng nhập số chứng từ!');
       return;
     }
 
-    if (formItems.length === 0) {
+    const validItems = formItems.filter(item => Boolean(item.productId || item.sku || item.productName));
+    const validMaterialItems = formMaterialItems.filter(item => Boolean(item.productId || item.sku || item.productName));
+
+    if (validItems.length === 0) {
       showToast.error('Vui lòng khai báo ít nhất một mặt hàng xuất kho!');
       return;
     }
@@ -789,7 +934,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     const warehouseObj = warehouses.find(w => w.id === formWarehouseId || w.name === formWarehouseName);
 
     const savedVoucher: GoodsVoucher = {
-      id: editingVoucherId || `PXK${String(localVouchers.length + 1).padStart(3, '0')}`,
+      id: editingVoucherId || '0',
+      version: localVouchers.find(v => v.id === editingVoucherId)?.version,
       type: 'Xuất kho',
       code: formCode.trim(),
       date: formDate,
@@ -799,136 +945,132 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       voucherType: formVoucherType,
       currencyCode: formCurrencyCode,
       exchangeRate: formExchangeRate,
-      partnerName: formPartnerName.trim(),
-      supplierName: formPartnerName.trim(),
-      delivererName: formRecipientName.trim(),
+      supplierName: formCustomerName.trim(),
+      delivererName: formReceiverName.trim(),
       warehouseId: formWarehouseId,
       warehouseName: warehouseObj?.name || formWarehouseName || 'Kho Tổng TP. Hồ Chí Minh',
-      items: formItems,
-      materialItems: formMaterialItems,
+      items: validItems,
+      materialItems: validMaterialItems,
       totalValue: formTotalValue,
       createdBy: formCreatedBy || currentUser?.fullName || 'Trần Thịnh (Admin)',
-      approvedBy: formStatus === 'Đã phê duyệt' || formStatus === 'Chuyển sổ kho' ? (currentUser?.fullName || 'Trần Thịnh (Admin)') : undefined,
-      status: formStatus as any,
+      status: editingVoucherId ? formStatus : 'Lập chứng từ',
       note: formNote.trim()
     };
 
-    if (editingVoucherId) {
-      // Update existing
-      setLocalVouchers(prev => prev.map(v => v.id === editingVoucherId ? savedVoucher : v));
-      showToast.success(`Đã cập nhật chứng từ xuất kho [${savedVoucher.code}] thành công!`);
-    } else {
-      // Create new
-      onAddVoucher(savedVoucher);
-      setLocalVouchers(prev => [savedVoucher, ...prev]);
-      showToast.success(`Đã tạo mới chứng từ xuất kho [${savedVoucher.code}] thành công!`);
+    setIsSaving(true);
+    try {
+      const result = editingVoucherId
+        ? await goodsIssuesApi.update(savedVoucher)
+        : await goodsIssuesApi.create(savedVoucher);
+      setLocalVouchers(prev => editingVoucherId
+        ? prev.map(v => v.id === editingVoucherId ? result : v)
+        : [result, ...prev]);
+      showToast.success(`Đã lưu phiếu xuất kho [${result.code}].`);
+      setIsModalOpen(false);
+    } catch (error) {
+      showToast.error(getErrorMessage(error));
+      await loadData();
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsModalOpen(false);
   };
 
-  // Status Change Quick Action
-  const handleQuickStatusChange = (voucherId: string, newStatus: string) => {
-    if (!canApprove && (newStatus === 'Đã phê duyệt' || newStatus === 'Chuyển sổ kho')) {
-      showToast.error('Tài khoản của bạn không có quyền duyệt / chuyển sổ kho!');
-      return;
+  const handleQuickStatusChange = async (voucherId: string, action: 'submit' | 'withdraw' | 'approve' | 'post' | 'unpost') => {
+    try {
+      const result = await goodsIssuesApi.changeStatus(voucherId, action);
+      setLocalVouchers(prev => prev.map(v => v.id === voucherId ? result : v));
+      showToast.success(`Phiếu ${result.code}: ${result.status}.`);
+    } catch (error) {
+      showToast.error(getErrorMessage(error));
+      await loadData();
     }
-
-    setLocalVouchers(prev => prev.map(v => {
-      if (v.id === voucherId) {
-        return {
-          ...v,
-          status: newStatus as any,
-          approvedBy: newStatus === 'Đã phê duyệt' || newStatus === 'Chuyển sổ kho' ? (currentUser?.fullName || 'Administrator') : v.approvedBy
-        };
-      }
-      return v;
-    }));
-
-    showToast.success(`Đã cập nhật trạng thái phiếu xuất thành "${newStatus}"!`);
   };
 
   // Single Delete
-  const handleConfirmSingleDelete = () => {
+  const handleConfirmSingleDelete = async () => {
     if (!itemToDelete) return;
-    setLocalVouchers(prev => prev.filter(v => v.id !== itemToDelete.id));
-    showToast.success(`Đã xóa phiếu xuất kho [${itemToDelete.code}] thành công!`);
-    setItemToDelete(null);
+    try {
+      await goodsIssuesApi.remove(itemToDelete.id);
+      setLocalVouchers(prev => prev.filter(v => v.id !== itemToDelete.id));
+      showToast.success(`Đã xóa phiếu xuất kho [${itemToDelete.code}].`);
+      setItemToDelete(null);
+    } catch (error) { showToast.error(getErrorMessage(error)); }
   };
 
   // Bulk Delete
-  const handleConfirmBulkDelete = () => {
+  const handleConfirmBulkDelete = async () => {
     if (!bulkToDeleteIds || bulkToDeleteIds.length === 0) return;
-    setLocalVouchers(prev => prev.filter(v => !bulkToDeleteIds.includes(v.id)));
-    showToast.success(`Đã xóa thành công ${bulkToDeleteIds.length} phiếu xuất kho đã chọn!`);
+    const results = await Promise.allSettled(bulkToDeleteIds.map(id => goodsIssuesApi.remove(id)));
+    const deleted = bulkToDeleteIds.filter((_, index) => results[index].status === 'fulfilled');
+    setLocalVouchers(prev => prev.filter(v => !deleted.includes(v.id)));
+    showToast.info(`Đã xóa ${deleted.length}/${bulkToDeleteIds.length} phiếu. Chỉ phiếu nháp đủ quyền mới được xóa.`);
     setSelectedIds([]);
     setBulkToDeleteIds(null);
   };
 
-  // Print PDF simulation / modal
-  const handlePrint = (voucherOrCode: GoodsVoucher | string) => {
+  const handlePrint = (code: string) => {
     if (!perm.print) {
       showToast.error('Tài khoản của bạn không có quyền In chứng từ!');
       return;
     }
-    if (typeof voucherOrCode === 'string') {
-      const found = localVouchers.find(v => v.code === voucherOrCode || v.id === voucherOrCode);
-      if (found) {
-        setPrintVoucher(found);
-        setIsPrintModalOpen(true);
-      } else if (editingVoucherId) {
-        const foundById = localVouchers.find(v => v.id === editingVoucherId);
-        if (foundById) {
-          setPrintVoucher(foundById);
-          setIsPrintModalOpen(true);
-        }
-      }
-    } else {
-      setPrintVoucher(voucherOrCode);
-      setIsPrintModalOpen(true);
-    }
+    const voucher = localVouchers.find(v => v.code === code);
+    if (!voucher) return;
+    const printable = window.open('', '_blank');
+    if (!printable) { showToast.error('Trình duyệt đã chặn cửa sổ in.'); return; }
+    const escape = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, ch =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] || ch);
+    const priceHead = canViewPrice ? '<th>Đơn giá</th><th>Thành tiền</th>' : '';
+    const rows = voucher.items.map((item, index) => `<tr><td>${index + 1}</td><td>${escape(item.sku)}</td><td>${escape(item.productName)}</td><td>${escape(item.unit)}</td><td>${escape(item.quantity)}</td>${canViewPrice ? `<td>${escape(item.unitPrice)}</td><td>${escape(item.totalPrice)}</td>` : ''}</tr>`).join('');
+    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escape(code)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #555;padding:6px;text-align:left}th{background:#eee}p{margin:6px 0}@media print{body{padding:0}}</style></head><body><h1>PHIẾU XUẤT KHO</h1><p>Số phiếu: ${escape(voucher.code)} · Ngày: ${escape(voucher.date)}</p><p>Đơn vị: ${escape(voucher.companyUnitName)} · Kho: ${escape(voucher.warehouseName)}</p><p>Khách hàng: ${escape(voucher.supplierName)} · Người nhận: ${escape(voucher.delivererName)}</p><p>Trạng thái: ${escape(voucher.status)}</p><table><thead><tr><th>STT</th><th>Mã vật tư</th><th>Tên vật tư</th><th>ĐVT</th><th>Số lượng</th>${priceHead}</tr></thead><tbody>${rows}</tbody></table>${canViewPrice ? `<p>Tổng tiền: ${escape(voucher.totalValue)} VND</p>` : ''}<p>Ghi chú: ${escape(voucher.note)}</p></body></html>`);
+    printable.document.close();
+    printable.focus();
+    printable.print();
   };
 
   // Render Status Badge
   const renderStatusBadge = (status?: string) => {
-    switch (status) {
+    const st = status || 'Chờ duyệt';
+    switch (st) {
       case 'Chuyển sổ kho':
-      case 'Đã phê duyệt':
-      case 'Hoàn thành':
         return (
-          <Badge variant="success" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-2xs">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            {status}
-          </Badge>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            Chuyển Sổ Kho
+          </span>
+        );
+      case 'Đã phê duyệt':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800">
+            <ShieldCheck className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+            Đã Phê Duyệt
+          </span>
         );
       case 'Chờ duyệt':
         return (
-          <Badge variant="warning" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-2xs">
-            <Clock className="h-3 w-3 mr-1" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 animate-pulse">
+            <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
             Chờ Duyệt
-          </Badge>
+          </span>
         );
       case 'Lập chứng từ':
-      case 'Nháp':
         return (
-          <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-2xs">
-            <FileText className="h-3 w-3 mr-1" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+            <FileText className="h-3.5 w-3.5 text-slate-500" />
             Lập Chứng Từ
-          </Badge>
+          </span>
         );
       case 'Hủy':
-      case 'Đã hủy':
         return (
-          <Badge variant="danger" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 shadow-2xs">
-            <XCircle className="h-3 w-3 mr-1" />
-            Hủy Phiếu
-          </Badge>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+            <AlertOctagon className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+            Đã Hủy
+          </span>
         );
       default:
         return (
-          <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5">
-            {status || 'Lập chứng từ'}
-          </Badge>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+            {st}
+          </span>
         );
     }
   };
@@ -942,7 +1084,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       render: (v) => (
         <div className="space-y-0.5">
           <div className="flex items-center gap-1.5">
-            <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-xs hover:underline cursor-pointer" onClick={() => handleOpenEdit(v)}>
+            <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs hover:underline cursor-pointer" onClick={() => handleOpenEdit(v)}>
               {v.code}
             </span>
             {v.currencyCode && v.currencyCode !== 'VND' && (
@@ -962,7 +1104,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     },
     {
       key: 'companyUnitName',
-      title: 'Đơn Vị Cơ Sở / Kho Xuất',
+      title: 'Đơn Vị Cơ Sở / Kho',
       sortable: true,
       render: (v) => (
         <div className="space-y-1">
@@ -971,12 +1113,12 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
             {v.companyUnitName || 'Trụ sở chính TP.HCM'}
           </p>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-            <Package className="h-3 w-3 text-rose-500" />
+            <Package className="h-3 w-3 text-indigo-400" />
             {v.warehouseName}
           </p>
-          {(v.partnerName || v.supplierName) && (
-            <p className="text-[10px] text-slate-400 truncate max-w-[200px]" title={v.partnerName || v.supplierName}>
-              Đơn vị nhận: <span className="font-medium text-slate-600 dark:text-slate-300">{v.partnerName || v.supplierName}</span>
+          {v.supplierName && (
+            <p className="text-[10px] text-slate-400 truncate max-w-[200px]" title={v.supplierName}>
+              KH: <span className="font-medium text-slate-600 dark:text-slate-300">{v.supplierName}</span>
             </p>
           )}
         </div>
@@ -987,15 +1129,15 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       title: 'Loại Xuất Kho',
       sortable: true,
       render: (v) => (
-        <Badge variant="outline" className="text-[10px] bg-rose-50/50 dark:bg-slate-800 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-slate-700">
-          <Tag className="h-3 w-3 mr-1 text-rose-500" />
+        <Badge variant="outline" className="text-[10px] bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700">
+          <Tag className="h-3 w-3 mr-1 text-indigo-500" />
           {v.voucherType || 'Xuất bán hàng'}
         </Badge>
       )
     },
     {
       key: 'items',
-      title: 'Sản Phẩm & Vật Tư Xuất',
+      title: 'Sản Phẩm & Nguyên Vật Liệu',
       render: (v) => {
         const count = v.items?.length || 0;
         const totalQty = v.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
@@ -1006,11 +1148,11 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
           <div className="space-y-1 max-w-xs">
             {firstTwo.map((it, idx) => (
               <div key={idx} className="text-xs text-slate-700 dark:text-slate-300 truncate">
-                • <span className="font-medium">{it.productName}</span> ({it.quantity} {it.unit || 'Chiếc'})
+                • <span className="font-medium">{it.productName}</span> ({it.quantity} {it.unit || ''})
               </div>
             ))}
             {count > 2 && (
-              <div className="text-[10px] font-semibold text-rose-500 italic">
+              <div className="text-[10px] font-semibold text-indigo-500 italic">
                 + thêm {count - 2} mặt hàng khác (Tổng {totalQty} SP)
               </div>
             )}
@@ -1031,7 +1173,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       align: 'right',
       render: (v) => (
         <div className="text-right">
-          <span className="font-mono font-extrabold text-rose-600 dark:text-rose-400 text-sm block">
+          <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400 text-sm block">
             {formatVND(v.totalValue)}
           </span>
           {v.currencyCode && v.currencyCode !== 'VND' && (
@@ -1057,27 +1199,59 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
           <button
             type="button"
             onClick={() => handleOpenEdit(v)}
-            className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors cursor-pointer"
             title="Xem & Sửa phiếu xuất"
           >
             <Edit3 className="h-4 w-4" />
           </button>
 
+          {v.status === 'Lập chứng từ' && (perm.create || perm.edit) && (
+            <button
+              type="button"
+              onClick={() => void handleQuickStatusChange(v.id, 'submit')}
+              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+              title="Gửi duyệt phiếu xuất kho"
+            >
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
+          )}
           {v.status === 'Chờ duyệt' && canApprove && (
             <button
               type="button"
-              onClick={() => handleQuickStatusChange(v.id, 'Chuyển sổ kho')}
+              onClick={() => void handleQuickStatusChange(v.id, 'approve')}
+              className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+              title="Phê duyệt phiếu xuất kho"
+            >
+              <ShieldCheck className="h-4 w-4" />
+            </button>
+          )}
+          {v.status === 'Chờ duyệt' && v.createdBy === currentUser?.fullName && (
+            <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'withdraw')}
+              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Rút phiếu khỏi quy trình duyệt">
+              <Undo2 className="h-4 w-4" />
+            </button>
+          )}
+          {v.status === 'Đã phê duyệt' && hasRight(currentUser, 'inv_issue', RIGHTS.POST) && (
+            <button
+              type="button"
+              onClick={() => void handleQuickStatusChange(v.id, 'post')}
               className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-colors cursor-pointer"
-              title="Phê duyệt & Chuyển sổ kho"
+              title="Chuyển sổ kho"
             >
               <CheckCircle2 className="h-4 w-4" />
+            </button>
+          )}
+          {v.status === 'Chuyển sổ kho' && hasRight(currentUser, 'inv_issue', RIGHTS.UNPOST) && (
+            <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'unpost')}
+              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Bỏ ghi sổ kho">
+              <RotateCcw className="h-4 w-4" />
             </button>
           )}
 
           {perm.print && (
             <button
               type="button"
-              onClick={() => handlePrint(v)}
+              onClick={() => handlePrint(v.code)}
               className="p-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
               title="In phiếu PDF"
             >
@@ -1107,7 +1281,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       <CategoryHeaderToolbar
         icon={<ArrowUpRight className="h-6 w-6 text-rose-400" />}
         title="Danh Mục Phiếu Xuất Kho (Goods Issues)"
-        subtitle="Quản lý, lập mới, xem, sửa, xóa, tìm kiếm & lọc chứng từ xuất kho vật tư bán hàng, chuyển kho hoặc sản xuất"
+        subtitle="Quản lý, lập mới, xem, sửa, xóa, tìm kiếm & lọc chứng từ xuất kho vật tư hàng hóa"
         count={filteredVouchers.length}
         countLabel="Phiếu Xuất"
         showAdvancedFilter={showAdvancedFilter}
@@ -1115,7 +1289,6 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
         activeFilterCount={activeFilterCount}
         onRefresh={handleRefresh}
         onExportExcel={perm.export ? handleExportExcel : undefined}
-        onImportExcel={perm.create ? handleImportExcel : undefined}
         addLabel="Lập Phiếu Xuất Mới"
         canCreate={perm.create}
         onOpenAdd={handleOpenAdd}
@@ -1125,10 +1298,10 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
               <label className="block text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-0.5">Mã / Số Chứng Từ</label>
               <input
                 type="text"
-                placeholder="PXK-202608-01..."
+                placeholder="PXK-202605-01..."
                 value={codeFilter}
                 onChange={(e) => setCodeFilter(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
             </div>
 
@@ -1137,7 +1310,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
               <select
                 value={unitFilter}
                 onChange={(e) => setUnitFilter(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-rose-500 font-medium"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
               >
                 <option value="">-- Tất cả ĐVCS --</option>
                 {companyUnits.map(cu => (
@@ -1151,7 +1324,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
               <select
                 value={voucherTypeFilter}
                 onChange={(e) => setVoucherTypeFilter(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-rose-500 font-medium"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
               >
                 <option value="">-- Tất cả loại xuất --</option>
                 <option value="Xuất bán hàng">Xuất bán hàng</option>
@@ -1167,7 +1340,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-rose-500 font-medium"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
               >
                 <option value="">-- Tất cả trạng thái --</option>
                 <option value="Lập chứng từ">Lập chứng từ</option>
@@ -1183,9 +1356,9 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
               <select
                 value={warehouseFilter}
                 onChange={(e) => setWarehouseFilter(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-rose-500 font-medium"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
               >
-                <option value="">-- Tất cả kho xuất --</option>
+                <option value="">-- Tất cả kho --</option>
                 {warehouses.map(w => (
                   <option key={w.id} value={w.id}>{w.name}</option>
                 ))}
@@ -1193,64 +1366,37 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-0.5">Từ Ngày CT</label>
+              <label className="block text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-0.5">Từ Ngày Chứng Từ</label>
               <input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-rose-500 font-medium"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
               />
             </div>
 
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-0.5">Đến Ngày CT</label>
+              <label className="block text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-0.5">Đến Ngày Chứng Từ</label>
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-rose-500 font-medium"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
               />
             </div>
           </div>
         }
         onApplyFilter={handleApplyFilter}
         onClearFilter={handleClearFilter}
-        searchValue={searchText}
-        onSearchChange={setSearchText}
-        searchPlaceholder="Tìm kiếm mã phiếu, đơn vị, kho xuất, khách hàng, tên vật tư..."
       />
 
-      {/* Bulk Action Controls */}
-      {selectedIds.length > 0 && (
-        <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-2.5 flex items-center justify-between text-xs animate-fadeIn">
-          <span className="font-semibold text-rose-700 dark:text-rose-300">
-            Đã chọn <strong className="font-extrabold text-rose-600 dark:text-rose-400">{selectedIds.length}</strong> phiếu xuất kho
-          </span>
-          <div className="flex items-center gap-2">
-            {perm.delete && (
-              <Button
-                size="sm"
-                variant="danger"
-                icon={<Trash2 className="h-3.5 w-3.5" />}
-                onClick={() => setBulkToDeleteIds(selectedIds as string[])}
-              >
-                Xóa Các Phiếu Đã Chọn
-              </Button>
-            )}
-            <Button size="sm" variant="outline" onClick={() => setSelectedIds([])}>
-              Bỏ Chọn
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Main Data Table Area */}
-      <GridView
+      {/* GridView Data Table Component */}
+      <GridView<GoodsVoucher>
         data={filteredVouchers}
         columns={canViewPrice ? columns : columns.filter(c => c.key !== 'totalValue')}
         keyExtractor={(item) => item.id}
         searchable={true}
-        searchPlaceholder="Tìm kiếm mã phiếu, đơn vị, kho xuất, khách hàng, tên vật tư..."
+        searchPlaceholder="Tìm kiếm mã phiếu, khách hàng, ghi chú, kho xuất, sản phẩm..."
         searchValue={searchText}
         onSearchChange={setSearchText}
         selectable={true}
@@ -1266,17 +1412,17 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
             }
           ] : []
         }
-        emptyText="Không tìm thấy chứng từ xuất kho nào phù hợp với bộ lọc."
+        emptyText="Không tìm thấy chứng từ phiếu xuất kho nào phù hợp."
         pageSize={15}
         pageSizeOptions={[10, 15, 20, 30, 50, 100]}
         dense={true}
       />
 
-      {/* MASTER MODAL FORM FOR CREATING / EDITING GOODS ISSUE VOUCHER */}
+      {/* MODAL FORM: VIEW & EDIT / CREATE GOODS RECEIPT VOUCHER */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingVoucherId ? `Chi Tiết & Cập Nhật Phiếu Xuất Kho: [${formCode}]` : 'Lập Phiếu Xuất Kho Mới (Goods Issue Voucher)'}
+        title={editingVoucherId ? `Chi Tiết & Cập Nhật Phiếu Xuất Kho: [${formCode}]` : 'Lập Phiếu Xuất Kho Mới'}
         fullScreen={true}
         headerActions={
           <div className="flex items-center gap-2 shrink-0">
@@ -1306,63 +1452,59 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
               type="button"
               variant="secondary"
               size="sm"
-              icon={<Save className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />}
+              icon={<Save className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />}
               onClick={() => {
-                setFormStatus('Lập chứng từ');
-                setTimeout(() => {
-                  const formEl = document.querySelector('form');
-                  if (formEl) formEl.requestSubmit();
-                }, 50);
+                (document.getElementById('goods-issue-form') as HTMLFormElement | null)?.requestSubmit();
               }}
-              className="py-1 px-3 text-xs font-semibold cursor-pointer bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900"
+              disabled={isSaving || !canSaveForm}
+              className="py-1 px-3 text-xs font-semibold cursor-pointer bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900"
             >
               Lưu Nháp
             </Button>
             <Button
               type="submit"
-              variant="danger"
+              variant="success"
               size="sm"
               icon={<CheckCircle2 className="h-3.5 w-3.5 text-white" />}
               onClick={() => {
-                const formEl = document.querySelector('form');
-                if (formEl) formEl.requestSubmit();
+                (document.getElementById('goods-issue-form') as HTMLFormElement | null)?.requestSubmit();
               }}
-              className="py-1 px-4 text-xs font-bold cursor-pointer bg-rose-600 hover:bg-rose-700 text-white shadow-xs border border-rose-600"
+              disabled={isSaving || !canSaveForm}
+              className="py-1 px-4 text-xs font-bold cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs border border-emerald-600"
             >
               {editingVoucherId ? 'Lưu & Cập Nhật' : 'Lưu Phiếu Xuất Kho'}
             </Button>
           </div>
         }
       >
-        <form onSubmit={handleSubmitForm} className="flex-1 min-h-0 flex flex-col text-xs overflow-hidden pt-2">
-          <div className="overflow-y-auto custom-scrollbar space-y-3 pr-1 pb-1 flex-1 min-h-0 flex flex-col">
-          
+        <form id="goods-issue-form" onSubmit={handleSubmitForm} className="flex-1 min-h-0 flex flex-col gap-2 text-xs overflow-y-auto custom-scrollbar pt-2 pr-1">
+
           {/* I. PHẦN THÔNG TIN CHUNG (HEADER) - BALANCED 8-4 GRID LAYOUT */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 text-xs shrink-0">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 text-xs shrink-0">
             
             {/* BÊN TRÁI (LG:COL-SPAN-8): THÔNG TIN NGHIỆP VỤ, KHO & ĐỐI TÁC */}
-            <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-800 space-y-1.5 shadow-2xs">
+            <div className="md:col-span-8 bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-800 space-y-1.5 shadow-2xs">
               <div className="flex items-center justify-between h-6 pb-1 border-b border-slate-100 dark:border-slate-800/80">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <Tag className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                  <Tag className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
                   <h4 className="font-extrabold text-[11px] text-slate-800 dark:text-slate-100 uppercase tracking-wide truncate">
                     I. Thông Tin Nghiệp Vụ & Đối Tác
                   </h4>
                 </div>
-                <span className="text-[10px] font-medium text-slate-400 shrink-0 hidden sm:inline">Nghiệp vụ kho & đối tác</span>
+                <span className="text-[10px] font-medium text-slate-400 shrink-0 hidden sm:inline">Nghiệp vụ kho & khách hàng</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 text-xs">
-                {/* Loại xuất kho */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-1.5 sm:gap-2 text-xs">
+                {/* Loại xuất xuất */}
                 <div>
                   <label className="block text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
-                    Loại Nhập Xuất <span className="text-rose-500">*</span>
+                    Loại Xuất Kho <span className="text-rose-500">*</span>
                   </label>
                   <select
                     required
                     value={formVoucherType}
                     onChange={(e) => setFormVoucherType(e.target.value)}
-                    className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all h-[26px]"
+                    className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                   >
                     <option value="Xuất bán hàng">Xuất bán hàng</option>
                     <option value="Xuất điều chuyển nội bộ">Xuất điều chuyển nội bộ</option>
@@ -1372,7 +1514,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   </select>
                 </div>
 
-                {/* Kho xuất hàng */}
+                {/* Kho xuất hàng (Lookup enabled) */}
                 <div>
                   <label className="block text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
                     Kho Xuất Hàng <span className="text-rose-500">*</span>
@@ -1386,7 +1528,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                         const wh = warehouses.find(w => w.id === e.target.value);
                         if (wh) setFormWarehouseName(wh.name);
                       }}
-                      className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all h-[26px]"
+                      className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                     >
                       {warehouses.map(w => (
                         <option key={w.id} value={w.id}>{w.name}</option>
@@ -1395,7 +1537,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsWarehouseLookupOpen(true)}
-                      className="px-1.5 h-[26px] bg-rose-50 hover:bg-rose-100 dark:bg-rose-950 dark:hover:bg-rose-900 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-2xs"
+                      className="px-1.5 h-[26px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-2xs"
                       title="Tra cứu danh mục Kho (F4)"
                     >
                       <Search className="h-3 w-3" />
@@ -1411,16 +1553,16 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   <div className="flex items-center gap-1">
                     <input
                       type="text"
-                      placeholder="Công ty FPT, VinFast, Samsung..."
-                      value={formPartnerName}
-                      onChange={(e) => setFormPartnerName(e.target.value)}
-                      className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all h-[26px]"
+                      placeholder="VinFast, Masan, FPT..."
+                      value={formCustomerName}
+                      onChange={(e) => setFormCustomerName(e.target.value)}
+                      className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                     />
                     <button
                       type="button"
                       onClick={() => setIsCustomerLookupOpen(true)}
-                      className="px-1.5 h-[26px] bg-rose-50 hover:bg-rose-100 dark:bg-rose-950 dark:hover:bg-rose-900 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-2xs"
-                      title="Tra cứu danh mục Khách Hàng (F4)"
+                      className="px-1.5 h-[26px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-2xs"
+                      title="Tra cứu danh mục Khách Hàng / Đối Tác (F4)"
                     >
                       <Search className="h-3 w-3" />
                     </button>
@@ -1434,10 +1576,10 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="Họ tên người nhận hàng / đại diện..."
-                    value={formRecipientName}
-                    onChange={(e) => setFormRecipientName(e.target.value)}
-                    className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all h-[26px]"
+                    placeholder="Họ tên người nhận hàng..."
+                    value={formReceiverName}
+                    onChange={(e) => setFormReceiverName(e.target.value)}
+                    className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                   />
                 </div>
 
@@ -1448,20 +1590,20 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="Ví dụ: Xuất kho bán hàng theo đơn đặt hàng..."
+                    placeholder="Ví dụ: Xuất kho bán hàng theo đơn SO-2026-882..."
                     value={formNote}
                     onChange={(e) => setFormNote(e.target.value)}
-                    className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-normal text-[11px] focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all h-[26px]"
+                    className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-normal text-[11px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                   />
                 </div>
               </div>
             </div>
 
             {/* BÊN PHẢI (LG:COL-SPAN-4): THẺ CHỨNG TỪ & TIỀN TỆ COMPACT 2-COL GRID */}
-            <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-800 space-y-1.5 shadow-2xs">
+            <div className="md:col-span-4 bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-800 space-y-1.5 shadow-2xs">
               <div className="flex items-center justify-between h-6 pb-1 border-b border-slate-100 dark:border-slate-800/80 gap-1">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <FileText className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                  <FileText className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
                   <h4 className="font-extrabold text-[11px] text-slate-800 dark:text-slate-100 uppercase tracking-wide truncate">
                     II. Chứng Từ & Tiền Tệ
                   </h4>
@@ -1480,20 +1622,11 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   <select
                     required
                     value={formCompanyUnitId}
-                    onChange={(e) => {
-                      setFormCompanyUnitId(e.target.value);
-                      const cu = companyUnits.find(c => c.id === e.target.value);
-                      if (cu) setFormCompanyUnitName(cu.name);
-                    }}
-                    className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-1.5 py-0.5 font-bold text-slate-800 dark:text-slate-100 text-[10.5px] focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all truncate h-[26px]"
+                    disabled
+                    onChange={() => {}}
+                    className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-1.5 py-0.5 font-bold text-slate-800 dark:text-slate-100 text-[10.5px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all truncate h-[26px]"
                   >
-                    {companyUnits.length > 0 ? (
-                      companyUnits.map(cu => (
-                        <option key={cu.id} value={cu.id}>{cu.code || cu.id} - {cu.name}</option>
-                      ))
-                    ) : (
-                      <option value="DVCS01">DVCS01 - Trụ sở chính TP.HCM</option>
-                    )}
+                    <option value={activeUnitCode}>{activeUnitCode} - {formCompanyUnitName || activeUnitCode}</option>
                   </select>
                 </div>
 
@@ -1506,9 +1639,9 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                     type="text"
                     required
                     value={formCode}
-                    onChange={(e) => setFormCode(e.target.value)}
+                    readOnly
                     placeholder="PXK-202608-001"
-                    className="w-full bg-rose-50/40 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/70 rounded-lg px-1.5 py-0.5 font-mono font-black text-rose-700 dark:text-rose-300 text-[10.5px] focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all h-[26px]"
+                    className="w-full bg-indigo-50/40 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/70 rounded-lg px-1.5 py-0.5 font-mono font-black text-indigo-700 dark:text-indigo-300 text-[10.5px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                   />
                 </div>
 
@@ -1520,8 +1653,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   <select
                     required
                     value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value)}
-                    className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-1.5 py-0.5 font-extrabold text-slate-800 dark:text-slate-100 text-[10.5px] focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all h-[26px]"
+                    disabled
+                    className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-1.5 py-0.5 font-extrabold text-slate-800 dark:text-slate-100 text-[10.5px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                   >
                     <option value="Lập chứng từ">Lập chứng từ</option>
                     <option value="Chờ duyệt">Chờ duyệt</option>
@@ -1539,9 +1672,9 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   <input
                     type="text"
                     value={formCreatedBy}
-                    onChange={(e) => setFormCreatedBy(e.target.value)}
+                    readOnly
                     placeholder="NV Kho..."
-                    className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-1.5 py-0.5 font-medium text-[10.5px] focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all h-[26px]"
+                    className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-1.5 py-0.5 font-medium text-[10.5px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                   />
                 </div>
 
@@ -1552,7 +1685,13 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                     type="date"
                     required
                     value={formDate}
-                    onChange={(val) => setFormDate(val)}
+                    onChange={(val) => {
+                      setFormDate(val);
+                      if (!editingVoucherId) voucherNumberingApi.preview('PXK', val).then(setFormCode)
+                        .catch(error => showToast.error(getErrorMessage(error)));
+                      exchangeRatesApi.getRate(formCurrencyCode, val).then(setFormExchangeRate)
+                        .catch(error => showToast.error(getErrorMessage(error)));
+                    }}
                   />
                 </div>
 
@@ -1563,7 +1702,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                     type="date"
                     required
                     value={formCreatedDate}
-                    onChange={(val) => setFormCreatedDate(val)}
+                    onChange={() => {}}
+                    disabled
                   />
                 </div>
 
@@ -1571,7 +1711,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                 <div>
                   <ComboBox
                     label="Loại Tiền"
-                    options={CURRENCY_OPTIONS_ISSUE.map(c => ({ value: c.code, label: `${c.code} - ${c.name}` }))}
+                    options={currencies.map(c => ({ value: c.code, label: `${c.code} - ${c.name}` }))}
                     value={formCurrencyCode}
                     onChange={(val) => handleCurrencyChange(val)}
                     clearable={false}
@@ -1586,7 +1726,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   </label>
                   <NumberInput
                     value={formExchangeRate}
-                    onChange={(val) => setFormExchangeRate(val || 1)}
+                    onChange={() => {}}
+                    readOnly
                     min={1}
                     decimals={2}
                   />
@@ -1596,355 +1737,185 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
 
           </div>
 
-          {/* II. PHẦN THÔNG TIN CHI TIẾT - CHIA THÀNH 2 TAB (TAB 1: CHI TIẾT, TAB 2: NGUYÊN VẬT LIỆU) */}
-          <div className="bg-white dark:bg-slate-900 p-1.5 sm:p-2 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1.5 flex-1 flex flex-col min-h-[200px]">
-            
-            {/* TABS HEADER BAR - COMPACT HEIGHT */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 pb-1 border-b border-slate-200 dark:border-slate-800 shrink-0">
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg flex-wrap">
-                
-                {/* TAB 1: CHI TIẾT */}
+          {/* II. CHI TIẾT: chiếm hết chỗ còn lại của cửa sổ */}
+          <section className="flex-1 min-h-[300px] flex flex-col bg-white dark:bg-slate-900 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 gap-1.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap shrink-0">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg">
                 <button
                   type="button"
                   onClick={() => setActiveTab('items')}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold transition-all flex items-center gap-1 cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
                     activeTab === 'items'
-                      ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-2xs border border-slate-200/80 dark:border-slate-700'
+                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs border border-slate-200/80 dark:border-slate-700'
                       : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
-                  <Package className="h-3 w-3" />
-                  <span>Tab 1: Chi Tiết Mặt Hàng</span>
-                  <span className="ml-0.5 px-1.5 py-0 rounded-full text-[9px] bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 font-black">
-                    {formItems.length}
-                  </span>
+                  <Package className="h-3.5 w-3.5" />
+                  <span>Chi tiết mặt hàng</span>
+                  <span className="px-1.5 rounded-full text-[9.5px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-black">{filledItemCount}</span>
                 </button>
-
-                {/* TAB 2: NGUYÊN VẬT LIỆU (CẤU TRÚC SP / BOM) */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('materials')}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold transition-all flex items-center gap-1 cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
                     activeTab === 'materials'
                       ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs border border-slate-200/80 dark:border-slate-700'
                       : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
-                  <Layers className="h-3 w-3" />
-                  <span>Tab 2: NVL (Cấu Trúc SP / BOM)</span>
-                  <span className="ml-0.5 px-1.5 py-0 rounded-full text-[9px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-black">
-                    {formMaterialItems.length}
-                  </span>
+                  <Layers className="h-3.5 w-3.5" />
+                  <span>NVL (BOM)</span>
+                  <span className="px-1.5 rounded-full text-[9.5px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-black">{filledMaterialCount}</span>
                 </button>
-
               </div>
 
-              {/* ACTION BUTTONS FOR ACTIVE TAB */}
-              <div className="flex items-center gap-1 flex-wrap self-end sm:self-auto">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="primary"
-                  onClick={() => {
-                    setLookupTargetRowIndex(null);
-                    setIsMaterialLookupOpen(true);
-                  }}
-                  icon={<Search className="h-3.5 w-3.5" />}
-                  className="bg-rose-600 hover:bg-rose-700 text-white text-[10.5px] py-1 px-2.5 h-[26px] shadow-2xs font-semibold"
-                >
-                  Tra Cứu Từ Danh Mục Vật Tư
-                </Button>
-              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="primary"
+                onClick={() => {
+                  setLookupTargetRowIndex(null);
+                  setIsMaterialLookupOpen(true);
+                }}
+                icon={<Search className="h-3.5 w-3.5" />}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10.5px] py-1 px-2.5 h-[26px] shadow-2xs font-semibold"
+              >
+                Tra cứu vật tư (F2)
+              </Button>
             </div>
 
-            {/* TAB 1 CONTENT: CHI TIẾT MẶT HÀNG / VẬT TƯ XUẤT KHO TRỰC TIẾP */}
             {activeTab === 'items' && (
-              <div className="flex-1 flex flex-col min-h-0 space-y-1">
-                <VoucherDetailGrid
-                  hiddenFields={hiddenPriceFields}
-                  gridInfo={goodsIssueItemsGridConfig}
-                  data={formItems}
-                  onChange={(newItems) => setFormItems(newItems as VoucherItem[])}
-                  onLookupClick={(rowIndex) => {
-                    setLookupTargetRowIndex(rowIndex);
-                    setIsMaterialLookupOpen(true);
-                  }}
-                  onCodeSubmit={(rowIndex, field, codeValue) => 
-                    handleCodeSubmit(rowIndex, field, codeValue, 'items')
-                  }
-                  currencyCode={formCurrencyCode}
-                  exchangeRate={formExchangeRate}
-                  maxHeight="250px"
-                />
-              </div>
+              <VoucherDetailGrid
+                fill
+                showAddButton={false}
+                hiddenFields={hiddenPriceFields}
+                gridInfo={goodsIssueItemsGridConfig}
+                data={formItems}
+                onChange={(newItems) => setFormItems(newItems as VoucherItem[])}
+                onLookupClick={(rowIndex) => {
+                  setLookupTargetRowIndex(rowIndex);
+                  setIsMaterialLookupOpen(true);
+                }}
+                onCodeSubmit={(rowIndex, field, codeValue) => handleCodeSubmit(rowIndex, field, codeValue, 'items')}
+                currencyCode={formCurrencyCode}
+                exchangeRate={formExchangeRate}
+              />
             )}
 
-            {/* TAB 2 CONTENT: NGUYÊN VẬT LIỆU (CẤU TRÚC SẢN PHẨM / BOM) */}
             {activeTab === 'materials' && (
-              <div className="flex-1 flex flex-col min-h-0 space-y-1">
-                <VoucherDetailGrid
-                  hiddenFields={hiddenPriceFields}
-                  gridInfo={goodsIssueMaterialsGridConfig}
-                  data={formMaterialItems}
-                  onChange={(newItems) => setFormMaterialItems(newItems as VoucherItem[])}
-                  onLookupClick={(rowIndex) => {
-                    setLookupTargetRowIndex(rowIndex);
-                    setIsMaterialLookupOpen(true);
-                  }}
-                  onCodeSubmit={(rowIndex, field, codeValue) => 
-                    handleCodeSubmit(rowIndex, field, codeValue, 'materials')
-                  }
-                  currencyCode={formCurrencyCode}
-                  exchangeRate={formExchangeRate}
-                  maxHeight="250px"
-                />
-              </div>
+              <VoucherDetailGrid
+                fill
+                showAddButton={false}
+                hiddenFields={hiddenPriceFields}
+                gridInfo={goodsIssueMaterialsGridConfig}
+                data={formMaterialItems}
+                onChange={(newItems) => setFormMaterialItems(newItems as VoucherItem[])}
+                onLookupClick={(rowIndex) => {
+                  setLookupTargetRowIndex(rowIndex);
+                  setIsMaterialLookupOpen(true);
+                }}
+                onCodeSubmit={(rowIndex, field, codeValue) => handleCodeSubmit(rowIndex, field, codeValue, 'materials')}
+                currencyCode={formCurrencyCode}
+                exchangeRate={formExchangeRate}
+              />
             )}
+          </section>
 
-          </div>
-          </div>
-
-          {/* Modal Footer Bar - Status, Summary Info & Secondary Actions */}
-          <div className="flex items-center justify-between pt-2 pb-1 px-1 mt-1 border-t border-slate-200 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900 z-30 text-xs gap-2 flex-wrap">
-            <div className="flex items-center gap-3">
+          {/* Thanh tóm tắt: phiếu và tổng tiền (nút Lưu / Hủy nằm ở thanh tiêu đề của cửa sổ) */}
+          <div className="shrink-0 flex items-center justify-between gap-3 flex-wrap px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+            <span className="text-[11px] text-slate-500 font-medium">
+              Phiếu <strong className="font-mono text-indigo-600 dark:text-indigo-400">{formCode}</strong>
+              <span className="mx-1.5 text-slate-300">|</span>
+              {filledItemCount} mặt hàng{filledMaterialCount > 0 ? `, ${filledMaterialCount} NVL` : ''}
+            </span>
+            {canViewPrice && (
               <span className="text-[11px] text-slate-500 font-medium">
-                Mã phiếu: <strong className="font-mono text-rose-600 dark:text-rose-400 font-bold">{formCode}</strong>
+                Tổng tiền: <strong className="font-mono text-emerald-600 dark:text-emerald-400 font-extrabold text-sm">{formTotalValue.toLocaleString('vi-VN')} {formCurrencyCode}</strong>
               </span>
-              <span className="text-[11px] text-slate-400 hidden sm:inline">|</span>
-              <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
-                Người lập: <strong className="text-slate-700 dark:text-slate-300 font-semibold">{formCreatedBy || 'N/A'}</strong>
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {canViewPrice && (
-                <span className="text-[11px] text-slate-500 font-medium mr-1">
-                  Tổng tiền: <strong className="font-mono text-rose-600 dark:text-rose-400 font-extrabold text-xs sm:text-sm">{formTotalValue.toLocaleString('vi-VN')} {formCurrencyCode}</strong>
-                </span>
-              )}
-
-              <div className="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-700 pl-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsModalOpen(false)}
-                  className="py-1 px-2.5 text-xs font-medium cursor-pointer"
-                >
-                  Hủy
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    setFormStatus('Lập chứng từ');
-                    setTimeout(() => {
-                      const formEl = document.querySelector('form');
-                      if (formEl) formEl.requestSubmit();
-                    }, 50);
-                  }}
-                  className="py-1 px-2.5 text-xs font-semibold cursor-pointer"
-                >
-                  Lưu Nháp
-                </Button>
-                <Button
-                  type="submit"
-                  variant="danger"
-                  size="sm"
-                  className="py-1 px-3 text-xs font-bold cursor-pointer bg-rose-600 hover:bg-rose-700 text-white"
-                >
-                  {editingVoucherId ? 'Lưu & Cập Nhật' : 'Lưu Phiếu Xuất Kho'}
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
         </form>
       </Modal>
 
-      {/* MASTER LOOKUP MODAL FOR PRODUCTS / MATERIALS */}
+      {/* Delete Confirmation Modals */}
+      <DeleteConfirmModal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmSingleDelete}
+        itemCode={itemToDelete?.code}
+        itemName={`Phiếu xuất kho ngày ${itemToDelete?.date}${canViewPrice ? ` (${formatVND(itemToDelete?.totalValue || 0)})` : ''}`}
+      />
+
+      <DeleteConfirmModal
+        isOpen={!!bulkToDeleteIds && bulkToDeleteIds.length > 0}
+        onClose={() => setBulkToDeleteIds(null)}
+        onConfirm={handleConfirmBulkDelete}
+        isBulk
+        bulkCount={bulkToDeleteIds?.length || 0}
+      />
+
+      {/* Master Lookup Modal for Materials */}
       <MasterLookupModal
         isOpen={isMaterialLookupOpen}
         onClose={() => {
           setIsMaterialLookupOpen(false);
           setLookupTargetRowIndex(null);
         }}
-        title={lookupTargetRowIndex !== null ? "Chọn Vật Tư Chọn Dòng" : "Tra Cứu & Chọn Hàng Hóa / Vật Tư Xuất Kho"}
+        title="Tra Cứu & Chọn Vật Tư / Hàng Hóa Từ Danh Mục"
+        subtitle={lookupTargetRowIndex !== null ? `Chọn 1 vật tư để gán cho dòng hiện tại (Tab ${activeTab === 'items' ? 'Chi tiết' : 'Nguyên vật liệu'})` : `Chọn một hoặc nhiều vật tư để thêm vào tab ${activeTab === 'items' ? 'Chi tiết' : 'Nguyên vật liệu'}`}
         data={products}
-        columns={canViewPrice ? masterLookupColumns : masterLookupColumns.filter(c => c.key !== 'price')}
+        columns={masterLookupColumns}
         idField="id"
         displayField="name"
-        onConfirm={handleConfirmMasterLookup}
-        selectionMode={lookupTargetRowIndex === null ? 'multiple' : 'single'}
-        searchPlaceholder="Tìm mã SKU, tên vật tư, vị trí kho..."
+        searchFields={['sku', 'ma_vt', 'name', 'ten_vt', 'category', 'position']}
+        searchPlaceholder="Nhập mã vật tư, SKU, tên vật tư hoặc vị trí kho để tìm kiếm..."
         filters={productCategoriesFilter}
+        selectionMode={lookupTargetRowIndex !== null ? 'single' : 'multiple'}
+        selectedIds={
+          lookupTargetRowIndex !== null
+            ? activeTab === 'items'
+              ? [formItems[lookupTargetRowIndex]?.productId].filter(Boolean) as string[]
+              : [formMaterialItems[lookupTargetRowIndex]?.productId].filter(Boolean) as string[]
+            : []
+        }
+        onConfirm={handleConfirmMasterLookup}
+        pageSize={8}
       />
 
-      {/* WAREHOUSE LOOKUP MODAL */}
+      {/* Master Lookup Modal for Warehouses */}
       <MasterLookupModal
         isOpen={isWarehouseLookupOpen}
         onClose={() => setIsWarehouseLookupOpen(false)}
-        title="Tra Cứu & Chọn Kho Xuất Hàng"
+        title="Tra Cứu & Chọn Kho Xuất Hàng Từ Danh Mục"
+        subtitle="Chọn 1 kho hàng từ danh mục hệ thống để gán cho phiếu xuất"
         data={warehouses}
         columns={warehouseLookupColumns}
         idField="id"
         displayField="name"
-        onConfirm={handleConfirmWarehouseLookup}
+        searchFields={['id', 'code', 'name', 'manager', 'address']}
+        searchPlaceholder="Nhập mã kho, tên kho, thủ kho hoặc địa chỉ để tìm kiếm..."
         selectionMode="single"
-        searchPlaceholder="Tìm mã kho, tên kho, địa chỉ..."
+        selectedIds={[formWarehouseId].filter(Boolean)}
+        onConfirm={handleConfirmWarehouseLookup}
+        pageSize={6}
       />
 
-      {/* CUSTOMER / PARTNER LOOKUP MODAL */}
+      {/* Master Lookup Modal for Customers */}
       <MasterLookupModal
         isOpen={isCustomerLookupOpen}
         onClose={() => setIsCustomerLookupOpen(false)}
-        title="Tra Cứu & Chọn Khách Hàng / Đơn Vị Nhận Hàng"
+        title="Tra Cứu & Chọn Khách Hàng / Đối Tác"
+        subtitle="Chọn 1 khách hàng hoặc đối tác từ danh mục danh bạ"
         data={MOCK_CUSTOMERS}
         columns={customerLookupColumns}
         idField="id"
         displayField="name"
-        onConfirm={handleConfirmCustomerLookup}
+        searchFields={['id', 'code', 'name', 'taxCode', 'group', 'address']}
+        searchPlaceholder="Nhập mã KH, tên đối tác, MST hoặc nhóm ngành để tìm kiếm..."
         selectionMode="single"
-        searchPlaceholder="Tìm mã đối tác, tên khách hàng, MST..."
-      />
-
-      {/* PRINT PREVIEW MODAL */}
-      <Modal
-        isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
-        title={`In Chứng Từ Phiếu Xuất Kho [${printVoucher?.code || ''}]`}
-        maxWidth="4xl"
-      >
-        {printVoucher && (
-          <div className="space-y-4 text-xs p-4 bg-white text-slate-900 rounded-lg shadow-inner font-serif">
-            {/* Printable Document Header */}
-            <div className="flex justify-between items-start border-b border-slate-300 pb-3">
-              <div>
-                <p className="font-bold text-sm uppercase">CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THIẾT BỊ HÒA PHÁT</p>
-                <p className="text-[11px] text-slate-600">Đơn vị: {printVoucher.companyUnitName || 'Trụ sở chính TP.HCM'}</p>
-                <p className="text-[11px] text-slate-600">Địa chỉ: KCN Tân Bình, Q. Tân Phú, TP. Hồ Chí Minh</p>
-              </div>
-              <div className="text-right font-sans">
-                <p className="font-bold text-xs uppercase">Mẫu số: 02-VT</p>
-                <p className="text-[10px] text-slate-500">(Thông tư số 200/2014/TT-BTC)</p>
-                <p className="font-mono font-bold text-rose-600 text-sm mt-1">{printVoucher.code}</p>
-              </div>
-            </div>
-
-            {/* Document Title */}
-            <div className="text-center space-y-1">
-              <h2 className="text-xl font-bold uppercase tracking-wide">PHIẾU XUẤT KHO</h2>
-              <p className="italic text-slate-600 text-xs">
-                Ngày {printVoucher.date.split('-')[2] || '10'} tháng {printVoucher.date.split('-')[1] || '08'} năm {printVoucher.date.split('-')[0] || '2026'}
-              </p>
-            </div>
-
-            {/* General Info Grid */}
-            <div className="grid grid-cols-2 gap-2 text-xs border-y border-slate-200 py-2">
-              <div>- Họ tên người nhận hàng: <strong>{printVoucher.delivererName || printVoucher.partnerName || 'Khách hàng'}</strong></div>
-              <div>- Kho xuất hàng: <strong>{printVoucher.warehouseName}</strong></div>
-              <div>- Đơn vị / Khách hàng nhận: <strong>{printVoucher.partnerName || printVoucher.supplierName || 'Công ty Khách Hàng'}</strong></div>
-              <div>- Diễn giải: <strong>{printVoucher.note || 'Xuất kho bán hàng'}</strong></div>
-            </div>
-
-            {/* Table of Items */}
-            <table className="w-full text-left border-collapse border border-slate-300 text-xs">
-              <thead>
-                <tr className="bg-slate-100 text-center font-bold border-b border-slate-300">
-                  <th className="border border-slate-300 p-1.5 w-8">STT</th>
-                  <th className="border border-slate-300 p-1.5">Tên, nhãn hiệu, quy cách vật tư</th>
-                  <th className="border border-slate-300 p-1.5 w-20">Mã số</th>
-                  <th className="border border-slate-300 p-1.5 w-16">ĐVT</th>
-                  <th className="border border-slate-300 p-1.5 w-20">Số lượng</th>
-                  {canViewPrice && <th className="border border-slate-300 p-1.5 w-24">Đơn giá</th>}
-                  {canViewPrice && <th className="border border-slate-300 p-1.5 w-28">Thành tiền</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {printVoucher.items?.map((it, idx) => (
-                  <tr key={idx} className="border-b border-slate-200">
-                    <td className="border border-slate-300 p-1.5 text-center">{idx + 1}</td>
-                    <td className="border border-slate-300 p-1.5 font-semibold">{it.productName}</td>
-                    <td className="border border-slate-300 p-1.5 text-center font-mono">{it.sku || '-'}</td>
-                    <td className="border border-slate-300 p-1.5 text-center">{it.unit || 'Chiếc'}</td>
-                    <td className="border border-slate-300 p-1.5 text-right font-mono">{it.quantity}</td>
-                    {canViewPrice && <td className="border border-slate-300 p-1.5 text-right font-mono">{formatVND(it.unitPrice)}</td>}
-                    {canViewPrice && <td className="border border-slate-300 p-1.5 text-right font-mono font-bold">{formatVND((it.quantity || 0) * (it.unitPrice || 0))}</td>}
-                  </tr>
-                ))}
-                {canViewPrice && <tr className="font-bold bg-slate-50">
-                  <td colSpan={6} className="border border-slate-300 p-1.5 text-right uppercase">Cộng Tổng Giá Trị Xuất Kho:</td>
-                  <td className="border border-slate-300 p-1.5 text-right font-mono text-rose-600 text-sm">{formatVND(printVoucher.totalValue)}</td>
-                </tr>}
-              </tbody>
-            </table>
-
-            {/* Signatures Area */}
-            <div className="grid grid-cols-5 gap-2 text-center pt-4 pb-8 text-[11px] font-sans">
-              <div>
-                <p className="font-bold">Người lập phiếu</p>
-                <p className="italic text-slate-500">(Ký, họ tên)</p>
-                <p className="mt-12 font-medium">{printVoucher.createdBy}</p>
-              </div>
-              <div>
-                <p className="font-bold">Người nhận hàng</p>
-                <p className="italic text-slate-500">(Ký, họ tên)</p>
-                <p className="mt-12 font-medium">{printVoucher.delivererName || 'Khách hàng'}</p>
-              </div>
-              <div>
-                <p className="font-bold">Thủ kho</p>
-                <p className="italic text-slate-500">(Ký, họ tên)</p>
-                <p className="mt-12 font-medium">Trần Văn Nam</p>
-              </div>
-              <div>
-                <p className="font-bold">Kế toán trưởng</p>
-                <p className="italic text-slate-500">(Ký, họ tên)</p>
-                <p className="mt-12 font-medium">Nguyễn Thị Mai</p>
-              </div>
-              <div>
-                <p className="font-bold">Giám đốc / Trưởng BP</p>
-                <p className="italic text-slate-500">(Ký, họ tên, đóng dấu)</p>
-                <p className="mt-12 font-medium">{printVoucher.approvedBy || 'Đã duyệt'}</p>
-              </div>
-            </div>
-
-            {/* Print Buttons */}
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 font-sans">
-              <Button variant="outline" size="sm" onClick={() => setIsPrintModalOpen(false)}>
-                Đóng
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                icon={<Printer className="h-4 w-4" />}
-                onClick={() => {
-                  window.print();
-                  showToast.success('Đã gửi lệnh in chứng từ xuất kho thành công!');
-                }}
-              >
-                In Chứng Từ PDF
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* SINGLE DELETE CONFIRM MODAL */}
-      <DeleteConfirmModal
-        isOpen={itemToDelete !== null}
-        onClose={() => setItemToDelete(null)}
-        onConfirm={handleConfirmSingleDelete}
-        title="Xác Nhận Xóa Phiếu Xuất Kho"
-        message={`Bạn có chắc chắn muốn xóa chứng từ xuất kho [${itemToDelete?.code || ''}]? Thao tác này không thể hoàn tác.`}
-      />
-
-      {/* BULK DELETE CONFIRM MODAL */}
-      <DeleteConfirmModal
-        isOpen={bulkToDeleteIds !== null}
-        onClose={() => setBulkToDeleteIds(null)}
-        onConfirm={handleConfirmBulkDelete}
-        title="Xác Nhận Xóa Nhiều Phiếu Xuất Kho"
-        message={`Bạn có chắc chắn muốn xóa ${bulkToDeleteIds?.length || 0} chứng từ xuất kho đã chọn? Thao tác này không thể hoàn tác.`}
+        selectedIds={[]}
+        onConfirm={handleConfirmCustomerLookup}
+        pageSize={6}
       />
 
     </div>

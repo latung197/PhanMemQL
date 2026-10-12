@@ -5,6 +5,7 @@ import { getVoucherGridConfig } from '../../mock/voucherGridConfigs';
 import { Button, QuantityInput, NumberInput, ComboBox, DateTimePicker } from './index';
 import { useNumberFormat } from '../../context/NumberFormatContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { apiRequest } from '../../services/apiClient';
 import { interpolate } from '../../utils/interpolate';
 
 /**
@@ -69,16 +70,27 @@ export interface VoucherDetailGridProps<T = Record<string, any>> {
   className?: string;
   /** Chiều cao tối đa của khung bảng */
   maxHeight?: string;
+  /**
+   * Giãn bảng theo chiều cao còn lại của khung cha (khung cha là cột flex có min-h-0) thay vì chiều cao cố định:
+   * phiếu dùng để phần chi tiết chiếm hết chỗ trống, `minHeight` là chiều cao tối thiểu khi khung cha quá thấp.
+   */
+  fill?: boolean;
+  minHeight?: string;
   /** Hiển thị nút Thêm dòng ở toolbar bên dưới */
   showAddButton?: boolean;
   /** Các cột bị ẩn (VD: đơn giá, thành tiền khi người dùng không có quyền Xem giá) */
   hiddenFields?: string[];
 }
 
-const STANDARD_UOMS = [
-  'Cái', 'Chiếc', 'Thùng', 'Hộp', 'Bộ', 'Kg', 'Mét', 'Thỏi', 'Lô',   // i18n-ignore: data
-  'Chai', 'Lọ', 'Cuộn', 'Tấm', 'Bao', 'Gói', 'Kít', 'Thanh', 'Dây'  // i18n-ignore: data
-];
+// The units of a line come from the unit of measure catalog (GET /api/lookups/uoms), read once per session.
+interface UomOption { code: string; name: string }
+let uomRequest: Promise<UomOption[]> | null = null;
+const loadUomOptions = (): Promise<UomOption[]> => {
+  uomRequest ??= apiRequest<{ items: UomOption[] }>('GET', '/api/lookups/uoms?q=&page=1&pageSize=200&includeInactive=false')
+    .then(result => result.items.map(x => ({ code: x.code, name: x.name })))
+    .catch(() => { uomRequest = null; return []; });
+  return uomRequest;
+};
 
 export function VoucherDetailGrid<T extends Record<string, any>>({
   gridId,
@@ -101,11 +113,15 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
   exchangeRate = 1,
   className = '',
   maxHeight = '280px',
+  fill = false,
+  minHeight = '220px',
   showAddButton = true,
   hiddenFields
 }: VoucherDetailGridProps<T>) {
   const { t } = useLanguage();
   const { formatNumber, formatCurrency } = useNumberFormat();
+  const [uoms, setUoms] = React.useState<UomOption[]>([]);
+  React.useEffect(() => { let alive = true; void loadUomOptions().then(list => { if (alive) setUoms(list); }); return () => { alive = false; }; }, []);
 
   // Load cấu hình cột từ Bảng Hệ Thống `sys_voucher_grid` (Registry DB Metadata)
   const hiddenKey = (hiddenFields ?? []).join('|');
@@ -292,12 +308,12 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
   };
 
   return (
-    <div className={`flex flex-col w-full text-xs ${className}`}>
+    <div className={`flex flex-col w-full text-xs ${fill ? 'flex-1 min-h-0' : ''} ${className}`}>
       
       {/* Table Container Scrollable - Fixed Layout Height */}
       <div 
-        className="overflow-x-auto overflow-y-auto border border-slate-300 dark:border-slate-700 rounded-xl custom-scrollbar shadow-xs bg-white dark:bg-slate-900"
-        style={{ height: maxHeight || '250px', maxHeight: maxHeight || '250px' }}
+        className={`overflow-x-auto overflow-y-auto border border-slate-300 dark:border-slate-700 rounded-xl custom-scrollbar shadow-xs bg-white dark:bg-slate-900 ${fill ? 'flex-1 min-h-0' : ''}`}
+        style={fill ? { minHeight } : { height: maxHeight || '250px', maxHeight: maxHeight || '250px' }}
       >
         <table className="w-full min-h-full text-left border-collapse text-xs min-w-[700px]">
           
@@ -465,7 +481,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                           {(col.type === 'uom' || col.field === 'unit') && (
                             isReadOnlyCol ? (
                               <span className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] block text-center truncate">
-                                {value || '—'}
+                                {uoms.find(u => u.code === value)?.name || value || '—'}
                               </span>
                             ) : (
                               <select
@@ -490,11 +506,11 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                                 className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded px-1 py-0.5 font-bold text-slate-800 dark:text-slate-100 text-[11px] text-center focus:ring-1 focus:ring-indigo-500 h-[24px] cursor-pointer"
                               >
                                 {!value && <option value="">{t('controls.voucherGrid.uom')}</option>}
-                                {value && !STANDARD_UOMS.includes(value) && (
+                                {value && !uoms.some(u => u.code === value) && (
                                   <option key={value} value={value}>{value}</option>
                                 )}
-                                {STANDARD_UOMS.map((u) => (
-                                  <option key={u} value={u}>{u}</option>
+                                {uoms.map((u) => (
+                                  <option key={u.code} value={u.code}>{u.name}</option>
                                 ))}
                               </select>
                             )

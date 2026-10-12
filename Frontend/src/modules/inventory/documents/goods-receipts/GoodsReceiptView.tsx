@@ -52,31 +52,25 @@ import { canApproveVoucher, hasRight, RIGHTS } from '../../../../utils/permissio
 import { useOpenDocumentRequest } from '../../../../utils/documentLinks';
 import { showToast } from '../../../../utils/toast';
 import { getErrorMessage } from '../../../../services/apiClient';
+import { loadMaterialOptions, loadSupplierOptions, type SupplierOption } from '../../../../services/lookupOptions';
 import { voucherNumberingApi, exchangeRatesApi } from '../../../../services/settingsApi';
 import { goodsReceiptsApi } from './api';
 import { exportExcel } from '../../../../components/catalog/excel';
 import type { ExcelColumn } from '../../../../components/catalog/catalogTypes';
 
+// Shared look of the header fields of a voucher form (goods receipt and goods issue keep the same layout).
+const VOUCHER_LABEL = 'block text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5 truncate';
+const VOUCHER_INPUT = 'w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]';
+const VOUCHER_LOOKUP_BUTTON = 'px-1.5 h-[26px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-2xs';
+
 interface GoodsReceiptViewProps {
-  products: Product[];
   companyUnits?: CompanyUnit[];
   activeUnitCode: string;
   currentUser?: UserProfile;
 }
 
-export const MOCK_SUPPLIERS = [
-  { id: 'NCC001', code: 'NCC-LG', name: 'Công ty TNHH LG Electronics Việt Nam', group: 'Điện tử & Gia dụng', taxCode: '0301122334', phone: '028 3920 1111', address: 'KCN Tràng Duệ, Hải Phòng' },
-  { id: 'NCC002', code: 'NCC-SAMSUNG', name: 'Công ty TNHH Samsung Electronics Việt Nam', group: 'Linh kiện & Điện thoại', taxCode: '2300282920', phone: '0222 3843 888', address: 'KCN Yên Phong, Bắc Ninh' },
-  { id: 'NCC003', code: 'NCC-LOGITECH', name: 'Logitech Asia Pacific Ltd', group: 'Phụ kiện máy tính', taxCode: '9900112233', phone: '028 3823 4567', address: 'Tòa nhà Vincom Center, Q.1, TP.HCM' },
-  { id: 'NCC004', code: 'NCC-DELL', name: 'Công ty TNHH Dell Global B.V Việt Nam', group: 'Máy tính & Máy chủ', taxCode: '0305678910', phone: '028 3824 8888', address: 'Tòa nhà Saigon Tower, Q.1, TP.HCM' },
-  { id: 'NCC005', code: 'NCC-ASUS', name: 'Công ty TNHH Asus Technology Việt Nam', group: 'Thiết bị mạng & Laptop', taxCode: '0309876543', phone: '028 3911 0088', address: 'Tòa nhà Viettel, Q.10, TP.HCM' },
-  { id: 'NCC006', code: 'NCC-HOAPHAT', name: 'Tập đoàn Hòa Phát - CN Vật tư', group: 'Sắt thép & Vật liệu', taxCode: '0900182736', phone: '024 6282 0707', address: 'Phố Động, Q. Hai Bà Trưng, Hà Nội' },
-  { id: 'NCC007', code: 'NCC-DIENMAYXANH', name: 'Công ty Cổ phần Thế Giới Di Động', group: 'Bán lẻ & Phân phối', taxCode: '0303217354', phone: '028 3812 5960', address: 'Khu Công Nghệ Cao, TP. Thủ Đức, TP.HCM' },
-  { id: 'NCC008', code: 'NCC-SONHA', name: 'Tổng Công ty Sơn Hà Sài Gòn', group: 'Bồn nước & Vật tư công nghiệp', taxCode: '0304561234', phone: '028 3833 9999', address: 'KCN Tân Bình, TP.HCM' },
-];
 
 export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
-  products,
   companyUnits = [],
   activeUnitCode,
   currentUser
@@ -85,11 +79,17 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   const [warehouses, setWarehouses] = useState<WarehouseType[]>([]);
   const [currencies, setCurrencies] = useState<{ code: string; name: string }[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  // The pickers read the real catalogs through the lookups (materials; suppliers on a receipt).
+  const [products, setProducts] = useState<Product[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
 
   const loadData = async () => {
     try {
-      const [receipts, options] = await Promise.all([goodsReceiptsApi.getAll(), goodsReceiptsApi.getOptions()]);
+      const [receipts, options, materials, supplierList] = await Promise.all([goodsReceiptsApi.getAll(), goodsReceiptsApi.getOptions(),
+        loadMaterialOptions(), loadSupplierOptions()]);
       setLocalVouchers(receipts);
+      setProducts(materials);
+      setSuppliers(supplierList);
       setCurrencies(options.currencies);
       setWarehouses(options.warehouses.map(w => ({
         id: w.code, code: w.code, name: w.name, address: '',
@@ -138,6 +138,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   const [formVoucherType, setFormVoucherType] = useState('Nhập mua mới');
   const [formWarehouseId, setFormWarehouseId] = useState('');
   const [formWarehouseName, setFormWarehouseName] = useState('');
+  const [formSupplierCode, setFormSupplierCode] = useState('');
   const [formSupplierName, setFormSupplierName] = useState('');
   const [formDelivererName, setFormDelivererName] = useState('');
   const [formCurrencyCode, setFormCurrencyCode] = useState('VND');
@@ -333,6 +334,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     setFormVoucherType('Nhập mua mới');
     setFormWarehouseId(defaultWh.id);
     setFormWarehouseName(defaultWh.name);
+    setFormSupplierCode('');
     setFormSupplierName('');
     setFormDelivererName('');
     setFormCurrencyCode('VND');
@@ -345,7 +347,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
       productId: '',
       productName: '',
       sku: '',
-      unit: 'Chiếc',
+      unit: '',
       quantity: 1,
       unitPrice: 0,
       totalPrice: 0,
@@ -384,6 +386,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     setFormVoucherType(voucher.voucherType || 'Nhập mua mới');
     setFormWarehouseId(voucher.warehouseId);
     setFormWarehouseName(voucher.warehouseName);
+    setFormSupplierCode(voucher.supplierCode || '');
     setFormSupplierName(voucher.supplierName || '');
     setFormDelivererName(voucher.delivererName || '');
     setFormCurrencyCode(voucher.currencyCode || 'VND');
@@ -395,7 +398,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
       productId: '',
       productName: '',
       sku: '',
-      unit: 'Chiếc',
+      unit: '',
       quantity: 1,
       unitPrice: 0,
       totalPrice: 0,
@@ -411,7 +414,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
           productId: it.productId || prod?.id || '',
           productName: it.productName,
           sku: it.sku || prod?.sku || '',
-          unit: it.unit || prod?.unit || 'Chiếc',
+          unit: it.unit || prod?.unit || '',
           quantity: it.quantity || 1,
           unitPrice: it.unitPrice || 0,
           totalPrice: (it.quantity || 1) * (it.unitPrice || 0),
@@ -433,7 +436,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
           productId: it.productId || prod?.id || '',
           productName: it.productName,
           sku: it.sku || prod?.sku || '',
-          unit: it.unit || prod?.unit || 'Kg',
+          unit: it.unit || prod?.unit || '',
           quantity: it.quantity || 1,
           unitPrice: it.unitPrice || 0,
           totalPrice: (it.quantity || 1) * (it.unitPrice || 0),
@@ -441,10 +444,10 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
           position: it.position || prod?.position || ''
         };
       });
-      mappedMat.push({ ...emptyItem, unit: 'Kg' });
+      mappedMat.push({ ...emptyItem, unit: '' });
       setFormMaterialItems(mappedMat);
     } else {
-      setFormMaterialItems([{ ...emptyItem, unit: 'Kg' }]);
+      setFormMaterialItems([{ ...emptyItem, unit: '' }]);
     }
 
     setIsModalOpen(true);
@@ -478,7 +481,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   };
 
   const handleApplyProductToItem = (index: number, prod: Product, targetTab: 'items' | 'materials' = activeTab) => {
-    const defaultPrice = prod.costPrice || prod.price * 0.75 || 100000;
+    const defaultPrice = 0;
     
     if (targetTab === 'items') {
       setFormItems(prev => {
@@ -489,7 +492,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
           productId: prod.id,
           productName: prod.name || prod.ten_vt || '',
           sku: prod.sku || prod.ma_vt || '',
-          unit: prod.unit || prod.dvt || 'Chiếc',
+          unit: prod.unit || prod.dvt || '',
           unitPrice: defaultPrice,
           totalPrice: qty * defaultPrice,
           position: prod.position || ''
@@ -500,7 +503,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
             productId: '',
             productName: '',
             sku: '',
-            unit: 'Chiếc',
+            unit: '',
             quantity: 1,
             unitPrice: 0,
             totalPrice: 0,
@@ -519,7 +522,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
           productId: prod.id,
           productName: prod.name || prod.ten_vt || '',
           sku: prod.sku || prod.ma_vt || '',
-          unit: prod.unit || prod.dvt || 'Kg',
+          unit: prod.unit || prod.dvt || '',
           unitPrice: defaultPrice,
           totalPrice: qty * defaultPrice,
           position: prod.position || ''
@@ -530,7 +533,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
             productId: '',
             productName: '',
             sku: '',
-            unit: 'Kg',
+            unit: '',
             quantity: 1,
             unitPrice: 0,
             totalPrice: 0,
@@ -593,12 +596,12 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     } else {
       // Bulk addition
       const newItems: VoucherItem[] = selectedProducts.map(prod => {
-        const defaultPrice = prod.costPrice || prod.price * 0.75 || 100000;
+        const defaultPrice = 0;
         return {
           productId: prod.id,
           productName: prod.name || prod.ten_vt || '',
           sku: prod.sku || prod.ma_vt || '',
-          unit: prod.unit || prod.dvt || (activeTab === 'materials' ? 'Kg' : 'Chiếc'),
+          unit: prod.unit || prod.dvt || (activeTab === 'materials' ? '' : ''),
           quantity: 1,
           unitPrice: defaultPrice,
           totalPrice: defaultPrice,
@@ -615,7 +618,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
             productId: '',
             productName: '',
             sku: '',
-            unit: 'Chiếc',
+            unit: '',
             quantity: 1,
             unitPrice: 0,
             totalPrice: 0,
@@ -632,7 +635,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
             productId: '',
             productName: '',
             sku: '',
-            unit: 'Kg',
+            unit: '',
             quantity: 1,
             unitPrice: 0,
             totalPrice: 0,
@@ -664,10 +667,11 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   };
 
   // Confirm Supplier Lookup
-  const handleConfirmSupplierLookup = (selectedItems: typeof MOCK_SUPPLIERS) => {
+  const handleConfirmSupplierLookup = (selectedItems: SupplierOption[]) => {
     if (selectedItems.length > 0) {
       const selected = selectedItems[0];
       if (selected) {
+        setFormSupplierCode(selected.code);
         setFormSupplierName(selected.name);
         showToast.success(`Đã chọn nhà cung cấp: ${selected.name}`);
       }
@@ -713,7 +717,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   ];
 
   // Supplier Lookup Columns
-  const supplierLookupColumns: ColumnDef<typeof MOCK_SUPPLIERS[0]>[] = [
+  const supplierLookupColumns: ColumnDef<SupplierOption>[] = [
     {
       key: 'code',
       label: 'Mã Đối Tác',
@@ -729,19 +733,14 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
       render: (s) => <span className="font-extrabold text-slate-800 dark:text-slate-100 text-xs">{s.name}</span>
     },
     {
-      key: 'group',
-      label: 'Nhóm Ngành',
-      render: (s) => <span className="text-indigo-600 dark:text-indigo-300 font-medium text-xs">{s.group}</span>
-    },
-    {
       key: 'taxCode',
       label: 'Mã Số Thuế',
       render: (s) => <span className="font-mono text-slate-600 dark:text-slate-400 text-xs">{s.taxCode}</span>
     },
     {
-      key: 'address',
-      label: 'Địa Chỉ Headquarters',
-      render: (s) => <span className="text-slate-500 text-xs">{s.address}</span>
+      key: 'phone',
+      label: 'Điện Thoại',
+      render: (s) => <span className="text-slate-500 text-xs">{s.phone}</span>
     }
   ];
 
@@ -751,9 +750,9 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     return [
       {
         key: 'category',
-        label: 'Nhóm Vật Tư',
+        label: 'Loại Vật Tư',
         options: [
-          { label: '-- Tất cả nhóm vật tư --', value: 'ALL' },
+          { label: '-- Tất cả loại vật tư --', value: 'ALL' },
           ...cats.map(c => ({ label: c, value: c }))
         ]
       }
@@ -784,33 +783,15 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     {
       key: 'unit',
       label: 'ĐVT',
-      render: (p) => <span className="text-center font-medium text-xs">{p.unit || p.dvt || 'Chiếc'}</span>
+      render: (p) => <span className="text-center font-medium text-xs">{p.unit || p.dvt || ''}</span>
     },
     {
       key: 'category',
-      label: 'Nhóm Vật Tư',
+      label: 'Loại Vật Tư',
       render: (p) => (
         <Badge variant="outline" className="text-[10px]">
           {p.category || 'Vật tư'}
         </Badge>
-      )
-    },
-    {
-      key: 'costPrice',
-      label: 'Đơn Giá Vốn (VNĐ)',
-      render: (p) => (
-        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-          {formatVND(p.costPrice || p.price * 0.75 || 0)}
-        </span>
-      )
-    },
-    {
-      key: 'quantity',
-      label: 'Tồn Kho',
-      render: (p) => (
-        <span className="font-mono text-xs font-semibold">
-          {formatQuantity(p.quantity || 0)}
-        </span>
       )
     }
   ];
@@ -818,12 +799,12 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   // Tab 1 Row actions
   const handleAddFormItem = () => {
     const firstProd = products[0];
-    const defaultPrice = firstProd?.costPrice || firstProd?.price * 0.75 || 100000;
+    const defaultPrice = 0;
     const newItem: VoucherItem = {
       productId: firstProd?.id || '',
       productName: firstProd?.name || '',
       sku: firstProd?.sku || '',
-      unit: firstProd?.unit || 'Chiếc',
+      unit: firstProd?.unit || '',
       quantity: 1,
       unitPrice: defaultPrice,
       totalPrice: defaultPrice,
@@ -860,12 +841,12 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   // Tab 2 Row actions (Nguyên vật liệu)
   const handleAddMaterialItem = () => {
     const firstProd = products.find(p => p.category?.toLowerCase().includes('vật tư') || p.category?.toLowerCase().includes('nguyên')) || products[0];
-    const defaultPrice = firstProd?.costPrice || firstProd?.price * 0.75 || 50000;
+    const defaultPrice = 0;
     const newItem: VoucherItem = {
       productId: firstProd?.id || '',
       productName: firstProd?.name || '',
       sku: firstProd?.sku || '',
-      unit: firstProd?.unit || 'Kg',
+      unit: firstProd?.unit || '',
       quantity: 1,
       unitPrice: defaultPrice,
       totalPrice: defaultPrice,
@@ -916,6 +897,10 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     return matTotal * rate;
   }, [formMaterialItems, formExchangeRate]);
 
+  // Rows that already hold a material (the grid keeps one blank row at the end for the next entry).
+  const filledItemCount = formItems.filter(it => Boolean(it.productId || it.sku || it.productName)).length;
+  const filledMaterialCount = formMaterialItems.filter(it => Boolean(it.productId || it.sku || it.productName)).length;
+
   // Submit Form (Save Voucher)
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -953,6 +938,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
       voucherType: formVoucherType,
       currencyCode: formCurrencyCode,
       exchangeRate: formExchangeRate,
+      supplierCode: formSupplierCode || undefined,
       supplierName: formSupplierName.trim(),
       delivererName: formDelivererName.trim(),
       warehouseId: formWarehouseId,
@@ -1156,7 +1142,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
           <div className="space-y-1 max-w-xs">
             {firstTwo.map((it, idx) => (
               <div key={idx} className="text-xs text-slate-700 dark:text-slate-300 truncate">
-                • <span className="font-medium">{it.productName}</span> ({it.quantity} {it.unit || 'Chiếc'})
+                • <span className="font-medium">{it.productName}</span> ({it.quantity} {it.unit || ''})
               </div>
             ))}
             {count > 2 && (
@@ -1485,14 +1471,13 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
           </div>
         }
       >
-        <form id="goods-receipt-form" onSubmit={handleSubmitForm} className="flex-1 min-h-0 flex flex-col text-xs overflow-hidden pt-2">
-          <div className="overflow-y-auto custom-scrollbar space-y-3 pr-1 pb-1 flex-1 min-h-0 flex flex-col">
-          
+        <form id="goods-receipt-form" onSubmit={handleSubmitForm} className="flex-1 min-h-0 flex flex-col gap-2 text-xs overflow-y-auto custom-scrollbar pt-2 pr-1">
+
           {/* I. PHẦN THÔNG TIN CHUNG (HEADER) - BALANCED 8-4 GRID LAYOUT */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 text-xs shrink-0">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 text-xs shrink-0">
             
             {/* BÊN TRÁI (LG:COL-SPAN-8): THÔNG TIN NGHIỆP VỤ, KHO & ĐỐI TÁC */}
-            <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-800 space-y-1.5 shadow-2xs">
+            <div className="md:col-span-8 bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-800 space-y-1.5 shadow-2xs">
               <div className="flex items-center justify-between h-6 pb-1 border-b border-slate-100 dark:border-slate-800/80">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <Tag className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
@@ -1503,7 +1488,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                 <span className="text-[10px] font-medium text-slate-400 shrink-0 hidden sm:inline">Nghiệp vụ kho & đối tác</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-1.5 sm:gap-2 text-xs">
                 {/* Loại nhập xuất */}
                 <div>
                   <label className="block text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
@@ -1564,7 +1549,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                       type="text"
                       placeholder="Công ty TNHH LG, Samsung..."
                       value={formSupplierName}
-                      onChange={(e) => setFormSupplierName(e.target.value)}
+                      onChange={(e) => { setFormSupplierName(e.target.value); setFormSupplierCode(''); }}
                       className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                     />
                     <button
@@ -1609,7 +1594,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
             </div>
 
             {/* BÊN PHẢI (LG:COL-SPAN-4): THẺ CHỨNG TỪ & TIỀN TỆ COMPACT 2-COL GRID */}
-            <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-800 space-y-1.5 shadow-2xs">
+            <div className="md:col-span-4 bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-800 space-y-1.5 shadow-2xs">
               <div className="flex items-center justify-between h-6 pb-1 border-b border-slate-100 dark:border-slate-800/80 gap-1">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <FileText className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
@@ -1746,167 +1731,102 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
 
           </div>
 
-          {/* II. PHẦN THÔNG TIN CHI TIẾT - CHIA THÀNH 2 TAB (TAB 1: CHI TIẾT, TAB 2: NGUYÊN VẬT LIỆU) */}
-          <div className="bg-white dark:bg-slate-900 p-1.5 sm:p-2 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1.5 flex-1 flex flex-col min-h-[200px]">
-            
-            {/* TABS HEADER BAR - COMPACT HEIGHT */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 pb-1 border-b border-slate-200 dark:border-slate-800 shrink-0">
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg flex-wrap">
-                
-                {/* TAB 1: CHI TIẾT */}
+          {/* II. CHI TIẾT: chiếm hết chỗ còn lại của cửa sổ */}
+          <section className="flex-1 min-h-[300px] flex flex-col bg-white dark:bg-slate-900 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 gap-1.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap shrink-0">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg">
                 <button
                   type="button"
                   onClick={() => setActiveTab('items')}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold transition-all flex items-center gap-1 cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
                     activeTab === 'items'
                       ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs border border-slate-200/80 dark:border-slate-700'
                       : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
-                  <Package className="h-3 w-3" />
-                  <span>Tab 1: Chi Tiết Mặt Hàng</span>
-                  <span className="ml-0.5 px-1.5 py-0 rounded-full text-[9px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-black">
-                    {formItems.length}
-                  </span>
+                  <Package className="h-3.5 w-3.5" />
+                  <span>Chi tiết mặt hàng</span>
+                  <span className="px-1.5 rounded-full text-[9.5px] bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-black">{filledItemCount}</span>
                 </button>
-
-                {/* TAB 2: NGUYÊN VẬT LIỆU (CẤU TRÚC SP / BOM) */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('materials')}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold transition-all flex items-center gap-1 cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
                     activeTab === 'materials'
                       ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs border border-slate-200/80 dark:border-slate-700'
                       : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
-                  <Layers className="h-3 w-3" />
-                  <span>Tab 2: NVL (Cấu Trúc SP / BOM)</span>
-                  <span className="ml-0.5 px-1.5 py-0 rounded-full text-[9px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-black">
-                    {formMaterialItems.length}
-                  </span>
+                  <Layers className="h-3.5 w-3.5" />
+                  <span>NVL (BOM)</span>
+                  <span className="px-1.5 rounded-full text-[9.5px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-black">{filledMaterialCount}</span>
                 </button>
-
               </div>
 
-              {/* ACTION BUTTONS FOR ACTIVE TAB */}
-              <div className="flex items-center gap-1 flex-wrap self-end sm:self-auto">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="primary"
-                  onClick={() => {
-                    setLookupTargetRowIndex(null);
-                    setIsMaterialLookupOpen(true);
-                  }}
-                  icon={<Search className="h-3.5 w-3.5" />}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10.5px] py-1 px-2.5 h-[26px] shadow-2xs font-semibold"
-                >
-                  Tra Cứu Từ Danh Mục Vật Tư
-                </Button>
-              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="primary"
+                onClick={() => {
+                  setLookupTargetRowIndex(null);
+                  setIsMaterialLookupOpen(true);
+                }}
+                icon={<Search className="h-3.5 w-3.5" />}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10.5px] py-1 px-2.5 h-[26px] shadow-2xs font-semibold"
+              >
+                Tra cứu vật tư (F2)
+              </Button>
             </div>
 
-            {/* TAB 1 CONTENT: CHI TIẾT MẶT HÀNG / VẬT TƯ NHẬP KHO TRỰC TIẾP */}
             {activeTab === 'items' && (
-              <div className="flex-1 flex flex-col min-h-0 space-y-1">
-                <VoucherDetailGrid
-                  hiddenFields={hiddenPriceFields}
-                  gridInfo={goodsReceiptItemsGridConfig}
-                  data={formItems}
-                  onChange={(newItems) => setFormItems(newItems as VoucherItem[])}
-                  onLookupClick={(rowIndex) => {
-                    setLookupTargetRowIndex(rowIndex);
-                    setIsMaterialLookupOpen(true);
-                  }}
-                  onCodeSubmit={(rowIndex, field, codeValue) => 
-                    handleCodeSubmit(rowIndex, field, codeValue, 'items')
-                  }
-                  currencyCode={formCurrencyCode}
-                  exchangeRate={formExchangeRate}
-                  maxHeight="250px"
-                />
-              </div>
+              <VoucherDetailGrid
+                fill
+                showAddButton={false}
+                hiddenFields={hiddenPriceFields}
+                gridInfo={goodsReceiptItemsGridConfig}
+                data={formItems}
+                onChange={(newItems) => setFormItems(newItems as VoucherItem[])}
+                onLookupClick={(rowIndex) => {
+                  setLookupTargetRowIndex(rowIndex);
+                  setIsMaterialLookupOpen(true);
+                }}
+                onCodeSubmit={(rowIndex, field, codeValue) => handleCodeSubmit(rowIndex, field, codeValue, 'items')}
+                currencyCode={formCurrencyCode}
+                exchangeRate={formExchangeRate}
+              />
             )}
 
-            {/* TAB 2 CONTENT: NGUYÊN VẬT LIỆU (CẤU TRÚC SẢN PHẨM / BOM) */}
             {activeTab === 'materials' && (
-              <div className="flex-1 flex flex-col min-h-0 space-y-1">
-                <VoucherDetailGrid
-                  hiddenFields={hiddenPriceFields}
-                  gridInfo={goodsReceiptMaterialsGridConfig}
-                  data={formMaterialItems}
-                  onChange={(newItems) => setFormMaterialItems(newItems as VoucherItem[])}
-                  onLookupClick={(rowIndex) => {
-                    setLookupTargetRowIndex(rowIndex);
-                    setIsMaterialLookupOpen(true);
-                  }}
-                  onCodeSubmit={(rowIndex, field, codeValue) => 
-                    handleCodeSubmit(rowIndex, field, codeValue, 'materials')
-                  }
-                  currencyCode={formCurrencyCode}
-                  exchangeRate={formExchangeRate}
-                  maxHeight="250px"
-                />
-              </div>
+              <VoucherDetailGrid
+                fill
+                showAddButton={false}
+                hiddenFields={hiddenPriceFields}
+                gridInfo={goodsReceiptMaterialsGridConfig}
+                data={formMaterialItems}
+                onChange={(newItems) => setFormMaterialItems(newItems as VoucherItem[])}
+                onLookupClick={(rowIndex) => {
+                  setLookupTargetRowIndex(rowIndex);
+                  setIsMaterialLookupOpen(true);
+                }}
+                onCodeSubmit={(rowIndex, field, codeValue) => handleCodeSubmit(rowIndex, field, codeValue, 'materials')}
+                currencyCode={formCurrencyCode}
+                exchangeRate={formExchangeRate}
+              />
             )}
+          </section>
 
-          </div>
-          </div>
-
-          {/* Modal Footer Bar - Status, Summary Info & Secondary Actions */}
-          <div className="flex items-center justify-between pt-2 pb-1 px-1 mt-1 border-t border-slate-200 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900 z-30 text-xs gap-2 flex-wrap">
-            <div className="flex items-center gap-3">
+          {/* Thanh tóm tắt: phiếu và tổng tiền (nút Lưu / Hủy nằm ở thanh tiêu đề của cửa sổ) */}
+          <div className="shrink-0 flex items-center justify-between gap-3 flex-wrap px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+            <span className="text-[11px] text-slate-500 font-medium">
+              Phiếu <strong className="font-mono text-indigo-600 dark:text-indigo-400">{formCode}</strong>
+              <span className="mx-1.5 text-slate-300">|</span>
+              {filledItemCount} mặt hàng{filledMaterialCount > 0 ? `, ${filledMaterialCount} NVL` : ''}
+            </span>
+            {canViewPrice && (
               <span className="text-[11px] text-slate-500 font-medium">
-                Mã phiếu: <strong className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{formCode}</strong>
+                Tổng tiền: <strong className="font-mono text-emerald-600 dark:text-emerald-400 font-extrabold text-sm">{formTotalValue.toLocaleString('vi-VN')} {formCurrencyCode}</strong>
               </span>
-              <span className="text-[11px] text-slate-400 hidden sm:inline">|</span>
-              <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
-                Người lập: <strong className="text-slate-700 dark:text-slate-300 font-semibold">{formCreatedBy || 'N/A'}</strong>
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {canViewPrice && (
-                <span className="text-[11px] text-slate-500 font-medium mr-1">
-                  Tổng tiền: <strong className="font-mono text-emerald-600 dark:text-emerald-400 font-extrabold text-xs sm:text-sm">{formTotalValue.toLocaleString('vi-VN')} {formCurrencyCode}</strong>
-                </span>
-              )}
-
-              <div className="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-700 pl-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsModalOpen(false)}
-                  className="py-1 px-2.5 text-xs font-medium cursor-pointer"
-                >
-                  Hủy
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    const formEl = document.getElementById('goods-receipt-form') as HTMLFormElement | null;
-                    if (formEl) formEl.requestSubmit();
-                  }}
-                  disabled={isSaving || !canSaveForm}
-                  className="py-1 px-2.5 text-xs font-semibold cursor-pointer"
-                >
-                  Lưu Nháp
-                </Button>
-                <Button
-                  type="submit"
-                  variant="success"
-                  size="sm"
-                  disabled={isSaving || !canSaveForm}
-                  className="py-1 px-3 text-xs font-bold cursor-pointer"
-                >
-                  {editingVoucherId ? 'Lưu & Cập Nhật' : 'Lưu Phiếu'}
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
         </form>
       </Modal>
@@ -1938,7 +1858,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
         title="Tra Cứu & Chọn Vật Tư / Hàng Hóa Từ Danh Mục"
         subtitle={lookupTargetRowIndex !== null ? `Chọn 1 vật tư để gán cho dòng hiện tại (Tab ${activeTab === 'items' ? 'Chi tiết' : 'Nguyên vật liệu'})` : `Chọn một hoặc nhiều vật tư để thêm vào tab ${activeTab === 'items' ? 'Chi tiết' : 'Nguyên vật liệu'}`}
         data={products}
-        columns={canViewPrice ? masterLookupColumns : masterLookupColumns.filter(c => c.key !== 'costPrice')}
+        columns={masterLookupColumns}
         idField="id"
         displayField="name"
         searchFields={['sku', 'ma_vt', 'name', 'ten_vt', 'category', 'position']}
@@ -1980,14 +1900,14 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
         onClose={() => setIsSupplierLookupOpen(false)}
         title="Tra Cứu & Chọn Nhà Cung Cấp / Đối Tác"
         subtitle="Chọn 1 nhà cung cấp hoặc đối tác từ danh mục danh bạ"
-        data={MOCK_SUPPLIERS}
+        data={suppliers}
         columns={supplierLookupColumns}
         idField="id"
         displayField="name"
-        searchFields={['id', 'code', 'name', 'taxCode', 'group', 'address']}
-        searchPlaceholder="Nhập mã NCC, tên đối tác, MST hoặc nhóm ngành để tìm kiếm..."
+        searchFields={['id', 'code', 'name', 'taxCode', 'phone']}
+        searchPlaceholder="Nhập mã NCC, tên nhà cung cấp, MST hoặc số điện thoại để tìm kiếm..."
         selectionMode="single"
-        selectedIds={[]}
+        selectedIds={[formSupplierCode].filter(Boolean)}
         onConfirm={handleConfirmSupplierLookup}
         pageSize={6}
       />

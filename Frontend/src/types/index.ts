@@ -287,6 +287,7 @@ export interface GoodsVoucher {
   voucherType?: string;               // Loại nhập xuất: Nhập mua mới, Nhập điều chuyển, Nhập trả lại, Nhập sản xuất
   currencyCode?: string;              // Loại tiền (VND, USD, EUR, JPY, CNY...)
   exchangeRate?: number;              // Tỷ giá quy đổi so với VNĐ
+  supplierCode?: string;              // Mã nhà cung cấp trong danh mục (phiếu nhập)
   supplierName?: string;              // Nhà cung cấp / Đối tác
   partnerName?: string;               // Khách hàng / Đơn vị nhận hàng
   delivererName?: string;             // Người giao hàng / Người nhận hàng

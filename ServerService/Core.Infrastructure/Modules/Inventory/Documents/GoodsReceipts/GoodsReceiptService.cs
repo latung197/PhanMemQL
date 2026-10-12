@@ -48,18 +48,18 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
     public async Task<GoodsReceiptDto> CreateAsync(int userId, string unitCode, SaveGoodsReceiptRequest request, CancellationToken ct)
     {
         await permissions.EnsureAllowedAsync(userId, Function, Core.Domain.Modules.Users.PermissionAction.Create, ct);
-        var rate = await ValidateAsync(unitCode, request, ct);
+        var check = await ValidateAsync(unitCode, request, ct);
         var id = await unitOfWork.ExecuteAsync(async token =>
         {
             var row = new GoodsReceipt
             {
                 UnitCode = unitCode, DocumentDate = request.Date, CreatedDate = DateOnly.FromDateTime(DateTime.UtcNow)
             };
-            Apply(row, request, rate);
+            Apply(row, request, check);
             row.Code = await numbers.NextAsync("PNK", unitCode, request.Date, token);
             db.GoodsReceipts.Add(row);
             await db.SaveChangesAsync(token);
-            row.Lines.AddRange(Lines(request, row.Id));
+            row.Lines.AddRange(Lines(request, row.Id, check.Names));
             audit.Attach(row, [new AuditChange("items", null, LineSummary(row.Lines))]);
             await db.SaveChangesAsync(token);
             return row.Id;
@@ -74,17 +74,17 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
         await EnsureActionAsync(userId, row, DocumentAction.Edit, ct);
         if (row.Status != "Draft") throw new BusinessRuleException("receipt.editDraftOnly");
         await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
-        var rate = await ValidateAsync(unitCode, request, ct);
+        var check = await ValidateAsync(unitCode, request, ct);
         db.ExpectVersion(row, request.Version, touch: true);
         var before = LineSummary(row.Lines);
         await unitOfWork.ExecuteAsync(async token =>
         {
-            Apply(row, request, rate);
+            Apply(row, request, check);
             db.GoodsReceiptLines.RemoveRange(row.Lines);
             row.Lines.Clear();
-            audit.Attach(row, [new AuditChange("items", before, LineSummary(Lines(request, id)))]);
+            audit.Attach(row, [new AuditChange("items", before, LineSummary(Lines(request, id, check.Names)))]);
             await db.SaveChangesAsync(token);
-            row.Lines.AddRange(Lines(request, id));
+            row.Lines.AddRange(Lines(request, id, check.Names));
             await db.SaveChangesAsync(token);
         }, ct);
         return await ResultAsync(userId, unitCode, id, ct);
@@ -158,14 +158,14 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
     /// </summary>
     private async Task<StockPosting> ToPostingAsync(GoodsReceipt row, string unitCode, CancellationToken ct)
     {
-        var codes = row.Lines.Select(x => x.ProductCode).Distinct().ToList();
+        var codes = row.Lines.Select(x => x.MaterialCode).Distinct().ToList();
         var flags = await db.Materials.AsNoTracking().Where(x => codes.Contains(x.Code))
             .ToDictionaryAsync(x => x.Code, x => (x.TrackLot, x.TrackLocation), ct);
         string? Text(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         var lines = row.Lines.Where(x => x.Kind == "ITEM").OrderBy(x => x.LineNo).Select(x =>
         {
-            var tracked = flags.GetValueOrDefault(x.ProductCode);
-            return new StockLineInput(x.Id, x.ProductCode, x.Quantity, null, decimal.Round(x.Amount * row.ExchangeRate, 2),
+            var tracked = flags.GetValueOrDefault(x.MaterialCode);
+            return new StockLineInput(x.Id, x.MaterialCode, x.Quantity, x.UomCode, decimal.Round(x.Amount * row.ExchangeRate, 2),
                 tracked.TrackLot ? Text(x.LotNumber) : null, null, null, tracked.TrackLocation ? Text(x.Position) : null);
         }).ToList();
         return new StockPosting(Function, row.Id, unitCode, row.WarehouseCode, row.DocumentDate, StockDirection.In, lines);
@@ -221,7 +221,10 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
         if (!decision.Allowed) throw new ForbiddenException(decision.Reason ?? "permission.denied");
     }
 
-    private async Task<decimal> ValidateAsync(string unitCode, SaveGoodsReceiptRequest request, CancellationToken ct)
+    /// <summary>What a save found out while checking the request: the exchange rate, the material names and the chosen supplier name.</summary>
+    private sealed record Checked(decimal Rate, IReadOnlyDictionary<string, string> Names, string? PartnerName);
+
+    private async Task<Checked> ValidateAsync(string unitCode, SaveGoodsReceiptRequest request, CancellationToken ct)
     {
         await fiscal.EnsureDateOpenAsync(unitCode, request.Date, ct);
         var warehouseCode = Guard.Code(request.WarehouseCode, 20, "field.warehouseCode");
@@ -238,35 +241,65 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
         if (request.Items.Count + (request.MaterialItems?.Count ?? 0) > 500)
             throw new BusinessRuleException("receipt.tooManyLines");
         _ = Guard.Required(request.VoucherType, 100, "field.voucherType");
-        _ = Guard.Optional(request.SupplierName, 200, "field.supplierName");
         _ = Guard.Optional(request.DelivererName, 200, "field.delivererName");
         _ = Guard.Optional(request.Note, 1000, "field.note");
-        foreach (var item in request.Items.Concat(request.MaterialItems ?? []))
+        var all = request.Items.Concat(request.MaterialItems ?? []).ToList();
+        foreach (var item in all)
         {
-            _ = Guard.Code(item.ProductCode, 64, "field.productCode");
-            _ = Guard.Required(item.ProductName, 200, "field.productName");
-            _ = Guard.Required(item.Unit, 30, "field.unit");
+            _ = Guard.Code(item.MaterialCode, 50, "field.materialCode");
+            _ = Guard.Code(item.UomCode, 20, "field.uomCode");
             _ = Guard.Optional(item.LotNumber, 64, "field.lotNumber");
             _ = Guard.Optional(item.Position, 100, "field.position");
             if (item.Quantity <= 0 || item.UnitPrice < 0) throw new BusinessRuleException("receipt.lineInvalid");
         }
-        return rate;
+        // Every line points to a material and a unit of the catalogs (the name of the material is taken from the catalog).
+        var materialCodes = all.Select(x => x.MaterialCode.Trim().ToUpperInvariant()).Distinct().ToList();
+        var materials = await db.Materials.AsNoTracking().Where(x => materialCodes.Contains(x.Code)).ToDictionaryAsync(x => x.Code, ct);
+        var uomCodes = all.Select(x => x.UomCode.Trim().ToUpperInvariant()).Distinct().ToList();
+        var activeUoms = (await db.Uoms.AsNoTracking().Where(x => uomCodes.Contains(x.Code) && x.IsActive).Select(x => x.Code).ToListAsync(ct)).ToHashSet();
+        // The item lines (not the bill of materials) are the ones that move stock.
+        bool IsStockLine(SaveGoodsReceiptLine line) => request.Items.Any(x => ReferenceEquals(x, line));
+        foreach (var item in all)
+        {
+            var code = item.MaterialCode.Trim().ToUpperInvariant();
+            if (!materials.TryGetValue(code, out var material) || !material.IsActive)
+                throw new BusinessRuleException("voucherLine.materialInvalid", code);
+            if (IsStockLine(item) && !material.IsStockItem) throw new BusinessRuleException("voucherLine.materialNotStock", code);
+            if (!activeUoms.Contains(item.UomCode.Trim().ToUpperInvariant()))
+                throw new BusinessRuleException("voucherLine.uomInvalid", item.UomCode.Trim().ToUpperInvariant(), code);
+            // A material tracked by location needs a location of this warehouse; for other materials the position is only a note.
+            var position = item.Position?.Trim().ToUpperInvariant();
+            if (IsStockLine(item) && material.TrackLocation && !string.IsNullOrEmpty(position)
+                && !await db.StorageLocations.AnyAsync(x => x.Code == position && x.WarehouseCode == warehouseCode, ct))
+                throw new BusinessRuleException("voucherLine.locationInvalid", position, warehouseCode);
+        }
+        var names = materials.ToDictionary(x => x.Key, x => x.Value.Name);
+        string? partnerName = Guard.Optional(request.SupplierName, 200, "field.supplierName");
+        var supplierCode = request.SupplierCode?.Trim().ToUpperInvariant();
+        if (!string.IsNullOrEmpty(supplierCode))
+        {
+            var supplier = await db.Suppliers.AsNoTracking().FirstOrDefaultAsync(x => x.Code == supplierCode, ct);
+            if (supplier is null || !supplier.IsActive) throw new BusinessRuleException("receipt.supplierInvalid", supplierCode);
+            partnerName = supplier.Name;
+        }
+        return new Checked(rate, names, partnerName);
     }
 
-    private static void Apply(GoodsReceipt row, SaveGoodsReceiptRequest request, decimal rate)
+    private static void Apply(GoodsReceipt row, SaveGoodsReceiptRequest request, Checked check)
     {
         row.DocumentDate = request.Date;
         row.WarehouseCode = request.WarehouseCode.Trim().ToUpperInvariant();
         row.VoucherType = request.VoucherType.Trim();
         row.CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant();
-        row.ExchangeRate = rate;
-        row.SupplierName = request.SupplierName?.Trim();
+        row.ExchangeRate = check.Rate;
+        row.SupplierCode = string.IsNullOrWhiteSpace(request.SupplierCode) ? null : request.SupplierCode.Trim().ToUpperInvariant();
+        row.SupplierName = check.PartnerName?.Trim();
         row.DelivererName = request.DelivererName?.Trim();
         row.Note = request.Note?.Trim();
-        row.TotalValue = decimal.Round(request.Items.Sum(x => x.Quantity * x.UnitPrice) * rate, 2);
+        row.TotalValue = decimal.Round(request.Items.Sum(x => x.Quantity * x.UnitPrice) * check.Rate, 2);
     }
 
-    private static List<GoodsReceiptLine> Lines(SaveGoodsReceiptRequest request, long id)
+    private static List<GoodsReceiptLine> Lines(SaveGoodsReceiptRequest request, long id, IReadOnlyDictionary<string, string> names)
     {
         var lines = new List<GoodsReceiptLine>();
         void Add(IEnumerable<SaveGoodsReceiptLine> source, string kind)
@@ -276,8 +309,9 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
                 lines.Add(new GoodsReceiptLine
                 {
                     ReceiptId = id, Kind = kind, LineNo = ++number,
-                    ProductCode = item.ProductCode.Trim().ToUpperInvariant(), ProductName = item.ProductName.Trim(),
-                    Unit = item.Unit.Trim(), Quantity = item.Quantity, UnitPrice = item.UnitPrice,
+                    MaterialCode = item.MaterialCode.Trim().ToUpperInvariant(),
+                    MaterialName = names.GetValueOrDefault(item.MaterialCode.Trim().ToUpperInvariant(), string.Empty),
+                    UomCode = item.UomCode.Trim().ToUpperInvariant(), Quantity = item.Quantity, UnitPrice = item.UnitPrice,
                     Amount = decimal.Round(item.Quantity * item.UnitPrice, 2),
                     LotNumber = item.LotNumber?.Trim(), Position = item.Position?.Trim()
                 });
@@ -289,7 +323,7 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
 
     private static string LineSummary(IEnumerable<GoodsReceiptLine> lines) =>
         string.Join("; ", lines.OrderBy(x => x.Kind).ThenBy(x => x.LineNo)
-            .Select(x => $"{x.Kind}:{x.ProductCode} {x.Quantity} {x.Unit} x {x.UnitPrice}"));
+            .Select(x => $"{x.Kind}:{x.MaterialCode} {x.Quantity} {x.UomCode} x {x.UnitPrice}"));
 
     private async Task<IReadOnlyList<GoodsReceiptDto>> ToDtosAsync(List<GoodsReceipt> rows, bool canSeePrice, CancellationToken ct)
     {
@@ -301,13 +335,13 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
             .ToDictionaryAsync(x => x.UserId, x => x.FullName, ct);
         return rows.Select(row =>
         {
-            GoodsReceiptLineDto Line(GoodsReceiptLine line) => new(line.Id, line.Kind, line.ProductCode, line.ProductName,
-                line.Unit, line.Quantity, canSeePrice ? line.UnitPrice : 0,
+            GoodsReceiptLineDto Line(GoodsReceiptLine line) => new(line.Id, line.Kind, line.MaterialCode, line.MaterialName,
+                line.UomCode, line.Quantity, canSeePrice ? line.UnitPrice : 0,
                 canSeePrice ? line.Amount : 0, line.LotNumber, line.Position);
             return new GoodsReceiptDto(row.Id, row.Code, row.DocumentDate, row.CreatedDate,
                 row.UnitCode, units.GetValueOrDefault(row.UnitCode, row.UnitCode),
                 row.WarehouseCode, warehouses.GetValueOrDefault(row.WarehouseCode, row.WarehouseCode),
-                row.VoucherType, row.CurrencyCode, row.ExchangeRate, row.SupplierName, row.DelivererName,
+                row.VoucherType, row.CurrencyCode, row.ExchangeRate, row.SupplierCode, row.SupplierName, row.DelivererName,
                 row.Note, row.Status, canSeePrice ? row.TotalValue : 0,
                 users.GetValueOrDefault(row.CreatedBy ?? 0, ""),
                 row.ApprovedByUserId is int approved ? users.GetValueOrDefault(approved) : null,

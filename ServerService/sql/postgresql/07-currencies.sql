@@ -39,13 +39,22 @@ FROM sys_setting s, jsonb_array_elements(s.value::jsonb) WITH ORDINALITY AS t(c,
 WHERE s.key = 'FRONTEND_CURRENCIES' AND s.scope = 'GLOBAL' AND coalesce(c->>'code', '') <> ''
 ON CONFLICT (code) DO NOTHING;
 
-INSERT INTO sys_exchange_rate (currency_code, rate_date, buy_rate, sell_rate, accounting_rate, updated_at_utc, updated_by_user_id)
-SELECT upper(r->>'currencyCode'), (r->>'date')::date, coalesce((r->>'buyRate')::numeric, 0), coalesce((r->>'sellRate')::numeric, 0),
-       coalesce((r->>'accountingRate')::numeric, (r->>'buyRate')::numeric), now(), 0
-FROM sys_setting s, jsonb_array_elements(s.value::jsonb) AS r
-WHERE s.key = 'FRONTEND_EXCHANGE_RATES' AND s.scope = 'GLOBAL'
-  AND EXISTS (SELECT 1 FROM sys_currency c WHERE c.code = upper(r->>'currencyCode') AND NOT c.is_base)
-  AND coalesce((r->>'accountingRate')::numeric, (r->>'buyRate')::numeric, 0) > 0
-ON CONFLICT (currency_code, rate_date) DO NOTHING;
+-- Script 27 later replaces updated_at_utc / updated_by_user_id with the record stamps, so this old-data copy only runs
+-- while the old columns exist (a rerun after 27 must not fail).
+DO $migrate$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'sys_exchange_rate' AND column_name = 'updated_at_utc') THEN
+        EXECUTE $sql$
+        INSERT INTO sys_exchange_rate (currency_code, rate_date, buy_rate, sell_rate, accounting_rate, updated_at_utc, updated_by_user_id)
+        SELECT upper(r->>'currencyCode'), (r->>'date')::date, coalesce((r->>'buyRate')::numeric, 0), coalesce((r->>'sellRate')::numeric, 0),
+               coalesce((r->>'accountingRate')::numeric, (r->>'buyRate')::numeric), now(), 0
+        FROM sys_setting s, jsonb_array_elements(s.value::jsonb) AS r
+        WHERE s.key = 'FRONTEND_EXCHANGE_RATES' AND s.scope = 'GLOBAL'
+          AND EXISTS (SELECT 1 FROM sys_currency c WHERE c.code = upper(r->>'currencyCode') AND NOT c.is_base)
+          AND coalesce((r->>'accountingRate')::numeric, (r->>'buyRate')::numeric, 0) > 0
+        ON CONFLICT (currency_code, rate_date) DO NOTHING;
+        $sql$;
+    END IF;
+END $migrate$;
 
 DELETE FROM sys_setting WHERE key IN ('FRONTEND_CURRENCIES', 'FRONTEND_EXCHANGE_RATES');

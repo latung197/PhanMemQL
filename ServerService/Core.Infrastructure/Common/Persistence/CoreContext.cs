@@ -11,6 +11,7 @@ using Core.Domain.Modules.TaxRates;
 using Core.Domain.Modules.Fiscal;
 using Core.Domain.Modules.Inventory;
 using Core.Domain.Modules.Inventory.Categories.suppliers;
+using Core.Domain.Modules.Inventory.Documents.GoodsIssues;
 using Core.Domain.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Domain.Modules.Languages;
 using Core.Domain.Modules.Notifications;
@@ -93,6 +94,8 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<WarehouseUnit> WarehouseUnits => Set<WarehouseUnit>();
     public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
     public DbSet<GoodsReceiptLine> GoodsReceiptLines => Set<GoodsReceiptLine>();
+    public DbSet<GoodsIssue> GoodsIssues => Set<GoodsIssue>();
+    public DbSet<GoodsIssueLine> GoodsIssueLines => Set<GoodsIssueLine>();
 
     // Change log (all functions)
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
@@ -141,6 +144,7 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<StockLotBalance>().HasKey(x => new { x.UnitCode, x.WarehouseCode, x.MaterialCode, x.LotCode });
         model.Entity<StockLocationBalance>().HasKey(x => new { x.UnitCode, x.WarehouseCode, x.MaterialCode, x.LotCode, x.LocationCode });
         model.Entity<GoodsReceipt>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.ReceiptId);
+        model.Entity<GoodsIssue>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.IssueId);
 
         // Row version of records edited in forms (IVersioned): PostgreSQL's xmin system column, changed by every update
         // and checked by every UPDATE / DELETE of the row (RowVersions.ExpectVersion sets the version a screen loaded).

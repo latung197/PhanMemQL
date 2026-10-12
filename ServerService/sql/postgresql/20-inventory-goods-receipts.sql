@@ -63,5 +63,11 @@ CREATE TABLE IF NOT EXISTS erp_stock_movement (
     posted_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE (source_function, source_line_id)
 );
-CREATE INDEX IF NOT EXISTS ix_erp_stock_movement_balance ON erp_stock_movement(unit_code, warehouse_code, product_code);
+-- Script 34 renames product_code to material_code (and makes its own indexes), so this old index only applies before it.
+DO $idx$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'erp_stock_movement' AND column_name = 'product_code') THEN
+        CREATE INDEX IF NOT EXISTS ix_erp_stock_movement_balance ON erp_stock_movement(unit_code, warehouse_code, product_code);
+    END IF;
+END $idx$;
 CREATE INDEX IF NOT EXISTS ix_erp_stock_movement_source ON erp_stock_movement(source_function, source_id);

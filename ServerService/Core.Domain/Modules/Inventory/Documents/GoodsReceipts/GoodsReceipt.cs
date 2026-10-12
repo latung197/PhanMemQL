@@ -4,12 +4,13 @@ using Core.Domain.Common;
 using Core.Domain.Modules.CompanyUnits;
 using Core.Domain.Modules.Currencies;
 using Core.Domain.Modules.Inventory;
+using Core.Domain.Modules.Inventory.Categories.suppliers;
 
 namespace Core.Domain.Modules.Inventory.Documents.GoodsReceipts;
 
 [Audited("inv_receipt", "goodsReceipt", Label = "{Code}")]
 [Table("erp_goods_receipt")]
-public class GoodsReceipt : ErpEntity
+public class GoodsReceipt : ErpEntity, IApprovableDocument
 {
     [Key, Column("id"), DatabaseGenerated(DatabaseGeneratedOption.Identity)] public long Id { get; set; }
     [Required, Column("code"), MaxLength(64)] public string Code { get; set; } = string.Empty;
@@ -23,6 +24,9 @@ public class GoodsReceipt : ErpEntity
     [References<Currency>]
     [Required, Column("currency_code"), MaxLength(10)] public string CurrencyCode { get; set; } = "VND";
     [Column("exchange_rate", TypeName = "numeric(18,6)")] public decimal ExchangeRate { get; set; } = 1;
+    [References<Supplier>(Optional = true)]
+    [Column("supplier_code"), MaxLength(20)] public string? SupplierCode { get; set; }
+    /// <summary>The supplier name when the receipt was saved; free text when no supplier of the catalog is chosen.</summary>
     [Column("supplier_name"), MaxLength(200)] public string? SupplierName { get; set; }
     [Column("deliverer_name"), MaxLength(200)] public string? DelivererName { get; set; }
     [Column("note"), MaxLength(1000)] public string? Note { get; set; }
@@ -40,10 +44,13 @@ public class GoodsReceiptLine : ErpEntity
     [Column("receipt_id")] public long ReceiptId { get; set; }
     [Required, Column("kind"), MaxLength(20)] public string Kind { get; set; } = "ITEM";
     [Column("line_no")] public int LineNo { get; set; }
-    [NotReference("vật tư còn là dữ liệu mẫu trong trình duyệt; thêm [References<Material>] khi vật tư có backend")]
-    [Required, Column("product_code"), MaxLength(64)] public string ProductCode { get; set; } = string.Empty;
-    [Required, Column("product_name"), MaxLength(200)] public string ProductName { get; set; } = string.Empty;
-    [Required, Column("unit"), MaxLength(30)] public string Unit { get; set; } = string.Empty;
+    [References<Material>]
+    [Required, Column("material_code"), MaxLength(64)] public string MaterialCode { get; set; } = string.Empty;
+    /// <summary>The material name when the line was saved (what the printed voucher shows even if the catalog is renamed).</summary>
+    [Required, Column("material_name"), MaxLength(200)] public string MaterialName { get; set; } = string.Empty;
+    /// <summary>The unit of the line: the base unit of the material or one it converts from (<c>erp_uom_conversion</c>).</summary>
+    [References<Uom>]
+    [Required, Column("uom_code"), MaxLength(30)] public string UomCode { get; set; } = string.Empty;
     [Column("quantity", TypeName = "numeric(18,4)")] public decimal Quantity { get; set; }
     [Column("unit_price", TypeName = "numeric(18,4)")] public decimal UnitPrice { get; set; }
     [Column("amount", TypeName = "numeric(18,2)")] public decimal Amount { get; set; }

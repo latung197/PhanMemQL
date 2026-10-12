@@ -1,19 +1,21 @@
 namespace Core.Application.Modules.Inventory.Documents.GoodsReceipts;
 
-public sealed record GoodsReceiptLineDto(long Id, string Kind, string ProductCode, string ProductName,
-    string Unit, decimal Quantity, decimal UnitPrice, decimal Amount, string? LotNumber, string? Position);
+public sealed record GoodsReceiptLineDto(long Id, string Kind, string MaterialCode, string MaterialName,
+    string UomCode, decimal Quantity, decimal UnitPrice, decimal Amount, string? LotNumber, string? Position);
 
-public sealed record SaveGoodsReceiptLine(string Kind, string ProductCode, string ProductName,
-    string Unit, decimal Quantity, decimal UnitPrice, string? LotNumber, string? Position);
+/// <summary>A line: the material and unit are codes of the catalogs; the name is taken from the material when saved.</summary>
+public sealed record SaveGoodsReceiptLine(string Kind, string MaterialCode,
+    string UomCode, decimal Quantity, decimal UnitPrice, string? LotNumber, string? Position);
 
 public sealed record GoodsReceiptDto(long Id, string Code, DateOnly Date, DateOnly CreatedDate,
     string UnitCode, string UnitName, string WarehouseCode, string WarehouseName, string VoucherType,
-    string CurrencyCode, decimal ExchangeRate, string? SupplierName, string? DelivererName,
+    string CurrencyCode, decimal ExchangeRate, string? SupplierCode, string? SupplierName, string? DelivererName,
     string? Note, string Status, decimal TotalValue, string CreatedBy, string? ApprovedBy,
     IReadOnlyList<GoodsReceiptLineDto> Items, IReadOnlyList<GoodsReceiptLineDto> MaterialItems, uint Version);
 
 public sealed record SaveGoodsReceiptRequest(DateOnly Date, string WarehouseCode, string VoucherType,
-    string CurrencyCode, decimal ExchangeRate, string? SupplierName, string? DelivererName,
+    /// <summary>SupplierCode is a supplier of the catalog (optional); its name is kept on the receipt.</summary>
+    string CurrencyCode, decimal ExchangeRate, string? SupplierCode, string? SupplierName, string? DelivererName,
     string? Note, IReadOnlyList<SaveGoodsReceiptLine> Items,
     IReadOnlyList<SaveGoodsReceiptLine>? MaterialItems, uint? Version = null);
 

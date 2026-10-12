@@ -17,6 +17,7 @@ using Core.Application.Modules.TaxRates;
 using Core.Application.Modules.Fiscal;
 using Core.Application.Modules.Inventory;
 using Core.Application.Modules.Inventory.Categories.suppliers;
+using Core.Application.Modules.Inventory.Documents.GoodsIssues;
 using Core.Application.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Application.Modules.Inventory.Stock;
 using Core.Application.Modules.Languages;
@@ -47,6 +48,7 @@ using Core.Infrastructure.Modules.TaxRates;
 using Core.Infrastructure.Modules.Fiscal;
 using Core.Infrastructure.Modules.Inventory;
 using Core.Infrastructure.Modules.Inventory.Categories.suppliers;
+using Core.Infrastructure.Modules.Inventory.Documents.GoodsIssues;
 using Core.Infrastructure.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Infrastructure.Modules.Inventory.Stock;
 using Core.Infrastructure.Modules.Languages;
@@ -144,6 +146,7 @@ public static class DependencyInjection
         services.AddScoped<IStockLedger, StockLedgerService>();
         services.AddScoped<IStockQuery, StockQueryService>();
         services.AddScoped<IGoodsReceiptService, GoodsReceiptService>();
+        services.AddScoped<IGoodsIssueService, GoodsIssueService>();
         return services;
     }
 }

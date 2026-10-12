@@ -6,9 +6,9 @@ const url = '/api/inventory/goods-receipts';
 interface ReceiptLine {
   id: number;
   kind: 'ITEM' | 'MATERIAL';
-  productCode: string;
-  productName: string;
-  unit: string;
+  materialCode: string;
+  materialName: string;
+  uomCode: string;
   quantity: number;
   unitPrice: number;
   amount: number;
@@ -28,6 +28,7 @@ interface ReceiptRecord {
   voucherType: string;
   currencyCode: string;
   exchangeRate: number;
+  supplierCode?: string | null;
   supplierName?: string | null;
   delivererName?: string | null;
   note?: string | null;
@@ -49,10 +50,10 @@ const statusLabels: Record<ReceiptRecord['status'], string> = {
 };
 
 const toItem = (line: ReceiptLine): VoucherItem => ({
-  productId: line.productCode,
-  sku: line.productCode,
-  productName: line.productName,
-  unit: line.unit,
+  productId: line.materialCode,
+  sku: line.materialCode,
+  productName: line.materialName,
+  unit: line.uomCode,
   quantity: line.quantity,
   unitPrice: line.unitPrice,
   totalPrice: line.amount,
@@ -66,15 +67,15 @@ const toVoucher = (row: ReceiptRecord): GoodsVoucher => ({
   companyUnitId: row.unitCode, companyUnitName: row.unitName,
   warehouseId: row.warehouseCode, warehouseName: row.warehouseName,
   voucherType: row.voucherType, currencyCode: row.currencyCode, exchangeRate: row.exchangeRate,
-  supplierName: row.supplierName ?? '', delivererName: row.delivererName ?? '',
+  supplierCode: row.supplierCode ?? '', supplierName: row.supplierName ?? '', delivererName: row.delivererName ?? '',
   note: row.note ?? '', status: statusLabels[row.status], totalValue: row.totalValue,
   createdBy: row.createdBy, approvedBy: row.approvedBy ?? undefined,
   items: row.items.map(toItem), materialItems: row.materialItems.map(toItem)
 });
 
 const toLine = (item: VoucherItem, kind: 'ITEM' | 'MATERIAL') => ({
-  kind, productCode: item.sku || item.productId || '', productName: item.productName,
-  unit: item.unit || '', quantity: item.quantity, unitPrice: item.unitPrice,
+  kind, materialCode: item.sku || item.productId || '',
+  uomCode: item.unit || '', quantity: item.quantity, unitPrice: item.unitPrice,
   lotNumber: item.lotNumber || null, position: item.position || null
 });
 
@@ -82,7 +83,7 @@ const toRequest = (voucher: GoodsVoucher) => ({
   date: voucher.date, warehouseCode: voucher.warehouseId,
   voucherType: voucher.voucherType || 'Nhập mua mới',
   currencyCode: voucher.currencyCode || 'VND', exchangeRate: voucher.exchangeRate || 1,
-  supplierName: voucher.supplierName || null, delivererName: voucher.delivererName || null,
+  supplierCode: voucher.supplierCode || null, supplierName: voucher.supplierName || null, delivererName: voucher.delivererName || null,
   note: voucher.note || null,
   items: voucher.items.map(item => toLine(item, 'ITEM')),
   materialItems: (voucher.materialItems || []).map(item => toLine(item, 'MATERIAL')),

@@ -83,7 +83,6 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
       case 'inv_receipt':
         return (
           <GoodsReceiptView
-            products={products}
             companyUnits={companyUnits}
             activeUnitCode={activeCompanyUnitCode}
             currentUser={currentUser}
@@ -92,11 +91,8 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
       case 'inv_issue':
         return (
           <GoodsIssueView
-            vouchers={vouchers}
-            products={products}
-            warehouses={warehouses}
             companyUnits={companyUnits}
-            onAddVoucher={onAddVoucher}
+            activeUnitCode={activeCompanyUnitCode}
             currentUser={currentUser}
           />
         );

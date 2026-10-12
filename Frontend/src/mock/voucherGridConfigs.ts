@@ -15,7 +15,7 @@ export const goodsReceiptItemsGridConfig: VoucherGridInfo = {
   defaultNewRow: {
     sku: '',
     productName: '',
-    unit: 'Cái',
+    unit: '',
     quantity: 1,
     unitPrice: 0,
     amount: 0,
@@ -227,7 +227,7 @@ export const goodsIssueItemsGridConfig: VoucherGridInfo = {
   defaultNewRow: {
     sku: '',
     productName: '',
-    unit: 'Cái',
+    unit: '',
     quantity: 1,
     unitPrice: 0,
     amount: 0,

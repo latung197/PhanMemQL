@@ -192,7 +192,8 @@ Script tạo bảng: `ServerService/sql/postgresql/20-inventory-goods-receipts.s
 | `voucher_type` | varchar(100) | Loại nhập (chữ) |
 | `currency_code` | varchar(10) | Loại tiền → `sys_currency.code` |
 | `exchange_rate` | numeric(18,6) | Tỷ giá đã chốt lúc lưu (1 với đồng hạch toán) |
-| `supplier_name` | varchar(200) | Nhà cung cấp (chữ tự do) |
+| `supplier_code` | varchar(20), có thể trống | Nhà cung cấp trong danh mục → `erp_supplier.code`; chọn từ danh mục (ô tra cứu) thì có mã |
+| `supplier_name` | varchar(200) | Tên nhà cung cấp: lấy từ danh mục khi có `supplier_code`, còn không là chữ tự do |
 | `deliverer_name` | varchar(200) | Người giao hàng |
 | `note` | varchar(1000) | Ghi chú |
 | `status` | varchar(20) | `Draft`, `Pending`, `Approved`, `Posted`, `Cancelled` (ràng buộc CHECK) |
@@ -209,9 +210,9 @@ Chỉ mục: `(unit_code, document_date desc)`, `warehouse_code`, `currency_code
 | `receipt_id` | bigint | Phiếu chứa dòng này → `erp_goods_receipt.id` |
 | `kind` | `ITEM` / `MATERIAL` | `ITEM` = hàng nhập (vào sổ); `MATERIAL` = định mức nguyên vật liệu (không vào sổ) |
 | `line_no` | integer | Số thứ tự trong từng `kind` |
-| `product_code` | varchar(64) | Mã vật tư → `erp_material.code` (viết hoa khi lưu) |
-| `product_name` | varchar(200) | Tên vật tư lúc lập phiếu (lưu lại để phiếu cũ không đổi khi đổi tên vật tư) |
-| `unit` | varchar(30) | Đơn vị tính ghi trên dòng (chữ; chưa quy đổi) |
+| `material_code` | varchar(64) | Mã vật tư → `erp_material.code` (viết hoa khi lưu). Phải là vật tư đang dùng; dòng hàng (`ITEM`) phải là vật tư tồn kho |
+| `material_name` | varchar(200) | Tên vật tư lúc lưu phiếu, **lấy từ danh mục** (phiếu cũ không đổi khi đổi tên vật tư) |
+| `uom_code` | varchar(30) | Đơn vị tính của dòng → `erp_uom.code`: đơn vị gốc của vật tư hoặc đơn vị có quy đổi sang đơn vị gốc (`erp_uom_conversion`); sổ kho quy đổi khi ghi sổ |
 | `quantity` | numeric(18,4) | Số lượng, > 0 |
 | `unit_price` | numeric(18,4) | Đơn giá theo loại tiền của phiếu, ≥ 0 |
 | `amount` | numeric(18,2) | Thành tiền = số lượng × đơn giá |
@@ -429,7 +430,9 @@ Không có khóa ngoại trong database; "→" là cột mã được code kiể
 | `erp_goods_receipt.warehouse_code` | `erp_warehouse` | Có |
 | `erp_goods_receipt.currency_code` | `sys_currency` | Có |
 | `erp_goods_receipt_line.receipt_id` | `erp_goods_receipt.id` | Xóa phiếu thì xóa dòng |
-| `erp_goods_receipt_line.product_code` | `erp_material` | Chưa khai (vật tư mới lên backend) |
+| `erp_goods_receipt_line.material_code` | `erp_material` | Có (vật tư đã có dòng phiếu thì không xóa được) |
+| `erp_goods_receipt_line.uom_code` | `erp_uom` | Có |
+| `erp_goods_receipt.supplier_code` | `erp_supplier` | Có (không bắt buộc) |
 | `erp_stock_movement.{unit,warehouse,material,lot,location,uom,line_uom}_code` | đơn vị, kho, vật tư, lô, vị trí, đơn vị tính | **Có** (lịch sử tồn) |
 | `erp_stock_balance` / `_lot_balance` / `_location_balance` `.{…}_code` | như trên | **Có** |
 | `erp_lot.material_code`, `erp_lot.supplier_code` | `erp_material`, `erp_supplier` | Có (vật tư còn lô thì không xóa) |
@@ -479,7 +482,7 @@ Dữ liệu dev có **toàn bộ các tháng 2026 của DVCS01 đã khóa sổ**
 
 ## 9. Giới hạn hiện tại
 
-- Dòng phiếu nhập vẫn **nhập tay** mã vật tư, ĐVT, số lô, vị trí (chữ) và ô chọn vật tư lấy từ dữ liệu mẫu; nhà cung cấp là chữ tự do. Sắp tới phiếu sẽ chọn từ danh mục vật tư, lô, vị trí, nhà cung cấp và có ngày sản xuất / hạn dùng cho lô mới.
+- Ô chọn vật tư, đơn vị tính và nhà cung cấp trên phiếu **đọc danh mục thật** (tra cứu `materials`, `uoms`, `suppliers`). Danh mục vật tư chưa có giá nên đơn giá dòng bắt đầu bằng 0, nhập tay. Lô và vị trí vẫn nhập tay (chữ): vật tư theo dõi vị trí phải nhập vị trí thuộc kho của phiếu (kiểm tra khi lưu), vật tư theo dõi lô phải có số lô khi ghi sổ. Khi lưu, backend kiểm tra mã vật tư, đơn vị tính, nhà cung cấp, vị trí (thông báo `voucherLine.*`, `receipt.supplierInvalid`) và lấy tên vật tư từ danh mục.
 - Đơn vị tính trên dòng hiện không đi vào sổ (sổ coi là đơn vị gốc). Dịch vụ sổ kho **đã hỗ trợ** quy đổi, phiếu sẽ gửi mã đơn vị tính khi chuyển sang danh mục.
 - Phiếu nhập chưa có phân trang phía máy chủ và xuất Excel từ trình duyệt (khác các danh mục).
 - Chưa có phiếu xuất, điều chuyển, kiểm kê ghi vào sổ; chưa có màn hình xem tồn kho và báo cáo nhập xuất tồn (mới có API). Nhánh **xuất** của dịch vụ sổ kho đã được thử qua API thử tạm, sẽ dùng thật khi có phiếu xuất.
