@@ -49,6 +49,8 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
     {
         await permissions.EnsureAllowedAsync(userId, Function, Core.Domain.Modules.Users.PermissionAction.Create, ct);
         var check = await ValidateAsync(unitCode, request, ct);
+        var target = VoucherTargetStatus.Parse(request.TargetStatus);
+        await EnsureTargetAllowedAsync(userId, isOwner: true, target, ct);
         var id = await unitOfWork.ExecuteAsync(async token =>
         {
             var row = new GoodsReceipt
@@ -62,6 +64,7 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
             row.Lines.AddRange(Lines(request, row.Id, check.Names));
             audit.Attach(row, [new AuditChange("items", null, LineSummary(row.Lines))]);
             await db.SaveChangesAsync(token);
+            await AdvanceAsync(row, unitCode, userId, target, token);
             return row.Id;
         }, ct);
         return await ResultAsync(userId, unitCode, id, ct);
@@ -75,6 +78,8 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
         if (row.Status != "Draft") throw new BusinessRuleException("receipt.editDraftOnly");
         await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         var check = await ValidateAsync(unitCode, request, ct);
+        var target = VoucherTargetStatus.Parse(request.TargetStatus);
+        await EnsureTargetAllowedAsync(userId, row.CreatedBy == userId, target, ct);
         db.ExpectVersion(row, request.Version, touch: true);
         var before = LineSummary(row.Lines);
         await unitOfWork.ExecuteAsync(async token =>
@@ -86,6 +91,7 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
             await db.SaveChangesAsync(token);
             row.Lines.AddRange(Lines(request, id, check.Names));
             await db.SaveChangesAsync(token);
+            await AdvanceAsync(row, unitCode, userId, target, token);
         }, ct);
         return await ResultAsync(userId, unitCode, id, ct);
     }
@@ -149,6 +155,38 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
             await db.SaveChangesAsync(token);
         }, ct);
         return await ResultAsync(userId, unitCode, id, ct);
+    }
+
+    /// <summary>Saving straight at Posted also needs the POST right (checked before anything is saved).</summary>
+    private async Task EnsureTargetAllowedAsync(int userId, bool isOwner, DocumentStatus target, CancellationToken ct)
+    {
+        if (target != DocumentStatus.Posted) return;
+        var actor = DocumentActor.For(await permissions.GetEffectiveAsync(userId, ct), await permissions.GetRightsAsync(userId, ct), Function, isOwner);
+        var decision = DocumentStatusPolicy.Check(DocumentAction.Post, DocumentStatus.Approved, actor);
+        if (!decision.Allowed) throw new ForbiddenException(decision.Reason ?? "permission.denied");
+    }
+
+    /// <summary>
+    /// Takes the just saved draft to the status the user asked for, in the same transaction: Pending sends it for approval as
+    /// usual; Approved records the approval of every level by this user (they must be an approver of each); Posted then posts it
+    /// to the stock ledger. Any refusal rolls the whole save back, so the voucher is never left half way.
+    /// </summary>
+    private async Task AdvanceAsync(GoodsReceipt row, string unitCode, int userId, DocumentStatus target, CancellationToken token)
+    {
+        if (target == DocumentStatus.Draft) return;
+        if (target == DocumentStatus.Pending)
+        {
+            await approvals.SubmitAsync(userId, unitCode, new SubmitDocumentRequest(Function, row.Code, row.Code, row.TotalValue), token);
+            return;
+        }
+        await approvals.EnsureCanApproveDirectAsync(userId, unitCode, Function, row.TotalValue, token);
+        await approvals.ApproveDirectAsync(userId, unitCode, Function, row.Code, row.Code, token);
+        if (target == DocumentStatus.Posted)
+        {
+            await ledger.PostAsync(userId, await ToPostingAsync(row, unitCode, token), token);
+            row.Status = "Posted";
+            await db.SaveChangesAsync(token);
+        }
     }
 
     /// <summary>

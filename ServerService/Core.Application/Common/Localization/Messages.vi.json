@@ -232,6 +232,8 @@
   "approval.withdrawOwnOnly": "Chỉ người trình duyệt mới được rút lại chứng từ.",
   "approval.noSelfApprove": "Không được tự duyệt chứng từ do mình trình.",
   "approval.notApproverOfLevel": "Bạn không phải người duyệt cấp {0} của chứng từ này.",
+  "approval.directNote": "Lưu thẳng ở trạng thái đã duyệt bởi người có quyền duyệt.",
+  "saveStatus.invalid": "Trạng thái lưu phiếu phải là Draft, Pending, Approved hoặc Posted.",
   "approval.noApproveRight": "Tài khoản của bạn không có quyền phê duyệt chứng từ này.",
   "approval.defaultApprovers": "Người có quyền Duyệt chức năng này",
   "approval.roleLabel": "Vai trò {0}",

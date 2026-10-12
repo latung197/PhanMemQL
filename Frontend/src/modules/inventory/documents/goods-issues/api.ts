@@ -80,7 +80,8 @@ const toLine = (item: VoucherItem, kind: 'ITEM' | 'MATERIAL') => ({
   lotNumber: item.lotNumber || null, position: item.position || null
 });
 
-const toRequest = (voucher: GoodsVoucher) => ({
+const toRequest = (voucher: GoodsVoucher, targetStatus?: string) => ({
+  targetStatus: targetStatus && targetStatus !== 'Draft' ? targetStatus : undefined,
   date: voucher.date, warehouseCode: voucher.warehouseId,
   voucherType: voucher.voucherType || 'Xuất bán hàng',
   currencyCode: voucher.currencyCode || 'VND', exchangeRate: voucher.exchangeRate || 1,
@@ -94,8 +95,8 @@ const toRequest = (voucher: GoodsVoucher) => ({
 export const goodsIssuesApi = {
   getAll: async () => (await apiRequest<IssueRecord[]>('GET', url)).map(toVoucher),
   getOptions: () => apiRequest<{ warehouses: { code: string; name: string }[]; currencies: { code: string; name: string }[] }>('GET', `${url}/options`),
-  create: async (voucher: GoodsVoucher) => toVoucher(await apiRequest<IssueRecord>('POST', url, toRequest(voucher))),
-  update: async (voucher: GoodsVoucher) => toVoucher(await apiRequest<IssueRecord>('PUT', `${url}/${voucher.id}`, toRequest(voucher))),
+  create: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<IssueRecord>('POST', url, toRequest(voucher, targetStatus))),
+  update: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<IssueRecord>('PUT', `${url}/${voucher.id}`, toRequest(voucher, targetStatus))),
   changeStatus: async (id: string, action: 'submit' | 'withdraw' | 'approve' | 'post' | 'unpost' | 'cancel') =>
     toVoucher(await apiRequest<IssueRecord>('POST', `${url}/${id}/${action}`)),
   remove: (id: string) => apiRequest<void>('DELETE', `${url}/${id}`)

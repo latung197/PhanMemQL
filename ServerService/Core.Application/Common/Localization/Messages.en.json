@@ -232,6 +232,8 @@
   "approval.withdrawOwnOnly": "Only the person who submitted the document may withdraw it.",
   "approval.noSelfApprove": "You cannot approve a document you submitted.",
   "approval.notApproverOfLevel": "You are not an approver of level {0} of this document.",
+  "approval.directNote": "Saved straight at the approved status by a user holding the approval right.",
+  "saveStatus.invalid": "The status to save at must be Draft, Pending, Approved or Posted.",
   "approval.noApproveRight": "Your account may not approve this document.",
   "approval.defaultApprovers": "Users with the Approve right on this function",
   "approval.roleLabel": "Role {0}",

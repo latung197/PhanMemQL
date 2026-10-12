@@ -16,7 +16,9 @@ public sealed record GoodsIssueDto(long Id, string Code, DateOnly Date, DateOnly
 public sealed record SaveGoodsIssueRequest(DateOnly Date, string WarehouseCode, string VoucherType,
     string CurrencyCode, decimal ExchangeRate, string? CustomerName, string? ReceiverName,
     string? Note, IReadOnlyList<SaveGoodsIssueLine> Items,
-    IReadOnlyList<SaveGoodsIssueLine>? MaterialItems, uint? Version = null);
+    IReadOnlyList<SaveGoodsIssueLine>? MaterialItems, uint? Version = null,
+    /// <summary>Draft (default), Pending, Approved or Posted: the status to save at, as far as the user's rights reach (VoucherTargetStatus).</summary>
+    string? TargetStatus = null);
 
 public sealed record GoodsIssueOption(string Code, string Name);
 public sealed record GoodsIssueOptionsDto(IReadOnlyList<GoodsIssueOption> Warehouses,

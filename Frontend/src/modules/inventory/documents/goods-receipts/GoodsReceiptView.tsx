@@ -1,10 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   ArrowDownLeft, 
   ArrowUpRight,
   Plus, 
   CheckCircle2, 
-  Printer, 
   ShieldCheck, 
   Clock, 
   Eye, 
@@ -46,7 +45,11 @@ import { MasterLookupModal, ColumnDef } from '../../../../components/common/Mast
 import { NumberInput, QuantityInput, DateTimePicker, ComboBox, VoucherDetailGrid } from '../../../../components/common';
 import { goodsReceiptItemsGridConfig, goodsReceiptMaterialsGridConfig } from '../../../../mock/voucherGridConfigs';
 import { useNumberFormat } from '../../../../context/NumberFormatContext';
+import { systemSettingsService } from '../../../../services/systemSettingsService';
+import { PrintMenuButton } from '../PrintMenuButton';
+import { printVoucher } from '../voucherPrint';
 import { GoodsVoucher, VoucherItem, Product, Warehouse as WarehouseType, CompanyUnit, UserProfile } from '../../../../types';
+import { SAVE_STATUS_LABELS, saveStatusChoices, type SaveStatus } from '../SaveStatusSelect';
 import { getActionPermission } from '../../../../mock/initialRoles';
 import { canApproveVoucher, hasRight, RIGHTS } from '../../../../utils/permissions';
 import { useOpenDocumentRequest } from '../../../../utils/documentLinks';
@@ -79,6 +82,10 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   const [warehouses, setWarehouses] = useState<WarehouseType[]>([]);
   const [currencies, setCurrencies] = useState<{ code: string; name: string }[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  // The status the form saves at: Draft, or further when the user's rights reach it (the server runs the steps and checks them).
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('Draft');
+  // Set by the "Lưu Nháp" button: that save is a draft whatever the Trạng thái field holds.
+  const saveAsDraftRef = useRef(false);
   // The pickers read the real catalogs through the lookups (materials; suppliers on a receipt).
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
@@ -165,7 +172,14 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   // Quyền đặc biệt "Xem đơn giá & thành tiền": không có thì ẩn mọi cột/ô giá trị trên phiếu.
   const canViewPrice = hasRight(currentUser, 'inv_receipt', RIGHTS.VIEW_PRICE);
   const hiddenPriceFields = canViewPrice ? undefined : ['unitPrice', 'amount'];
+  const statusChoices = saveStatusChoices({ create: perm.create, edit: perm.edit, approve: perm.approve,
+    canPost: hasRight(currentUser, 'inv_receipt', RIGHTS.POST) });
   const canSaveForm = !editingVoucherId ? perm.create : perm.edit && formStatus === 'Lập chứng từ';
+  // The "Trạng thái" field of the form is the choice while the voucher is new or still a draft and the user's rights reach more than one status.
+  const canChooseStatus = canSaveForm && statusChoices.length > 1;
+  const statusFromLabel = (label: string): SaveStatus =>
+    (Object.keys(SAVE_STATUS_LABELS) as SaveStatus[]).find(key => SAVE_STATUS_LABELS[key] === label) ?? 'Draft';
+  const shownStatus = canChooseStatus ? SAVE_STATUS_LABELS[saveStatus] : formStatus;
 
   // Filter receipt vouchers only (type === 'Nhập kho')
   const receiptVouchers = useMemo(() => {
@@ -245,7 +259,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     });
   }, [receiptVouchers, searchText, codeFilter, unitFilter, voucherTypeFilter, statusFilter, warehouseFilter, fromDate, toDate]);
 
-  const { formatQuantity } = useNumberFormat();
+  const { formatQuantity, formatUnitPrice, formatNumber } = useNumberFormat();
 
   const formatVND = (num: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num || 0);
@@ -359,6 +373,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     // Default empty array or sample for Tab 2 (Nguyên vật liệu)
     setFormMaterialItems([]);
 
+    setSaveStatus('Draft');
     setIsModalOpen(true);
   };
 
@@ -450,6 +465,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
       setFormMaterialItems([{ ...emptyItem, unit: '' }]);
     }
 
+    setSaveStatus('Draft');
     setIsModalOpen(true);
   };
 
@@ -904,6 +920,8 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   // Submit Form (Save Voucher)
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
+    const asDraft = saveAsDraftRef.current;
+    saveAsDraftRef.current = false;
     if (!canSaveForm) return;
     if (!(editingVoucherId ? perm.edit : perm.create)) {
       showToast.error('Tài khoản của bạn không có quyền cập nhật dữ liệu!');
@@ -954,12 +972,12 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     setIsSaving(true);
     try {
       const result = editingVoucherId
-        ? await goodsReceiptsApi.update(savedVoucher)
-        : await goodsReceiptsApi.create(savedVoucher);
+        ? await goodsReceiptsApi.update(savedVoucher, asDraft ? 'Draft' : saveStatus)
+        : await goodsReceiptsApi.create(savedVoucher, asDraft ? 'Draft' : saveStatus);
       setLocalVouchers(prev => editingVoucherId
         ? prev.map(v => v.id === editingVoucherId ? result : v)
         : [result, ...prev]);
-      showToast.success(`Đã lưu phiếu nhập kho [${result.code}].`);
+      showToast.success(`Đã lưu phiếu nhập kho [${result.code}], trạng thái: ${result.status}.`);
       setIsModalOpen(false);
     } catch (error) {
       showToast.error(getErrorMessage(error));
@@ -1002,23 +1020,20 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     setBulkToDeleteIds(null);
   };
 
-  const handlePrint = (code: string) => {
+  /** Two print forms: with prices and amounts (needs VIEW_PRICE) and without. */
+  const handlePrint = (code: string, withPrice: boolean) => {
     if (!perm.print) {
       showToast.error('Tài khoản của bạn không có quyền In chứng từ!');
       return;
     }
     const voucher = localVouchers.find(v => v.code === code);
     if (!voucher) return;
-    const printable = window.open('', '_blank');
-    if (!printable) { showToast.error('Trình duyệt đã chặn cửa sổ in.'); return; }
-    const escape = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, ch =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] || ch);
-    const priceHead = canViewPrice ? '<th>Đơn giá</th><th>Thành tiền</th>' : '';
-    const rows = voucher.items.map((item, index) => `<tr><td>${index + 1}</td><td>${escape(item.sku)}</td><td>${escape(item.productName)}</td><td>${escape(item.unit)}</td><td>${escape(item.quantity)}</td>${canViewPrice ? `<td>${escape(item.unitPrice)}</td><td>${escape(item.totalPrice)}</td>` : ''}</tr>`).join('');
-    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escape(code)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #555;padding:6px;text-align:left}th{background:#eee}p{margin:6px 0}@media print{body{padding:0}}</style></head><body><h1>PHIẾU NHẬP KHO</h1><p>Số phiếu: ${escape(voucher.code)} · Ngày: ${escape(voucher.date)}</p><p>Đơn vị: ${escape(voucher.companyUnitName)} · Kho: ${escape(voucher.warehouseName)}</p><p>Nhà cung cấp: ${escape(voucher.supplierName)} · Người giao: ${escape(voucher.delivererName)}</p><p>Trạng thái: ${escape(voucher.status)}</p><table><thead><tr><th>STT</th><th>Mã vật tư</th><th>Tên vật tư</th><th>ĐVT</th><th>Số lượng</th>${priceHead}</tr></thead><tbody>${rows}</tbody></table>${canViewPrice ? `<p>Tổng tiền: ${escape(voucher.totalValue)} VND</p>` : ''}<p>Ghi chú: ${escape(voucher.note)}</p></body></html>`);
-    printable.document.close();
-    printable.focus();
-    printable.print();
+    const opened = printVoucher({
+      kind: 'receipt', withPrice: withPrice && canViewPrice, voucher, company: systemSettingsService.getCompanyProfile(),
+      format: { quantity: formatQuantity, unitPrice: formatUnitPrice, amount: value => formatNumber(value) },
+      printedBy: currentUser?.fullName
+    });
+    if (!opened) showToast.error('Trình duyệt đã chặn cửa sổ in.');
   };
 
   // Render Status Badge
@@ -1242,16 +1257,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
             </button>
           )}
 
-          {perm.print && (
-            <button
-              type="button"
-              onClick={() => handlePrint(v.code)}
-              className="p-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-              title="In phiếu PDF"
-            >
-              <Printer className="h-4 w-4" />
-            </button>
-          )}
+          {perm.print && <PrintMenuButton canPrintPrice={canViewPrice} onPrint={withPrice => handlePrint(v.code, withPrice)} />}
 
           {perm.delete && (
             <button
@@ -1420,18 +1426,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
         fullScreen={true}
         headerActions={
           <div className="flex items-center gap-2 shrink-0">
-            {editingVoucherId && perm.print && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handlePrint(formCode)}
-                icon={<Printer className="h-3.5 w-3.5" />}
-                className="py-1 px-2.5 text-xs font-medium cursor-pointer"
-              >
-                In PDF
-              </Button>
-            )}
+            {editingVoucherId && perm.print && <PrintMenuButton variant="button" canPrintPrice={canViewPrice} onPrint={withPrice => handlePrint(formCode, withPrice)} />}
             <Button
               type="button"
               variant="outline"
@@ -1448,9 +1443,11 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
               size="sm"
               icon={<Save className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />}
               onClick={() => {
+                saveAsDraftRef.current = true;
                 (document.getElementById('goods-receipt-form') as HTMLFormElement | null)?.requestSubmit();
               }}
               disabled={isSaving || !canSaveForm}
+              title="Lưu phiếu ở trạng thái Lập chứng từ, dù ô Trạng thái đang chọn gì"
               className="py-1 px-3 text-xs font-semibold cursor-pointer bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900"
             >
               Lưu Nháp
@@ -1466,7 +1463,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
               disabled={isSaving || !canSaveForm}
               className="py-1 px-4 text-xs font-bold cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs border border-emerald-600"
             >
-              {editingVoucherId ? 'Lưu & Cập Nhật' : 'Lưu Phiếu Nhập Kho'}
+              {saveStatus === 'Draft' ? (editingVoucherId ? 'Lưu & Cập Nhật' : 'Lưu Phiếu Nhập Kho') : `Lưu và ${SAVE_STATUS_LABELS[saveStatus].toLowerCase()}`}
             </Button>
           </div>
         }
@@ -1603,7 +1600,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                   </h4>
                 </div>
                 <div className="shrink-0 scale-85 origin-right">
-                  {renderStatusBadge(formStatus)}
+                  {renderStatusBadge(shownStatus)}
                 </div>
               </div>
 
@@ -1646,15 +1643,23 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                   </label>
                   <select
                     required
-                    value={formStatus}
-                    disabled
+                    value={shownStatus}
+                    disabled={!canChooseStatus}
+                    onChange={e => setSaveStatus(statusFromLabel(e.target.value))}
+                    title={canChooseStatus ? 'Chọn trạng thái lưu phiếu, theo quyền của bạn' : undefined}
                     className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-1.5 py-0.5 font-extrabold text-slate-800 dark:text-slate-100 text-[10.5px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                   >
-                    <option value="Lập chứng từ">Lập chứng từ</option>
-                    <option value="Chờ duyệt">Chờ duyệt</option>
-                    <option value="Đã phê duyệt">Đã phê duyệt</option>
-                    <option value="Chuyển sổ kho">Chuyển sổ kho</option>
-                    <option value="Hủy">Hủy phiếu</option>
+                    {canChooseStatus
+                      ? statusChoices.map(choice => <option key={choice} value={SAVE_STATUS_LABELS[choice]}>{SAVE_STATUS_LABELS[choice]}</option>)
+                      : (
+                        <>
+                          <option value="Lập chứng từ">Lập chứng từ</option>
+                          <option value="Chờ duyệt">Chờ duyệt</option>
+                          <option value="Đã phê duyệt">Đã phê duyệt</option>
+                          <option value="Chuyển sổ kho">Chuyển sổ kho</option>
+                          <option value="Hủy">Hủy phiếu</option>
+                        </>
+                      )}
                   </select>
                 </div>
 

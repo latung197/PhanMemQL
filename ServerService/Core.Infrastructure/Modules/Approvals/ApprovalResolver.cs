@@ -22,8 +22,10 @@ public sealed record ApprovalResolution(bool UsesDefaultApprovers, IReadOnlyList
 /// </summary>
 public sealed class ApprovalResolver(CoreContext db, IPermissionService permissions)
 {
+    /// <param name="includeRequester">True keeps the requester among the approvers (a user who saves a voucher straight at the
+    /// approved status); the normal workflow never lets someone approve their own voucher.</param>
     public async Task<ApprovalResolution> ResolveAsync(string function, string unitCode, int requesterUserId,
-        decimal? amount, CancellationToken ct)
+        decimal? amount, CancellationToken ct, bool includeRequester = false)
     {
         var requester = await RequesterAsync(requesterUserId, ct);
         var rules = await db.ApprovalRules.AsNoTracking().Where(x => x.MenuId0 == function && x.IsActive).ToListAsync(ct);
@@ -35,7 +37,7 @@ public sealed class ApprovalResolver(CoreContext db, IPermissionService permissi
         {
             var everyone = await db.Users.AsNoTracking().ActiveUsers().Select(x => x.UserId).ToListAsync(ct);
             return new ApprovalResolution(true,
-                [new ResolvedApprovalLevel(1, Messages.T("approval.defaultApprovers"), await FilterAsync(everyone, function, unitCode, requesterUserId, ct))]);
+                [new ResolvedApprovalLevel(1, Messages.T("approval.defaultApprovers"), await FilterAsync(everyone, function, unitCode, requesterUserId, includeRequester, ct))]);
         }
 
         var result = new List<ResolvedApprovalLevel>();
@@ -51,7 +53,7 @@ public sealed class ApprovalResolver(CoreContext db, IPermissionService permissi
             var label = string.Join(", ", level.Approvers.Select(a => a.Type == ApproverTypes.Role
                 ? Messages.T("approval.roleLabel", roleNames.GetValueOrDefault(a.Value, a.Value))
                 : userNames.GetValueOrDefault(a.Value, $"#{a.Value}")));
-            result.Add(new ResolvedApprovalLevel(level.Level, label, await FilterAsync(candidates.Distinct(), function, unitCode, requesterUserId, ct)));
+            result.Add(new ResolvedApprovalLevel(level.Level, label, await FilterAsync(candidates.Distinct(), function, unitCode, requesterUserId, includeRequester, ct)));
         }
         return new ApprovalResolution(false, result);
     }
@@ -64,9 +66,9 @@ public sealed class ApprovalResolver(CoreContext db, IPermissionService permissi
     }
 
     private async Task<List<int>> FilterAsync(IEnumerable<int> candidates, string function, string unitCode, int requesterUserId,
-        CancellationToken ct)
+        bool includeRequester, CancellationToken ct)
     {
-        var ids = candidates.Where(id => id != requesterUserId).Distinct().ToList();
+        var ids = candidates.Where(id => includeRequester || id != requesterUserId).Distinct().ToList();
         // Rights of every candidate at once (only active users come back), not a few queries per candidate.
         var matrices = await permissions.GetEffectiveManyAsync(ids, ct);
         var inUnit = (await db.UserCompanyUnits.AsNoTracking().Where(x => ids.Contains(x.UserId) && x.UnitCode == unitCode)

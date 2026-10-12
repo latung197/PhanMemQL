@@ -17,7 +17,9 @@ public sealed record SaveGoodsReceiptRequest(DateOnly Date, string WarehouseCode
     /// <summary>SupplierCode is a supplier of the catalog (optional); its name is kept on the receipt.</summary>
     string CurrencyCode, decimal ExchangeRate, string? SupplierCode, string? SupplierName, string? DelivererName,
     string? Note, IReadOnlyList<SaveGoodsReceiptLine> Items,
-    IReadOnlyList<SaveGoodsReceiptLine>? MaterialItems, uint? Version = null);
+    IReadOnlyList<SaveGoodsReceiptLine>? MaterialItems, uint? Version = null,
+    /// <summary>Draft (default), Pending, Approved or Posted: the status to save at, as far as the user's rights reach (VoucherTargetStatus).</summary>
+    string? TargetStatus = null);
 
 public sealed record GoodsReceiptOption(string Code, string Name);
 public sealed record GoodsReceiptOptionsDto(IReadOnlyList<GoodsReceiptOption> Warehouses,

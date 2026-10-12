@@ -94,6 +94,41 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         return await GetAsync(userId, unitCode, function, documentId, ct);
     }
 
+    public async Task EnsureCanApproveDirectAsync(int userId, string unitCode, string function, decimal amount, CancellationToken ct)
+    {
+        if (!PermissionMatrix.CanApprove(await permissions.GetEffectiveAsync(userId, ct), function))
+            throw new ForbiddenException("approval.noApproveRight");
+        if (await permissions.IsAdminAsync(userId, ct)) return;
+        // The levels as the rules resolve them, the requester kept in: the user must be an approver of every one of them.
+        var resolution = await resolver.ResolveAsync(function, unitCode, userId, amount, ct, includeRequester: true);
+        var blocked = resolution.Levels.FirstOrDefault(x => !x.UserIds.Contains(userId));
+        if (blocked is not null) throw new ForbiddenException("approval.notApproverOfLevel", blocked.Level);
+    }
+
+    public async Task ApproveDirectAsync(int userId, string unitCode, string function, string documentId, string? title, CancellationToken ct)
+    {
+        var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
+        if (voucher.Status != "Draft") throw new BusinessRuleException("policy.submitDraftOnly");
+        var steps = await LatestRoundAsync(function, documentId, ct);
+        var resolution = await resolver.ResolveAsync(function, unitCode, userId, voucher.TotalValue, ct, includeRequester: true);
+        var now = DateTime.UtcNow;
+        var note = Messages.T("approval.directNote");
+        // One step per level, all approved by this user at once: the history still shows the round and who approved it.
+        var rows = resolution.Levels.Select(level => new DocumentApproval
+        {
+            MenuId0 = function, DocumentId = documentId, DocumentTitle = title, UnitCode = unitCode, Amount = voucher.TotalValue,
+            Round = steps.Count == 0 ? 1 : steps[0].Round + 1, Level = level.Level, ApproverLabel = level.Label,
+            ApproverUserIds = string.Join(',', level.UserIds), Status = ApprovalStepStatus.Approved,
+            RequestedByUserId = userId, RequestedAtUtc = now, ActedByUserId = userId, ActedAtUtc = now, Note = note
+        }).ToList();
+        db.DocumentApprovals.AddRange(rows);
+        voucher.Status = "Approved";
+        voucher.ApprovedByUserId = userId;
+        await RecordAsync(rows[0], AuditActions.Submit, null, rows.Count, ct);
+        await RecordAsync(rows[^1], AuditActions.Approve, note, rows.Count, ct);
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task<DocumentApprovalDto> RejectAsync(int userId, string unitCode, string function, string documentId,
         ApprovalActionRequest request, CancellationToken ct)
     {

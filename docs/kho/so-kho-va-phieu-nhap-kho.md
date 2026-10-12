@@ -1,12 +1,12 @@
-# Phiếu nhập kho, sổ kho và các bảng dùng chung
+# Phiếu nhập kho, phiếu xuất kho, sổ kho và các bảng dùng chung
 
-Tài liệu này giải thích **từng bảng và từng chức năng** liên quan đến phiếu nhập kho: phiếu lưu những gì, ghi sổ làm gì, tồn kho nằm ở đâu, và những bảng danh mục / hệ thống nào phiếu dựa vào. Viết cho người vận hành và người phát triển; mọi tên bảng, cột, mã chức năng và thông báo đều lấy đúng từ mã nguồn.
+Tài liệu này giải thích **từng bảng và từng chức năng** liên quan đến hai chứng từ kho đang chạy thật là **phiếu nhập kho** và **phiếu xuất kho**: phiếu lưu những gì, ghi sổ làm gì, tồn kho nằm ở đâu, xóa phiếu thì dữ liệu đi đâu, và những bảng danh mục / hệ thống nào phiếu dựa vào. Hai phiếu có cùng kiến trúc; phần phiếu nhập được mô tả đầy đủ, phần phiếu xuất chỉ nói chỗ khác (mục 2.6, 3.3 đến 3.6). Riêng phiếu xuất còn có tài liệu ngắn `docs/kho/phieu-xuat-kho.md`. Viết cho người vận hành và người phát triển; mọi tên bảng, cột, mã chức năng và thông báo đều lấy đúng từ mã nguồn.
 
 Nội dung:
 
 1. [Bức tranh tổng thể](#1-bức-tranh-tổng-thể)
-2. [Phiếu nhập kho: chức năng và luồng xử lý](#2-phiếu-nhập-kho-chức-năng-và-luồng-xử-lý)
-3. [Các bảng của phiếu nhập kho](#3-các-bảng-của-phiếu-nhập-kho)
+2. [Phiếu nhập kho và phiếu xuất kho: chức năng và luồng xử lý](#2-phiếu-nhập-kho-và-phiếu-xuất-kho-chức-năng-và-luồng-xử-lý)
+3. [Các bảng của phiếu nhập kho và phiếu xuất kho](#3-các-bảng-của-phiếu-nhập-kho-và-phiếu-xuất-kho)
 4. [Sổ kho và ba bảng tồn](#4-sổ-kho-và-ba-bảng-tồn)
 5. [Danh mục dùng chung mà phiếu dựa vào](#5-danh-mục-dùng-chung-mà-phiếu-dựa-vào)
 6. [Bảng hệ thống dùng chung](#6-bảng-hệ-thống-dùng-chung)
@@ -19,10 +19,10 @@ Nội dung:
 ## 1. Bức tranh tổng thể
 
 ```
- Danh mục (dùng chung)                Phiếu nhập kho                         Sổ kho
- ─────────────────────                ───────────────                        ───────
- erp_warehouse  ┐                     erp_goods_receipt  (đầu phiếu)         erp_stock_movement  (sổ, chỉ ghi thêm)
- erp_material   │  chọn mã            erp_goods_receipt_line (dòng hàng)           │
+ Danh mục (dùng chung)                Phiếu nhập / phiếu xuất kho            Sổ kho
+ ─────────────────────                ───────────────────────                ───────
+ erp_warehouse  ┐                     erp_goods_receipt / _line  (nhập, +)    erp_stock_movement  (sổ, chỉ ghi thêm)
+ erp_material   │  chọn mã            erp_goods_issue   / _line  (xuất, −)         │
  erp_lot        ├──────────────►      Lập → Chờ duyệt → Đã duyệt ──► Ghi sổ ──────┤ cùng một giao dịch
  erp_location   │                              │                                   ▼
  sys_currency   │                              │                         erp_stock_balance           (tồn theo kho + giá trị)
@@ -41,11 +41,11 @@ Ba nguyên tắc xuyên suốt:
 
 - **Không dùng khóa ngoại.** Các bảng liên kết nhau bằng **mã** (ví dụ `warehouse_code`) có index. Mã nào trỏ sang danh mục nào được khai trong code bằng `[References<...>]` và ghi vào bảng `sys_table_ref`; nhờ đó hệ thống kiểm tra mã có thật khi lưu và **không cho xóa** bản ghi đang được dùng.
 - **Phiếu chỉ là chứng từ; sổ kho mới là sự thật về tồn.** Lập, sửa, duyệt phiếu chưa làm đổi tồn. Chỉ khi **Ghi sổ** thì phiếu mới đẩy vào sổ kho. Muốn sửa phiếu đã ghi sổ phải **Bỏ ghi sổ** trước.
-- **Sổ kho không bao giờ bị sửa hay xóa.** Bỏ ghi sổ không xóa dòng cũ mà ghi thêm dòng đảo (âm); nhờ vậy luôn truy vết được và tồn luôn bằng tổng của sổ.
+- **Sổ kho không bao giờ bị sửa.** Bỏ ghi sổ không xóa dòng cũ mà ghi thêm dòng đảo (ngược dấu); nhờ vậy luôn truy vết được và tồn luôn bằng tổng của sổ. Dòng sổ của một phiếu chỉ bị xóa cùng với chính phiếu đó khi phiếu đã bỏ ghi sổ và sổ của nó cộng lại bằng 0 (mục 3.5).
 
 ---
 
-## 2. Phiếu nhập kho: chức năng và luồng xử lý
+## 2. Phiếu nhập kho và phiếu xuất kho: chức năng và luồng xử lý
 
 Mã chức năng: **`inv_receipt`** (menu Kho hàng → Phiếu nhập kho). Dải số chứng từ: loại **`PNK`**. Màn Phê duyệt nhập kho: `inv_approve_receipt`.
 
@@ -73,6 +73,26 @@ Mã chức năng: **`inv_receipt`** (menu Kho hàng → Phiếu nhập kho). D�
 | Tab **Nguyên vật liệu** | Dòng định mức (`MATERIAL`) | Cấu trúc sản phẩm / nguyên vật liệu tham chiếu. **Không** vào sổ kho và không tính vào tổng giá trị |
 
 Tổng giá trị phiếu = tổng (số lượng × đơn giá) của các dòng `ITEM`, nhân tỷ giá, làm tròn 2 số lẻ.
+
+**Lưu thẳng ở một trạng thái.** Quy trình duyệt vẫn còn, nhưng người có quyền tới trạng thái nào thì lưu phiếu ở trạng thái đó được. Trường **"Trạng thái"** trong khối II (Chứng từ & tiền tệ) của form là ô chọn khi lập phiếu mới hoặc sửa phiếu nháp (chỉ chọn được khi người dùng có hơn một lựa chọn; còn không thì ô chỉ hiển thị trạng thái), và nút lưu đổi tên theo lựa chọn ("Lưu và chờ duyệt", "Lưu và đã phê duyệt", "Lưu và chuyển sổ kho"). Nút **Lưu Nháp** luôn có và luôn lưu ở **Lập chứng từ**, dù ô Trạng thái đang chọn gì:
+
+| Lựa chọn | Người dùng cần | Hệ thống làm |
+|---|---|---|
+| Lập chứng từ | luôn có | chỉ lưu |
+| Chờ duyệt | quyền Thêm hoặc Sửa | lưu rồi gửi duyệt như bấm Trình duyệt (dựng các cấp, thông báo người duyệt) |
+| Đã phê duyệt | quyền **Duyệt** và là người duyệt của **mọi cấp** theo quy tắc phê duyệt (quản trị viên luôn đạt) | lưu rồi ghi một vòng duyệt, mỗi cấp một dòng đã duyệt bởi chính người lưu; nhật ký ghi gửi và duyệt, ghi chú "Lưu thẳng ở trạng thái đã duyệt…" |
+| Chuyển sổ kho | như Đã phê duyệt **cộng** quyền đặc biệt `POST` | lưu, duyệt rồi ghi sổ |
+
+Tất cả chạy trong **một transaction**: bước nào bị từ chối (thiếu quyền, không phải người duyệt cấp nào đó, không đủ tồn, kỳ đã khóa) thì **cả lần lưu bị hủy**, phiếu không bao giờ bị dở dang. Sửa một phiếu nháp rồi lưu ở trạng thái cao hơn cũng được. API: thêm `"targetStatus": "Pending" | "Approved" | "Posted"` vào nội dung lập / sửa phiếu. Nút Duyệt trên phiếu của người khác vẫn không cho tự duyệt phiếu mình lập; chỉ lưu thẳng ở Đã phê duyệt mới cho người lập tự duyệt, nên **ai không nên tự duyệt thì đừng cấp quyền Duyệt**.
+
+**In phiếu nhập kho** (nút máy in ở từng dòng và nút "In phiếu" trong form, cần quyền In): có **hai mẫu** A4, in từ cửa sổ in của trình duyệt (lưu được thành PDF):
+
+| Mẫu | Nội dung | Dùng cho |
+|---|---|---|
+| **In có giá và tiền** | Có cột đơn giá, thành tiền, dòng tổng cộng và **tổng số tiền viết bằng chữ**; phiếu ngoại tệ hiện thêm cộng theo loại tiền và tổng quy đổi VND theo tỷ giá | Kế toán |
+| **In không có giá** | Chỉ số lượng, ghi rõ "Bản không giá"; không có đơn giá, thành tiền, tổng tiền, tỷ giá | Thủ kho, người giao hàng |
+
+Cả hai mẫu có: tên, địa chỉ, mã số thuế, điện thoại công ty (lấy từ Hồ sơ doanh nghiệp), "Mẫu số 01 - VT", tiêu đề, ngày chứng từ dạng "Ngày 5 tháng 3 năm 2027", số phiếu, đơn vị, kho nhập, loại nhập, nhà cung cấp, người giao hàng, người duyệt, ghi chú; bảng hàng với số lô và vị trí (chỉ hiện cột nào có dữ liệu); bảng định mức nguyên vật liệu (nếu có, không tính tiền); bốn chỗ ký (người lập phiếu kèm tên người lập, người giao hàng, thủ kho, kế toán trưởng kèm tên từ hồ sơ doanh nghiệp); chân trang ngày in, người in. Người **không có quyền `VIEW_PRICE`** chỉ có mẫu không giá (nút In in luôn mẫu này); người có quyền bấm nút In thì chọn một trong hai mẫu. Mã nguồn: `modules/inventory/documents/voucherPrint.ts` (dựng trang, đọc số tiền thành chữ) và `PrintMenuButton.tsx`; phiếu xuất kho dùng lại được cùng mẫu (kind `issue`, "Mẫu số 02 - VT") nhưng chưa nối.
 
 ### 2.2. Trạng thái và thao tác
 
@@ -173,11 +193,32 @@ API duyệt dùng chung: `/api/approvals/{function}/{documentId}/...` (màn Phê
 | Không đủ tồn kho … | Bỏ ghi sổ khi hàng đã xuất | Hủy các phiếu đã xuất trước, hoặc cho phép tồn âm (không khuyến nghị) |
 | Chứng từ đã được ghi sổ kho | Ghi sổ lần hai | Không cần làm gì |
 
+### 2.6. Phiếu xuất kho: khác gì phiếu nhập
+
+Mã chức năng **`inv_issue`** (menu Kho hàng → Phiếu xuất kho), dải số chứng từ **`PXK`** (ví dụ `PXK-DVCS01-202703-0001`), màn Phê duyệt xuất kho `inv_approve_issue`, API tiền tố `/api/inventory/goods-issues`. Phiếu xuất **giống phiếu nhập** ở màn hình (hai khối, hai tab mặt hàng và nguyên vật liệu), trạng thái (Lập → Chờ duyệt → Đã duyệt → Đã ghi sổ / Hủy), quyền, quy tắc duyệt, khóa sổ, đánh số, nhật ký, chống ghi đè và các API (mục 2.4, thay `goods-receipts` bằng `goods-issues`). Mã nguồn đối xứng: `GoodsIssue.cs`, `GoodsIssueContracts.cs`, `GoodsIssueService.cs`, `GoodsIssuesController.cs`; phần duyệt dùng chung `DocumentApprovalService` qua giao diện `IApprovableDocument`.
+
+Khác nhau:
+
+| Việc | Phiếu nhập | Phiếu xuất |
+|---|---|---|
+| Đối tác | Nhà cung cấp (`supplier_code` + `supplier_name`), người giao | Khách hàng (`customer_name`, chữ tự do vì danh mục khách hàng chưa có backend), người nhận hàng (`receiver_name`) |
+| Chiều ghi sổ | `StockDirection.In`: **cộng** tồn, giá trị = thành tiền × tỷ giá của phiếu | `StockDirection.Out`: **trừ** tồn, giá trị do **sổ kho tính theo giá bình quân của kho**; đơn giá trên phiếu **không** được gửi sang sổ |
+| Đơn giá và thành tiền trên phiếu | Là giá trị nhập thật | Chỉ là giá xuất để in và tham khảo; giá vốn thật nằm ở cột `value` (số âm) của dòng sổ |
+| Lô | Nhập vào lô chưa có thì sổ kho tự mở lô | Vật tư theo dõi lô **bắt buộc** có số lô đang có tồn, lô không bị khóa và chưa hết hạn |
+| Kiểm tra tồn | Không bao giờ bị từ chối vì tồn | **Chỉ khi Ghi sổ**: thiếu hàng thì từ chối "Không đủ tồn kho: vật tư X tại kho Y chỉ còn n", cả phiếu không ghi (trừ khi đơn vị bật tham số `allowNegativeStock`) |
+| Lập, sửa, gửi duyệt, duyệt | Không kiểm tồn | Không kiểm tồn (phiếu xuất chỉ là chứng từ cho tới khi ghi sổ) |
+
+Luồng **Ghi sổ** của phiếu xuất: (1) cần quyền `POST` và phiếu **Đã duyệt**, kiểm khóa sổ; (2) dựng lệnh ghi sổ **xuất** gồm các dòng `ITEM` (mỗi dòng gửi mã vật tư, số lượng, mã đơn vị tính, số lô và vị trí nếu vật tư theo dõi; **không** gửi giá trị); (3) `IStockLedger.PostAsync` khóa dòng tồn (`FOR UPDATE`), kiểm tồn, tính giá bình quân, ghi sổ với số lượng và giá trị **âm**, trừ ba bảng tồn trong một giao dịch; (4) phiếu thành **Đã ghi sổ**. **Bỏ ghi sổ** ghi dòng đảo (dương) và cộng lại tồn đúng bằng đã trừ; phiếu về Đã duyệt.
+
+Ví dụ đã chạy thật: nhập 10 cái giá 100.000 (tồn 10, giá trị 1.000.000); lập phiếu xuất 5 cái đơn giá bán 150.000 → ghi sổ ra dòng sổ **−5, giá trị −500.000** (bình quân 100.000, không phải 150.000), tồn còn 5 và 500.000; phiếu xuất khác 20 cái bị từ chối vì chỉ còn 5; bỏ ghi sổ phiếu đầu thì tồn về 10 và 1.000.000, `GET /api/inventory/stock/verify` không báo lệch.
+
+Thông báo lỗi riêng của phiếu xuất: "Phiếu xuất kho cần ít nhất một dòng hàng", "Kho xuất không tồn tại hoặc đã ngừng sử dụng", "Chỉ được xóa phiếu xuất kho đang ở trạng thái lập chứng từ", "Không đủ tồn kho …", "Vật tư X theo dõi theo lô nên phải nhập số lô"; các lỗi về khóa sổ, kho không dành cho đơn vị, vật tư, đơn vị tính và vị trí giống bảng 2.5.
+
 ---
 
-## 3. Các bảng của phiếu nhập kho
+## 3. Các bảng của phiếu nhập kho và phiếu xuất kho
 
-Script tạo bảng: `ServerService/sql/postgresql/20-inventory-goods-receipts.sql`. Cả hai bảng đều có bốn cột dấu vết `created_at`, `created_by`, `updated_at`, `updated_by` (hệ thống tự điền) và cột phiên bản `xmin` của PostgreSQL (chống ghi đè).
+Script tạo bảng phiếu nhập: `ServerService/sql/postgresql/20-inventory-goods-receipts.sql`; phiếu xuất: `39-inventory-goods-issues.sql`; script `40-inventory-voucher-line-references.sql` đổi dòng của cả hai phiếu sang mã vật tư / đơn vị tính (`product_code` → `material_code`, `product_name` → `material_name`, `unit` → `uom_code`) và thêm `supplier_code` cho phiếu nhập. Mọi bảng dưới đây đều có bốn cột dấu vết `created_at`, `created_by`, `updated_at`, `updated_by` (hệ thống tự điền) và cột phiên bản `xmin` của PostgreSQL (chống ghi đè).
 
 ### 3.1. `erp_goods_receipt` — đầu phiếu
 
@@ -219,7 +260,44 @@ Chỉ mục: `(unit_code, document_date desc)`, `warehouse_code`, `currency_code
 | `lot_number` | varchar(64) | Số lô (chỉ có nghĩa với vật tư theo dõi lô) |
 | `position` | varchar(100) | Vị trí lưu (chỉ có nghĩa với vật tư theo dõi vị trí; nhập **mã vị trí**) |
 
-Ràng buộc: mỗi `(receipt_id, kind, line_no)` duy nhất; chỉ mục theo `receipt_id`. Sửa phiếu thì xóa hết dòng cũ rồi thêm lại, nên `id` dòng đổi — vì vậy chỉ dòng của phiếu **đã ghi sổ** mới được coi là gắn với sổ, và phiếu đã ghi sổ không sửa được.
+Ràng buộc: mỗi `(receipt_id, kind, line_no)` duy nhất; chỉ mục theo `receipt_id`, `material_code`, `uom_code`. Sửa phiếu thì xóa hết dòng cũ rồi thêm lại, nên `id` dòng đổi — vì vậy chỉ dòng của phiếu **đã ghi sổ** mới được coi là gắn với sổ, và phiếu đã ghi sổ không sửa được.
+
+### 3.3. `erp_goods_issue` — đầu phiếu xuất
+
+Cấu trúc **giống `erp_goods_receipt`** (cùng các cột `id`, `code`, `unit_code`, `document_date`, `created_date`, `warehouse_code`, `voucher_type`, `currency_code`, `exchange_rate`, `note`, `status`, `total_value`, `approved_by_user_id`, bốn cột dấu vết và `xmin`), chỉ khác phần đối tác:
+
+| Cột | Kiểu | Ý nghĩa |
+|---|---|---|
+| `code` | varchar(64), **duy nhất** | Số phiếu `PXK-<đơn vị>-<yyyymm>-<số>` |
+| `warehouse_code` | varchar(20) | **Kho xuất** → `erp_warehouse.code` |
+| `voucher_type` | varchar(100) | Loại xuất (chữ): xuất bán hàng, điều chuyển nội bộ, nguyên vật liệu sản xuất, hàng mẫu / khuyến mãi, kiểm kê giảm / hủy |
+| `customer_name` | varchar(200) | Khách hàng (chữ tự do) |
+| `receiver_name` | varchar(200) | Người nhận hàng |
+| `total_value` | numeric(18,2) | Tổng giá xuất của các dòng `ITEM` theo đồng hạch toán, **để tham khảo**; giá vốn thật nằm trong sổ kho |
+
+Không có `supplier_code`. Chỉ mục: `(unit_code, document_date desc)`, `warehouse_code`, `currency_code`. Trạng thái và ràng buộc `CHECK` như phiếu nhập.
+
+### 3.4. `erp_goods_issue_line` — dòng phiếu xuất
+
+Cấu trúc **giống `erp_goods_receipt_line`**, chỉ khác cột trỏ về đầu phiếu là **`issue_id`** → `erp_goods_issue.id`: `kind` (`ITEM` = hàng xuất, vào sổ; `MATERIAL` = định mức nguyên vật liệu, không vào sổ), `line_no`, `material_code` → `erp_material`, `material_name`, `uom_code` → `erp_uom`, `quantity`, `unit_price`, `amount`, `lot_number`, `position`. `id` của dòng là `source_line_id` của sổ kho khi ghi sổ. Ràng buộc `(issue_id, kind, line_no)` duy nhất; chỉ mục theo `issue_id`, `material_code`, `uom_code`.
+
+### 3.5. Xóa phiếu: dòng chi tiết, sổ kho và các bảng tồn
+
+Script `41-voucher-delete-trigger.sql` tạo trigger `BEFORE DELETE` cho `erp_goods_receipt` và `erp_goods_issue` (hàm `erp_voucher_delete_cleanup`). Vì dự án không dùng khóa ngoại nên đây là lớp bảo vệ ở mức database, bổ sung cho việc dịch vụ tự xóa dòng phiếu:
+
+| Tình trạng phiếu khi xóa | Điều gì xảy ra |
+|---|---|
+| **Còn ghi sổ** (sổ của phiếu, cộng theo kho / vật tư / lô / vị trí, chưa về 0) | **Từ chối** với thông báo "Phiếu … đang ghi sổ kho: phải bỏ ghi sổ trước khi xóa". Nếu cho xóa dòng sổ lúc này, ba bảng tồn sẽ lệch so với sổ |
+| **Chưa từng ghi sổ** (Lập chứng từ) | Xóa **mọi dòng chi tiết** của phiếu (`*_line`); không có dòng sổ nào để xóa |
+| **Đã bỏ ghi sổ** (sổ chỉ còn các cặp dòng ghi và dòng đảo, cộng lại bằng 0) | Xóa dòng chi tiết **và toàn bộ dòng sổ** (`erp_stock_movement`) của phiếu. Ba bảng tồn **không đổi** vì tổng của phiếu bằng 0, nên không cần tính lại |
+
+Giữ lại: lịch sử duyệt (`sys_document_approval`) và nhật ký thay đổi (`sys_audit_log`), để còn bằng chứng ai đã làm gì.
+
+Cách dùng bình thường vẫn qua màn hình: nút **Xóa** chỉ có với phiếu **Lập chứng từ** (dịch vụ từ chối phiếu đã gửi duyệt, đã duyệt hoặc đã ghi sổ trước khi chạm database). Trigger chỉ là chốt chặn cuối cho trường hợp ai đó xóa trực tiếp bằng SQL: xóa phiếu đã bỏ ghi sổ thì dọn sạch, xóa phiếu còn ghi sổ thì bị chặn. Đã thử trên dữ liệu thật: phiếu nhập còn ghi sổ bị chặn (dòng và sổ còn nguyên); phiếu nhập và phiếu xuất đã bỏ ghi sổ bị xóa cùng dòng chi tiết và dòng sổ, tồn của phiếu còn lại vẫn 10, `verify` không báo lệch; phiếu nháp xóa qua API vẫn chạy bình thường.
+
+### 3.6. Số phiếu và quan hệ giữa hai phiếu
+
+Hai phiếu dùng **chung** bảng số chứng từ (`sys_voucher_numbering`: `PNK`, `PXK`), khóa sổ (`sys_fiscal_period`), phê duyệt (`sys_approval_rule`, `sys_document_approval`, khóa theo `menuid0` + số phiếu) và **một** sổ kho: dòng sổ biết nó đến từ phiếu nào qua `source_function` (`inv_receipt` hay `inv_issue`) và `source_id`.
 
 ---
 
@@ -433,13 +511,17 @@ Không có khóa ngoại trong database; "→" là cột mã được code kiể
 | `erp_goods_receipt_line.material_code` | `erp_material` | Có (vật tư đã có dòng phiếu thì không xóa được) |
 | `erp_goods_receipt_line.uom_code` | `erp_uom` | Có |
 | `erp_goods_receipt.supplier_code` | `erp_supplier` | Có (không bắt buộc) |
+| `erp_goods_issue.unit_code`, `.warehouse_code`, `.currency_code` | `sys_company_unit`, `erp_warehouse`, `sys_currency` | Có |
+| `erp_goods_issue_line.issue_id` | `erp_goods_issue.id` | Xóa phiếu thì xóa dòng (trigger mục 3.5) |
+| `erp_goods_issue_line.material_code`, `.uom_code` | `erp_material`, `erp_uom` | Có |
 | `erp_stock_movement.{unit,warehouse,material,lot,location,uom,line_uom}_code` | đơn vị, kho, vật tư, lô, vị trí, đơn vị tính | **Có** (lịch sử tồn) |
 | `erp_stock_balance` / `_lot_balance` / `_location_balance` `.{…}_code` | như trên | **Có** |
 | `erp_lot.material_code`, `erp_lot.supplier_code` | `erp_material`, `erp_supplier` | Có (vật tư còn lô thì không xóa) |
 | `erp_location.warehouse_code` | `erp_warehouse` | Có |
 | `erp_material.{uom,material_type,material_group,vat_tax_rate,import_tax_rate}_code` | các danh mục tương ứng | Có |
 | `erp_warehouse.unit_code`, `erp_warehouse_unit.unit_code` | `sys_company_unit` | Có |
-| `sys_document_approval.document_id` | `erp_goods_receipt.code` (cùng `menuid0`) | Không (liên kết mềm) |
+| `sys_document_approval.document_id` | `erp_goods_receipt.code` hoặc `erp_goods_issue.code` (theo `menuid0`) | Không (liên kết mềm, giữ lại khi xóa phiếu) |
+| `erp_stock_movement.source_id` | `erp_goods_receipt.id` hoặc `erp_goods_issue.id` (theo `source_function`) | Không (liên kết mềm); trigger mục 3.5 dọn dòng sổ đã triệt tiêu khi xóa phiếu |
 
 Xem toàn bộ bản đồ bằng câu lệnh `select * from sys_v_columns where ref_table = 'erp_material'`.
 
@@ -449,10 +531,10 @@ Xem toàn bộ bản đồ bằng câu lệnh `select * from sys_v_columns where
 
 ### 8.1. Thứ tự cài đặt (đã có database)
 
-1. Chạy các script `ServerService/sql/postgresql/` **theo thứ tự tên file** (script chạy lại được). Liên quan trực tiếp: `20` (phiếu nhập), `30` (đơn vị cơ sở của kho), `31` (vật tư), `32` (vị trí), `33` (lô), `34` (sổ kho và tồn), `35` (mẫu số chứng từ có `{DVCS}`).
+1. Chạy các script `ServerService/sql/postgresql/` **theo thứ tự tên file** (script chạy lại được). Liên quan trực tiếp: `20` (phiếu nhập), `30` (đơn vị cơ sở của kho), `31` (vật tư), `32` (vị trí), `33` (lô), `34` (sổ kho và tồn), `35` (mẫu số chứng từ có `{DVCS}`), `39` (phiếu xuất), `40` (dòng phiếu trỏ tới vật tư / đơn vị tính / nhà cung cấp), `41` (trigger xóa phiếu).
 2. Khởi động backend; chạy lại `00-helpers.sql` nếu thiếu hàm tìm kiếm.
 3. Khai: đơn vị cơ sở → tiền tệ và tỷ giá → loại kho, **kho** (kèm đơn vị) → đơn vị tính → loại / nhóm vật tư → **vật tư** (đặt cờ lô / vị trí / hạn dùng) → **vị trí lưu kho** → **lô** (hoặc để phiếu tự tạo).
-4. Cài đặt: mẫu số chứng từ (Tham số mặc định & đánh số chứng từ), khóa sổ (Năm tài chính & khóa sổ), quy tắc phê duyệt cho `inv_receipt`, tham số tồn âm.
+4. Cài đặt: mẫu số chứng từ (Tham số mặc định & đánh số chứng từ), khóa sổ (Năm tài chính & khóa sổ), quy tắc phê duyệt cho `inv_receipt` và `inv_issue`, tham số tồn âm.
 5. Cấp quyền cho vai trò, gồm các quyền đặc biệt `POST`, `UNPOST`, `VIEW_PRICE`, `VIEW_ALL` cho đúng người.
 
 ### 8.2. Xem tồn và sổ (API)
@@ -462,7 +544,7 @@ Xem toàn bộ bản đồ bằng câu lệnh `select * from sys_v_columns where
 | Tồn theo kho | `GET /api/inventory/stock/balances?level=warehouse&warehouseCode=&materialCode=&search=` |
 | Tồn theo lô | `GET /api/inventory/stock/balances?level=lot&materialCode=` |
 | Tồn theo vị trí | `GET /api/inventory/stock/balances?level=location&warehouseCode=` |
-| Sổ kho của một phiếu | `GET /api/inventory/stock/movements?sourceFunction=inv_receipt&sourceId=<id phiếu>` |
+| Sổ kho của một phiếu | `GET /api/inventory/stock/movements?sourceFunction=inv_receipt&sourceId=<id phiếu>` (phiếu xuất: `inv_issue`) |
 
 Phân trang `page`, `pageSize` (tối đa 200); `includeZero=true` để thấy cả dòng tồn 0; cột giá trị chỉ hiện khi có quyền xem giá vốn (`inv_report_stock:VIEW_COST`).
 
@@ -483,8 +565,9 @@ Dữ liệu dev có **toàn bộ các tháng 2026 của DVCS01 đã khóa sổ**
 ## 9. Giới hạn hiện tại
 
 - Ô chọn vật tư, đơn vị tính và nhà cung cấp trên phiếu **đọc danh mục thật** (tra cứu `materials`, `uoms`, `suppliers`). Danh mục vật tư chưa có giá nên đơn giá dòng bắt đầu bằng 0, nhập tay. Lô và vị trí vẫn nhập tay (chữ): vật tư theo dõi vị trí phải nhập vị trí thuộc kho của phiếu (kiểm tra khi lưu), vật tư theo dõi lô phải có số lô khi ghi sổ. Khi lưu, backend kiểm tra mã vật tư, đơn vị tính, nhà cung cấp, vị trí (thông báo `voucherLine.*`, `receipt.supplierInvalid`) và lấy tên vật tư từ danh mục.
-- Đơn vị tính trên dòng hiện không đi vào sổ (sổ coi là đơn vị gốc). Dịch vụ sổ kho **đã hỗ trợ** quy đổi, phiếu sẽ gửi mã đơn vị tính khi chuyển sang danh mục.
-- Phiếu nhập chưa có phân trang phía máy chủ và xuất Excel từ trình duyệt (khác các danh mục).
-- Chưa có phiếu xuất, điều chuyển, kiểm kê ghi vào sổ; chưa có màn hình xem tồn kho và báo cáo nhập xuất tồn (mới có API). Nhánh **xuất** của dịch vụ sổ kho đã được thử qua API thử tạm, sẽ dùng thật khi có phiếu xuất.
+- Đơn vị tính trên dòng **đi vào sổ**: phiếu gửi `uom_code` của dòng, sổ kho quy đổi về đơn vị gốc của vật tư qua `erp_uom_conversion` (dòng sổ lưu cả số lượng và đơn vị gốc lẫn của dòng phiếu).
+- Phiếu nhập và phiếu xuất chưa có phân trang phía máy chủ và xuất Excel từ trình duyệt (khác các danh mục); danh sách tải hết phiếu của đơn vị một lần.
+- Người **không có quyền xem giá** (`VIEW_PRICE`) thấy đơn giá 0 trên phiếu; nếu họ sửa và lưu phiếu nháp thì tổng tiền bị tính lại từ số 0 đó. Cần giữ nguyên đơn giá cũ khi người sửa không có quyền xem giá (chưa làm, áp dụng cho cả hai phiếu).
+- Mới có phiếu nhập và phiếu xuất ghi vào sổ; **điều chuyển và kiểm kê** chưa ghi sổ. Chưa có màn hình xem tồn kho và báo cáo nhập xuất tồn (mới có API). Khách hàng trên phiếu xuất là chữ tự do cho tới khi có danh mục khách hàng.
 - Giá xuất tính **bình quân di động** theo kho tại thời điểm ghi sổ; tính lại bình quân cuối tháng và FIFO theo lô chưa làm.
-- Loại nhập (nhập mua, điều chuyển…) còn là chữ chọn, sẽ thành danh mục "Loại nhập xuất".
+- Loại nhập và loại xuất (nhập mua, xuất bán, điều chuyển…) còn là chữ chọn, sẽ thành danh mục "Loại nhập xuất".

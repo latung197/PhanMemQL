@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   ArrowUpRight,
   Plus, 
@@ -46,6 +46,7 @@ import { NumberInput, QuantityInput, DateTimePicker, ComboBox, VoucherDetailGrid
 import { goodsIssueItemsGridConfig, goodsIssueMaterialsGridConfig } from '../../../../mock/voucherGridConfigs';
 import { useNumberFormat } from '../../../../context/NumberFormatContext';
 import { GoodsVoucher, VoucherItem, Product, Warehouse as WarehouseType, CompanyUnit, UserProfile } from '../../../../types';
+import { SAVE_STATUS_LABELS, saveStatusChoices, type SaveStatus } from '../SaveStatusSelect';
 import { getActionPermission } from '../../../../mock/initialRoles';
 import { canApproveVoucher, hasRight, RIGHTS } from '../../../../utils/permissions';
 import { useOpenDocumentRequest } from '../../../../utils/documentLinks';
@@ -88,6 +89,10 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const [warehouses, setWarehouses] = useState<WarehouseType[]>([]);
   const [currencies, setCurrencies] = useState<{ code: string; name: string }[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  // The status the form saves at: Draft, or further when the user's rights reach it (the server runs the steps and checks them).
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('Draft');
+  // Set by the "Lưu Nháp" button: that save is a draft whatever the Trạng thái field holds.
+  const saveAsDraftRef = useRef(false);
   // The pickers read the real catalogs through the lookups (materials; suppliers on a receipt).
   const [products, setProducts] = useState<Product[]>([]);
 
@@ -170,7 +175,14 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   // Quyền đặc biệt "Xem đơn giá & thành tiền": không có thì ẩn mọi cột/ô giá trị trên phiếu.
   const canViewPrice = hasRight(currentUser, 'inv_issue', RIGHTS.VIEW_PRICE);
   const hiddenPriceFields = canViewPrice ? undefined : ['unitPrice', 'amount'];
+  const statusChoices = saveStatusChoices({ create: perm.create, edit: perm.edit, approve: perm.approve,
+    canPost: hasRight(currentUser, 'inv_issue', RIGHTS.POST) });
   const canSaveForm = !editingVoucherId ? perm.create : perm.edit && formStatus === 'Lập chứng từ';
+  // The "Trạng thái" field of the form is the choice while the voucher is new or still a draft and the user's rights reach more than one status.
+  const canChooseStatus = canSaveForm && statusChoices.length > 1;
+  const statusFromLabel = (label: string): SaveStatus =>
+    (Object.keys(SAVE_STATUS_LABELS) as SaveStatus[]).find(key => SAVE_STATUS_LABELS[key] === label) ?? 'Draft';
+  const shownStatus = canChooseStatus ? SAVE_STATUS_LABELS[saveStatus] : formStatus;
 
   // Filter issue vouchers only (type === 'Xuất kho')
   const issueVouchers = useMemo(() => {
@@ -363,6 +375,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     // Default empty array or sample for Tab 2 (Nguyên vật liệu)
     setFormMaterialItems([]);
 
+    setSaveStatus('Draft');
     setIsModalOpen(true);
   };
 
@@ -453,6 +466,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       setFormMaterialItems([{ ...emptyItem, unit: '' }]);
     }
 
+    setSaveStatus('Draft');
     setIsModalOpen(true);
   };
 
@@ -911,6 +925,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   // Submit Form (Save Voucher)
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
+    const asDraft = saveAsDraftRef.current;
+    saveAsDraftRef.current = false;
     if (!canSaveForm) return;
     if (!(editingVoucherId ? perm.edit : perm.create)) {
       showToast.error('Tài khoản của bạn không có quyền cập nhật dữ liệu!');
@@ -960,12 +976,12 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     setIsSaving(true);
     try {
       const result = editingVoucherId
-        ? await goodsIssuesApi.update(savedVoucher)
-        : await goodsIssuesApi.create(savedVoucher);
+        ? await goodsIssuesApi.update(savedVoucher, asDraft ? 'Draft' : saveStatus)
+        : await goodsIssuesApi.create(savedVoucher, asDraft ? 'Draft' : saveStatus);
       setLocalVouchers(prev => editingVoucherId
         ? prev.map(v => v.id === editingVoucherId ? result : v)
         : [result, ...prev]);
-      showToast.success(`Đã lưu phiếu xuất kho [${result.code}].`);
+      showToast.success(`Đã lưu phiếu xuất kho [${result.code}], trạng thái: ${result.status}.`);
       setIsModalOpen(false);
     } catch (error) {
       showToast.error(getErrorMessage(error));
@@ -1454,9 +1470,11 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
               size="sm"
               icon={<Save className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />}
               onClick={() => {
+                saveAsDraftRef.current = true;
                 (document.getElementById('goods-issue-form') as HTMLFormElement | null)?.requestSubmit();
               }}
               disabled={isSaving || !canSaveForm}
+              title="Lưu phiếu ở trạng thái Lập chứng từ, dù ô Trạng thái đang chọn gì"
               className="py-1 px-3 text-xs font-semibold cursor-pointer bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900"
             >
               Lưu Nháp
@@ -1472,7 +1490,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
               disabled={isSaving || !canSaveForm}
               className="py-1 px-4 text-xs font-bold cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs border border-emerald-600"
             >
-              {editingVoucherId ? 'Lưu & Cập Nhật' : 'Lưu Phiếu Xuất Kho'}
+              {saveStatus === 'Draft' ? (editingVoucherId ? 'Lưu & Cập Nhật' : 'Lưu Phiếu Xuất Kho') : `Lưu và ${SAVE_STATUS_LABELS[saveStatus].toLowerCase()}`}
             </Button>
           </div>
         }
@@ -1609,7 +1627,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   </h4>
                 </div>
                 <div className="shrink-0 scale-85 origin-right">
-                  {renderStatusBadge(formStatus)}
+                  {renderStatusBadge(shownStatus)}
                 </div>
               </div>
 
@@ -1652,15 +1670,23 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   </label>
                   <select
                     required
-                    value={formStatus}
-                    disabled
+                    value={shownStatus}
+                    disabled={!canChooseStatus}
+                    onChange={e => setSaveStatus(statusFromLabel(e.target.value))}
+                    title={canChooseStatus ? 'Chọn trạng thái lưu phiếu, theo quyền của bạn' : undefined}
                     className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-1.5 py-0.5 font-extrabold text-slate-800 dark:text-slate-100 text-[10.5px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                   >
-                    <option value="Lập chứng từ">Lập chứng từ</option>
-                    <option value="Chờ duyệt">Chờ duyệt</option>
-                    <option value="Đã phê duyệt">Đã phê duyệt</option>
-                    <option value="Chuyển sổ kho">Chuyển sổ kho</option>
-                    <option value="Hủy">Hủy phiếu</option>
+                    {canChooseStatus
+                      ? statusChoices.map(choice => <option key={choice} value={SAVE_STATUS_LABELS[choice]}>{SAVE_STATUS_LABELS[choice]}</option>)
+                      : (
+                        <>
+                          <option value="Lập chứng từ">Lập chứng từ</option>
+                          <option value="Chờ duyệt">Chờ duyệt</option>
+                          <option value="Đã phê duyệt">Đã phê duyệt</option>
+                          <option value="Chuyển sổ kho">Chuyển sổ kho</option>
+                          <option value="Hủy">Hủy phiếu</option>
+                        </>
+                      )}
                   </select>
                 </div>
 

@@ -113,3 +113,21 @@ public static class DocumentStatusPolicy
         };
     }
 }
+
+/// <summary>
+/// The status a voucher is saved at. A user may save straight at any status their rights reach (Draft always; Pending with
+/// the right to add / change; Approved with the "Duyệt" right and being an approver of every level; Posted with both and the
+/// POST right), the voucher then goes through those steps in the same transaction, approvals and ledger included.
+/// </summary>
+public static class VoucherTargetStatus
+{
+    /// <summary>Empty = Draft (just save). Only Draft, Pending, Approved and Posted can be asked for.</summary>
+    public static DocumentStatus Parse(string? value) => string.IsNullOrWhiteSpace(value) ? DocumentStatus.Draft : value.Trim() switch
+    {
+        "Draft" => DocumentStatus.Draft,
+        "Pending" => DocumentStatus.Pending,
+        "Approved" => DocumentStatus.Approved,
+        "Posted" => DocumentStatus.Posted,
+        _ => throw new Core.Application.Common.Exceptions.BusinessRuleException("saveStatus.invalid")
+    };
+}

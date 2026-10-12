@@ -6,7 +6,7 @@ Tài liệu chia thư mục theo **chức năng**. Mỗi tài liệu có bản M
 docs/
   kho/          Nghiệp vụ Kho: cấu trúc module, danh mục kho, phiếu nhập kho và sổ kho, phiếu xuất kho, quy đổi đơn vị tính
   he-thong/     Cài đặt hệ thống: phân quyền, quản lý menu, thông báo đăng nhập và thanh thông báo
-  phat-trien/   Khung kỹ thuật cho người viết code: thêm danh mục, tham chiếu danh mục, chống ghi đè
+  phat-trien/   Khung kỹ thuật cho người viết code: kiến trúc dự án, thêm danh mục, thêm chứng từ, tham chiếu danh mục, chống ghi đè
   cong-cu/      Script sinh file Word từ Markdown
 ```
 
@@ -16,8 +16,8 @@ docs/
 |---|---|---|
 | [cau-truc-module-kho.md](kho/cau-truc-module-kho.md) | Cấu trúc thư mục mã nguồn module Kho (phân hệ → nhóm → chức năng) và cách thêm chức năng | `Cau-truc-module-kho.docx` |
 | [huong-dan-danh-muc-kho.md](kho/huong-dan-danh-muc-kho.md) | Hướng dẫn dùng màn Danh mục kho (thêm, sửa, lọc, Excel) và quy trình thêm một danh mục theo mẫu kho | `Huong-dan-danh-muc-kho.docx` |
-| [so-kho-va-phieu-nhap-kho.md](kho/so-kho-va-phieu-nhap-kho.md) | Phiếu nhập kho từng bước, các bảng của phiếu, **sổ kho và ba bảng tồn**, danh mục và bảng hệ thống dùng chung, vận hành | `So-kho-va-phieu-nhap-kho.docx` |
-| [phieu-xuat-kho.md](kho/phieu-xuat-kho.md) | Phiếu xuất kho: giống phiếu nhập ở đâu, khác ở đâu (đối tác, loại xuất, trừ tồn theo giá bình quân, lô và vị trí bắt buộc), cấu trúc mã nguồn, API, lỗi thường gặp, cách đã kiểm tra | `Phieu-xuat-kho.docx` |
+| [so-kho-va-phieu-nhap-kho.md](kho/so-kho-va-phieu-nhap-kho.md) | Phiếu nhập kho và phiếu xuất kho từng bước, các bảng của hai phiếu, xóa phiếu và trigger dọn sổ, **sổ kho và ba bảng tồn**, danh mục và bảng hệ thống dùng chung, vận hành | `So-kho-va-phieu-nhap-kho.docx` |
+| [phieu-xuat-kho.md](kho/phieu-xuat-kho.md) | Phiếu xuất kho đầy đủ: màn hình, trạng thái và duyệt, ghi sổ trừ tồn theo giá bình quân (ví dụ chạy số), từng cột hai bảng, xóa phiếu và trigger, quyền, API kèm mẫu JSON, lỗi, cách cài đặt và kiểm tra, giới hạn, danh sách tệp | `Phieu-xuat-kho.docx` |
 | [them-quy-doi-don-vi-tinh.md](kho/them-quy-doi-don-vi-tinh.md) | Ghi lại các bước đưa Quy đổi đơn vị tính từ dữ liệu mẫu lên backend (ví dụ làm theo) | `Them-quy-doi-don-vi-tinh.docx` |
 
 ## Hệ thống (`he-thong/`)
@@ -34,6 +34,8 @@ docs/
 |---|---|---|
 | [them-danh-muc.md](phat-trien/them-danh-muc.md) | Quy trình và mã mẫu đầy đủ để thêm một danh mục (SQL, backend, frontend, kiểm tra). Đi cùng skill `/them-danh-muc` | `Them-danh-muc-S-ERP.docx` |
 | [tham-chieu-danh-muc.md](phat-trien/tham-chieu-danh-muc.md) | `[References]`, chặn xóa bản ghi đang dùng, bảng `sys_table_ref` | `Tham-chieu-danh-muc-S-ERP.docx` |
+| [kien-truc-du-an.md](phat-trien/kien-truc-du-an.md) | Kiến trúc và thiết kế dự án cho người mới: các lớp, quy ước cơ sở dữ liệu, khung danh mục, chứng từ và sổ kho, phân quyền, frontend, đa ngôn ngữ, phần nào đã chạy thật | `Kien-truc-du-an.docx` |
+| [them-chung-tu.md](phat-trien/them-chung-tu.md) | Thêm một chứng từ mới từng bước (SQL, thực thể, dịch vụ, duyệt, ghi sổ, lưu thẳng trạng thái, frontend, in, kiểm tra, lỗi hay gặp, danh sách việc) | `Them-chung-tu.docx` |
 | [chong-ghi-de.md](phat-trien/chong-ghi-de.md) | Chống ghi đè khi nhiều người cùng sửa (`Version`, `xmin`, lỗi 409) | `Chong-ghi-de.docx` |
 
 ## Công cụ (`cong-cu/`)

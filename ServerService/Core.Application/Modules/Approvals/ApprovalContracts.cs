@@ -55,6 +55,14 @@ public interface IDocumentApprovalService
     /// <summary>The requester takes back a pending document (e.g. to edit it).</summary>
     Task<DocumentApprovalDto> WithdrawAsync(int userId, string unitCode, string function, string documentId, CancellationToken ct);
 
+    /// <summary>Whether the user may save the voucher straight at the approved status: they hold the "Duyệt" right and are an
+    /// approver of every level the rules ask for (an administrator always is). Throws otherwise.</summary>
+    Task EnsureCanApproveDirectAsync(int userId, string unitCode, string function, decimal amount, CancellationToken ct);
+
+    /// <summary>Records the approval of the whole chain by <paramref name="userId"/> at once (one step per level, all approved)
+    /// and moves the draft voucher to Approved. The caller has checked <see cref="EnsureCanApproveDirectAsync"/>.</summary>
+    Task ApproveDirectAsync(int userId, string unitCode, string function, string documentId, string? title, CancellationToken ct);
+
     Task<DocumentApprovalDto> GetAsync(int userId, string unitCode, string function, string documentId, CancellationToken ct);
     Task<IReadOnlyList<PendingApprovalDto>> GetPendingForMeAsync(int userId, string unitCode, CancellationToken ct);
 }
