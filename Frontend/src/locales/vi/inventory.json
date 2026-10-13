@@ -176,6 +176,8 @@
     "taxCode": "Mã số thuế",
     "phone": "Điện thoại",
     "address": "Địa chỉ",
+    "group": "Nhóm nhà cung cấp",
+    "groupCode": "Mã nhóm nhà cung cấp",
     "note": "Ghi chú",
     "status": "Trạng thái",
     "active": "Đang sử dụng",

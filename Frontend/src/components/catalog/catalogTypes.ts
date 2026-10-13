@@ -37,12 +37,31 @@ export interface ImportResult { created: number; updated: number; errors: Import
 export interface DeleteManyResult { deleted: number; errors: ImportRowError[] }
 export type ImportMode = 'create' | 'upsert';
 
+/** What a rename or merge of a code would touch: rows of which tables hold the code. */
+export interface CodeChangePreview {
+  code: string;
+  name?: string | null;
+  intoCode?: string | null;
+  intoName?: string | null;
+  usages: { table: string; tableName: string; count: number }[];
+  total: number;
+}
+
+/** The shared endpoints of đổi mã / gộp mã (only the catalogs that allow it answer; the others refuse). */
+export interface CodeChangeApi {
+  preview: (key: string, into?: string) => Promise<CodeChangePreview>;
+  rename: (key: string, newCode: string, version?: number) => Promise<unknown>;
+  merge: (key: string, into: string) => Promise<unknown>;
+}
+
 /** Backend endpoints of a catalog: CRUD plus the optional shared batch endpoints (CatalogBatch). */
 export interface CatalogScreenApi<T, TInput> extends CatalogApi<T, TInput> {
   /** Excel file of everything the list's filters match, made by the server (export right + change log). Takes the query without the page. */
   exportAll?: (query: PagedQuery) => Promise<void>;
   importMany?: (rows: TInput[], mode: ImportMode) => Promise<ImportResult>;
   removeMany?: (keys: string[]) => Promise<DeleteManyResult>;
+  /** Đổi mã / gộp mã (the screen shows the buttons only when its definition has codeChange and the user holds CHANGE_CODE). */
+  codeChange?: CodeChangeApi;
 }
 
 export interface CatalogFormProps<T, TInput> {
@@ -87,6 +106,8 @@ export interface CatalogDefinition<T, TInput> {
   /** Applied before saving or importing (trim, upper-case codes...). */
   normalize?: (input: TInput) => TInput;
   renderForm: (props: CatalogFormProps<T, TInput>) => React.ReactNode;
+  /** Allows renaming and merging codes of this catalog (backend CatalogSpec.CodeChange): the lookup name to pick the merge target. */
+  codeChange?: { lookup: string };
   /** Modal width of the form. */
   formWidth?: 'md' | 'lg' | 'xl' | '2xl' | '3xl';
 }

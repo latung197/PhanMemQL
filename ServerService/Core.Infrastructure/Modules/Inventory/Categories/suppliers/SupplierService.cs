@@ -22,7 +22,7 @@ namespace Core.Infrastructure.Modules.Inventory.Categories.suppliers
         : CatalogService<Supplier, SupplierDto, SaveSupplierRequest>(db, batch, excel, audit), ISupplierService
     {
         // Function, loại đối tượng, nhãn của mã (field.*), độ dài mã, tên file xuất.
-        private static readonly CatalogSpec Info = new("inv_supplier_cat", "supplier", "field.supplierCode", 20, "DanhMucNhaCungCap");
+        private static readonly CatalogSpec Info = new("inv_supplier_cat", "supplier", "field.supplierCode", 20, "DanhMucNhaCungCap", CodeChange: true);
 
         // Cột được phép sắp xếp (danh sách trắng). Tên = sortKey / key của cột lưới ở frontend; "order" là thứ tự mặc định.
         private static readonly SortMap<Supplier> SortColumns = SortMap<Supplier>.By(x => x.Code, "order")
@@ -40,17 +40,23 @@ namespace Core.Infrastructure.Modules.Inventory.Categories.suppliers
 
         // Bộ lọc riêng của danh mục: tham số URL ngoài page, pageSize, sort, dir, search, status (ví dụ ?hasTaxCode=yes).
         // Chỉ đọc những khóa mình biết, khóa lạ bỏ qua. Dùng cho cả danh sách lẫn xuất Excel.
-        protected override IQueryable<Supplier> ApplyFilters(IQueryable<Supplier> rows, IReadOnlyDictionary<string, string> filters) =>
-            filters.TryGetValue("hasTaxCode", out var value)
-                ? rows.Where(x => (x.TaxCode != null && x.TaxCode != "") == (value == "yes"))
-                : rows;
+        protected override IQueryable<Supplier> ApplyFilters(IQueryable<Supplier> rows, IReadOnlyDictionary<string, string> filters)
+        {
+            if (filters.TryGetValue("hasTaxCode", out var value)) rows = rows.Where(x => (x.TaxCode != null && x.TaxCode != "") == (value == "yes"));
+            if (filters.TryGetValue("group", out var group) && !string.IsNullOrWhiteSpace(group))
+            {
+                var code = group.Trim().ToUpperInvariant();
+                rows = rows.Where(x => x.SupplierGroupCode == code);
+            }
+            return rows;
+        }
 
         // Cột file Excel xuất: tiêu đề là khóa export.supplier.* (vi trùng tiêu đề file nhập để xuất xong sửa rồi nhập lại).
         protected override IReadOnlyList<ExportColumn<Supplier>> ExportColumns() =>
         [
             new("export.supplier.code", x => x.Code), new("export.supplier.name", x => x.Name),
             new("export.supplier.taxCode", x => x.TaxCode), new("export.supplier.phone", x => x.Phone),
-            new("export.supplier.address", x => x.Address), new("export.supplier.note", x => x.Note),
+            new("export.supplier.address", x => x.Address), new("export.supplier.supplierGroupCode", x => x.SupplierGroupCode), new("export.supplier.note", x => x.Note),
             new("export.supplier.isActive", x => YesNo(x.IsActive))
         ];
 
@@ -58,10 +64,14 @@ namespace Core.Infrastructure.Modules.Inventory.Categories.suppliers
         protected override SaveSupplierRequest WithoutVersion(SaveSupplierRequest request) => request with { Version = null };
 
         // Entity -> DTO. Cần dữ liệu liên quan (tên, bản dịch) thì đọc một lần cho cả danh sách, đừng đọc từng dòng.
-        protected override Task<IReadOnlyList<SupplierDto>> MapAsync(IReadOnlyList<Supplier> rows,
-            Func<ErpEntity, RecordStampDto> stamp, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<SupplierDto>>(rows.Select(x => new SupplierDto(x.Code, x.Name, x.TaxCode, x.Phone,
-                x.Address, x.Note, x.IsActive, stamp(x), x.Version)).ToList());
+        protected override async Task<IReadOnlyList<SupplierDto>> MapAsync(IReadOnlyList<Supplier> rows,
+            Func<ErpEntity, RecordStampDto> stamp, CancellationToken ct)
+        {
+            var codes = rows.Select(x => x.SupplierGroupCode).Where(x => x != null).Distinct().ToList();
+            var groups = await Db.SupplierGroups.AsNoTracking().Where(x => codes.Contains(x.Code)).ToDictionaryAsync(x => x.Code, x => x.Name, ct);
+            return rows.Select(x => new SupplierDto(x.Code, x.Name, x.TaxCode, x.Phone, x.Address, x.Note, x.IsActive, stamp(x), x.Version,
+                x.SupplierGroupCode, x.SupplierGroupCode is null ? null : groups.GetValueOrDefault(x.SupplierGroupCode))).ToList();
+        }
 
         // Kiểm tra rồi chép request vào entity. Mã (Code) và SortOrder đã do lớp nền xử lý.
         protected override async Task ApplyAsync(Supplier row, SaveSupplierRequest request, CancellationToken ct)
@@ -72,6 +82,7 @@ namespace Core.Infrastructure.Modules.Inventory.Categories.suppliers
             row.Name = name;
             row.TaxCode = Guard.Optional(request.TaxCode, 30, "field.taxCode");
             row.Phone = Guard.Optional(request.Phone, 30, "field.phone");
+            row.SupplierGroupCode = string.IsNullOrWhiteSpace(request.SupplierGroupCode) ? null : request.SupplierGroupCode.Trim().ToUpperInvariant();
             row.Address = Guard.Optional(request.Address, 300, "field.address");
             row.Note = Guard.Optional(request.Note, 300, "field.note");
             row.IsActive = request.IsActive;

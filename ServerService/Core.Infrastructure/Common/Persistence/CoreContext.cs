@@ -6,6 +6,9 @@ using Core.Domain.Modules.CompanyUnits;
 using Core.Domain.Modules.Currencies;
 using Core.Domain.Modules.Departments;
 using Core.Domain.Modules.Banners;
+using Core.Domain.Modules.Purchasing.Categories.PaymentTerms;
+using Core.Domain.Modules.Purchasing.Categories.Projects;
+using Core.Domain.Modules.Purchasing.Categories.SupplierGroups;
 using Core.Domain.Modules.Purchasing.Documents.PurchaseOrders;
 using Core.Domain.Modules.Purchasing.Documents.PurchaseRequests;
 using Core.Domain.Modules.VoucherStatuses;
@@ -36,6 +39,9 @@ namespace Core.Infrastructure.Common.Persistence;
 public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentUser? currentUser = null,
     AuditTrail? auditTrail = null) : DbContext(options)
 {
+    /// <summary>The signed-in user (null for system work); for stamps written with raw SQL.</summary>
+    public int? CurrentUserId => currentUser is { IsAuthenticated: true } ? currentUser.UserId : null;
+
     // Users & permissions
     public DbSet<SysUser> Users => Set<SysUser>();
     public DbSet<SysRole> Roles => Set<SysRole>();
@@ -106,6 +112,9 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<PurchaseRequest> PurchaseRequests => Set<PurchaseRequest>();
     public DbSet<PurchaseRequestLine> PurchaseRequestLines => Set<PurchaseRequestLine>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
+    public DbSet<Project> Projects => Set<Project>();
+    public DbSet<PaymentTerm> PaymentTerms => Set<PaymentTerm>();
+    public DbSet<SupplierGroup> SupplierGroups => Set<SupplierGroup>();
     public DbSet<PurchaseOrderLine> PurchaseOrderLines => Set<PurchaseOrderLine>();
 
     // Change log (all functions)

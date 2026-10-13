@@ -48,8 +48,11 @@ public sealed class CatalogFrameworkTests
     {
         var endpoints = typeof(CatalogControllerBase<,>).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
             .Where(m => m.GetCustomAttributes<HttpMethodAttribute>().Any()).ToList();
-        Assert.Equal(7, endpoints.Count);
+        Assert.Equal(10, endpoints.Count);
         Assert.All(endpoints, m => Assert.True(m.GetCustomAttributes<CatalogRightAttribute>().Any(), $"{m.Name} has no [CatalogRight]."));
+        // Đổi mã / gộp mã change data in many tables: Edit on top of the special right CHANGE_CODE (checked in the controller).
+        foreach (var name in new[] { "CodeChangePreview", "Rename", "Merge" })
+            Assert.Equal([PermissionAction.Edit], endpoints.Single(m => m.Name == name).GetCustomAttributes<CatalogRightAttribute>().Select(a => a.Action).ToArray());
         // Export hands out all the data: it needs both viewing and exporting.
         var export = endpoints.Single(m => m.Name == "Export").GetCustomAttributes<CatalogRightAttribute>().Select(a => a.Action).ToHashSet();
         Assert.Equal(new HashSet<PermissionAction> { PermissionAction.View, PermissionAction.Export }, export);

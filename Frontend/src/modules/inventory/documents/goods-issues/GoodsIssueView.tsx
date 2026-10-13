@@ -37,6 +37,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { Button } from '../../../../components/common/Button';
+import { CatalogLookup } from '../../../../components/catalog/CatalogLookup';
 import { Modal } from '../../../../components/common/Modal';
 import { Badge } from '../../../../components/common/Badge';
 import { CategoryHeaderToolbar } from '../../../../components/common/CategoryHeaderToolbar';
@@ -173,6 +174,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const [formExchangeRate, setFormExchangeRate] = useState<number>(1);
   const [formCreatedBy, setFormCreatedBy] = useState('');
   const [formNote, setFormNote] = useState('');
+  const [formProjectCode, setFormProjectCode] = useState('');
 
   // Form Fields - Line Items List (Tab 1: Chi Tiết Xuất Kho)
   const [formItems, setFormItems] = useState<VoucherItem[]>([]);
@@ -335,6 +337,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     setFormExchangeRate(1);
     setFormCreatedBy(currentUser?.fullName || 'Trần Thịnh (Admin)');
     setFormNote('');
+    setFormProjectCode('');
 
     // Default 1 line item for Tab 1 + 1 empty row for quick entry
     const emptyItem: VoucherItem = {
@@ -392,6 +395,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     setFormExchangeRate(voucher.exchangeRate || 1);
     setFormCreatedBy(voucher.createdBy || 'Administrator');
     setFormNote(voucher.note || '');
+    setFormProjectCode(voucher.projectCode || '');
 
     const emptyItem: VoucherItem = {
       productId: '',
@@ -1008,7 +1012,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       totalValue: formTotalValue,
       createdBy: formCreatedBy || currentUser?.fullName || 'Trần Thịnh (Admin)',
       status: editingVoucherId ? formStatus : 'Lập chứng từ',
-      note: formNote.trim()
+      projectCode: formProjectCode, note: formNote.trim()
     };
 
     setIsSaving(true);
@@ -1590,6 +1594,11 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                     )}
                   </div>
                 )}
+
+                <div>
+                  <label className="block text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">Dự Án</label>
+                  <CatalogLookup lookup="projects" value={formProjectCode} onChange={code => setFormProjectCode(code)} />
+                </div>
 
                 {/* Ghi chú / Diễn giải (Spans 2 cols) */}
                 <div className="sm:col-span-2 lg:col-span-2">

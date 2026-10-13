@@ -169,6 +169,25 @@
     "SPECIFIC": "Specific identification by lot"
   },
   "catalog": {
+    "codeChange": {
+      "rename": "Rename code",
+      "merge": "Merge code",
+      "renameTitle": "Rename code of {noun} {code}",
+      "mergeTitle": "Merge {noun} {code} into another code",
+      "newCode": "New code",
+      "newCodeHint": "The new code replaces the old one everywhere it is used.",
+      "target": "Merge into code",
+      "targetIs": "Target: {code} - {name}",
+      "usageTitle": "Used in",
+      "noUsage": "No data uses this code yet.",
+      "total": "Rows that will be updated",
+      "renameWarning": "All the rows above change to the new code at once, posted vouchers and locked months included. Changing back means renaming again.",
+      "mergeWarning": "All the rows above move to the target code; {code} is set inactive (kept for tracing, with a note that it was merged). This cannot be undone.",
+      "doRename": "Rename",
+      "doMerge": "Merge",
+      "renamed": "Renamed {old} to {next} ({n} rows updated)",
+      "merged": "Merged {old} into {target} ({n} rows moved)"
+    },
     "saved": "Saved {noun}",
     "added": "Added {noun}",
     "deleteTitle": "Delete {noun} {item}?",
@@ -628,6 +647,10 @@
     "sys_languages": "Languages",
     "sys_login_notices": "Login screen notices",
     "sys_banners": "System notice bar",
+    "pur_project_cat": "Projects",
+    "pur_payment_term_cat": "Payment terms",
+    "pur_supplier_group_cat": "Supplier groups",
+    "pur_report_project": "Project cost report",
     "sys_voucher_status": "Voucher statuses",
     "sys_tax_rates": "Tax codes",
     "sales_customers": "Customers",
@@ -671,7 +694,9 @@
       "REJECT": "Rejected",
       "WITHDRAW": "Withdrawn",
       "PURGE": "Automatic deletion",
-      "EXPORT": "Excel export"
+      "EXPORT": "Excel export",
+      "CODE_CHANGE": "Code renamed",
+      "MERGE": "Codes merged"
     },
     "note": {
       "default": "Note: {note}",
@@ -813,6 +838,9 @@
       "taxRate": "Tax code",
       "loginNotice": "Login notice",
       "banner": "Notice bar",
+      "project": "Project",
+      "paymentTerm": "Payment term",
+      "supplierGroup": "Supplier group",
       "auditLog": "Change log",
       "menu": "Menu item"
     },

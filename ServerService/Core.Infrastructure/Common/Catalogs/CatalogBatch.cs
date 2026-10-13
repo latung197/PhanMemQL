@@ -14,6 +14,9 @@ namespace Core.Infrastructure.Common.Catalogs;
 /// </summary>
 public sealed class CatalogBatch(CoreContext db, IUnitOfWork unitOfWork)
 {
+    /// <summary>Runs <paramref name="work"/> in one transaction (a rename or merge of a code that touches several tables).</summary>
+    public Task RunAsync(Func<CancellationToken, Task> work, CancellationToken ct) => unitOfWork.ExecuteAsync(work, ct);
+
     private sealed class Failed(List<RowError> errors) : Exception
     {
         public List<RowError> Errors { get; } = errors;

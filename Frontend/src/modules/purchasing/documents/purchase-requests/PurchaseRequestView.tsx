@@ -22,6 +22,7 @@ import {
   User
 } from 'lucide-react';
 import { Button } from '../../../../components/common/Button';
+import { CatalogLookup } from '../../../../components/catalog/CatalogLookup';
 import { Modal } from '../../../../components/common/Modal';
 import { Badge } from '../../../../components/common/Badge';
 import { CategoryHeaderToolbar } from '../../../../components/common/CategoryHeaderToolbar';
@@ -146,6 +147,7 @@ export const PurchaseRequestView: React.FC<PurchaseRequestViewProps> = ({ compan
   const [formExchangeRate, setFormExchangeRate] = useState<number>(1);
   const [formCreatedBy, setFormCreatedBy] = useState('');
   const [formNote, setFormNote] = useState('');
+  const [formProjectCode, setFormProjectCode] = useState('');
   const [formItems, setFormItems] = useState<VoucherItem[]>([]);
 
   // Pickers
@@ -241,6 +243,7 @@ export const PurchaseRequestView: React.FC<PurchaseRequestViewProps> = ({ compan
     setFormExchangeRate(1);
     setFormCreatedBy(currentUser?.fullName || '');
     setFormNote('');
+    setFormProjectCode('');
     setFormItems([emptyItem()]);
     setSaveStatus('Draft');
     setIsModalOpen(true);
@@ -265,6 +268,7 @@ export const PurchaseRequestView: React.FC<PurchaseRequestViewProps> = ({ compan
     setFormExchangeRate(voucher.exchangeRate || 1);
     setFormCreatedBy(voucher.createdBy || '');
     setFormNote(voucher.note || '');
+    setFormProjectCode(voucher.projectCode || '');
     const mapped: VoucherItem[] = (voucher.items ?? []).map(it => ({
       productId: it.productId || '', productName: it.productName, sku: it.sku || '', unit: it.unit || '',
       quantity: it.quantity || 1, unitPrice: it.unitPrice || 0, totalPrice: (it.quantity || 1) * (it.unitPrice || 0),
@@ -410,7 +414,7 @@ export const PurchaseRequestView: React.FC<PurchaseRequestViewProps> = ({ compan
       departmentCode: formDepartmentCode, requesterName: formRequesterName.trim(), supplierCode: formSupplierCode || undefined, supplierName: formSupplierName.trim(),
       warehouseId: formWarehouseId, warehouseName: warehouseObj?.name || formWarehouseName,
       items: validItems, totalValue: formTotalValue, createdBy: formCreatedBy || currentUser?.fullName || '',
-      status: editingVoucherId ? formStatus : 'Lập chứng từ', note: formNote.trim()
+      status: editingVoucherId ? formStatus : 'Lập chứng từ', projectCode: formProjectCode, note: formNote.trim()
     };
 
     setIsSaving(true);
@@ -477,7 +481,7 @@ export const PurchaseRequestView: React.FC<PurchaseRequestViewProps> = ({ compan
   };
 
   // ---------------------------------------------------------------------------------------------- list
-  const renderStatusBadge = (status?: string) => <VoucherStatusBadge voucherType="YCX" label={status} />;
+  const renderStatusBadge = (status?: string) => <VoucherStatusBadge voucherType="YCM" label={status} />;
 
   const columns: GridViewColumn<GoodsVoucher>[] = [
     {
@@ -597,7 +601,7 @@ export const PurchaseRequestView: React.FC<PurchaseRequestViewProps> = ({ compan
         filterPanelContent={
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 text-xs">
             <div><label className={filterLabel}>Mã / Số Chứng Từ</label>
-              <input type="text" placeholder="YCX-202610-01..." value={codeFilter} onChange={(e) => setCodeFilter(e.target.value)} className={filterInput} /></div>
+              <input type="text" placeholder="YCM-DVCS01-202610-01..." value={codeFilter} onChange={(e) => setCodeFilter(e.target.value)} className={filterInput} /></div>
             <div><label className={filterLabel}>Loại Mua</label>
               <select value={purposeFilter} onChange={(e) => setPurposeFilter(e.target.value)} className={filterInput}>
                 <option value="">-- Tất cả loại mua --</option>
@@ -749,6 +753,11 @@ export const PurchaseRequestView: React.FC<PurchaseRequestViewProps> = ({ compan
                   <DateTimePicker label="Ngày Cần Hàng" type="date" value={formRequiredDate} onChange={(val) => setFormRequiredDate(val)} />
                 </div>
 
+                <div>
+                  <label className={VOUCHER_LABEL}>Dự Án</label>
+                  <CatalogLookup lookup="projects" value={formProjectCode} onChange={code => setFormProjectCode(code)} />
+                </div>
+
                 <div className="sm:col-span-2 xl:col-span-3">
                   <label className={VOUCHER_LABEL}>Ghi Chú / Diễn Giải Nghiệp Vụ</label>
                   <input type="text" placeholder="Ví dụ: Mua bổ sung vật tư cho kế hoạch sản xuất tháng 11..." value={formNote}
@@ -776,7 +785,7 @@ export const PurchaseRequestView: React.FC<PurchaseRequestViewProps> = ({ compan
                 </div>
                 <div>
                   <label className={VOUCHER_LABEL}>Số Chứng Từ <span className="text-rose-500">*</span></label>
-                  <input type="text" required value={formCode} readOnly placeholder="YCX-202610-001"
+                  <input type="text" required value={formCode} readOnly placeholder="YCM-DVCS01-202610-001"
                     className="w-full bg-indigo-50/40 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/70 rounded-lg px-1.5 py-0.5 font-mono font-black text-indigo-700 dark:text-indigo-300 text-[10.5px] h-[26px]" />
                 </div>
                 <div>

@@ -35,4 +35,26 @@ public interface ICatalogService<TDto, TRequest> where TRequest : class, ICatalo
     /// <summary>Nhập Excel: every row checked like the form, all saved or none (CatalogBatch).</summary>
     Task<ImportResult> ImportAsync(ImportRequest<TRequest> request, CancellationToken ct);
     Task<DeleteManyResult> DeleteManyAsync(DeleteManyRequest request, CancellationToken ct);
+
+    /// <summary>
+    /// Đổi mã / gộp mã (only catalogs that allow it): what a change of this code would touch, i.e. how many rows of which tables hold
+    /// the code. With <paramref name="intoCode"/> it is the same list (the rows that would move to that code) plus the name of the target.
+    /// </summary>
+    Task<CodeChangePreviewDto> PreviewCodeChangeAsync(string code, string? intoCode, CancellationToken ct);
+
+    /// <summary>Renames the code: the record and every column of other tables that holds it change together, in one transaction.</summary>
+    Task<TDto> RenameAsync(string code, RenameCodeRequest request, CancellationToken ct);
+
+    /// <summary>Merges the code into another: everything that used it points to the target, and the record is set inactive (kept for tracing).</summary>
+    Task<TDto> MergeAsync(string code, MergeCodeRequest request, CancellationToken ct);
 }
+
+/// <summary>Rows of one table that hold a code; TableName is its readable name in the language of the request.</summary>
+public sealed record CodeUsageDto(string Table, string TableName, long Count);
+
+public sealed record CodeChangePreviewDto(string Code, string? Name, string? IntoCode, string? IntoName,
+    IReadOnlyList<CodeUsageDto> Usages, long Total);
+
+public sealed record RenameCodeRequest(string NewCode, uint? Version = null);
+
+public sealed record MergeCodeRequest(string IntoCode);

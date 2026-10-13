@@ -23,7 +23,8 @@ namespace Core.Infrastructure.Common.Catalogs;
 /// <param name="CodeField">Label key of the code for validation messages: "field.uomCode".</param>
 /// <param name="CodeLength">Longest code, as in the database column.</param>
 /// <param name="FileName">Base name of the exported file, without date or extension: "DanhMucDonViTinh".</param>
-public sealed record CatalogSpec(string Function, string ObjectType, string CodeField, int CodeLength, string FileName);
+/// <param name="CodeChange">True when codes of this catalog may be renamed and merged (the code is not built into other codes, the references are all declared); needs the special right CHANGE_CODE.</param>
+public sealed record CatalogSpec(string Function, string ObjectType, string CodeField, int CodeLength, string FileName, bool CodeChange = false);
 
 /// <summary>
 /// The service of a catalog (danh mục), written once: paged and filtered list, Excel export, create, update with the
@@ -175,6 +176,86 @@ public abstract class CatalogService<TEntity, TDto, TRequest>(CoreContext db, Ca
         await BeforeDeleteAsync(row, ct);
         Rows.Remove(row);
         await SaveAsync(ct);
+    }
+
+    // ---- Đổi mã / gộp mã -----------------------------------------------------------------------------------------------
+
+    private string TableName => Db.Model.FindEntityType(typeof(TEntity))?.GetTableName()
+        ?? throw new InvalidOperationException($"{typeof(TEntity).Name} is not an entity of the model.");
+
+    private void EnsureCodeChangeAllowed()
+    {
+        if (!Spec.CodeChange) throw new BusinessRuleException("codeChange.notAllowed");
+    }
+
+    /// <summary>Called inside the transaction of a rename or merge after the references were rewritten: fix what the references cannot express (texts that copy the code).</summary>
+    protected virtual Task AfterCodeChangeAsync(string oldCode, string newCode, bool merged, CancellationToken ct) => Task.CompletedTask;
+
+    public async Task<CodeChangePreviewDto> PreviewCodeChangeAsync(string code, string? intoCode, CancellationToken ct)
+    {
+        EnsureCodeChangeAllowed();
+        var row = await FindAsync(code, ct);
+        TEntity? into = null;
+        if (!string.IsNullOrWhiteSpace(intoCode))
+        {
+            var key = KeyText(intoCode);
+            into = await Rows.AsNoTracking().FirstOrDefaultAsync(x => x.Code == key, ct) ?? throw new NotFoundException($"{Spec.ObjectType}.notFound");
+        }
+        var usages = (await CatalogCodeChange.CountsAsync(Db, TableName, row.Code, ct))
+            .GroupBy(x => x.Table).Select(g => new CodeUsageDto(g.Key, ReferenceChecks.TableLabel(g.Key), g.Sum(x => x.Count))).Where(x => x.Count > 0).ToList();
+        return new CodeChangePreviewDto(row.Code, NameOf(row), into?.Code, into is null ? null : NameOf(into), usages, usages.Sum(x => x.Count));
+    }
+
+    public async Task<TDto> RenameAsync(string code, RenameCodeRequest request, CancellationToken ct)
+    {
+        EnsureCodeChangeAllowed();
+        var row = await FindAsync(code, ct);
+        var newCode = NormalizeCode(request.NewCode);
+        if (newCode == row.Code) throw new BusinessRuleException("codeChange.same");
+        if (await Rows.AnyAsync(x => x.Code == newCode, ct)) throw new BusinessRuleException($"{Spec.ObjectType}.codeExists", newCode);
+        Db.ExpectVersion(row, request.Version);
+        var oldCode = row.Code;
+        var label = $"{newCode} - {NameOf(row)}";
+        var table = TableName;
+        await batch.RunAsync(async token =>
+        {
+            // The key changes with raw SQL (EF cannot change a key); the tracked copy would still hold the old code.
+            Db.Entry(row).State = EntityState.Detached;
+            var changed = await CatalogCodeChange.RewriteAsync(Db, table, oldCode, newCode, merge: false, token);
+            var updated = await Db.Database.ExecuteSqlRawAsync(
+                $"UPDATE \"{table}\" SET \"code\" = {{0}}, \"updated_at\" = now(), \"updated_by\" = {{1}} WHERE \"code\" = {{2}}",
+                [newCode, (object?)Db.CurrentUserId ?? DBNull.Value, oldCode], token);
+            if (updated != 1) throw new ConflictException("record.changed");
+            await AfterCodeChangeAsync(oldCode, newCode, merged: false, token);
+            await audit.RecordAsync(new AuditEntry(Spec.Function, Spec.ObjectType, newCode, label, AuditActions.CodeChange,
+                [new AuditChange("code", oldCode, newCode)], Messages.T("codeChange.auditNote", changed)), token);
+            await Db.SaveChangesAsync(token);
+        }, ct);
+        return await ResultAsync(await FindAsync(newCode, ct), ct);
+    }
+
+    public async Task<TDto> MergeAsync(string code, MergeCodeRequest request, CancellationToken ct)
+    {
+        EnsureCodeChangeAllowed();
+        var from = await FindAsync(code, ct);
+        var intoKey = KeyText(request.IntoCode);
+        if (intoKey == from.Code) throw new BusinessRuleException("codeChange.mergeSelf");
+        var into = await Rows.FirstOrDefaultAsync(x => x.Code == intoKey, ct) ?? throw new NotFoundException($"{Spec.ObjectType}.notFound");
+        if (!into.IsActive) throw new BusinessRuleException("codeChange.targetInactive", into.Code);
+        var table = TableName;
+        var label = $"{from.Code} - {NameOf(from)}";
+        await batch.RunAsync(async token =>
+        {
+            var changed = await CatalogCodeChange.RewriteAsync(Db, table, from.Code, into.Code, merge: true, token);
+            await AfterCodeChangeAsync(from.Code, into.Code, merged: true, token);
+            // The merged record stays, inactive, with a note saying where it went (so an old code can still be traced).
+            from.IsActive = false;
+            CatalogCodeChange.AppendNote(from, Messages.T("codeChange.mergedNote", into.Code));
+            await audit.RecordAsync(new AuditEntry(Spec.Function, Spec.ObjectType, from.Code, label, AuditActions.Merge,
+                [new AuditChange("code", from.Code, into.Code)], Messages.T("codeChange.auditNote", changed)), token);
+            await Db.SaveChangesAsync(token);
+        }, ct);
+        return await ResultAsync(from, ct);
     }
 
     // ---- Excel import and bulk delete (every row goes through the methods above) ------------------------------------

@@ -422,6 +422,66 @@
             "isActive": true
           }
         ]
+      },
+      {
+        "id": "GRP_PUR_CATALOGS",
+        "groupCode": "catalogs",
+        "titleVi": "3. Danh Mục Mua Hàng",
+        "titleEn": "Purchasing Catalogs",
+        "icon": "Layers",
+        "iconColor": "text-sky-400",
+        "orderNo": 30,
+        "isActive": true,
+        "items": [
+          {
+            "id": "MNU_PUR_PROJECT_CAT",
+            "subKey": "pur_project_cat",
+            "titleVi": "Danh mục dự án",
+            "titleEn": "Projects",
+            "icon": "Briefcase",
+            "orderNo": 10,
+            "isActive": true
+          },
+          {
+            "id": "MNU_PUR_PAYMENT_TERM_CAT",
+            "subKey": "pur_payment_term_cat",
+            "titleVi": "Danh mục điều khoản thanh toán",
+            "titleEn": "Payment Terms",
+            "icon": "CalendarClock",
+            "orderNo": 20,
+            "isActive": true
+          },
+          {
+            "id": "MNU_PUR_SUPPLIER_GROUP_CAT",
+            "subKey": "pur_supplier_group_cat",
+            "titleVi": "Danh mục nhóm nhà cung cấp",
+            "titleEn": "Supplier Groups",
+            "icon": "Users",
+            "orderNo": 30,
+            "isActive": true
+          }
+        ]
+      },
+      {
+        "id": "GRP_PUR_REPORTS",
+        "groupCode": "reports",
+        "titleVi": "4. Báo Cáo Mua Hàng",
+        "titleEn": "Purchasing Reports",
+        "icon": "PieChart",
+        "iconColor": "text-emerald-400",
+        "orderNo": 40,
+        "isActive": true,
+        "items": [
+          {
+            "id": "MNU_PUR_REPORT_PROJECT",
+            "subKey": "pur_report_project",
+            "titleVi": "Báo cáo chi phí theo dự án",
+            "titleEn": "Project Cost Report",
+            "icon": "Briefcase",
+            "orderNo": 10,
+            "isActive": true
+          }
+        ]
       }
     ]
   },

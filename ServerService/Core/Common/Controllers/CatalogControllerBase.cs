@@ -1,7 +1,9 @@
 using System.Reflection;
 using Core.Application.Common.Catalogs;
 using Core.Application.Common.Export;
+using Core.Application.Common.Exceptions;
 using Core.Application.Common.Paging;
+using Core.Application.Common.Permissions;
 using Core.Application.Modules.Users;
 using Core.Common.Authorization;
 using Core.Domain.Modules.Users;
@@ -56,6 +58,40 @@ public abstract class CatalogControllerBase<TDto, TRequest>(ICatalogService<TDto
 
     [HttpPost("delete-many"), CatalogRight(PermissionAction.Delete)]
     public Task<DeleteManyResult> DeleteMany(DeleteManyRequest request, CancellationToken ct) => catalog.DeleteManyAsync(request, ct);
+
+    /// <summary>
+    /// Đổi mã / gộp mã (only the catalogs that allow it; the special right CHANGE_CODE of the function is needed on top of Edit).
+    /// What a change would touch: rows of which tables hold the code (with <c>into=</c> for a merge, also the target's name).
+    /// </summary>
+    [HttpGet("{code}/code-change"), CatalogRight(PermissionAction.Edit)]
+    public async Task<CodeChangePreviewDto> CodeChangePreview(string code, [FromQuery] string? into, CancellationToken ct)
+    {
+        await EnsureChangeCodeRightAsync(ct);
+        return await catalog.PreviewCodeChangeAsync(code, into, ct);
+    }
+
+    /// <summary>Renames the code; every column of other tables that holds it changes with it.</summary>
+    [HttpPost("{code}/rename"), CatalogRight(PermissionAction.Edit)]
+    public async Task<TDto> Rename(string code, RenameCodeRequest request, CancellationToken ct)
+    {
+        await EnsureChangeCodeRightAsync(ct);
+        return await catalog.RenameAsync(code, request, ct);
+    }
+
+    /// <summary>Merges the code into another: everything that used it points to the target; the record is set inactive.</summary>
+    [HttpPost("{code}/merge"), CatalogRight(PermissionAction.Edit)]
+    public async Task<TDto> Merge(string code, MergeCodeRequest request, CancellationToken ct)
+    {
+        await EnsureChangeCodeRightAsync(ct);
+        return await catalog.MergeAsync(code, request, ct);
+    }
+
+    private async Task EnsureChangeCodeRightAsync(CancellationToken ct)
+    {
+        var function = GetType().GetCustomAttribute<CatalogFunctionAttribute>()!.Function;
+        if (!await permissions.HasRightAsync(CurrentUserId, function, SpecialRightCatalog.ChangeCode, ct))
+            throw new ForbiddenException("permission.denied");
+    }
 
     [HttpDelete("{code}"), CatalogRight(PermissionAction.Delete)]
     public async Task<IActionResult> Delete(string code, CancellationToken ct)

@@ -6,6 +6,8 @@ export interface SupplierRecord {
   taxCode?: string | null;
   phone?: string | null;
   address?: string | null;
+  supplierGroupCode?: string | null;
+  supplierGroupName?: string | null;
   note?: string | null;
   isActive: boolean;
   stamp: RecordStamp;
@@ -18,6 +20,7 @@ export interface SaveSupplierInput {
   taxCode: string;
   phone: string;
   address: string;
+  supplierGroupCode: string;
   note: string;
   isActive: boolean;
   version?: number;

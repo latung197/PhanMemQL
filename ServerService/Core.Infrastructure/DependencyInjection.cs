@@ -20,6 +20,7 @@ using Core.Application.Modules.Inventory.Categories.suppliers;
 using Core.Application.Modules.Inventory.Documents.GoodsIssues;
 using Core.Application.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Application.Modules.Inventory.Documents.IssueRequests;
+using Core.Application.Modules.Purchasing.Categories;
 using Core.Application.Modules.Purchasing.Documents.PurchaseOrders;
 using Core.Application.Modules.Purchasing.Documents.PurchaseRequests;
 using Core.Application.Modules.Inventory.Stock;
@@ -55,6 +56,7 @@ using Core.Infrastructure.Modules.Inventory.Categories.suppliers;
 using Core.Infrastructure.Modules.Inventory.Documents.GoodsIssues;
 using Core.Infrastructure.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Infrastructure.Modules.Inventory.Documents.IssueRequests;
+using Core.Infrastructure.Modules.Purchasing.Categories;
 using Core.Infrastructure.Modules.Purchasing.Documents.PurchaseOrders;
 using Core.Infrastructure.Modules.Purchasing.Documents.PurchaseRequests;
 using Core.Infrastructure.Modules.Inventory.Stock;
@@ -159,6 +161,10 @@ public static class DependencyInjection
         services.AddScoped<IIssueRequestService, IssueRequestService>();
         services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
         services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+        services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<Core.Application.Modules.Purchasing.Reports.IProjectCostReport, Core.Infrastructure.Modules.Purchasing.Reports.ProjectCostService>();
+        services.AddScoped<IPaymentTermService, PaymentTermService>();
+        services.AddScoped<ISupplierGroupService, SupplierGroupService>();
         return services;
     }
 }

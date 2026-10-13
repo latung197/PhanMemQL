@@ -14,7 +14,7 @@ public sealed record GoodsIssueDto(long Id, string Code, DateOnly Date, DateOnly
     string UnitCode, string UnitName, string WarehouseCode, string WarehouseName, string VoucherType,
     string CurrencyCode, decimal ExchangeRate, string? CustomerName, string? ReceiverName, string? IssueRequestCode,
     string? Note, string Status, decimal TotalValue, string CreatedBy, string? ApprovedBy,
-    IReadOnlyList<GoodsIssueLineDto> Items, IReadOnlyList<GoodsIssueLineDto> MaterialItems, uint Version);
+    IReadOnlyList<GoodsIssueLineDto> Items, IReadOnlyList<GoodsIssueLineDto> MaterialItems, uint Version, string? ProjectCode = null);
 
 public sealed record SaveGoodsIssueRequest(DateOnly Date, string WarehouseCode, string VoucherType,
     string CurrencyCode, decimal ExchangeRate, string? CustomerName, string? ReceiverName,
@@ -23,7 +23,9 @@ public sealed record SaveGoodsIssueRequest(DateOnly Date, string WarehouseCode, 
     /// <summary>Draft (default), Pending, Approved or Posted: the status to save at, as far as the user's rights reach (VoucherTargetStatus).</summary>
     string? TargetStatus = null,
     /// <summary>The approved issue request (phiếu yêu cầu xuất kho) this issue carries out; every item line then names the request line it carries out.</summary>
-    string? IssueRequestCode = null);
+    string? IssueRequestCode = null,
+    /// <summary>The project (dự án) of the voucher, optional; only a project that is in use and still takes vouchers.</summary>
+    string? ProjectCode = null);
 
 public sealed record GoodsIssueOption(string Code, string Name);
 public sealed record GoodsIssueOptionsDto(IReadOnlyList<GoodsIssueOption> Warehouses,

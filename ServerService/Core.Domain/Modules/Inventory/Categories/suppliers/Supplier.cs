@@ -17,6 +17,9 @@ namespace Core.Domain.Modules.Inventory.Categories.suppliers
         [NotReference("mã số thuế, không phải mã danh mục")]
         [Column("tax_code"), MaxLength(30)] public string? TaxCode { get; set; }
         [Column("phone"), MaxLength(30)] public string? Phone { get; set; }
+        /// <summary>The group of the supplier (nhóm nhà cung cấp), optional.</summary>
+        [References<Core.Domain.Modules.Purchasing.Categories.SupplierGroups.SupplierGroup>(Optional = true)]
+        [Column("supplier_group_code"), MaxLength(20)] public string? SupplierGroupCode { get; set; }
         [Column("address"), MaxLength(300)] public string? Address { get; set; }
         [Column("note"), MaxLength(300)] public string? Note { get; set; }
         [Column("is_active")] public bool IsActive { get; set; } = true;

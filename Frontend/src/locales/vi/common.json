@@ -169,6 +169,25 @@
     "SPECIFIC": "Đích danh theo lô"
   },
   "catalog": {
+    "codeChange": {
+      "rename": "Đổi mã",
+      "merge": "Gộp mã",
+      "renameTitle": "Đổi mã {noun} {code}",
+      "mergeTitle": "Gộp mã {noun} {code} vào mã khác",
+      "newCode": "Mã mới",
+      "newCodeHint": "Mã mới thay mã cũ ở mọi nơi đang dùng.",
+      "target": "Gộp vào mã",
+      "targetIs": "Mã đích: {code} - {name}",
+      "usageTitle": "Đang được dùng ở",
+      "noUsage": "Chưa có dữ liệu nào dùng mã này.",
+      "total": "Tổng số dòng sẽ được cập nhật",
+      "renameWarning": "Mọi dòng ở trên đổi sang mã mới cùng lúc, kể cả chứng từ đã ghi sổ hoặc ở tháng đã khóa. Muốn đổi lại phải đổi mã lần nữa.",
+      "mergeWarning": "Mọi dòng ở trên chuyển sang mã đích; mã {code} chuyển sang ngừng sử dụng (giữ lại để tra cứu, kèm ghi chú đã gộp). Không hoàn tác được.",
+      "doRename": "Đổi mã",
+      "doMerge": "Gộp mã",
+      "renamed": "Đã đổi mã {old} thành {next} ({n} dòng đã cập nhật)",
+      "merged": "Đã gộp mã {old} vào {target} ({n} dòng đã chuyển)"
+    },
     "saved": "Đã lưu {noun}",
     "added": "Đã thêm {noun}",
     "deleteTitle": "Xóa {noun} {item}?",
@@ -608,7 +627,9 @@
       "REJECT": "Từ chối",
       "WITHDRAW": "Rút lại",
       "PURGE": "Tự động xóa",
-      "EXPORT": "Xuất Excel"
+      "EXPORT": "Xuất Excel",
+      "CODE_CHANGE": "Đổi mã",
+      "MERGE": "Gộp mã"
     },
     "note": {
       "default": "Ghi chú: {note}",
@@ -750,6 +771,9 @@
       "taxRate": "Mã thuế",
       "loginNotice": "Thông báo đăng nhập",
       "banner": "Thanh thông báo",
+      "project": "Dự án",
+      "paymentTerm": "Điều khoản thanh toán",
+      "supplierGroup": "Nhóm nhà cung cấp",
       "auditLog": "Nhật ký thay đổi",
       "menu": "Mục menu"
     },

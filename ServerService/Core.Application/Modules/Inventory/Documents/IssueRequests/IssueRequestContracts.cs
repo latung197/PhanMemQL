@@ -13,13 +13,15 @@ public sealed record IssueRequestDto(long Id, string Code, DateOnly Date, DateOn
     string UnitCode, string UnitName, string WarehouseCode, string WarehouseName, string VoucherType,
     string? DepartmentCode, string? DepartmentName, string? RequesterName, string? CustomerName,
     string CurrencyCode, decimal ExchangeRate, string? Note, string Status, decimal TotalValue, string CreatedBy,
-    string? ApprovedBy, IReadOnlyList<IssueRequestLineDto> Items, uint Version);
+    string? ApprovedBy, IReadOnlyList<IssueRequestLineDto> Items, uint Version, string? ProjectCode = null);
 
 public sealed record SaveIssueRequestRequest(DateOnly Date, DateOnly? RequiredDate, string WarehouseCode, string VoucherType,
     string? DepartmentCode, string? RequesterName, string? CustomerName, string CurrencyCode, decimal ExchangeRate,
     string? Note, IReadOnlyList<SaveIssueRequestLine> Items, uint? Version = null,
     /// <summary>Draft (default), Pending or Approved: the status to save at, as far as the user's rights reach (Posted does not exist for a request).</summary>
-    string? TargetStatus = null);
+    string? TargetStatus = null,
+    /// <summary>The project (dự án) of the voucher, optional; only a project that is in use and still takes vouchers.</summary>
+    string? ProjectCode = null);
 
 public sealed record IssueRequestOption(string Code, string Name);
 public sealed record IssueRequestOptionsDto(IReadOnlyList<IssueRequestOption> Warehouses,

@@ -39,6 +39,8 @@ public static class SpecialRightCatalog
     public const string ViewPrice = "VIEW_PRICE";
     public const string ViewCost = "VIEW_COST";
     public const string ViewAll = "VIEW_ALL";
+    /// <summary>Rename or merge the codes of a catalog (đổi mã, gộp mã); only on the catalogs of <see cref="CodeChangeCatalogs"/>.</summary>
+    public const string ChangeCode = "CHANGE_CODE";
     // Status rights (per company unit): the right to take a voucher into that status and to change a voucher while it is in it.
     public const string StatusPending = "ST_PENDING";
     public const string StatusApproved = "ST_APPROVED";
@@ -60,7 +62,17 @@ public static class SpecialRightCatalog
     private static readonly string[] PricedCatalogsAndReports =
     [
         "inv_material_cat", "inv_report_stock", "inv_report_nxt", "inv_report_inward", "inv_report_outward",
-        "inv_report_aging", "sales_report"
+        "inv_report_aging", "sales_report", "pur_report_project"
+    ];
+
+    /// <summary>
+    /// Catalog functions that allow renaming and merging codes (their services say CodeChange: true in their CatalogSpec; a test keeps
+    /// both lists equal). Catalogs whose codes are built into other codes (lots, units of measure, exchange rates...) are not here.
+    /// </summary>
+    public static readonly string[] CodeChangeCatalogs =
+    [
+        "inv_supplier_cat", "pur_supplier_group_cat", "pur_project_cat", "pur_payment_term_cat",
+        "inv_warehouse_type_cat", "inv_material_group_cat", "inv_material_type_cat"
     ];
 
     public static IReadOnlyList<SpecialRightDefinition> All { get; } = Build();
@@ -88,6 +100,7 @@ public static class SpecialRightCatalog
             list.Add(new(fn, ViewPrice, "catalogViewPrice", SpecialRightGroups.Data));
             list.Add(new(fn, ViewCost, "catalogViewCost", SpecialRightGroups.Data));
         }
+        foreach (var fn in CodeChangeCatalogs) list.Add(new(fn, ChangeCode, "changeCode", SpecialRightGroups.Feature));
         list.Add(new(NotificationFunction, SendNotification, "sendNotification", SpecialRightGroups.Feature));
         list.Add(new(NotificationFunction, SendNotificationAll, "sendNotificationAll", SpecialRightGroups.Feature));
         return list;

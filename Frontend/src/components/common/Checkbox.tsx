@@ -30,7 +30,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   const checkboxId = id || generatedId;
 
   return (
-    <label htmlFor={checkboxId} className={`inline-flex items-start gap-2.5 select-none ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}>
+    <label htmlFor={checkboxId} className={`relative inline-flex items-start gap-2.5 select-none ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}>
       <input type="checkbox" id={checkboxId} checked={checked} disabled={disabled}
         onChange={e => onChange(e.target.checked)} className="peer sr-only" />
       <span className="relative flex items-center justify-center mt-0.5 shrink-0 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 peer-focus-visible:ring-offset-2 rounded">

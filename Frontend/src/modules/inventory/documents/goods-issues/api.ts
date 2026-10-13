@@ -35,6 +35,7 @@ interface IssueRecord {
   customerName?: string | null;
   receiverName?: string | null;
   issueRequestCode?: string | null;
+  projectCode?: string | null;
   note?: string | null;
   status: 'Draft' | 'Pending' | 'Approved' | 'Posted' | 'Cancelled';
   totalValue: number;
@@ -77,7 +78,7 @@ const toVoucher = (row: IssueRecord): GoodsVoucher => ({
   warehouseId: row.warehouseCode, warehouseName: row.warehouseName,
   voucherType: row.voucherType, currencyCode: row.currencyCode, exchangeRate: row.exchangeRate,
   supplierName: row.customerName ?? '', delivererName: row.receiverName ?? '', issueRequestCode: row.issueRequestCode ?? '',
-  note: row.note ?? '', status: statusLabels[row.status], totalValue: row.totalValue,
+  projectCode: row.projectCode ?? '', note: row.note ?? '', status: statusLabels[row.status], totalValue: row.totalValue,
   createdBy: row.createdBy, approvedBy: row.approvedBy ?? undefined,
   items: row.items.map(toItem), materialItems: row.materialItems.map(toItem)
 });
@@ -96,6 +97,7 @@ const toRequest = (voucher: GoodsVoucher, targetStatus?: string) => ({
   currencyCode: voucher.currencyCode || 'VND', exchangeRate: voucher.exchangeRate || 1,
   customerName: voucher.supplierName || null, receiverName: voucher.delivererName || null,
   issueRequestCode: voucher.issueRequestCode || null,
+  projectCode: voucher.projectCode || null,
   note: voucher.note || null,
   items: voucher.items.map(item => toLine(item, 'ITEM')),
   materialItems: (voucher.materialItems || []).map(item => toLine(item, 'MATERIAL')),

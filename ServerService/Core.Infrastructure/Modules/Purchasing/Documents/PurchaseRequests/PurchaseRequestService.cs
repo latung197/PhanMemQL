@@ -1,3 +1,4 @@
+using Core.Infrastructure.Modules.Purchasing.Categories;
 using Core.Application.Common.Auditing;
 using Core.Application.Common.Export;
 using Core.Application.Common.Paging;
@@ -80,6 +81,7 @@ public sealed class PurchaseRequestService(CoreContext db, IUnitOfWork unitOfWor
         if (!await permissions.HasRightAsync(userId, Function, SpecialRightCatalog.ViewAll, ct)) rows = rows.Where(x => x.CreatedBy == userId);
         if (query.StatusFilter is { } status) { var text = status.ToString(); rows = rows.Where(x => x.Status == text); }
         if (!string.IsNullOrWhiteSpace(query.Warehouse)) { var wh = query.Warehouse.Trim().ToUpperInvariant(); rows = rows.Where(x => x.WarehouseCode == wh); }
+        if (!string.IsNullOrWhiteSpace(query.Project)) { var pj = query.Project.Trim().ToUpperInvariant(); rows = rows.Where(x => x.ProjectCode == pj); }
         if (!string.IsNullOrWhiteSpace(query.VoucherType)) { var type = query.VoucherType.Trim(); rows = rows.Where(x => x.VoucherType == type); }
         if (!string.IsNullOrWhiteSpace(query.Department)) { var dept = query.Department.Trim().ToUpperInvariant(); rows = rows.Where(x => x.DepartmentCode == dept); }
         if (query.From is { } from) rows = rows.Where(x => x.DocumentDate >= from);
@@ -189,6 +191,7 @@ public sealed class PurchaseRequestService(CoreContext db, IUnitOfWork unitOfWor
     {
         await permissions.EnsureAllowedAsync(userId, Function, Core.Domain.Modules.Users.PermissionAction.Create, ct);
         var check = await ValidateAsync(unitCode, request, ct);
+        await ProjectChecks.EnsureAsync(db, request.ProjectCode, null, ct);
         var target = Parse(request.TargetStatus);
         await EnsureTargetAllowedAsync(userId, unitCode, isOwner: true, target, ct);
         var id = await unitOfWork.ExecuteAsync(async token =>
@@ -216,8 +219,12 @@ public sealed class PurchaseRequestService(CoreContext db, IUnitOfWork unitOfWor
         var row = await FindAsync(id, unitCode, ct, tracking: true);
         await EnsureActionAsync(userId, row, DocumentAction.Edit, ct);
         if (row.Status != "Draft") throw new BusinessRuleException("purchaseRequest.editDraftOnly");
+        // Someone who may not see prices got 0 in the form: keep the prices already saved (matched by line and material), never overwrite them with 0.
+        if (request.Items is not null && !await permissions.HasRightAsync(userId, Function, SpecialRightCatalog.ViewPrice, ct))
+            request = request with { Items = request.Items.Select((item, index) => KeepPrice(item, row.Lines, index)).ToList() };
         await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         var check = await ValidateAsync(unitCode, request, ct);
+        await ProjectChecks.EnsureAsync(db, request.ProjectCode, row.ProjectCode, ct);
         var target = Parse(request.TargetStatus);
         await EnsureTargetAllowedAsync(userId, unitCode, row.CreatedBy == userId, target, ct);
         db.ExpectVersion(row, request.Version, touch: true);
@@ -396,7 +403,7 @@ public sealed class PurchaseRequestService(CoreContext db, IUnitOfWork unitOfWor
         var rate = await rates.GetRateAsync(currencyCode, request.Date, ct);
         if (request.Items is null || request.Items.Count == 0) throw new BusinessRuleException("purchaseRequest.itemsRequired");
         if (request.Items.Count > 500) throw new BusinessRuleException("purchaseRequest.tooManyLines");
-        _ = Guard.Required(request.VoucherType, 100, "field.issueRequestType");
+        _ = Guard.Required(request.VoucherType, 100, "field.purchaseType");
         _ = Guard.Optional(request.RequesterName, 200, "field.requesterName");
         _ = Guard.Optional(request.Note, 1000, "field.note");
         if (request.RequiredDate is { } needed && needed < request.Date) throw new BusinessRuleException("purchaseRequest.requiredDateInvalid");
@@ -448,6 +455,7 @@ public sealed class PurchaseRequestService(CoreContext db, IUnitOfWork unitOfWor
         row.CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant();
         row.ExchangeRate = check.Rate;
         row.Note = request.Note?.Trim();
+        row.ProjectCode = ProjectChecks.Normalize(request.ProjectCode);
         row.TotalValue = decimal.Round(request.Items.Sum(x => x.Quantity * x.UnitPrice) * check.Rate, 2);
     }
 
@@ -462,6 +470,13 @@ public sealed class PurchaseRequestService(CoreContext db, IUnitOfWork unitOfWor
             UomCode = item.UomCode.Trim().ToUpperInvariant(), Quantity = item.Quantity, UnitPrice = item.UnitPrice,
             Amount = decimal.Round(item.Quantity * item.UnitPrice, 2), Note = item.Note?.Trim()
         }).ToList();
+    }
+
+    private static SavePurchaseRequestLine KeepPrice(SavePurchaseRequestLine item, IEnumerable<PurchaseRequestLine> savedLines, int index)
+    {
+        var saved = savedLines.OrderBy(x => x.LineNo).ElementAtOrDefault(index);
+        var same = saved is not null && string.Equals(saved.MaterialCode, item.MaterialCode?.Trim(), StringComparison.OrdinalIgnoreCase);
+        return item with { UnitPrice = same ? saved!.UnitPrice : 0 };
     }
 
     private static string LineSummary(IEnumerable<PurchaseRequestLine> lines) =>
@@ -486,6 +501,6 @@ public sealed class PurchaseRequestService(CoreContext db, IUnitOfWork unitOfWor
             row.ApprovedByUserId is int approved ? users.GetValueOrDefault(approved) : null,
             row.Lines.OrderBy(x => x.LineNo).Select(line => new PurchaseRequestLineDto(line.Id, line.MaterialCode, line.MaterialName,
                 line.UomCode, line.Quantity, canSeePrice ? line.UnitPrice : 0, canSeePrice ? line.Amount : 0, line.Note,
-                ordered.GetValueOrDefault(line.Id))).ToList(), row.Version)).ToList();
+                ordered.GetValueOrDefault(line.Id))).ToList(), row.Version, ProjectCode: row.ProjectCode)).ToList();
     }
 }

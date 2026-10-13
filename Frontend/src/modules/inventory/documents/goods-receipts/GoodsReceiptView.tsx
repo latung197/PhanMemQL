@@ -60,7 +60,10 @@ import { showToast } from '../../../../utils/toast';
 import { getErrorMessage } from '../../../../services/apiClient';
 import { loadMaterialOptions, loadSupplierOptions, type SupplierOption } from '../../../../services/lookupOptions';
 import { voucherNumberingApi, exchangeRatesApi } from '../../../../services/settingsApi';
-import { goodsReceiptsApi } from './api';
+import { goodsReceiptsApi, type OpenPurchaseOrder } from './api';
+import { OpenDocumentPicker, type PickedLine, type PickerDocument } from '../../../purchasing/documents/OpenDocumentPicker';
+import { CatalogLookup } from '../../../../components/catalog/CatalogLookup';
+import { ClipboardCheck as OrderPickIcon } from 'lucide-react';
 import { useDebounced } from '../../../../hooks/useDebounced';
 import { usePagedList } from '../../../../hooks/usePagedList';
 import { pagedQueryString, type PagedQuery } from '../../../../services/paging';
@@ -162,9 +165,29 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   const [formExchangeRate, setFormExchangeRate] = useState<number>(1);
   const [formCreatedBy, setFormCreatedBy] = useState('');
   const [formNote, setFormNote] = useState('');
+  const [formProjectCode, setFormProjectCode] = useState('');
 
   // Form Fields - Line Items List (Tab 1: Chi Tiết Nhập Kho)
   const [formItems, setFormItems] = useState<VoucherItem[]>([]);
+  // The purchase orders the lines follow, read from the lines themselves (each carries the number of its order).
+  const formOrderCode = useMemo(() => [...new Set(formItems.map(item => item.purchaseOrderCode).filter(Boolean) as string[])].join(','), [formItems]);
+  // What each order line is already taken for by the lines of this form.
+  const takenByForm = useMemo(() => formItems.reduce<Record<number, number>>((acc, item) => {
+    if (item.purchaseOrderLineId) acc[item.purchaseOrderLineId] = (acc[item.purchaseOrderLineId] ?? 0) + (Number(item.quantity) || 0);
+    return acc;
+  }, {}), [formItems]);
+  const [openOrders, setOpenOrders] = useState<OpenPurchaseOrder[]>([]);
+  const [isOrderPickerOpen, setIsOrderPickerOpen] = useState(false);
+  // What each order line still lets this receipt receive (null until read from the server): used to warn before saving too much.
+  const [orderRemaining, setOrderRemaining] = useState<Record<number, number> | null>(null);
+  const rememberRemaining = (orders: OpenPurchaseOrder[]) =>
+    setOrderRemaining(Object.fromEntries(orders.flatMap(order => order.lines.map(line => [line.lineId, line.remainingQuantity] as const))));
+  const overOrder = useMemo(() => {
+    if (!orderRemaining) return [];
+    return formItems.filter(item => item.purchaseOrderLineId && (takenByForm[item.purchaseOrderLineId] ?? 0) > (orderRemaining[item.purchaseOrderLineId] ?? 0) + 1e-9)
+      .map(item => ({ key: item.purchaseOrderLineId!, text: `${item.sku || item.productId}: nhập ${takenByForm[item.purchaseOrderLineId!]} nhưng đơn ${item.purchaseOrderCode} chỉ còn ${orderRemaining[item.purchaseOrderLineId!] ?? 0}` }))
+      .filter((entry, index, all) => all.findIndex(other => other.key === entry.key) === index);
+  }, [formItems, takenByForm, orderRemaining]);
 
   // Form Fields - Material Items List (Tab 2: Nguyên Vật Liệu / Cấu Trúc SP)
   const [formMaterialItems, setFormMaterialItems] = useState<VoucherItem[]>([]);
@@ -314,6 +337,8 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     setFormExchangeRate(1);
     setFormCreatedBy(currentUser?.fullName || 'Trần Thịnh (Admin)');
     setFormNote('');
+    setFormProjectCode('');
+    setOrderRemaining(null);
 
     // Default 1 line item for Tab 1 + 1 empty row for quick entry
     const emptyItem: VoucherItem = {
@@ -372,6 +397,11 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     setFormExchangeRate(voucher.exchangeRate || 1);
     setFormCreatedBy(voucher.createdBy || 'Administrator');
     setFormNote(voucher.note || '');
+    setFormProjectCode(voucher.projectCode || '');
+    setOrderRemaining(null);
+    if ((voucher.items ?? []).some(it => it.purchaseOrderLineId)) {
+      void goodsReceiptsApi.getOpenOrders(voucher.id).then(rememberRemaining).catch(() => setOrderRemaining(null));
+    }
 
     const emptyItem: VoucherItem = {
       productId: '',
@@ -398,7 +428,9 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
           unitPrice: it.unitPrice || 0,
           totalPrice: (it.quantity || 1) * (it.unitPrice || 0),
           lotNumber: it.lotNumber || '',
-          position: it.position || prod?.position || ''
+          position: it.position || prod?.position || '',
+          purchaseOrderLineId: it.purchaseOrderLineId,
+          purchaseOrderCode: it.purchaseOrderCode
         };
       });
       mapped.push({ ...emptyItem });
@@ -431,6 +463,79 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
 
     setSaveStatus('Draft');
     setIsModalOpen(true);
+  };
+
+  // "Lấy từ đơn mua hàng": the approved orders with something left to receive, read fresh every time. Editing a saved receipt, what it
+  // already receives is not counted as received (the picker takes off what the form holds).
+  const handleOpenOrderPicker = async () => {
+    try {
+      const orders = await goodsReceiptsApi.getOpenOrders(editingVoucherId ?? undefined);
+      setOpenOrders(orders);
+      rememberRemaining(orders);
+      setIsOrderPickerOpen(true);
+    } catch (error) { showToast.error(getErrorMessage(error)); }
+  };
+
+  const pickerDocuments = useMemo(() => openOrders.map(order => ({
+    source: order,
+    doc: {
+      code: order.code, date: order.date, dueDate: order.deliveryDate ? `Giao: ${order.deliveryDate}` : null,
+      info: [[order.supplierName || order.supplierCode, order.paymentTerms || ''], [order.warehouseName, order.voucherType],
+        [order.currencyCode, order.currencyCode !== 'VND' ? `Tỷ giá ${order.exchangeRate}` : '']],
+      lockKey: `${order.warehouseCode}|${order.currencyCode}|${order.supplierCode}`,
+      searchText: [order.code, order.supplierName, order.supplierCode, order.warehouseName, order.voucherType,
+        ...order.lines.flatMap(line => [line.materialCode, line.materialName])].join(' '),
+      lines: order.lines.map(line => ({
+        lineId: line.lineId, materialCode: line.materialCode, materialName: line.materialName, uomCode: line.uomCode,
+        totalQuantity: line.orderedQuantity, remainingQuantity: line.remainingQuantity, unitPrice: line.unitPrice, note: line.note,
+        dueDate: line.deliveryDate
+      }))
+    } as PickerDocument
+  })), [openOrders]);
+
+  /**
+   * Carries the ticked materials (with the quantity chosen) into the lines: every line keeps the order line it receives and the
+   * number of its order. The header comes from the first order pulled; later ones must share its warehouse, currency and supplier
+   * (the picker only lets those be ticked). An order line already in the form gets the quantity added to its line.
+   */
+  const handleConfirmOrder = (picked: PickedLine<OpenPurchaseOrder>[]) => {
+    setIsOrderPickerOpen(false);
+    if (picked.length === 0) return;
+    const first = formOrderCode ? undefined : picked[0].source;
+    const items = formItems.filter(item => Boolean(item.productId || item.sku || item.productName)).map(item => ({ ...item }));
+    picked.forEach(({ source, line, quantity }) => {
+      const existing = items.find(item => item.purchaseOrderLineId === line.lineId);
+      if (existing) {
+        existing.quantity = (Number(existing.quantity) || 0) + quantity;
+        existing.totalPrice = existing.quantity * (existing.unitPrice || 0);
+        existing.amount = existing.totalPrice;
+        return;
+      }
+      items.push({
+        productId: line.materialCode, sku: line.materialCode, productName: line.materialName, unit: line.uomCode,
+        quantity, unitPrice: line.unitPrice, totalPrice: quantity * line.unitPrice, amount: quantity * line.unitPrice, lotNumber: '', position: '',
+        purchaseOrderLineId: line.lineId, purchaseOrderCode: source.code, purchaseOrderDeliveryDate: line.dueDate ?? ''
+      });
+    });
+    const codes = [...new Set(items.map(item => item.purchaseOrderCode).filter(Boolean) as string[])];
+    if (first) {
+      setFormVoucherType('Nhập mua mới');
+      setFormWarehouseId(first.warehouseCode);
+      setFormWarehouseName(first.warehouseName);
+      setFormSupplierCode(first.supplierCode);
+      setFormSupplierName(first.supplierName || '');
+      if (first.projectCode && !formProjectCode) setFormProjectCode(first.projectCode);
+      if (first.currencyCode !== formCurrencyCode) void handleCurrencyChange(first.currencyCode);
+    }
+    setFormNote(prev => prev.trim() && !formOrderCode && !prev.startsWith('Nhập theo đơn mua hàng') ? prev : `Nhập theo đơn mua hàng ${codes.join(', ')}`);
+    setFormItems([...items, { productId: '', productName: '', sku: '', unit: '', quantity: 1, unitPrice: 0, totalPrice: 0, lotNumber: '', position: '' }]);
+    setActiveTab('items');
+    showToast.success(`Đã lấy ${picked.length} vật tư từ ${new Set(picked.map(p => p.source.code)).size} đơn mua hàng. Có thể sửa số lượng, số lô và vị trí ở bảng chi tiết.`);
+  };
+
+  /** Unlinks the receipt from its orders: the lines stay but no longer follow an order line. */
+  const handleClearOrder = () => {
+    setFormItems(prev => prev.map(item => ({ ...item, purchaseOrderLineId: undefined, purchaseOrderCode: undefined })));
   };
 
   // Material Lookup & Direct Code Input Handlers
@@ -923,6 +1028,8 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
       supplierCode: formSupplierCode || undefined,
       supplierName: formSupplierName.trim(),
       delivererName: formDelivererName.trim(),
+      projectCode: formProjectCode,
+      purchaseOrderCode: formOrderCode,
       warehouseId: formWarehouseId,
       warehouseName: warehouseObj?.name || formWarehouseName || 'Kho Tổng TP. Hồ Chí Minh',
       items: validItems,
@@ -1498,6 +1605,25 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                   />
                 </div>
 
+                {/* Dự án và đơn mua hàng đang theo */}
+                <div>
+                  <label className="block text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">Dự Án</label>
+                  <CatalogLookup lookup="projects" value={formProjectCode} onChange={code => setFormProjectCode(code)} />
+                </div>
+                <div>
+                  <label className="block text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">Theo Đơn Mua Hàng</label>
+                  <div className="flex items-center gap-1">
+                    <input type="text" readOnly value={formOrderCode} placeholder="Chưa lấy từ đơn mua hàng" title={formOrderCode}
+                      className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-mono font-medium text-[11px] h-[26px]" />
+                    {formOrderCode && (
+                      <button type="button" onClick={handleClearOrder} title="Bỏ liên kết với đơn mua hàng"
+                        className="px-1.5 h-[26px] bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg flex items-center justify-center shrink-0 cursor-pointer">
+                        <XCircle className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Ghi chú / Diễn giải (Spans 2 cols) */}
                 <div className="sm:col-span-2 lg:col-span-2">
                   <label className="block text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5">
@@ -1705,7 +1831,19 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
               >
                 Tra cứu vật tư (F2)
               </Button>
+              {activeTab === 'items' && (
+                <Button type="button" size="sm" variant="outline" onClick={() => void handleOpenOrderPicker()} icon={<OrderPickIcon className="h-3.5 w-3.5" />}
+                  disabled={!canSaveForm} className="text-[10.5px] py-1 px-2.5 h-[26px] font-semibold">
+                  Lấy từ đơn mua hàng
+                </Button>
+              )}
             </div>
+
+            {activeTab === 'items' && overOrder.length > 0 && (
+              <div className="shrink-0 rounded-[5px] border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-1.5 text-[11px] text-amber-800 dark:text-amber-300">
+                <strong>Số lượng nhập vượt số còn lại của đơn mua hàng</strong> (máy chủ sẽ từ chối khi lưu): {overOrder.map(entry => entry.text).join('; ')}.
+              </div>
+            )}
 
             {activeTab === 'items' && (
               <VoucherDetailGrid
@@ -1775,6 +1913,25 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
         onConfirm={handleConfirmBulkDelete}
         isBulk
         bulkCount={bulkToDeleteIds?.length || 0}
+      />
+
+      {/* Approved purchase orders with something left to receive: orders on top, their materials below */}
+      <OpenDocumentPicker<OpenPurchaseOrder>
+        isOpen={isOrderPickerOpen}
+        onClose={() => setIsOrderPickerOpen(false)}
+        documents={pickerDocuments}
+        taken={takenByForm}
+        lockedKey={formOrderCode ? `${formWarehouseId}|${formCurrencyCode}|${formSupplierCode}` : undefined}
+        texts={{
+          title: 'Lấy Vật Tư Từ Đơn Mua Hàng',
+          help: 'Chọn một đơn mua hàng ở danh sách phía trên, rồi tích các vật tư nhận về ở bảng phía dưới (đổi số lượng nếu nhận một phần). Có thể lấy từ nhiều đơn, miễn là cùng nhà cung cấp, cùng kho và cùng loại tiền. Vật tư đã nhận đủ không hiện; vật tư còn thì hiện số lượng còn lại.',
+          searchPlaceholder: 'Tìm số đơn, nhà cung cấp, kho, vật tư...',
+          empty: 'Không có đơn mua hàng nào đã duyệt còn hàng chưa nhận.',
+          codeHeader: 'Số đơn mua hàng', infoHeaders: ['Nhà cung cấp / thanh toán', 'Kho / loại mua', 'Tiền tệ'],
+          totalHeader: 'SL đặt', doneHeader: 'Đã nhập', confirm: 'Lấy {n} vật tư sang phiếu nhập',
+          lockedHint: 'khác nhà cung cấp, kho hoặc loại tiền với các vật tư đã chọn, không nhập chung một phiếu được', sourceName: 'đơn mua hàng'
+        }}
+        onConfirm={handleConfirmOrder}
       />
 
       {/* Master Lookup Modal for Materials */}

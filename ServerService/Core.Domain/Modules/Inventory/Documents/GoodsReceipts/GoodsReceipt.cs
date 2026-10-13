@@ -33,6 +33,9 @@ public class GoodsReceipt : ErpEntity, IApprovableDocument
     [NotReference("trỏ tới số đơn mua hàng (khóa của nó là id); PurchaseOrderService không cho hủy đơn mua còn phiếu nhập chưa hủy, và chỉ xóa được đơn mua nháp")]
     [Column("purchase_order_code"), MaxLength(500)] public string? PurchaseOrderCode { get; set; }
     [Column("note"), MaxLength(1000)] public string? Note { get; set; }
+    /// <summary>The project this voucher belongs to (dự án), optional: costs are added up per project.</summary>
+    [References<Core.Domain.Modules.Purchasing.Categories.Projects.Project>(Optional = true)]
+    [Column("project_code"), MaxLength(20)] public string? ProjectCode { get; set; }
     [Required, Column("status"), MaxLength(20)] public string Status { get; set; } = "Draft";
     [Column("total_value", TypeName = "numeric(18,2)")] public decimal TotalValue { get; set; }
     [Column("approved_by_user_id")] public int? ApprovedByUserId { get; set; }

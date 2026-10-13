@@ -14,7 +14,7 @@ import type { MaterialGroupRecord, SaveMaterialGroupInput } from './types';
 export const MaterialGroupCategoryView: React.FC<{ currentUser?: UserProfile }> = ({ currentUser }) => {
   const { t } = useLanguage();
   const definition = useMemo((): CatalogDefinition<MaterialGroupRecord, SaveMaterialGroupInput> => ({
-    functionCode: 'inv_material_group_cat', api: materialGroupsApi,
+    functionCode: 'inv_material_group_cat', codeChange: { lookup: 'materialGroups' }, api: materialGroupsApi,
     keyOf: row => row.code, describe: row => `${row.code} - ${row.name}`,
     icon: <FolderTree className="h-4 w-4" />,
     texts: {

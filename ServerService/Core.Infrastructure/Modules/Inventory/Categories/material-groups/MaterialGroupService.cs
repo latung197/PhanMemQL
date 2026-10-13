@@ -18,7 +18,7 @@ namespace Core.Infrastructure.Modules.Inventory;
 public sealed class MaterialGroupService(CoreContext db, CatalogBatch batch, IExcelExporter excel, IAuditLog audit)
     : CatalogService<MaterialGroup, MaterialGroupDto, SaveMaterialGroupRequest>(db, batch, excel, audit), IMaterialGroupService
 {
-    private static readonly CatalogSpec Info = new("inv_material_group_cat", "materialGroup", "field.materialGroupCode", 20, "DanhMucNhomVatTu");
+    private static readonly CatalogSpec Info = new("inv_material_group_cat", "materialGroup", "field.materialGroupCode", 20, "DanhMucNhomVatTu", CodeChange: true);
 
     private static readonly SortMap<MaterialGroup> SortColumns = SortMap<MaterialGroup>.By(x => x.Code, "order")
         .Add("order", x => x.SortOrder).Add("code", x => x.Code).Add("name", x => x.Name)

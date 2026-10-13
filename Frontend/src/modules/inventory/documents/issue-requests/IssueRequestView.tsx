@@ -22,6 +22,7 @@ import {
   User
 } from 'lucide-react';
 import { Button } from '../../../../components/common/Button';
+import { CatalogLookup } from '../../../../components/catalog/CatalogLookup';
 import { Modal } from '../../../../components/common/Modal';
 import { Badge } from '../../../../components/common/Badge';
 import { CategoryHeaderToolbar } from '../../../../components/common/CategoryHeaderToolbar';
@@ -143,6 +144,7 @@ export const IssueRequestView: React.FC<IssueRequestViewProps> = ({ companyUnits
   const [formExchangeRate, setFormExchangeRate] = useState<number>(1);
   const [formCreatedBy, setFormCreatedBy] = useState('');
   const [formNote, setFormNote] = useState('');
+  const [formProjectCode, setFormProjectCode] = useState('');
   const [formItems, setFormItems] = useState<VoucherItem[]>([]);
 
   // Pickers
@@ -236,6 +238,7 @@ export const IssueRequestView: React.FC<IssueRequestViewProps> = ({ companyUnits
     setFormExchangeRate(1);
     setFormCreatedBy(currentUser?.fullName || '');
     setFormNote('');
+    setFormProjectCode('');
     setFormItems([emptyItem()]);
     setSaveStatus('Draft');
     setIsModalOpen(true);
@@ -259,6 +262,7 @@ export const IssueRequestView: React.FC<IssueRequestViewProps> = ({ companyUnits
     setFormExchangeRate(voucher.exchangeRate || 1);
     setFormCreatedBy(voucher.createdBy || '');
     setFormNote(voucher.note || '');
+    setFormProjectCode(voucher.projectCode || '');
     const mapped: VoucherItem[] = (voucher.items ?? []).map(it => ({
       productId: it.productId || '', productName: it.productName, sku: it.sku || '', unit: it.unit || '',
       quantity: it.quantity || 1, unitPrice: it.unitPrice || 0, totalPrice: (it.quantity || 1) * (it.unitPrice || 0),
@@ -393,7 +397,7 @@ export const IssueRequestView: React.FC<IssueRequestViewProps> = ({ companyUnits
       departmentCode: formDepartmentCode, requesterName: formRequesterName.trim(), supplierName: formCustomerName.trim(),
       warehouseId: formWarehouseId, warehouseName: warehouseObj?.name || formWarehouseName,
       items: validItems, totalValue: formTotalValue, createdBy: formCreatedBy || currentUser?.fullName || '',
-      status: editingVoucherId ? formStatus : 'Lập chứng từ', note: formNote.trim()
+      status: editingVoucherId ? formStatus : 'Lập chứng từ', projectCode: formProjectCode, note: formNote.trim()
     };
 
     setIsSaving(true);
@@ -727,6 +731,11 @@ export const IssueRequestView: React.FC<IssueRequestViewProps> = ({ companyUnits
 
                 <div>
                   <DateTimePicker label="Ngày Cần Hàng" type="date" value={formRequiredDate} onChange={(val) => setFormRequiredDate(val)} />
+                </div>
+
+                <div>
+                  <label className={VOUCHER_LABEL}>Dự Án</label>
+                  <CatalogLookup lookup="projects" value={formProjectCode} onChange={code => setFormProjectCode(code)} />
                 </div>
 
                 <div className="sm:col-span-2 xl:col-span-3">

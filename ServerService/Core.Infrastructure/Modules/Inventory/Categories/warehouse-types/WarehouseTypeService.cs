@@ -19,7 +19,7 @@ namespace Core.Infrastructure.Modules.Inventory;
 public sealed class WarehouseTypeService(CoreContext db, CatalogBatch batch, IExcelExporter excel, IAuditLog audit)
     : CatalogService<WarehouseType, WarehouseTypeDto, SaveWarehouseTypeRequest>(db, batch, excel, audit), IWarehouseTypeService
 {
-    private static readonly CatalogSpec Info = new("inv_warehouse_type_cat", "warehouseType", "field.warehouseTypeCode", 20, "DanhMucLoaiKho");
+    private static readonly CatalogSpec Info = new("inv_warehouse_type_cat", "warehouseType", "field.warehouseTypeCode", 20, "DanhMucLoaiKho", CodeChange: true);
 
     /// <summary>"localizedName" sorts by the original name.</summary>
     private static readonly SortMap<WarehouseType> SortColumns = SortMap<WarehouseType>.By(x => x.Code, "order")

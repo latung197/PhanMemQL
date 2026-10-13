@@ -1,3 +1,4 @@
+using Core.Infrastructure.Modules.Purchasing.Categories;
 using Core.Application.Common.Auditing;
 using Core.Application.Common.Export;
 using Core.Application.Common.Paging;
@@ -82,6 +83,7 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
         if (!await permissions.HasRightAsync(userId, Function, SpecialRightCatalog.ViewAll, ct)) rows = rows.Where(x => x.CreatedBy == userId);
         if (query.StatusFilter is { } status) { var text = status.ToString(); rows = rows.Where(x => x.Status == text); }
         if (!string.IsNullOrWhiteSpace(query.Warehouse)) { var wh = query.Warehouse.Trim().ToUpperInvariant(); rows = rows.Where(x => x.WarehouseCode == wh); }
+        if (!string.IsNullOrWhiteSpace(query.Project)) { var pj = query.Project.Trim().ToUpperInvariant(); rows = rows.Where(x => x.ProjectCode == pj); }
         if (!string.IsNullOrWhiteSpace(query.VoucherType)) { var type = query.VoucherType.Trim(); rows = rows.Where(x => x.VoucherType == type); }
         if (!string.IsNullOrWhiteSpace(query.Supplier)) { var supplier = query.Supplier.Trim().ToUpperInvariant(); rows = rows.Where(x => x.SupplierCode == supplier); }
         if (query.From is { } from) rows = rows.Where(x => x.DocumentDate >= from);
@@ -182,12 +184,12 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
             {
                 var done = received.GetValueOrDefault(x.Id);
                 return new OpenPurchaseOrderLineDto(x.Id, x.MaterialCode, x.MaterialName, x.UomCode, x.Quantity, done,
-                    x.Quantity - done, canSeePrice ? x.UnitPrice : 0, x.Note);
+                    x.Quantity - done, canSeePrice ? x.UnitPrice : 0, x.Note, x.DeliveryDate ?? row.DeliveryDate);
             }).Where(x => x.RemainingQuantity > 0).ToList();
             if (lines.Count == 0) continue;
             result.Add(new OpenPurchaseOrderDto(row.Id, row.Code, row.DocumentDate, row.DeliveryDate, row.WarehouseCode,
                 warehouses.GetValueOrDefault(row.WarehouseCode, row.WarehouseCode), row.VoucherType, row.SupplierCode, row.SupplierName,
-                row.PaymentTerms, row.CurrencyCode, row.ExchangeRate, row.Note, lines));
+                row.PaymentTerms, row.CurrencyCode, row.ExchangeRate, row.Note, lines, row.ProjectCode));
         }
         return result;
     }
@@ -196,6 +198,7 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
     {
         await permissions.EnsureAllowedAsync(userId, Function, Core.Domain.Modules.Users.PermissionAction.Create, ct);
         var check = await ValidateAsync(unitCode, request, null, ct);
+        await ProjectChecks.EnsureAsync(db, request.ProjectCode, null, ct);
         var target = Parse(request.TargetStatus);
         await EnsureTargetAllowedAsync(userId, unitCode, isOwner: true, target, ct);
         var id = await unitOfWork.ExecuteAsync(async token =>
@@ -223,8 +226,12 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
         var row = await FindAsync(id, unitCode, ct, tracking: true);
         await EnsureActionAsync(userId, row, DocumentAction.Edit, ct);
         if (row.Status != "Draft") throw new BusinessRuleException("purchaseOrder.editDraftOnly");
+        // Someone who may not see prices got 0 in the form: keep the prices already saved (matched by line and material), never overwrite them with 0.
+        if (request.Items is not null && !await permissions.HasRightAsync(userId, Function, SpecialRightCatalog.ViewPrice, ct))
+            request = request with { Items = request.Items.Select((item, index) => KeepPrice(item, row.Lines, index)).ToList() };
         await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         var check = await ValidateAsync(unitCode, request, id, ct);
+        await ProjectChecks.EnsureAsync(db, request.ProjectCode, row.ProjectCode, ct);
         var target = Parse(request.TargetStatus);
         await EnsureTargetAllowedAsync(userId, unitCode, row.CreatedBy == userId, target, ct);
         db.ExpectVersion(row, request.Version, touch: true);
@@ -387,7 +394,7 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
 
     /// <summary>What a save found out while checking the order: the rate, the material names, the supplier, the tax and the requests it follows.</summary>
     private sealed record Checked(decimal Rate, IReadOnlyDictionary<string, string> Names, string SupplierCode, string SupplierName,
-        string? TaxRateCode, decimal TaxRate, string? RequestCodes);
+        string? TaxRateCode, decimal TaxRate, string? RequestCodes, string? PaymentTermCode, string? PaymentTermsText);
 
     private async Task<Checked> ValidateAsync(string unitCode, SavePurchaseOrderRequest request, long? orderId, CancellationToken ct)
     {
@@ -411,6 +418,16 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
         var supplierCode = Guard.Code(request.SupplierCode, 20, "field.supplierCode");
         var supplier = await db.Suppliers.AsNoTracking().FirstOrDefaultAsync(x => x.Code == supplierCode, ct);
         if (supplier is null || !supplier.IsActive) throw new BusinessRuleException("purchaseOrder.supplierInvalid", supplierCode);
+        // A payment term of the catalog gives its name to the order; without one the free text stays.
+        string? termCode = null;
+        var termsText = request.PaymentTerms?.Trim();
+        if (!string.IsNullOrWhiteSpace(request.PaymentTermCode))
+        {
+            termCode = request.PaymentTermCode.Trim().ToUpperInvariant();
+            var term = await db.PaymentTerms.AsNoTracking().FirstOrDefaultAsync(x => x.Code == termCode, ct);
+            if (term is null || !term.IsActive) throw new BusinessRuleException("paymentTerm.invalid", termCode);
+            termsText = term.Name;
+        }
         string? taxCode = null;
         decimal taxRate = 0;
         if (!string.IsNullOrWhiteSpace(request.TaxRateCode))
@@ -426,6 +443,7 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
             _ = Guard.Code(item.UomCode, 20, "field.uomCode");
             _ = Guard.Optional(item.Note, 300, "field.note");
             if (item.Quantity <= 0 || item.UnitPrice < 0) throw new BusinessRuleException("purchaseOrder.lineInvalid");
+            if (item.DeliveryDate is { } lineDue && lineDue < request.Date) throw new BusinessRuleException("purchaseOrder.lineDeliveryDateInvalid");
         }
         // Every line points to a stock material and a unit of the catalogs (the name of the material is taken from the catalog).
         var materialCodes = request.Items.Select(x => x.MaterialCode.Trim().ToUpperInvariant()).Distinct().ToList();
@@ -442,7 +460,7 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
                 throw new BusinessRuleException("voucherLine.uomInvalid", item.UomCode.Trim().ToUpperInvariant(), code);
         }
         var requestCodes = await ValidateRequestLinkAsync(unitCode, warehouseCode, request, orderId, ct);
-        return new Checked(rate, materials.ToDictionary(x => x.Key, x => x.Value.Name), supplier.Code, supplier.Name, taxCode, taxRate, requestCodes);
+        return new Checked(rate, materials.ToDictionary(x => x.Key, x => x.Value.Name), supplier.Code, supplier.Name, taxCode, taxRate, requestCodes, termCode, termsText);
     }
 
     /// <summary>
@@ -489,13 +507,15 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
         row.VoucherType = request.VoucherType.Trim();
         row.SupplierCode = check.SupplierCode;
         row.SupplierName = check.SupplierName;
-        row.PaymentTerms = request.PaymentTerms?.Trim();
+        row.PaymentTerms = check.PaymentTermsText;
+        row.PaymentTermCode = check.PaymentTermCode;
         row.CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant();
         row.ExchangeRate = check.Rate;
         row.TaxRateCode = check.TaxRateCode;
         row.TaxRate = check.TaxRate;
         row.PurchaseRequestCode = check.RequestCodes;
         row.Note = request.Note?.Trim();
+        row.ProjectCode = ProjectChecks.Normalize(request.ProjectCode);
         // The amounts of the lines are rounded one by one, as they are saved; the tax is on their total.
         row.SubTotal = request.Items.Sum(x => decimal.Round(x.Quantity * x.UnitPrice, 2));
         row.TaxAmount = decimal.Round(row.SubTotal * check.TaxRate / 100m, 2);
@@ -512,8 +532,16 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
             MaterialName = names.GetValueOrDefault(item.MaterialCode.Trim().ToUpperInvariant(), string.Empty),
             UomCode = item.UomCode.Trim().ToUpperInvariant(), Quantity = item.Quantity, UnitPrice = item.UnitPrice,
             Amount = decimal.Round(item.Quantity * item.UnitPrice, 2), Note = item.Note?.Trim(),
-            PurchaseRequestLineId = item.PurchaseRequestLineId
+            PurchaseRequestLineId = item.PurchaseRequestLineId,
+            DeliveryDate = item.DeliveryDate ?? request.DeliveryDate
         }).ToList();
+    }
+
+    private static SavePurchaseOrderLine KeepPrice(SavePurchaseOrderLine item, IEnumerable<PurchaseOrderLine> savedLines, int index)
+    {
+        var saved = savedLines.OrderBy(x => x.LineNo).ElementAtOrDefault(index);
+        var same = saved is not null && string.Equals(saved.MaterialCode, item.MaterialCode?.Trim(), StringComparison.OrdinalIgnoreCase);
+        return item with { UnitPrice = same ? saved!.UnitPrice : 0 };
     }
 
     private static string LineSummary(IEnumerable<PurchaseOrderLine> lines) =>
@@ -544,6 +572,7 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
             row.Lines.OrderBy(x => x.LineNo).Select(line => new PurchaseOrderLineDto(line.Id, line.MaterialCode, line.MaterialName,
                 line.UomCode, line.Quantity, canSeePrice ? line.UnitPrice : 0, canSeePrice ? line.Amount : 0, line.Note,
                 received.GetValueOrDefault(line.Id), line.PurchaseRequestLineId,
-                line.PurchaseRequestLineId is long requestLineId ? requestCodes.GetValueOrDefault(requestLineId) : null)).ToList(), row.Version)).ToList();
+                line.PurchaseRequestLineId is long requestLineId ? requestCodes.GetValueOrDefault(requestLineId) : null,
+                line.DeliveryDate ?? row.DeliveryDate)).ToList(), row.Version, ProjectCode: row.ProjectCode, PaymentTermCode: row.PaymentTermCode)).ToList();
     }
 }

@@ -1362,3 +1362,26 @@ Thử xong thì xóa dữ liệu thử (bản ghi, tài khoản thử, dòng nh�
 - [ ] Thử trình duyệt (Phần 7.2) rồi xóa dữ liệu thử
 
 **Không phải làm** (hệ thống tự có): ghi nhật ký thay đổi, điền người tạo / người sửa, chống ghi đè ở màn hình, báo trùng từ database, xóa cache, dòng trong ma trận phân quyền, route và breadcrumb, ẩn nút theo quyền, hộp xác nhận xóa, tìm kiếm / lọc / sắp xếp / phân trang ở máy chủ, xuất Excel ở máy chủ (có quyền và nhật ký), nhập Excel, xóa nhiều, chọn cột và lưu bố cục, API tra cứu có bộ nhớ đệm, 7 API và quyền của controller.
+
+
+---
+
+## Phụ lục: đổi mã và gộp mã một danh mục
+
+Hệ thống không có khóa ngoại, nên mọi chỗ dùng mã của một danh mục được biết nhờ **bản đồ tham chiếu** (`[References<...>]` → bảng `sys_table_ref`). Khung danh mục dùng bản đồ đó để **đổi mã** và **gộp mã** cho nhiều danh mục cùng lúc, không viết riêng từng danh mục.
+
+**Danh mục đang cho đổi / gộp mã** (đợt 1): nhà cung cấp, nhóm nhà cung cấp, dự án, điều khoản thanh toán, loại kho, nhóm vật tư, loại vật tư. Các danh mục có mã dán vào mã khác (lô `VT001@LOT-2610`, tỷ giá `USD@ngày`, quy đổi đơn vị tính) và vật tư, kho, đơn vị tính (có sổ kho, quy đổi) **chưa** cho, sẽ làm ở đợt sau.
+
+| | Đổi mã (ví dụ `NCC001` → `NCC-HCM01`) | Gộp mã (A vào B) |
+|---|---|---|
+| Việc | Trong **một giao dịch**: đổi mã ở chính bản ghi và ở **mọi cột đang trỏ tới** (kể cả chứng từ đã ghi sổ hoặc ở tháng đã khóa, bảng bản dịch) | Mọi cột đang trỏ tới A chuyển sang B; bản dịch của A bị xóa (B giữ bản dịch riêng); **A chuyển sang ngừng sử dụng**, ghi chú tự thêm "Đã gộp vào B." |
+| Điều kiện | Mã mới hợp lệ (chữ hoa, không khoảng trắng, dấu `:` `,`), không trùng mã đã có, `version` còn mới (409 nếu có người sửa) | Mã đích có thật và **đang sử dụng**, khác chính nó |
+| Sau đó | Mã cũ không còn | A còn để tra cứu; xóa được khi không còn gì dùng |
+| Nhật ký | `CODE_CHANGE`: mã cũ → mã mới, ghi chú số dòng đã cập nhật | `MERGE`: mã gộp → mã đích, số dòng đã chuyển |
+
+- **Quyền:** quyền **Sửa** của danh mục **và** quyền đặc biệt **Đổi mã, gộp mã** (`{chức năng}:CHANGE_CODE`, cấp ở Cài đặt › Người dùng & phân quyền; quản trị viên luôn có). Thiếu một trong hai → 403.
+- **Giao diện:** hai nút trên mỗi dòng danh mục (**Đổi mã**, **Gộp mã**) chỉ hiện khi danh mục cho phép và người dùng đủ quyền. Hộp thoại **xem trước** các bảng đang dùng mã và số dòng sẽ bị cập nhật, rồi mới xác nhận.
+- **API** (trên mọi controller danh mục, danh mục chưa cho thì từ chối): `GET {route}/{mã}/code-change?into={mã đích}` (xem trước), `POST {route}/{mã}/rename` `{ "newCode": "...", "version": 12 }`, `POST {route}/{mã}/merge` `{ "intoCode": "..." }`.
+- **Không đổi** những chữ đã **chép lúc lưu** trên chứng từ cũ (tên nhà cung cấp, tên vật tư...): chúng ghi đúng tên tại thời điểm lập. Mã nằm trong JSON (cấu hình, bố cục lưới, nhật ký cũ) cũng không đổi.
+- **Bật cho một danh mục mới:** `CodeChange: true` ở `CatalogSpec` của dịch vụ **và** thêm mã chức năng vào `SpecialRightCatalog.CodeChangeCatalogs` (test `CodeChangeTests` bắt hai danh sách lệch nhau), `codeChange: { lookup: 'tên tra cứu' }` ở `CatalogDefinition` của màn hình. Danh mục có chữ copy mã ở chỗ không khai `[References]` thì ghi đè `AfterCodeChangeAsync` để sửa trong cùng giao dịch.
+- **Code:** `CatalogService.RenameAsync/MergeAsync/PreviewCodeChangeAsync`, `CatalogCodeChange` (viết lại các cột theo bản đồ tham chiếu, tên bảng và cột chỉ lấy từ mô hình, mã luôn là tham số), `CodeChangeDialog.tsx`.

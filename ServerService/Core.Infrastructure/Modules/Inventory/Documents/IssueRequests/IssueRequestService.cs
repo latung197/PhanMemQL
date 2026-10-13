@@ -1,3 +1,4 @@
+using Core.Infrastructure.Modules.Purchasing.Categories;
 using Core.Application.Common.Auditing;
 using Core.Application.Common.Export;
 using Core.Application.Common.Paging;
@@ -77,6 +78,7 @@ public sealed class IssueRequestService(CoreContext db, IUnitOfWork unitOfWork, 
         if (!await permissions.HasRightAsync(userId, Function, SpecialRightCatalog.ViewAll, ct)) rows = rows.Where(x => x.CreatedBy == userId);
         if (query.StatusFilter is { } status) { var text = status.ToString(); rows = rows.Where(x => x.Status == text); }
         if (!string.IsNullOrWhiteSpace(query.Warehouse)) { var wh = query.Warehouse.Trim().ToUpperInvariant(); rows = rows.Where(x => x.WarehouseCode == wh); }
+        if (!string.IsNullOrWhiteSpace(query.Project)) { var pj = query.Project.Trim().ToUpperInvariant(); rows = rows.Where(x => x.ProjectCode == pj); }
         if (!string.IsNullOrWhiteSpace(query.VoucherType)) { var type = query.VoucherType.Trim(); rows = rows.Where(x => x.VoucherType == type); }
         if (!string.IsNullOrWhiteSpace(query.Department)) { var dept = query.Department.Trim().ToUpperInvariant(); rows = rows.Where(x => x.DepartmentCode == dept); }
         if (query.From is { } from) rows = rows.Where(x => x.DocumentDate >= from);
@@ -186,6 +188,7 @@ public sealed class IssueRequestService(CoreContext db, IUnitOfWork unitOfWork, 
     {
         await permissions.EnsureAllowedAsync(userId, Function, Core.Domain.Modules.Users.PermissionAction.Create, ct);
         var check = await ValidateAsync(unitCode, request, ct);
+        await ProjectChecks.EnsureAsync(db, request.ProjectCode, null, ct);
         var target = Parse(request.TargetStatus);
         await EnsureTargetAllowedAsync(userId, unitCode, isOwner: true, target, ct);
         var id = await unitOfWork.ExecuteAsync(async token =>
@@ -215,6 +218,7 @@ public sealed class IssueRequestService(CoreContext db, IUnitOfWork unitOfWork, 
         if (row.Status != "Draft") throw new BusinessRuleException("issueRequest.editDraftOnly");
         await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         var check = await ValidateAsync(unitCode, request, ct);
+        await ProjectChecks.EnsureAsync(db, request.ProjectCode, row.ProjectCode, ct);
         var target = Parse(request.TargetStatus);
         await EnsureTargetAllowedAsync(userId, unitCode, row.CreatedBy == userId, target, ct);
         db.ExpectVersion(row, request.Version, touch: true);
@@ -437,6 +441,7 @@ public sealed class IssueRequestService(CoreContext db, IUnitOfWork unitOfWork, 
         row.CurrencyCode = request.CurrencyCode.Trim().ToUpperInvariant();
         row.ExchangeRate = check.Rate;
         row.Note = request.Note?.Trim();
+        row.ProjectCode = ProjectChecks.Normalize(request.ProjectCode);
         row.TotalValue = decimal.Round(request.Items.Sum(x => x.Quantity * x.UnitPrice) * check.Rate, 2);
     }
 
@@ -475,6 +480,6 @@ public sealed class IssueRequestService(CoreContext db, IUnitOfWork unitOfWork, 
             row.ApprovedByUserId is int approved ? users.GetValueOrDefault(approved) : null,
             row.Lines.OrderBy(x => x.LineNo).Select(line => new IssueRequestLineDto(line.Id, line.MaterialCode, line.MaterialName,
                 line.UomCode, line.Quantity, canSeePrice ? line.UnitPrice : 0, canSeePrice ? line.Amount : 0, line.Note,
-                issued.GetValueOrDefault(line.Id))).ToList(), row.Version)).ToList();
+                issued.GetValueOrDefault(line.Id))).ToList(), row.Version, ProjectCode: row.ProjectCode)).ToList();
     }
 }

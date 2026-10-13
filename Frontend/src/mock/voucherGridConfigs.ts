@@ -64,6 +64,16 @@ export const goodsReceiptItemsGridConfig: VoucherGridInfo = {
       placeholder: ''
     },
     {
+      field: 'purchaseOrderDeliveryDate',
+      headerName: 'Dự Kiến Nhận',
+      headerNameEn: 'Expected Date',
+      type: 'date',
+      width: 120,
+      minWidth: 100,
+      align: 'center',
+      readOnly: true
+    },
+    {
       field: 'unit',
       headerName: 'ĐVT',
       headerNameEn: 'UOM',

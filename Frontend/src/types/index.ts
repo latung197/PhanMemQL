@@ -286,9 +286,13 @@ export interface VoucherItem {
   receivedQuantity?: number;
   /** Đơn mua lấy từ phiếu yêu cầu mua hàng: dòng yêu cầu mà dòng này thực hiện và số phiếu yêu cầu. */
   purchaseRequestLineId?: number;
+  /** Đơn mua: ngày dự kiến nhận hàng của dòng (yyyy-MM-dd); mặc định theo ngày giao hàng ở đầu đơn. */
+  deliveryDate?: string;
   purchaseRequestCode?: string;
   /** Phiếu nhập lấy từ đơn mua hàng: dòng đơn mà dòng này nhận và số đơn. */
   purchaseOrderLineId?: number;
+  /** Phiếu nhập lấy từ đơn mua: ngày dự kiến nhận của dòng đơn (chỉ đọc). */
+  purchaseOrderDeliveryDate?: string;
   purchaseOrderCode?: string;
 }
 
@@ -319,6 +323,9 @@ export interface GoodsVoucher {
   /** Đơn mua hàng: ngày giao hàng dự kiến, điều khoản thanh toán, thuế (đầu phiếu) và tổng tiền hàng / thuế. */
   deliveryDate?: string;
   paymentTerms?: string;
+  /** Dự án (danh mục dự án) và điều khoản thanh toán của danh mục gắn vào chứng từ. */
+  projectCode?: string;
+  paymentTermCode?: string;
   taxRateCode?: string;
   taxRate?: number;
   subTotal?: number;
@@ -474,6 +481,10 @@ export type SubMenuKey =
 
   // Purchasing
   | 'pur_request'               // Phiếu yêu cầu mua hàng
+  | 'pur_project_cat'          // Danh mục dự án
+  | 'pur_payment_term_cat'      // Danh mục điều khoản thanh toán
+  | 'pur_supplier_group_cat'    // Danh mục nhóm nhà cung cấp
+  | 'pur_report_project'        // Báo cáo chi phí theo dự án
   | 'pur_order'                 // Đơn mua hàng
   | 'pur_approve_request'       // Phê duyệt yêu cầu mua hàng
   | 'pur_approve_order'         // Phê duyệt đơn mua hàng

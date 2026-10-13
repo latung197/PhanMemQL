@@ -54,6 +54,8 @@ export const RIGHTS = {
   VIEW_PRICE: 'VIEW_PRICE',
   VIEW_COST: 'VIEW_COST',
   VIEW_ALL: 'VIEW_ALL',
+  /** Đổi mã, gộp mã của một danh mục. */
+  CHANGE_CODE: 'CHANGE_CODE',
   ST_PENDING: 'ST_PENDING',
   ST_APPROVED: 'ST_APPROVED',
   ST_POSTED: 'ST_POSTED',

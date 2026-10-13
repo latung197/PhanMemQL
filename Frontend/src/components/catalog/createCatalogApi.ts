@@ -3,7 +3,7 @@
 //   export const uomsApi = createCatalogApi<Uom, SaveUomInput>({ url: '/api/inventory/uoms', fileName: 'DanhMucDonViTinh' });
 import { apiDownload, apiRequest } from '../../services/apiClient';
 import { pagedQueryString, type PagedQuery, type PagedResult } from '../../services/paging';
-import type { CatalogScreenApi, DeleteManyResult, ImportMode, ImportResult } from './catalogTypes';
+import type { CatalogScreenApi, CodeChangePreview, DeleteManyResult, ImportMode, ImportResult } from './catalogTypes';
 
 const today = () => new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
@@ -25,6 +25,13 @@ export function createCatalogApi<T, TInput>(options: {
     remove: (key: string) => apiRequest<void>('DELETE', item(key)),
     /** Nhập Excel: all rows saved or none; errors by row. */
     importMany: (rows: TInput[], mode: ImportMode) => apiRequest<ImportResult>('POST', `${url}/import`, { rows, mode }),
-    removeMany: (keys: string[]) => apiRequest<DeleteManyResult>('POST', `${url}/delete-many`, { keys })
+    removeMany: (keys: string[]) => apiRequest<DeleteManyResult>('POST', `${url}/delete-many`, { keys }),
+    /** Đổi mã / gộp mã: needs Edit and the special right CHANGE_CODE; the catalog must allow it. */
+    codeChange: {
+      preview: (key: string, into?: string) =>
+        apiRequest<CodeChangePreview>('GET', `${item(key)}/code-change${into ? `?into=${encodeURIComponent(into)}` : ''}`),
+      rename: (key: string, newCode: string, version?: number) => apiRequest<T>('POST', `${item(key)}/rename`, { newCode, version }),
+      merge: (key: string, into: string) => apiRequest<T>('POST', `${item(key)}/merge`, { intoCode: into })
+    }
   };
 }

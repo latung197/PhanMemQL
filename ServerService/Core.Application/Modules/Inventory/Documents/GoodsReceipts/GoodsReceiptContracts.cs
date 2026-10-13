@@ -4,7 +4,9 @@ namespace Core.Application.Modules.Inventory.Documents.GoodsReceipts;
 
 public sealed record GoodsReceiptLineDto(long Id, string Kind, string MaterialCode, string MaterialName,
     string UomCode, decimal Quantity, decimal UnitPrice, decimal Amount, string? LotNumber, string? Position,
-    long? PurchaseOrderLineId = null, string? PurchaseOrderCode = null);
+    long? PurchaseOrderLineId = null, string? PurchaseOrderCode = null,
+    /// <summary>Expected receipt date of the order line this line receives (the line's own date, else the order's).</summary>
+    DateOnly? OrderDeliveryDate = null);
 
 /// <summary>A line: the material and unit are codes of the catalogs; the name is taken from the material when saved.</summary>
 public sealed record SaveGoodsReceiptLine(string Kind, string MaterialCode,
@@ -15,7 +17,7 @@ public sealed record GoodsReceiptDto(long Id, string Code, DateOnly Date, DateOn
     string CurrencyCode, decimal ExchangeRate, string? SupplierCode, string? SupplierName, string? DelivererName,
     string? Note, string Status, decimal TotalValue, string CreatedBy, string? ApprovedBy,
     IReadOnlyList<GoodsReceiptLineDto> Items, IReadOnlyList<GoodsReceiptLineDto> MaterialItems, uint Version,
-    string? PurchaseOrderCode = null);
+    string? PurchaseOrderCode = null, string? ProjectCode = null);
 
 public sealed record SaveGoodsReceiptRequest(DateOnly Date, string WarehouseCode, string VoucherType,
     /// <summary>SupplierCode is a supplier of the catalog (optional); its name is kept on the receipt.</summary>
@@ -23,7 +25,9 @@ public sealed record SaveGoodsReceiptRequest(DateOnly Date, string WarehouseCode
     string? Note, IReadOnlyList<SaveGoodsReceiptLine> Items,
     IReadOnlyList<SaveGoodsReceiptLine>? MaterialItems, uint? Version = null,
     /// <summary>Draft (default), Pending, Approved or Posted: the status to save at, as far as the user's rights reach (VoucherTargetStatus).</summary>
-    string? TargetStatus = null);
+    string? TargetStatus = null,
+    /// <summary>The project (dự án) of the voucher, optional; only a project that is in use and still takes vouchers.</summary>
+    string? ProjectCode = null);
 
 public sealed record GoodsReceiptOption(string Code, string Name);
 public sealed record GoodsReceiptOptionsDto(IReadOnlyList<GoodsReceiptOption> Warehouses,

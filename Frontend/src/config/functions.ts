@@ -50,6 +50,10 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
   inv_approve_transfer: fn('inventory', '/inventory/approvals/transfers', 'Phê duyệt điều chuyển', 'process'),
   // Mua hàng
   pur_request: fn('purchasing', '/purchasing/requests', 'Phiếu yêu cầu mua hàng', 'voucher'),
+  pur_project_cat: fn('purchasing', '/purchasing/projects', 'Danh mục dự án', 'catalog'),
+  pur_payment_term_cat: fn('purchasing', '/purchasing/payment-terms', 'Danh mục điều khoản thanh toán', 'catalog'),
+  pur_supplier_group_cat: fn('purchasing', '/purchasing/supplier-groups', 'Danh mục nhóm nhà cung cấp', 'catalog'),
+  pur_report_project: fn('purchasing', '/purchasing/report-project', 'Báo cáo chi phí theo dự án', 'report'),
   pur_order: fn('purchasing', '/purchasing/orders', 'Đơn mua hàng', 'voucher'),
   pur_approve_request: fn('purchasing', '/purchasing/approvals/requests', 'Phê duyệt yêu cầu mua hàng', 'process'),
   pur_approve_order: fn('purchasing', '/purchasing/approvals/orders', 'Phê duyệt đơn mua hàng', 'process'),

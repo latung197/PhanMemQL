@@ -176,6 +176,8 @@
     "taxCode": "Tax code",
     "phone": "Phone",
     "address": "Address",
+    "group": "Supplier group",
+    "groupCode": "Supplier group code",
     "note": "Note",
     "status": "Status",
     "active": "Active",

@@ -45,6 +45,10 @@ public static class AuditActions
     public const string Withdraw = "WITHDRAW";
     /// <summary>Data downloaded as an Excel file (note = row count and the filter used).</summary>
     public const string Export = "EXPORT";
+    /// <summary>The code of a catalog record was renamed (change: code, before → after; note = rows changed in other tables).</summary>
+    public const string CodeChange = "CODE_CHANGE";
+    /// <summary>A catalog record was merged into another (change: code, merged → target).</summary>
+    public const string Merge = "MERGE";
 }
 
 /// <summary>

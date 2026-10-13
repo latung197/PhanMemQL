@@ -1,3 +1,4 @@
+using Core.Infrastructure.Modules.Purchasing.Categories;
 using Core.Application.Common.Auditing;
 using Core.Application.Common.Export;
 using Core.Application.Common.Paging;
@@ -45,6 +46,7 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
         if (!await permissions.HasRightAsync(userId, Function, SpecialRightCatalog.ViewAll, ct)) rows = rows.Where(x => x.CreatedBy == userId);
         if (query.StatusFilter is { } status) { var text = status.ToString(); rows = rows.Where(x => x.Status == text); }
         if (!string.IsNullOrWhiteSpace(query.Warehouse)) { var wh = query.Warehouse.Trim().ToUpperInvariant(); rows = rows.Where(x => x.WarehouseCode == wh); }
+        if (!string.IsNullOrWhiteSpace(query.Project)) { var pj = query.Project.Trim().ToUpperInvariant(); rows = rows.Where(x => x.ProjectCode == pj); }
         if (!string.IsNullOrWhiteSpace(query.VoucherType)) { var type = query.VoucherType.Trim(); rows = rows.Where(x => x.VoucherType == type); }
         if (query.From is { } from) rows = rows.Where(x => x.DocumentDate >= from);
         if (query.To is { } to) rows = rows.Where(x => x.DocumentDate <= to);
@@ -124,6 +126,7 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
     {
         await permissions.EnsureAllowedAsync(userId, Function, Core.Domain.Modules.Users.PermissionAction.Create, ct);
         var check = await ValidateAsync(unitCode, request, null, ct);
+        await ProjectChecks.EnsureAsync(db, request.ProjectCode, null, ct);
         var target = VoucherTargetStatus.Parse(request.TargetStatus);
         await EnsureTargetAllowedAsync(userId, unitCode, isOwner: true, target, ct);
         var id = await unitOfWork.ExecuteAsync(async token =>
@@ -153,6 +156,7 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
         if (row.Status != "Draft") throw new BusinessRuleException("receipt.editDraftOnly");
         await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         var check = await ValidateAsync(unitCode, request, id, ct);
+        await ProjectChecks.EnsureAsync(db, request.ProjectCode, row.ProjectCode, ct);
         var target = VoucherTargetStatus.Parse(request.TargetStatus);
         await EnsureTargetAllowedAsync(userId, unitCode, row.CreatedBy == userId, target, ct);
         db.ExpectVersion(row, request.Version, touch: true);
@@ -466,6 +470,7 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
         row.DelivererName = request.DelivererName?.Trim();
         row.PurchaseOrderCode = check.OrderCodes;
         row.Note = request.Note?.Trim();
+        row.ProjectCode = ProjectChecks.Normalize(request.ProjectCode);
         row.TotalValue = decimal.Round(request.Items.Sum(x => x.Quantity * x.UnitPrice) * check.Rate, 2);
     }
 
@@ -507,15 +512,17 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
         // The number of the purchase order each line receives, shown on the line.
         var orderLineIds = rows.SelectMany(x => x.Lines).Where(l => l.PurchaseOrderLineId != null)
             .Select(l => l.PurchaseOrderLineId!.Value).Distinct().ToList();
-        var orderCodes = orderLineIds.Count == 0 ? new Dictionary<long, string>()
+        var orderInfo = orderLineIds.Count == 0 ? []
             : await (from ol in db.PurchaseOrderLines.AsNoTracking() join o in db.PurchaseOrders.AsNoTracking() on ol.OrderId equals o.Id
-                     where orderLineIds.Contains(ol.Id) select new { ol.Id, o.Code }).ToDictionaryAsync(x => x.Id, x => x.Code, ct);
+                     where orderLineIds.Contains(ol.Id) select new { ol.Id, o.Code, Due = ol.DeliveryDate ?? o.DeliveryDate }).ToDictionaryAsync(x => x.Id, ct);
+        var orderCodes = orderInfo.ToDictionary(x => x.Key, x => x.Value.Code);
         return rows.Select(row =>
         {
             GoodsReceiptLineDto Line(GoodsReceiptLine line) => new(line.Id, line.Kind, line.MaterialCode, line.MaterialName,
                 line.UomCode, line.Quantity, canSeePrice ? line.UnitPrice : 0,
                 canSeePrice ? line.Amount : 0, line.LotNumber, line.Position, line.PurchaseOrderLineId,
-                line.PurchaseOrderLineId is long orderLineId ? orderCodes.GetValueOrDefault(orderLineId) : null);
+                line.PurchaseOrderLineId is long orderLineId ? orderCodes.GetValueOrDefault(orderLineId) : null,
+                line.PurchaseOrderLineId is long dueLineId && orderInfo.TryGetValue(dueLineId, out var due) ? due.Due : null);
             return new GoodsReceiptDto(row.Id, row.Code, row.DocumentDate, row.CreatedDate,
                 row.UnitCode, units.GetValueOrDefault(row.UnitCode, row.UnitCode),
                 row.WarehouseCode, warehouses.GetValueOrDefault(row.WarehouseCode, row.WarehouseCode),
@@ -524,7 +531,7 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
                 users.GetValueOrDefault(row.CreatedBy ?? 0, ""),
                 row.ApprovedByUserId is int approved ? users.GetValueOrDefault(approved) : null,
                 row.Lines.Where(x => x.Kind == "ITEM").OrderBy(x => x.LineNo).Select(Line).ToList(),
-                row.Lines.Where(x => x.Kind == "MATERIAL").OrderBy(x => x.LineNo).Select(Line).ToList(), row.Version, row.PurchaseOrderCode);
+                row.Lines.Where(x => x.Kind == "MATERIAL").OrderBy(x => x.LineNo).Select(Line).ToList(), row.Version, row.PurchaseOrderCode, ProjectCode: row.ProjectCode);
         }).ToList();
     }
 }

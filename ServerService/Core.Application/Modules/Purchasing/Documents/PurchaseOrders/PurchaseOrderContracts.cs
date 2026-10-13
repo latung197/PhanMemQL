@@ -8,24 +8,28 @@ namespace Core.Application.Modules.Purchasing.Documents.PurchaseOrders;
 /// </summary>
 public sealed record PurchaseOrderLineDto(long Id, string MaterialCode, string MaterialName, string UomCode,
     decimal Quantity, decimal UnitPrice, decimal Amount, string? Note, decimal ReceivedQuantity,
-    long? PurchaseRequestLineId = null, string? PurchaseRequestCode = null);
+    long? PurchaseRequestLineId = null, string? PurchaseRequestCode = null, DateOnly? DeliveryDate = null);
 
 /// <summary>A line: the material and unit are codes of the catalogs; the name is taken from the material when saved.</summary>
 public sealed record SavePurchaseOrderLine(string MaterialCode, string UomCode, decimal Quantity, decimal UnitPrice, string? Note,
-    long? PurchaseRequestLineId = null);
+    long? PurchaseRequestLineId = null, DateOnly? DeliveryDate = null);
 
 /// <summary>SubTotal and TaxAmount are in the order's currency; TotalValue (sub total + tax) in the base currency.</summary>
 public sealed record PurchaseOrderDto(long Id, string Code, DateOnly Date, DateOnly CreatedDate, DateOnly? DeliveryDate,
     string UnitCode, string UnitName, string WarehouseCode, string WarehouseName, string VoucherType,
     string SupplierCode, string? SupplierName, string? PaymentTerms, string CurrencyCode, decimal ExchangeRate,
     string? TaxRateCode, decimal TaxRate, decimal SubTotal, decimal TaxAmount, string? Note, string Status, decimal TotalValue,
-    string? PurchaseRequestCode, string CreatedBy, string? ApprovedBy, IReadOnlyList<PurchaseOrderLineDto> Items, uint Version);
+    string? PurchaseRequestCode, string CreatedBy, string? ApprovedBy, IReadOnlyList<PurchaseOrderLineDto> Items, uint Version, string? ProjectCode = null, string? PaymentTermCode = null);
 
 public sealed record SavePurchaseOrderRequest(DateOnly Date, DateOnly? DeliveryDate, string WarehouseCode, string VoucherType,
     string SupplierCode, string? PaymentTerms, string CurrencyCode, decimal ExchangeRate, string? TaxRateCode,
     string? Note, IReadOnlyList<SavePurchaseOrderLine> Items, uint? Version = null,
     /// <summary>Draft (default), Pending or Approved: the status to save at, as far as the user's rights reach (Posted does not exist for an order).</summary>
-    string? TargetStatus = null);
+    string? TargetStatus = null,
+    /// <summary>The project (dự án) of the voucher, optional; only a project that is in use and still takes vouchers.</summary>
+    string? ProjectCode = null,
+    /// <summary>A payment term of the catalog (optional); its name replaces PaymentTerms.</summary>
+    string? PaymentTermCode = null);
 
 public sealed record PurchaseOrderOption(string Code, string Name);
 public sealed record PurchaseOrderTaxOption(string Code, string Name, decimal Rate);
@@ -35,12 +39,12 @@ public sealed record PurchaseOrderOptionsDto(IReadOnlyList<PurchaseOrderOption> 
 
 /// <summary>A line of an approved order that a goods receipt may still receive (RemainingQuantity &gt; 0).</summary>
 public sealed record OpenPurchaseOrderLineDto(long LineId, string MaterialCode, string MaterialName, string UomCode,
-    decimal OrderedQuantity, decimal ReceivedQuantity, decimal RemainingQuantity, decimal UnitPrice, string? Note);
+    decimal OrderedQuantity, decimal ReceivedQuantity, decimal RemainingQuantity, decimal UnitPrice, string? Note, DateOnly? DeliveryDate = null);
 
 /// <summary>An approved order with something left to receive: what "Lấy từ đơn mua hàng" of the goods receipt screen lists.</summary>
 public sealed record OpenPurchaseOrderDto(long Id, string Code, DateOnly Date, DateOnly? DeliveryDate, string WarehouseCode,
     string WarehouseName, string VoucherType, string SupplierCode, string? SupplierName, string? PaymentTerms,
-    string CurrencyCode, decimal ExchangeRate, string? Note, IReadOnlyList<OpenPurchaseOrderLineDto> Lines);
+    string CurrencyCode, decimal ExchangeRate, string? Note, IReadOnlyList<OpenPurchaseOrderLineDto> Lines, string? ProjectCode = null);
 
 public interface IPurchaseOrderService
 {

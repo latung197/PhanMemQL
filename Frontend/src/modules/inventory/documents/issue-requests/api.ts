@@ -33,6 +33,7 @@ interface RequestRecord {
   customerName?: string | null;
   currencyCode: string;
   exchangeRate: number;
+  projectCode?: string | null;
   note?: string | null;
   status: 'Draft' | 'Pending' | 'Approved' | 'Posted' | 'Cancelled';
   totalValue: number;
@@ -73,7 +74,7 @@ const toVoucher = (row: RequestRecord): GoodsVoucher => ({
   voucherType: row.voucherType, currencyCode: row.currencyCode, exchangeRate: row.exchangeRate,
   departmentCode: row.departmentCode ?? '', departmentName: row.departmentName ?? '',
   requesterName: row.requesterName ?? '', supplierName: row.customerName ?? '', delivererName: row.requesterName ?? '',
-  note: row.note ?? '', status: statusLabels[row.status], totalValue: row.totalValue,
+  projectCode: row.projectCode ?? '', note: row.note ?? '', status: statusLabels[row.status], totalValue: row.totalValue,
   createdBy: row.createdBy, approvedBy: row.approvedBy ?? undefined,
   items: row.items.map(toItem)
 });
@@ -90,6 +91,7 @@ const toRequest = (voucher: GoodsVoucher, targetStatus?: string) => ({
   departmentCode: voucher.departmentCode || null, requesterName: voucher.requesterName || null,
   customerName: voucher.supplierName || null,
   currencyCode: voucher.currencyCode || 'VND', exchangeRate: voucher.exchangeRate || 1,
+  projectCode: voucher.projectCode || null,
   note: voucher.note || null,
   items: voucher.items.map(toLine),
   version: voucher.version

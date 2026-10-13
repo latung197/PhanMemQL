@@ -2,7 +2,7 @@
 // / export, add), grid with selection and bulk delete, add / edit form with record stamps and lost-update protection
 // (useCatalog), all shown or hidden by the function's rights (view / create / edit / delete / export).
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, GitMerge, Replace, Trash2 } from 'lucide-react';
 import { GridView } from '../common/GridView';
 import { CategoryHeaderToolbar } from '../common/CategoryHeaderToolbar';
 import { Modal } from '../common/Modal';
@@ -17,12 +17,13 @@ import { clampPageSize, PAGE_SIZE_OPTIONS, type PagedQuery } from '../../service
 import { useLanguage } from '../../context/LanguageContext';
 import { getErrorMessage } from '../../services/apiClient';
 import { showToast } from '../../utils/toast';
-import { getActionPermission } from '../../utils/permissions';
+import { getActionPermission, hasRight, RIGHTS } from '../../utils/permissions';
 import type { UserProfile } from '../../types';
 import type { CatalogDefinition } from './catalogTypes';
 import { exportExcel } from './excel';
 import { ImportExcelDialog } from './ImportExcelDialog';
 import { ColumnChooser } from './ColumnChooser';
+import { CodeChangeDialog, type CodeChangeMode } from './CodeChangeDialog';
 import { useGridLayout } from './useGridLayout';
 
 const STATUS_FILTER = 'status';
@@ -82,6 +83,9 @@ export function CatalogScreen<T extends object, TInput extends object>({ definit
   const [editing, setEditing] = useState<T>();
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [codeChange, setCodeChange] = useState<{ mode: CodeChangeMode; item: T }>();
+  // Đổi mã / gộp mã: the catalog allows it, the user may edit and holds the special right.
+  const canChangeCode = !!d.codeChange && !!d.api.codeChange && perms.edit && hasRight(currentUser, d.functionCode, RIGHTS.CHANGE_CODE);
 
   // Remembered once seen, so the status filter stays when a filter leaves the page empty.
   const seenStatus = useRef(false);
@@ -220,6 +224,8 @@ export function CatalogScreen<T extends object, TInput extends object>({ definit
         }] : []}
         actions={(perms.edit || perms.delete) ? item => (
           <div className="flex justify-end gap-1">
+            {canChangeCode && <Button variant="ghost" size="sm" title={t('catalog.codeChange.rename')} onClick={() => setCodeChange({ mode: 'rename', item })} icon={<Replace className="h-3.5 w-3.5" />} />}
+            {canChangeCode && <Button variant="ghost" size="sm" title={t('catalog.codeChange.merge')} onClick={() => setCodeChange({ mode: 'merge', item })} icon={<GitMerge className="h-3.5 w-3.5" />} />}
             {perms.edit && <Button variant="ghost" size="sm" title={t('catalog.edit')} onClick={() => open(item)} icon={<Edit2 className="h-3.5 w-3.5" />} />}
             {perms.delete && <Button variant="ghost" size="sm" title={t('catalog.delete')} onClick={() => void catalog.remove(item)} icon={<Trash2 className="h-3.5 w-3.5 text-rose-600" />} />}
           </div>
@@ -238,6 +244,15 @@ export function CatalogScreen<T extends object, TInput extends object>({ definit
             </div>
           </form>
         </Modal>
+      )}
+
+      {codeChange && d.codeChange && d.api.codeChange && (
+        <CodeChangeDialog
+          mode={codeChange.mode} code={d.keyOf(codeChange.item)} label={d.describe(codeChange.item)} noun={d.texts.noun}
+          version={(codeChange.item as { version?: number }).version} lookup={d.codeChange.lookup} api={d.api.codeChange}
+          onClose={() => setCodeChange(undefined)}
+          onDone={() => { setCodeChange(undefined); setSelected([]); void catalog.reload(); void onChanged?.(); }}
+        />
       )}
 
       {importing && d.api.importMany && (

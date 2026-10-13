@@ -36,6 +36,9 @@ public class PurchaseOrder : ErpEntity, IApprovableDocument
     /// <summary>The supplier name when the order was saved.</summary>
     [Column("supplier_name"), MaxLength(200)] public string? SupplierName { get; set; }
     [Column("payment_terms"), MaxLength(200)] public string? PaymentTerms { get; set; }
+    /// <summary>The payment term of the catalog (optional); <see cref="PaymentTerms"/> keeps its name at save time, or free text.</summary>
+    [References<Core.Domain.Modules.Purchasing.Categories.PaymentTerms.PaymentTerm>(Optional = true)]
+    [Column("payment_term_code"), MaxLength(20)] public string? PaymentTermCode { get; set; }
     [References<Currency>]
     [Required, Column("currency_code"), MaxLength(10)] public string CurrencyCode { get; set; } = "VND";
     [Column("exchange_rate", TypeName = "numeric(18,6)")] public decimal ExchangeRate { get; set; } = 1;
@@ -52,6 +55,9 @@ public class PurchaseOrder : ErpEntity, IApprovableDocument
     [NotReference("trỏ tới số phiếu yêu cầu mua hàng (khóa của nó là id); PurchaseRequestService không cho hủy phiếu yêu cầu còn đơn mua chưa hủy, và chỉ xóa được phiếu yêu cầu nháp")]
     [Column("purchase_request_code"), MaxLength(500)] public string? PurchaseRequestCode { get; set; }
     [Column("note"), MaxLength(1000)] public string? Note { get; set; }
+    /// <summary>The project this voucher belongs to (dự án), optional: costs are added up per project.</summary>
+    [References<Core.Domain.Modules.Purchasing.Categories.Projects.Project>(Optional = true)]
+    [Column("project_code"), MaxLength(20)] public string? ProjectCode { get; set; }
     [Required, Column("status"), MaxLength(20)] public string Status { get; set; } = "Draft";
     [Column("approved_by_user_id")] public int? ApprovedByUserId { get; set; }
     public List<PurchaseOrderLine> Lines { get; set; } = [];
@@ -78,4 +84,6 @@ public class PurchaseOrderLine : ErpEntity
     [Column("note"), MaxLength(300)] public string? Note { get; set; }
     /// <summary>The purchase request line this line orders; empty for a line bought without a request.</summary>
     [Column("purchase_request_line_id")] public long? PurchaseRequestLineId { get; set; }
+    /// <summary>When the supplier is expected to deliver this line; a line saved without a date takes the delivery date of the order.</summary>
+    [Column("delivery_date")] public DateOnly? DeliveryDate { get; set; }
 }

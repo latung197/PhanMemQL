@@ -17,9 +17,10 @@ namespace Core.Application.Common.Paging;
 /// <param name="To">Vouchers dated on or before this day.</param>
 /// <param name="Department">Department code (issue and purchase requests have one).</param>
 /// <param name="Supplier">Supplier code (purchase requests and orders).</param>
+/// <param name="Project">Project code (dự án) the vouchers belong to.</param>
 public sealed record VoucherListQuery(int Page = 1, int PageSize = PagingLimits.DefaultPageSize, string? Sort = null,
     string? Dir = null, string? Search = null, string? Status = null, string? Warehouse = null, string? VoucherType = null,
-    string? Code = null, DateOnly? From = null, DateOnly? To = null, string? Department = null, string? Supplier = null) : IPagedQuery
+    string? Code = null, DateOnly? From = null, DateOnly? To = null, string? Department = null, string? Supplier = null, string? Project = null) : IPagedQuery
 {
     /// <summary>The status filter as a status; null = every status. Anything else is refused.</summary>
     public DocumentStatus? StatusFilter => string.IsNullOrWhiteSpace(Status) ? null

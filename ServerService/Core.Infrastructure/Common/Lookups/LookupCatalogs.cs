@@ -24,8 +24,21 @@ public static class LookupCatalogs
         }, ["erp_uom", "erp_uom_translation"], "symbol"),
 
         new LookupDefinition("suppliers", db => db.Suppliers.Select(x =>
-            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.TaxCode, Extra2 = x.Phone }),
-        ["erp_supplier"], "taxCode", "phone"),
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.TaxCode, Extra2 = x.Phone, Extra3 = x.SupplierGroupCode }),
+        ["erp_supplier"], "taxCode", "phone", "supplierGroupCode"),
+
+        // Extras: status of the project (only PLANNING / ACTIVE projects take new vouchers), department code.
+        new LookupDefinition("projects", db => db.Projects.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.Status, Extra2 = x.DepartmentCode }),
+        ["erp_project"], "status", "departmentCode"),
+
+        // Extra: days to pay.
+        new LookupDefinition("paymentTerms", db => db.PaymentTerms.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.Days.ToString() }),
+        ["erp_payment_term"], "days"),
+
+        new LookupDefinition("supplierGroups", db => db.SupplierGroups.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive }), ["erp_supplier_group"]),
 
         new LookupDefinition("uomConversions", db => db.UomConversions.Select(x =>
             new LookupRow { Code = x.Code, Name = x.FromUomCode + " → " + x.ToUomCode, IsActive = x.IsActive,

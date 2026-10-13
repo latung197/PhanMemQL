@@ -23,7 +23,7 @@ export const MaterialTypeCategoryView: React.FC<{ currentUser?: UserProfile }> =
   }, []);
 
   const definition = useMemo((): CatalogDefinition<MaterialTypeRecord, SaveMaterialTypeInput> => ({
-    functionCode: 'inv_material_type_cat', api: materialTypesApi,
+    functionCode: 'inv_material_type_cat', codeChange: { lookup: 'materialTypes' }, api: materialTypesApi,
     keyOf: row => row.code, describe: row => `${row.code} - ${row.name}`,
     icon: <Layers className="h-4 w-4" />,
     texts: {

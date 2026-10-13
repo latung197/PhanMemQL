@@ -13,13 +13,15 @@ public sealed record PurchaseRequestDto(long Id, string Code, DateOnly Date, Dat
     string UnitCode, string UnitName, string WarehouseCode, string WarehouseName, string VoucherType,
     string? DepartmentCode, string? DepartmentName, string? RequesterName, string? SupplierCode, string? SupplierName,
     string CurrencyCode, decimal ExchangeRate, string? Note, string Status, decimal TotalValue, string CreatedBy,
-    string? ApprovedBy, IReadOnlyList<PurchaseRequestLineDto> Items, uint Version);
+    string? ApprovedBy, IReadOnlyList<PurchaseRequestLineDto> Items, uint Version, string? ProjectCode = null);
 
 public sealed record SavePurchaseRequestRequest(DateOnly Date, DateOnly? RequiredDate, string WarehouseCode, string VoucherType,
     string? DepartmentCode, string? RequesterName, string? SupplierCode, string CurrencyCode, decimal ExchangeRate,
     string? Note, IReadOnlyList<SavePurchaseRequestLine> Items, uint? Version = null,
     /// <summary>Draft (default), Pending or Approved: the status to save at, as far as the user's rights reach (Posted does not exist for a request).</summary>
-    string? TargetStatus = null);
+    string? TargetStatus = null,
+    /// <summary>The project (dự án) of the voucher, optional; only a project that is in use and still takes vouchers.</summary>
+    string? ProjectCode = null);
 
 public sealed record PurchaseRequestOption(string Code, string Name);
 public sealed record PurchaseRequestOptionsDto(IReadOnlyList<PurchaseRequestOption> Warehouses,

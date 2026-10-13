@@ -25,7 +25,7 @@ export const WarehouseTypeCategoryView: React.FC<{ currentUser?: UserProfile }> 
   }, []);
 
   const definition = useMemo((): CatalogDefinition<WarehouseTypeRecord, SaveWarehouseTypeInput> => ({
-    functionCode: 'inv_warehouse_type_cat', api: warehouseTypesApi,
+    functionCode: 'inv_warehouse_type_cat', codeChange: { lookup: 'warehouseTypes' }, api: warehouseTypesApi,
     keyOf: row => row.code, describe: row => `${row.code} - ${row.name}`,
     icon: <Tags className="h-4 w-4" />,
     texts: {
