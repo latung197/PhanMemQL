@@ -6,7 +6,7 @@ import { FUNCTION_KEYS, FUNCTION_REGISTRY, FunctionKind } from '../../../config/
 import { translate } from '../../../utils/i18n';
 
 /** Module of the matrix; its name is permissions.module.<key>. */
-export type ModuleName = 'inventory' | 'sales' | 'finance' | 'hr' | 'system';
+export type ModuleName = 'inventory' | 'purchasing' | 'sales' | 'finance' | 'hr' | 'system';
 export type FunctionGroup = 'danh_muc' | 'chung_tu' | 'bao_cao' | 'he_thong';
 
 export interface FunctionItem {
@@ -28,11 +28,11 @@ export const actionShortLabel = (key: keyof ActionPermissions) => translate(`per
 const GROUP_ORDER: FunctionGroup[] = ['danh_muc', 'chung_tu', 'bao_cao', 'he_thong'];
 export const groupLabel = (group: FunctionGroup) => translate(`permissions.group.${group}`);
 
-export const MODULE_NAMES: ModuleName[] = ['inventory', 'sales', 'finance', 'hr', 'system'];
+export const MODULE_NAMES: ModuleName[] = ['inventory', 'purchasing', 'sales', 'finance', 'hr', 'system'];
 export const moduleLabel = (module: ModuleName) => translate(`permissions.module.${module}`);
 
 const MODULE_OF: Record<ModuleCategoryKey, ModuleName> = {
-  inventory: 'inventory', sales: 'sales', finance: 'finance', hr: 'hr',
+  inventory: 'inventory', purchasing: 'purchasing', sales: 'sales', finance: 'finance', hr: 'hr',
   overview: 'system', reports: 'system', ai: 'system', settings: 'system'
 };
 
@@ -83,6 +83,17 @@ export const LANDING_FUNCTION: SubMenuKey = 'overview_main';
  */
 export const visibleRights = (rights: string[] | undefined, matrix: FullMatrix): string[] =>
   normalizeRights((rights ?? []).filter(key => matrix[key.slice(0, key.indexOf(':')) as SubMenuKey]?.view));
+
+/** A company unit the status rights can be granted for. */
+export interface RightUnit { code: string; name: string }
+
+/** The right as stored: a per-unit right carries the unit ("inv_receipt:ST_POSTED@DVCS01"), the others are as they are. */
+export const rightKeyFor = (def: { key: string; perUnit?: boolean }, unitCode: string): string =>
+  def.perUnit ? `${def.key}@${unitCode}` : def.key;
+
+/** Every right of the catalog, the per-unit ones for each of the units (what an administrator holds). */
+export const allRightKeys = (defs: { key: string; perUnit?: boolean }[], units: RightUnit[]): string[] =>
+  defs.flatMap(d => d.perUnit ? units.map(u => rightKeyFor(d, u.code)) : [d.key]);
 
 export const countRightDifferences = (a: string[], b: string[]): number => {
   const setA = new Set(a);

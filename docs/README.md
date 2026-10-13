@@ -17,7 +17,9 @@ docs/
 | [cau-truc-module-kho.md](kho/cau-truc-module-kho.md) | Cấu trúc thư mục mã nguồn module Kho (phân hệ → nhóm → chức năng) và cách thêm chức năng | `Cau-truc-module-kho.docx` |
 | [huong-dan-danh-muc-kho.md](kho/huong-dan-danh-muc-kho.md) | Hướng dẫn dùng màn Danh mục kho (thêm, sửa, lọc, Excel) và quy trình thêm một danh mục theo mẫu kho | `Huong-dan-danh-muc-kho.docx` |
 | [so-kho-va-phieu-nhap-kho.md](kho/so-kho-va-phieu-nhap-kho.md) | Phiếu nhập kho và phiếu xuất kho từng bước, các bảng của hai phiếu, xóa phiếu và trigger dọn sổ, **sổ kho và ba bảng tồn**, danh mục và bảng hệ thống dùng chung, vận hành | `So-kho-va-phieu-nhap-kho.docx` |
+| [trang-thai-chung-tu.md](he-thong/trang-thai-chung-tu.md) | Danh mục trạng thái chứng từ theo đơn vị cơ sở (đổi tên, tắt bước Chờ duyệt) và quyền theo trạng thái theo đơn vị: cấp đến trạng thái nào thì lưu phiếu được đến đó, mã quyền có đơn vị, màn phân quyền, chuyển dữ liệu từ quyền cũ, chính sách, API, giới hạn | `Trang-thai-chung-tu.docx` |
 | [phieu-xuat-kho.md](kho/phieu-xuat-kho.md) | Phiếu xuất kho đầy đủ: màn hình, trạng thái và duyệt, ghi sổ trừ tồn theo giá bình quân (ví dụ chạy số), từng cột hai bảng, xóa phiếu và trigger, quyền, API kèm mẫu JSON, lỗi, cách cài đặt và kiểm tra, giới hạn, danh sách tệp | `Phieu-xuat-kho.docx` |
+| [phieu-yeu-cau-xuat-kho.md](kho/phieu-yeu-cau-xuat-kho.md) | Phiếu yêu cầu xuất kho (YCX, không ghi sổ) và chức năng "Lấy từ phiếu yêu cầu" của phiếu xuất kho: luồng, số đã xuất, quy tắc kiểm, bảng, quyền, API, giới hạn | `Phieu-yeu-cau-xuat-kho.docx` |
 | [them-quy-doi-don-vi-tinh.md](kho/them-quy-doi-don-vi-tinh.md) | Ghi lại các bước đưa Quy đổi đơn vị tính từ dữ liệu mẫu lên backend (ví dụ làm theo) | `Them-quy-doi-don-vi-tinh.docx` |
 
 ## Hệ thống (`he-thong/`)

@@ -25,6 +25,9 @@ public class GoodsIssue : ErpEntity, IApprovableDocument
     [Column("exchange_rate", TypeName = "numeric(18,6)")] public decimal ExchangeRate { get; set; } = 1;
     [Column("customer_name"), MaxLength(200)] public string? CustomerName { get; set; }
     [Column("receiver_name"), MaxLength(200)] public string? ReceiverName { get; set; }
+    /// <summary>The approved issue requests this issue carries out, comma separated and derived from the lines (lines point to request lines); empty for a free issue.</summary>
+    [NotReference("trỏ tới mã phiếu yêu cầu xuất kho (khóa của nó là id); IssueRequestService không cho hủy phiếu yêu cầu còn phiếu xuất chưa hủy, và chỉ xóa được phiếu yêu cầu nháp")]
+    [Column("issue_request_code"), MaxLength(500)] public string? IssueRequestCode { get; set; }
     [Column("note"), MaxLength(1000)] public string? Note { get; set; }
     [Required, Column("status"), MaxLength(20)] public string Status { get; set; } = "Draft";
     [Column("total_value", TypeName = "numeric(18,2)")] public decimal TotalValue { get; set; }
@@ -52,4 +55,6 @@ public class GoodsIssueLine : ErpEntity
     [Column("amount", TypeName = "numeric(18,2)")] public decimal Amount { get; set; }
     [Column("lot_number"), MaxLength(64)] public string? LotNumber { get; set; }
     [Column("position"), MaxLength(100)] public string? Position { get; set; }
+    /// <summary>The line of the issue request this line carries out (null on a free issue).</summary>
+    [Column("issue_request_line_id")] public long? IssueRequestLineId { get; set; }
 }

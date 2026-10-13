@@ -16,7 +16,13 @@ public sealed class SpecialRightCatalogTests
             Assert.InRange(r.Code.Length, 1, 50);
             Assert.Contains(r.Group, new[] { SpecialRightGroups.Data, SpecialRightGroups.Scope, SpecialRightGroups.Status, SpecialRightGroups.Feature });
         });
-        Assert.Equal(SpecialRightCatalog.All.Count, SpecialRightCatalog.Keys.Count);
+        Assert.Equal(SpecialRightCatalog.All.Count(x => !x.PerUnit), SpecialRightCatalog.Keys.Count);
+        // Only status rights depend on the unit; their code plus "@" plus a unit code must still fit the column.
+        Assert.All(SpecialRightCatalog.PerUnitRights, r =>
+        {
+            Assert.Equal(SpecialRightGroups.Status, r.Group);
+            Assert.InRange(r.Code.Length + 1 + 20, 1, 50);
+        });
     }
 
     [Fact]
@@ -24,11 +30,31 @@ public sealed class SpecialRightCatalogTests
     {
         var key = SpecialRightCatalog.Key("inv_receipt", SpecialRightCatalog.ViewPrice);
         Assert.Equal(SpecialRightCatalog.Keys.Count, PermissionMatrix.ResolveRights(true, [], [], []).Count);
+        Assert.Equal(SpecialRightCatalog.Keys.Count + 2 * SpecialRightCatalog.PerUnitRights.Count(),
+            PermissionMatrix.ResolveRights(true, [], [], [], ["DVCS01", "DVCS02"]).Count);
         Assert.Contains(key, PermissionMatrix.ResolveRights(false, [key], [], []));
         Assert.Empty(PermissionMatrix.ResolveRights(false, [key], [], [key]));
         Assert.Contains(key, PermissionMatrix.ResolveRights(false, [], [key], []));
         Assert.Empty(PermissionMatrix.ResolveRights(false, [], ["inv_receipt:FLY"], []));
         Assert.Throws<BusinessRuleException>(() => PermissionMatrix.EnsureKnownRights(["inv_receipt:FLY"]));
+    }
+
+    [Fact]
+    public void StatusRightsAreGrantedPerUnit()
+    {
+        var posted = SpecialRightCatalog.UnitKey("inv_receipt", SpecialRightCatalog.StatusPosted, "DVCS01");
+        Assert.Equal("inv_receipt:ST_POSTED@DVCS01", posted);
+        Assert.True(SpecialRightCatalog.IsKnown(posted));
+        // Without a unit a per-unit right does not exist; a right without a unit does not take one.
+        Assert.False(SpecialRightCatalog.IsKnown("inv_receipt:ST_POSTED"));
+        Assert.False(SpecialRightCatalog.IsKnown("inv_receipt:ST_POSTED@"));
+        Assert.False(SpecialRightCatalog.IsKnown("inv_receipt:VIEW_PRICE@DVCS01"));
+        Assert.False(SpecialRightCatalog.IsKnown("inv_receipt:FLY@DVCS01"));
+        Assert.Equal(("ST_POSTED", "DVCS01"), SpecialRightCatalog.SplitUnit("ST_POSTED@DVCS01"));
+        Assert.Equal(("VIEW_PRICE", (string?)null), SpecialRightCatalog.SplitUnit("VIEW_PRICE"));
+        // A voucher that never posts has no posting rights.
+        Assert.DoesNotContain(SpecialRightCatalog.All, r => r.Function == "inv_issue_request" && r.Code is "ST_POSTED" or "ST_UNPOST");
+        Assert.Contains(SpecialRightCatalog.All, r => r.Function == "inv_issue" && r.Code == "ST_POSTED");
     }
 
     [Fact]
@@ -42,7 +68,7 @@ public sealed class SpecialRightCatalogTests
         var granted = SpecialRightCatalog.InitialFor(matrix).Select(r => SpecialRightCatalog.Key(r.Function, r.Code)).ToList();
         Assert.Contains("inv_receipt:VIEW_PRICE", granted);
         Assert.Contains("inv_receipt:VIEW_ALL", granted);
-        Assert.DoesNotContain("inv_receipt:POST", granted);
+        Assert.DoesNotContain(granted, k => k.Contains(":ST_"));
         Assert.DoesNotContain(granted, k => k.StartsWith("inv_issue:"));
     }
 

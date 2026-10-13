@@ -110,11 +110,11 @@ Quyền riêng của từng chức năng, ngoài 7 hành động. Chia 4 nhóm:
 | **Dữ liệu** (thấy giá trị nào) | `VIEW_PRICE` | Xem đơn giá, thành tiền | Mọi chứng từ; danh mục vật tư; các báo cáo kho; báo cáo doanh số |
 | | `VIEW_COST` | Xem giá vốn | Phiếu xuất kho, xuất điều chuyển, đơn hàng, giao hàng; danh mục vật tư; báo cáo |
 | **Phạm vi** (thấy phiếu nào) | `VIEW_ALL` | Xem phiếu của mọi người. Không có thì chỉ thấy phiếu mình lập | Mọi chứng từ |
-| **Trạng thái** (làm gì theo trạng thái) | `EDIT_PENDING` | Sửa phiếu đang chờ duyệt | Mọi chứng từ |
-| | `EDIT_APPROVED` | Sửa phiếu đã duyệt | |
-| | `POST` | Ghi sổ phiếu đã duyệt | |
-| | `UNPOST` | Bỏ ghi sổ | |
-| | `CANCEL` | Hủy phiếu (trừ phiếu nháp của chính mình, chỉ cần Xóa) | |
+| **Trạng thái** (làm gì theo trạng thái, **cấp riêng từng đơn vị cơ sở**) | `ST_PENDING` | Gửi duyệt, lưu ở Chờ duyệt, sửa phiếu đang chờ duyệt | Mọi chứng từ |
+| | `ST_APPROVED` | Lưu thẳng ở Đã duyệt, sửa phiếu đã duyệt | |
+| | `ST_POSTED` | Ghi sổ phiếu đã duyệt, lưu thẳng ở Đã ghi sổ | Chứng từ có ghi sổ |
+| | `ST_UNPOST` | Bỏ ghi sổ (bước lùi) | Chứng từ có ghi sổ |
+| | `ST_CANCELLED` | Hủy phiếu (trừ phiếu nháp của chính mình, chỉ cần Xóa) | Mọi chứng từ |
 | **Tính năng** | `SEND_NOTIFICATION` | Gửi thông báo cho một số người | Bàn tổng quan |
 | | `SEND_NOTIFICATION_ALL` | Gửi thông báo cho tất cả | |
 
@@ -165,12 +165,14 @@ Vòng đời của mọi phiếu:
 | Thao tác | Lập | Chờ duyệt | Đã duyệt | Đã ghi sổ | Hủy |
 | --- | --- | --- | --- | --- | --- |
 | Xem | Xem (+ `VIEW_ALL` nếu phiếu người khác) | như Lập | như Lập | như Lập | như Lập |
-| Sửa | Sửa | Sửa + `EDIT_PENDING` | Sửa + `EDIT_APPROVED` | Không ai | Không ai |
-| Gửi duyệt | Thêm hoặc Sửa | — | — | — | — |
+| Sửa | Sửa | Sửa + `ST_PENDING` | Sửa + `ST_APPROVED` | Không ai | Không ai |
+| Gửi duyệt | Thêm hoặc Sửa + `ST_PENDING` | — | — | — | — |
 | Duyệt / Từ chối | — | Người duyệt cấp hiện tại, **không phải người lập** | — | — | — |
-| Ghi sổ | — | — | `POST` | — | — |
-| Bỏ ghi sổ | — | — | — | `UNPOST` | — |
-| Hủy | Người lập có Xóa; người khác cần `CANCEL` | `CANCEL` | `CANCEL` | Không (bỏ ghi sổ trước) | — |
+| Ghi sổ | — | — | `ST_POSTED` | — | — |
+| Bỏ ghi sổ | — | — | — | `ST_UNPOST` | — |
+| Hủy | Người lập có Xóa; người khác cần `ST_CANCELLED` | `ST_CANCELLED` | `ST_CANCELLED` | Không (bỏ ghi sổ trước) | — |
+
+Quyền trạng thái là quyền **đến** một trạng thái: người có `ST_POSTED` cũng gửi duyệt và lưu ở Đã duyệt được, và khi lập chứng từ chọn được đến trạng thái mà quyền của mình (tại đơn vị đang làm việc) với tới. Quyền được cấp riêng cho từng đơn vị (mã `inv_receipt:ST_POSTED@DVCS01`), danh mục trạng thái cũng theo đơn vị: xem `docs/he-thong/trang-thai-chung-tu.md`.
 
 Quy tắc chung:
 - Mọi thao tác (trừ duyệt / từ chối) cần quyền **Xem** chức năng.
@@ -255,7 +257,7 @@ Mọi thay đổi về quyền được ghi ở Cài đặt › Nhật ký thay 
 
 | Nội dung | Tình trạng |
 | --- | --- |
-| **Danh mục trạng thái chứng từ** theo từng loại phiếu: đổi tên, bật / tắt trạng thái; mỗi trạng thái có quyền riêng "được chuyển phiếu sang trạng thái này" (thay `EDIT_PENDING`, `EDIT_APPROVED`, `POST`, `CANCEL`); quyền riêng cho **từng bước lùi** (bỏ ghi sổ, mở lại phiếu hủy...); tắt "Chờ duyệt" thì phiếu đó không cần duyệt | Đã thống nhất thiết kế, làm khi làm phiếu kho thật |
+| **Danh mục trạng thái chứng từ** theo đơn vị cơ sở và quyền theo trạng thái theo đơn vị | **Đã làm** (`docs/he-thong/trang-thai-chung-tu.md`); còn thiếu quyền "mở lại phiếu hủy" (chưa có thao tác mở lại) |
 | Phiếu, màn phê duyệt trên giao diện | API duyệt đã có, màn phiếu chưa gọi (phiếu còn là dữ liệu mẫu) |
 | Chính sách mật khẩu (độ phức tạp, hết hạn), khóa tài khoản sau N lần sai theo tài khoản, tự đăng xuất khi không dùng, lịch sử đăng nhập | Chưa có |
 | Quyền khác nhau theo đơn vị cơ sở | Chưa có; hiện quyền giống nhau ở mọi đơn vị |

@@ -211,6 +211,7 @@
     },
     "module": {
       "inventory": "Inventory",
+      "purchasing": "Purchasing",
       "sales": "Sales",
       "finance": "Finance",
       "hr": "Human resources",
@@ -221,6 +222,9 @@
       "search": "Search function or permission...",
       "onlyGranted": "Only functions with permissions",
       "collapseRights": "Collapse special permissions",
+      "statusUnit": "Unit for status rights:",
+      "statusUnitHint": "The right to take a voucher into each status (Pending approval, Approved, Posted, Cancel, Unpost) is granted per company unit: pick the unit, then tick the rights.",
+      "otherUnits": "Also held in {n} other unit(s).",
       "expandRights": "Expand all special permissions",
       "quickSet": "Quick set:",
       "all": "Everything",
@@ -538,5 +542,19 @@
     "inactive": "Inactive",
     "isActive": "In use",
     "isActiveHint": "An inactive language can no longer be chosen; its users switch to the default language"
+  },
+  "voucherStatus": {
+    "title": "Voucher statuses",
+    "subtitle": "Every voucher has fixed statuses: Draft → Pending approval → Approved → Posted, or Cancelled. Each company unit may rename the statuses and switch off the \"Pending approval\" step (its vouchers then need no approval); new statuses cannot be added.",
+    "rightsHint": "The right to take a voucher into a status is granted per company unit in Settings › Users & permissions (group \"Document status\"): a user may save a voucher up to the status their rights reach.",
+    "unit": "Company unit",
+    "loading": "Loading voucher statuses...",
+    "status": "Status",
+    "name": "Display name",
+    "nameEn": "English name",
+    "inUse": "In use",
+    "fixed": "A required status, it cannot be switched off",
+    "save": "Save",
+    "saved": "Saved status \"{status}\" of {voucher}"
   }
 }

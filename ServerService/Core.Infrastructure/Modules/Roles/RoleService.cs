@@ -25,14 +25,16 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
         var roles = await db.Roles.AsNoTracking().Include(x => x.Permissions).Where(x => x.ValidFlg == 1)
             .OrderBy(x => x.RoleCode == SysRole.AdminCode ? 0 : 1).ThenBy(x => x.RoleName).ToListAsync(ct);
         var rights = await db.RoleRights.AsNoTracking().Where(x => x.Status == "1").ToListAsync(ct);
+        var units = await db.CompanyUnits.AsNoTracking().Where(x => x.IsActive).Select(x => x.Code).ToListAsync(ct);
         return roles.Select(role => ToDto(role, rights.Where(x => x.RoleId == role.RoleId)
-            .Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)))).ToList();
+            .Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)), units)).ToList();
     }
 
     public async Task<RoleDto> CreateAsync(int actorUserId, SaveRoleRequest request, CancellationToken ct)
     {
         if (string.Equals(request.Code?.Trim(), SysRole.AdminCode, StringComparison.OrdinalIgnoreCase))
             await permissions.EnsureAdminAsync(actorUserId, ct);
+        await grants.EnsureRightUnitsExistAsync(request.SpecialRights, ct);
         await grants.EnsureCanGrantAsync(actorUserId, null, request.Permissions, null, request.SpecialRights, ct);
         var role = new SysRole();
         Apply(role, request);
@@ -49,8 +51,11 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
             await db.SaveChangesAsync(token);
             return saved;
         }, ct);
-        return ToDto(role, rights);
+        return ToDto(role, rights, await ActiveUnitsAsync(ct));
     }
+
+    private Task<List<string>> ActiveUnitsAsync(CancellationToken ct) =>
+        db.CompanyUnits.AsNoTracking().Where(x => x.IsActive).Select(x => x.Code).ToListAsync(ct);
 
     public async Task<RoleDto> UpdateAsync(int actorUserId, int roleId, SaveRoleRequest request, CancellationToken ct)
     {
@@ -64,6 +69,7 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
         var before = role.Permissions.Where(x => x.Status == "1").ToDictionary(x => x.MenuId0, x => x.ToActions());
         var rightsBefore = await LoadRightsAsync(role.RoleId, ct);
         var matrixBefore = MatrixOf(role);
+        await grants.EnsureRightUnitsExistAsync(request.SpecialRights, ct);
         await grants.EnsureCanGrantAsync(actorUserId, before, request.Permissions, rightsBefore, request.SpecialRights, ct);
         Apply(role, request);
         await EnsureUniqueAsync(role, ct);
@@ -71,7 +77,7 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
         await RecordAsync(role, AuditActions.Permissions, new AuditDiff().Matrix(matrixBefore, MatrixOf(role))
             .Rights(rightsBefore, rights), null, ct);
         await db.SaveChangesAsync(ct);
-        return ToDto(role, rights);
+        return ToDto(role, rights, await ActiveUnitsAsync(ct));
     }
 
     /// <summary>
@@ -217,9 +223,9 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
         return wanted;
     }
 
-    private static RoleDto ToDto(SysRole role, IEnumerable<string> rights) => new(role.RoleId.ToString(), role.RoleCode,
+    private static RoleDto ToDto(SysRole role, IEnumerable<string> rights, IEnumerable<string> activeUnits) => new(role.RoleId.ToString(), role.RoleCode,
         role.RoleName, role.Description ?? string.Empty, role.IsAdmin,
         role.IsAdmin ? PermissionMatrix.Uniform(ActionPermissions.Full)
             : PermissionMatrix.Build(role.Permissions.Where(x => x.Status == "1").Select(x => (x.MenuId0, x.ToActions()))),
-        (role.IsAdmin ? SpecialRightCatalog.Keys : rights).OrderBy(x => x, StringComparer.Ordinal).ToList(), role.Version);
+        (role.IsAdmin ? SpecialRightCatalog.KeysFor(activeUnits) : rights).OrderBy(x => x, StringComparer.Ordinal).ToList(), role.Version);
 }

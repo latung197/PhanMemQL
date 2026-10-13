@@ -9,8 +9,8 @@ import { APPROVAL_SCREENS } from '../../../utils/permissions';
 import { functionLabel } from '../../../config/functions';
 import { useLanguage } from '../../../context/LanguageContext';
 import {
-  ACTIONS, actionLabel, actionShortLabel, FUNCTIONS, FullMatrix, FunctionItem, groupLabel, LANDING_FUNCTION, MODULE_NAMES, moduleLabel,
-  ModuleName, uniformMatrix
+  ACTIONS, actionLabel, actionShortLabel, allRightKeys, FUNCTIONS, FullMatrix, FunctionItem, groupLabel, LANDING_FUNCTION, MODULE_NAMES,
+  moduleLabel, ModuleName, rightKeyFor, RightUnit, uniformMatrix
 } from './permissionCatalog';
 
 interface PermissionMatrixTableProps {
@@ -27,6 +27,8 @@ interface PermissionMatrixTableProps {
   baselineRights?: string[];
   /** Name of what the baseline is (default: the role). */
   baselineLabel?: string;
+  /** Company units the status rights (granted per unit) can be set for; the user picks one at a time. */
+  units: RightUnit[];
 }
 
 type ActionKey = keyof ActionPermissions;
@@ -46,7 +48,7 @@ const stateOf = (value: FullMatrix, items: FunctionItem[], actions: ActionKey[])
  */
 export const PermissionMatrixTable: React.FC<PermissionMatrixTableProps> = ({
   value, onChange, rights, onRightsChange, rightDefs, rightGroupLabels, readOnly, baseline, baselineRights,
-  baselineLabel
+  baselineLabel, units
 }) => {
   const { t } = useLanguage();
   const baselineName = baselineLabel ?? t('permissions.matrix.role');
@@ -54,6 +56,11 @@ export const PermissionMatrixTable: React.FC<PermissionMatrixTableProps> = ({
   const [onlyGranted, setOnlyGranted] = useState(false);
   const [collapsed, setCollapsed] = useState<Partial<Record<ModuleName, boolean>>>({});
   const [openRights, setOpenRights] = useState<Set<SubMenuKey>>(new Set());
+  // The status rights are granted per company unit: the unit whose rights the panels show and change.
+  const [rightUnit, setRightUnit] = useState(units[0]?.code ?? '');
+  const unitCode = units.some(u => u.code === rightUnit) ? rightUnit : units[0]?.code ?? '';
+  const keyOf = (d: SpecialRightDef) => rightKeyFor(d, unitCode);
+  const hasPerUnit = rightDefs.some(d => d.perUnit);
 
   const rightSet = useMemo(() => new Set(rights), [rights]);
   const baselineRightSet = useMemo(() => baselineRights ? new Set(baselineRights) : undefined, [baselineRights]);
@@ -97,7 +104,7 @@ export const PermissionMatrixTable: React.FC<PermissionMatrixTableProps> = ({
 
   const quickSet = (mode: 'all' | 'view' | 'none') => {
     onChange(uniformMatrix(mode));
-    onRightsChange(mode === 'all' ? rightDefs.map(d => d.key) : []);
+    onRightsChange(mode === 'all' ? allRightKeys(rightDefs, units) : []);
   };
 
   const allKeys = ACTIONS.map(a => a.key);
@@ -110,6 +117,8 @@ export const PermissionMatrixTable: React.FC<PermissionMatrixTableProps> = ({
     return next;
   });
   const functionsWithRights = visible.filter(fn => defsByFunction[fn.subKey]?.length);
+  /** How many status rights the user has in the units other than the one shown, to tell the administrator there are more. */
+  const grantedInOtherUnits = (def: SpecialRightDef) => units.filter(u => u.code !== unitCode && rightSet.has(rightKeyFor(def, u.code))).length;
   const allOpen = functionsWithRights.length > 0 && functionsWithRights.every(fn => openRights.has(fn.subKey));
 
   return (
@@ -136,6 +145,15 @@ export const PermissionMatrixTable: React.FC<PermissionMatrixTableProps> = ({
             onClick={() => setOpenRights(allOpen ? new Set() : new Set(functionsWithRights.map(fn => fn.subKey)))}>
             {allOpen ? t('permissions.matrix.collapseRights') : t('permissions.matrix.expandRights')}
           </Button>
+          {hasPerUnit && units.length > 0 && (
+            <label className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-300" title={t('permissions.matrix.statusUnitHint')}>
+              <span className="font-semibold whitespace-nowrap">{t('permissions.matrix.statusUnit')}</span>
+              <select value={unitCode} onChange={e => setRightUnit(e.target.value)}
+                className="h-7 max-w-56 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[5px] px-1.5 text-xs focus:outline-hidden focus:border-indigo-500">
+                {units.map(u => <option key={u.code} value={u.code}>{u.code} - {u.name}</option>)}
+              </select>
+            </label>
+          )}
         </div>
         {!readOnly && (
           <div className="flex items-center gap-1.5">
@@ -205,15 +223,15 @@ export const PermissionMatrixTable: React.FC<PermissionMatrixTableProps> = ({
                         onChange={(on) => apply(items, allKeys, on)} />
                     </td>
                     <td className="text-center px-1 py-1.5 text-[10px] text-slate-500 whitespace-nowrap">
-                      {moduleRights.length > 0 && `${moduleRights.filter(d => rightSet.has(d.key)).length}/${moduleRights.length}`}
+                      {moduleRights.length > 0 && `${moduleRights.filter(d => rightSet.has(keyOf(d))).length}/${moduleRights.length}`}
                     </td>
                   </tr>
 
                   {!isCollapsed && items.map(fn => {
                     const row = stateOf(value, [fn], allKeys);
                     const defs = defsByFunction[fn.subKey] ?? [];
-                    const grantedRights = defs.filter(d => rightSet.has(d.key)).length;
-                    const rowDiffers = ACTIONS.some(a => differs(fn.subKey, a.key)) || defs.some(d => rightDiffers(d.key));
+                    const grantedRights = defs.filter(d => rightSet.has(keyOf(d))).length;
+                    const rowDiffers = ACTIONS.some(a => differs(fn.subKey, a.key)) || defs.some(d => rightDiffers(keyOf(d)));
                     const isOpen = openRights.has(fn.subKey);
                     return (
                       <React.Fragment key={fn.subKey}>
@@ -278,9 +296,12 @@ export const PermissionMatrixTable: React.FC<PermissionMatrixTableProps> = ({
                                     <div key={group} className="space-y-1.5">
                                       <p className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">{rightGroupLabels[group] ?? group}</p>
                                       {groupDefs.map(d => (
-                                        <div key={d.key} className={cn('rounded px-1', rightDiffers(d.key) && 'bg-amber-100/70 dark:bg-amber-950/40')}>
-                                          <Checkbox checked={rightSet.has(d.key)} disabled={readOnly} label={d.name} subLabel={d.description}
-                                            onChange={(on) => toggleRight(fn.subKey, d.key, on)} />
+                                        <div key={d.key} className={cn('rounded px-1', rightDiffers(keyOf(d)) && 'bg-amber-100/70 dark:bg-amber-950/40')}>
+                                          <Checkbox checked={rightSet.has(keyOf(d))} disabled={readOnly || (!!d.perUnit && !unitCode)}
+                                            label={d.perUnit ? `${d.name} (${unitCode})` : d.name}
+                                            subLabel={d.perUnit && grantedInOtherUnits(d) > 0
+                                              ? `${d.description} ${t('permissions.matrix.otherUnits', { n: grantedInOtherUnits(d) })}` : d.description}
+                                            onChange={(on) => toggleRight(fn.subKey, keyOf(d), on)} />
                                         </div>
                                       ))}
                                     </div>

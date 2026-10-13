@@ -2,7 +2,7 @@
 // Core.Application/Common/Permissions/DocumentStatusPolicy.cs: keep the two in step (same rules and
 // messages). The frontend uses it to enable buttons; the backend checks the same rules again.
 import { SubMenuKey, UserProfile } from '../types';
-import { canApproveVoucher, getActionPermission, hasRight, RIGHTS } from './permissions';
+import { canApproveVoucher, getActionPermission, hasRight, hasStatusRight, RIGHTS } from './permissions';
 import { translate } from './i18n';
 
 /** Voucher life cycle: Lập → Chờ duyệt → Đã duyệt → Đã ghi sổ, or Hủy. Same names as the backend enum. */
@@ -33,11 +33,26 @@ export interface PolicyDecision {
   reason?: string;
 }
 
-type PolicyUser = Pick<UserProfile, 'isSystemAdmin' | 'permissions' | 'specialRights'> | null | undefined;
+type PolicyUser = Pick<UserProfile, 'isSystemAdmin' | 'permissions' | 'specialRights' | 'ma_dvcs'> | null | undefined;
 
 const allow: PolicyDecision = { allowed: true };
 /** Refusal with the reason in the user's language (documentPolicy.deny.<key>). */
 const deny = (reasonKey: string): PolicyDecision => ({ allowed: false, reason: translate(`documentPolicy.deny.${reasonKey}`) });
+
+/**
+ * Whether the user may take a voucher of `fn` into `status` in the company unit they work in: they hold its status right or the
+ * right of a later step (rights are granted up to a status, so whoever may post may also send for approval and approve).
+ * Mirror of the backend DocumentActor.Reaches.
+ */
+export function reachesStatus(user: PolicyUser, fn: SubMenuKey, status: DocumentStatus): boolean {
+  switch (status) {
+    case 'Draft': return true;
+    case 'Pending': return hasStatusRight(user, fn, RIGHTS.ST_PENDING) || reachesStatus(user, fn, 'Approved');
+    case 'Approved': return hasStatusRight(user, fn, RIGHTS.ST_APPROVED) || reachesStatus(user, fn, 'Posted');
+    case 'Posted': return hasStatusRight(user, fn, RIGHTS.ST_POSTED);
+    default: return hasStatusRight(user, fn, RIGHTS.ST_CANCELLED);
+  }
+}
 
 /**
  * Whether `user` may perform `action` on a voucher of function `fn` in `status`.
@@ -65,28 +80,29 @@ export function checkDocumentAction(user: PolicyUser, fn: SubMenuKey, action: Do
     case 'Edit':
       switch (status) {
         case 'Draft': return a.edit ? allow : deny('noEditRight');
-        case 'Pending': return a.edit && has(RIGHTS.EDIT_PENDING)
+        case 'Pending': return a.edit && reachesStatus(user, fn, 'Pending')
           ? allow : deny('editPending');
-        case 'Approved': return a.edit && has(RIGHTS.EDIT_APPROVED)
+        case 'Approved': return a.edit && reachesStatus(user, fn, 'Approved')
           ? allow : deny('editApproved');
         case 'Posted': return deny('postedNoEdit');
         default: return deny('cancelled');
       }
 
     case 'Submit':
-      return status === 'Draft' && (a.create || a.edit) ? allow : deny('submitDraftOnly');
+      if (status !== 'Draft' || !(a.create || a.edit)) return deny('submitDraftOnly');
+      return reachesStatus(user, fn, 'Pending') ? allow : deny('noStatusRight');
 
     case 'Post':
-      return status === 'Approved' && has(RIGHTS.POST) ? allow : deny('postApprovedOnly');
+      return status === 'Approved' && reachesStatus(user, fn, 'Posted') ? allow : deny('postApprovedOnly');
 
     case 'Unpost':
-      return status === 'Posted' && has(RIGHTS.UNPOST) ? allow : deny('unpostRight');
+      return status === 'Posted' && hasStatusRight(user, fn, RIGHTS.ST_UNPOST) ? allow : deny('unpostRight');
 
     case 'Cancel':
       if (status === 'Posted') return deny('postedNoCancel');
       if (status === 'Cancelled') return deny('cancelled');
       if (status === 'Draft' && isOwner && a.delete) return allow;
-      return has(RIGHTS.CANCEL) ? allow : deny('cancelRight');
+      return reachesStatus(user, fn, 'Cancelled') ? allow : deny('cancelRight');
 
     default:
       return deny('invalidAction');

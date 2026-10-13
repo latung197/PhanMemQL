@@ -36,6 +36,7 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
   inv_supplier_cat: fn('inventory', '/inventory/suppliers', 'Nhà cung cấp', 'catalog'),
   // Kho hàng - chứng từ
   inv_receipt: fn('inventory', '/inventory/receipts', 'Phiếu nhập kho', 'voucher'),
+  inv_issue_request: fn('inventory', '/inventory/issue-requests', 'Phiếu yêu cầu xuất kho', 'voucher'),
   inv_issue: fn('inventory', '/inventory/issues', 'Phiếu xuất kho', 'voucher'),
   inv_transfer_order: fn('inventory', '/inventory/transfer-orders', 'Lệnh điều chuyển kho', 'voucher'),
   inv_transfer_issue: fn('inventory', '/inventory/transfer-issues', 'Phiếu xuất điều chuyển', 'voucher'),
@@ -45,7 +46,13 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
   inv_calc_instant_stock: fn('inventory', '/inventory/instant-stock', 'Tính tồn kho tức thời', 'process'),
   inv_approve_receipt: fn('inventory', '/inventory/approvals/receipts', 'Phê duyệt nhập kho', 'process'),
   inv_approve_issue: fn('inventory', '/inventory/approvals/issues', 'Phê duyệt xuất kho', 'process'),
+  inv_approve_issue_request: fn('inventory', '/inventory/approvals/issue-requests', 'Phê duyệt yêu cầu xuất kho', 'process'),
   inv_approve_transfer: fn('inventory', '/inventory/approvals/transfers', 'Phê duyệt điều chuyển', 'process'),
+  // Mua hàng
+  pur_request: fn('purchasing', '/purchasing/requests', 'Phiếu yêu cầu mua hàng', 'voucher'),
+  pur_order: fn('purchasing', '/purchasing/orders', 'Đơn mua hàng', 'voucher'),
+  pur_approve_request: fn('purchasing', '/purchasing/approvals/requests', 'Phê duyệt yêu cầu mua hàng', 'process'),
+  pur_approve_order: fn('purchasing', '/purchasing/approvals/orders', 'Phê duyệt đơn mua hàng', 'process'),
   // Kho hàng - báo cáo
   inv_report_stock: fn('inventory', '/inventory/report-stock', 'Báo cáo tồn kho', 'report'),
   inv_report_nxt: fn('inventory', '/inventory/report-nxt', 'Báo cáo nhập - xuất - tồn', 'report'),
@@ -85,6 +92,7 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
   sys_languages: fn('settings', '/settings/languages', 'Ngôn ngữ', 'system'),
   sys_login_notices: fn('settings', '/settings/login-notices', 'Thông báo đăng nhập', 'system'),
   sys_banners: fn('settings', '/settings/banners', 'Thanh thông báo', 'system'),
+  sys_voucher_status: fn('settings', '/settings/voucher-status', 'Trạng thái chứng từ', 'system'),
   sys_tax_rates: fn('settings', '/settings/tax-rates', 'Mã thuế', 'system'),
   sys_audit_log: fn('settings', '/settings/audit-log', 'Nhật ký thay đổi', 'system'),
   sys_menu: fn('settings', '/settings/menu', 'Quản lý menu', 'system')
@@ -96,6 +104,7 @@ export const FUNCTION_KEYS = Object.keys(FUNCTION_REGISTRY) as SubMenuKey[];
 export const CATEGORY_NAMES: Record<ModuleCategoryKey, string> = {
   overview: 'Tổng Quan',
   inventory: 'Kho Hàng',
+  purchasing: 'Mua Hàng',
   sales: 'Bán Hàng',
   finance: 'Tài Chính',
   hr: 'Nhân Sự',

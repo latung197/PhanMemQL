@@ -7,6 +7,7 @@ using Core.Application.Common.Validation;
 using Core.Application.Modules.Approvals;
 using Core.Application.Modules.Notifications;
 using Core.Application.Modules.Users;
+using Core.Application.Modules.VoucherStatuses;
 using Core.Domain.Common;
 using Core.Domain.Modules.Approvals;
 using Core.Domain.Modules.Users;
@@ -22,7 +23,7 @@ namespace Core.Infrastructure.Modules.Approvals;
 /// result (GetAsync) to set the document status. Each step and its notifications are saved in one transaction.
 /// </summary>
 public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver resolver, IPermissionService permissions,
-    INotificationService notifications, IUnitOfWork unitOfWork, IAuditLog auditLog) : IDocumentApprovalService
+    INotificationService notifications, IUnitOfWork unitOfWork, IAuditLog auditLog, IVoucherStatusService statuses) : IDocumentApprovalService
 {
     public async Task<DocumentApprovalDto> SubmitAsync(int userId, string unitCode, SubmitDocumentRequest request, CancellationToken ct)
     {
@@ -36,6 +37,13 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
             if (voucher is null) throw new NotFoundException(NotFoundKey(request.Function));
             if (voucher.CreatedBy != userId) throw new ForbiddenException("policy.ownOnly");
             if (voucher.Status != "Draft") throw new BusinessRuleException("policy.submitDraftOnly");
+            // The same rules as the voucher's own "submit": this endpoint must not be a way around the status right of the unit
+            // or the unit's choice to switch the approval step off.
+            var actor = DocumentActor.For(await permissions.GetEffectiveAsync(userId, ct), await permissions.GetRightsAsync(userId, ct),
+                request.Function, isOwner: true, unitCode);
+            var decision = DocumentStatusPolicy.Check(DocumentAction.Submit, DocumentStatus.Draft, actor);
+            if (!decision.Allowed) throw new ForbiddenException(decision.Reason ?? "permission.denied");
+            await statuses.EnsureEnabledAsync(unitCode, request.Function, DocumentStatus.Pending, ct);
         }
         var steps = await LatestRoundAsync(request.Function, documentId, ct);
         if (steps.Any(x => x.Status is ApprovalStepStatus.Pending or ApprovalStepStatus.Waiting))
@@ -126,6 +134,17 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         voucher.ApprovedByUserId = userId;
         await RecordAsync(rows[0], AuditActions.Submit, null, rows.Count, ct);
         await RecordAsync(rows[^1], AuditActions.Approve, note, rows.Count, ct);
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task ApproveWithoutFlowAsync(int userId, string unitCode, string function, string documentId, CancellationToken ct)
+    {
+        var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
+        if (voucher.Status != "Draft") throw new BusinessRuleException("policy.submitDraftOnly");
+        voucher.Status = "Approved";
+        voucher.ApprovedByUserId = userId;
+        await auditLog.RecordAsync(new AuditEntry(function, function, documentId, documentId, AuditActions.Approve, [],
+            Messages.T("approval.skippedNote")), ct);
         await db.SaveChangesAsync(ct);
     }
 
@@ -222,15 +241,18 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
     }
 
     /// <summary>Vouchers whose status this service moves with the approval steps (each has its own table).</summary>
-    private static bool IsVoucherFunction(string function) => function is "inv_receipt" or "inv_issue";
+    private static bool IsVoucherFunction(string function) => function is "inv_receipt" or "inv_issue" or "inv_issue_request" or "pur_request" or "pur_order";
 
-    private static string NotFoundKey(string function) => function == "inv_issue" ? "issue.notFound" : "receipt.notFound";
+    private static string NotFoundKey(string function) => function switch { "inv_issue" => "issue.notFound", "inv_issue_request" => "issueRequest.notFound", "pur_request" => "purchaseRequest.notFound", "pur_order" => "purchaseOrder.notFound", _ => "receipt.notFound" };
 
     private async Task<IApprovableDocument?> FindVoucherAsync(string function, string documentId, string unitCode, CancellationToken ct) =>
         function switch
         {
             "inv_receipt" => await db.GoodsReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             "inv_issue" => await db.GoodsIssues.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
+            "inv_issue_request" => await db.IssueRequests.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
+            "pur_request" => await db.PurchaseRequests.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
+            "pur_order" => await db.PurchaseOrders.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             _ => null
         };
 
@@ -297,6 +319,6 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
     /// <summary>Frontend module of a function code, for the notification link.</summary>
     private static string? ModuleOf(string function) => function.Split('_')[0] switch
     {
-        "inv" => "inventory", "sales" => "sales", "fin" => "finance", "hr" => "hr", _ => null
+        "inv" => "inventory", "pur" => "purchasing", "sales" => "sales", "fin" => "finance", "hr" => "hr", _ => null
     };
 }

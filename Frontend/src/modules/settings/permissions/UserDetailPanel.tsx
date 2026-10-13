@@ -12,8 +12,8 @@ import { useDraft } from '../../../hooks/useDraft';
 import { PermissionMatrixTable } from './PermissionMatrixTable';
 import { SaveBar } from './SaveBar';
 import {
-  countDifferences, countRightDifferences, FullMatrix, FUNCTIONS, matrixEquals, normalizeRights, toFullMatrix, uniformMatrix,
-  visibleRights
+  allRightKeys, countDifferences, countRightDifferences, FullMatrix, FUNCTIONS, matrixEquals, normalizeRights, RightUnit, toFullMatrix,
+  uniformMatrix, visibleRights
 } from './permissionCatalog';
 import { initials } from './UserListPanel';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -62,8 +62,11 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
   const baseline = roleMatrix(role);
   // What the role gives this user: its special rights on the functions the user may view (as the backend counts them).
   const baselineRights = role ? visibleRights(role.specialRights, draft.matrix) : undefined;
-  const allRights = useMemo(() => rightDefs.map(d => d.key), [rightDefs]);
   const isAdmin = role?.isSystemRole ?? (user.isSystemAdmin && draft.roleId === saved.roleId);
+  // The status rights are granted per company unit: the units the account can work in (an administrator: every active unit).
+  const rightUnits = useMemo<RightUnit[]>(() => companyUnits.filter(u => u.isActive !== false && u.status === 'Hoạt động' && (isAdmin || (user.ds_ma_dvcs ?? []).includes(u.code))) // i18n-ignore: stored status
+    .map(u => ({ code: u.code, name: u.localizedName || u.name })), [companyUnits, isAdmin, user.ds_ma_dvcs]);
+  const allRights = useMemo(() => allRightKeys(rightDefs, rightUnits), [rightDefs, rightUnits]);
   // Same rule as the backend: nobody but an administrator changes their own permissions.
   const selfLocked = isSelf && !actorIsAdmin;
   const readOnly = !canEdit || isAdmin || selfLocked;
@@ -195,6 +198,7 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
         onRightsChange={(rights) => setDraft(prev => ({ ...prev, rights: normalizeRights(rights) }))}
         rightDefs={rightDefs}
         rightGroupLabels={rightGroupLabels}
+        units={rightUnits}
         readOnly={readOnly}
         baseline={isAdmin ? undefined : baseline}
         baselineRights={isAdmin ? undefined : baselineRights}

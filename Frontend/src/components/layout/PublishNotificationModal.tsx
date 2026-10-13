@@ -19,7 +19,7 @@ interface PublishNotificationModalProps {
 }
 
 /** Modules a notification can link to (names: modules.*). */
-const MODULES: ModuleCategoryKey[] = ['overview', 'inventory', 'sales', 'finance', 'hr', 'reports', 'settings'];
+const MODULES: ModuleCategoryKey[] = ['overview', 'inventory', 'purchasing', 'sales', 'finance', 'hr', 'reports', 'settings'];
 
 const TYPES: SystemNotification['type'][] = ['info', 'success', 'warning', 'danger'];
 

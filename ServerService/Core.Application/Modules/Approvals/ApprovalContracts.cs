@@ -63,6 +63,10 @@ public interface IDocumentApprovalService
     /// and moves the draft voucher to Approved. The caller has checked <see cref="EnsureCanApproveDirectAsync"/>.</summary>
     Task ApproveDirectAsync(int userId, string unitCode, string function, string documentId, string? title, CancellationToken ct);
 
+    /// <summary>For a unit that switched the approval step off (voucher status "Chờ duyệt"): moves the draft voucher to Approved with no
+    /// approval steps and records it in the change log. The caller has checked the user's status right.</summary>
+    Task ApproveWithoutFlowAsync(int userId, string unitCode, string function, string documentId, CancellationToken ct);
+
     Task<DocumentApprovalDto> GetAsync(int userId, string unitCode, string function, string documentId, CancellationToken ct);
     Task<IReadOnlyList<PendingApprovalDto>> GetPendingForMeAsync(int userId, string unitCode, CancellationToken ct);
 }

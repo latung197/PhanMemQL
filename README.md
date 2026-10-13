@@ -109,6 +109,7 @@ Trình duyệt ── fetch + Bearer token ──► ServerService (Core, contro
 | API trình / duyệt / từ chối phiếu (`/api/approvals/...`) | **Backend**; màn Phê duyệt nhập kho và phiếu nhập kho đã gọi. Các màn duyệt khác (xuất, điều chuyển) vẫn là dữ liệu mẫu |
 | Kho — Phiếu nhập kho (`erp_goods_receipt`, `erp_goods_receipt_line`) | **Backend**: lưu phiếu, trình duyệt, duyệt, ghi sổ và bỏ ghi sổ. Ghi sổ đi qua **sổ kho** (`IStockLedger`, xem `docs/kho/so-kho-va-phieu-nhap-kho.md`). Chạy script `20` rồi `34`. Bộ chọn vật tư, đơn vị tính và nhà cung cấp trên phiếu đọc **danh mục thật** (script `40`); lô và vị trí vẫn nhập tay. |
 | Kho — Phiếu xuất kho (`erp_goods_issue`, `erp_goods_issue_line`) | **Backend**, cùng cấu trúc và bố cục với phiếu nhập kho: lưu phiếu, trình duyệt, duyệt, ghi sổ trừ tồn (giá bình quân của kho, từ chối khi không đủ tồn) và bỏ ghi sổ. Xem `docs/kho/phieu-xuat-kho.md`. Chạy script `39`. Bộ chọn vật tư và đơn vị tính đọc danh mục thật; khách hàng vẫn là dữ liệu mẫu. |
+| Kho — Phiếu yêu cầu xuất kho (`erp_issue_request`, `erp_issue_request_line`) | **Backend**: lập, duyệt (không ghi sổ kho); phiếu xuất kho có nút "Lấy từ phiếu yêu cầu" lấy các dòng còn chưa xuất, kiểm số lượng không vượt yêu cầu. Xem `docs/kho/phieu-yeu-cau-xuat-kho.md`. Chạy script `42`. Cấp quyền cho vai trò với `inv_issue_request`, `inv_approve_issue_request`. |
 | Kho › Vật tư (`erp_material`), Vị trí lưu kho (`erp_location`), Lô và hạn sử dụng (`erp_lot`) | **Backend**: danh mục theo khung `CatalogService`, các cờ theo dõi lô / vị trí / hạn dùng. Chạy `31`, `32`, `33`. |
 | Kho — Sổ kho và tồn kho (`erp_stock_movement`, `erp_stock_balance`, `erp_stock_lot_balance`, `erp_stock_location_balance`) | **Backend**: sổ ghi thêm + ba bảng tồn (theo kho, lô, vị trí), API xem tồn và đối chiếu / dựng lại. Chưa có màn hình xem tồn. Chạy `34`. |
 | Phiếu xuất, báo cáo tồn kho, bán hàng, tài chính, nhân sự | **Dữ liệu mẫu trong trình duyệt** (`Frontend/src/mock`, `localStorage['s_erp_database_state']`) |
@@ -165,7 +166,7 @@ Chống ghi đè khi nhiều người cùng sửa (phiên bản bản ghi, lỗi
 
 ### Phiếu (chứng từ)
 
-- Backend: thêm một dòng vào **`Core.Application/Common/Documents/VoucherCatalog.cs`** (mã chức năng, loại số, tên). Tự có ngay: dải số chứng từ (sửa được ở Cài đặt › Tham số mặc định › Đánh số chứng từ), các quyền đặc biệt của phiếu (xem giá, sửa phiếu đã duyệt, ghi sổ...), và phiếu xuất hiện trong màn quy trình phê duyệt.
+- Backend: thêm một dòng vào **`Core.Application/Common/Documents/VoucherCatalog.cs`** (mã chức năng, loại số, tên). Tự có ngay: dải số chứng từ (sửa được ở Cài đặt › Tham số mặc định › Đánh số chứng từ), các quyền đặc biệt của phiếu (xem giá...) và quyền theo trạng thái theo từng đơn vị cơ sở (gửi duyệt, duyệt, ghi sổ...), và phiếu xuất hiện trong màn quy trình phê duyệt.
 - Service của phiếu dùng các khối dùng chung đã có:
 
   | Việc | Gọi |
@@ -197,7 +198,7 @@ Quyền thực tế của một người = **quyền của vai trò + ngoại l�
    // trong Build():
    list.Add(new("sales_customers", ViewDebt, "Xem công nợ", SpecialRightGroups.Data, "Xem số dư công nợ của khách hàng."));
    ```
-   Chỉ cần "Xem giá / Xem giá vốn" cho một danh mục hoặc báo cáo khác: thêm mã chức năng vào mảng `PricedCatalogsAndReports`. Mọi phiếu trong `VoucherCatalog` tự có đủ quyền theo trạng thái.
+   Chỉ cần "Xem giá / Xem giá vốn" cho một danh mục hoặc báo cáo khác: thêm mã chức năng vào mảng `PricedCatalogsAndReports`. Mọi phiếu trong `VoucherCatalog` tự có đủ quyền theo trạng thái (`ST_PENDING`, `ST_APPROVED`, `ST_POSTED`, `ST_UNPOST`, `ST_CANCELLED`, **cấp riêng từng đơn vị cơ sở**: mã lưu `{chức năng}:ST_POSTED@DVCS01`; phiếu không ghi sổ khai vào `NonPosting` của `VoucherStatusCatalog`) và có dòng trong Cài đặt › Trạng thái chứng từ. Xem [docs/he-thong/trang-thai-chung-tu.md](docs/he-thong/trang-thai-chung-tu.md).
 2. Màn phân quyền tự hiện quyền mới dưới chức năng đó. Quyền mới chưa ai có (trừ quản trị viên) cho tới khi được cấp.
 3. Chặn ở backend (bắt buộc): `await permissions.HasRightAsync(userId, "sales_customers", SpecialRightCatalog.ViewDebt, ct)` rồi bỏ trường bị ẩn khỏi DTO; hoặc `[RequireRight("sales_customers", SpecialRightCatalog.ViewDebt)]` cho cả API.
 4. Frontend: thêm mã vào `RIGHTS` (`src/utils/permissions.ts`), ẩn cột bằng `hasRight(currentUser, 'sales_customers', RIGHTS.VIEW_DEBT)`.
@@ -206,7 +207,7 @@ Quyền thực tế của một người = **quyền của vai trò + ngoại l�
 
 - Backend: `Core.Application/Common/Permissions/DocumentStatusPolicy.cs`. Frontend: bản sao `src/utils/documentPolicy.ts`; màn phiếu bật / tắt nút bằng `documentActions(user, 'mã', status, isOwner)` (xem `modules/_templates/voucher-feature-template`).
 - Thêm luật hoặc trạng thái mới (ví dụ quyền "Mở lại phiếu đã hủy"):
-  1. `SpecialRightCatalog.cs`: thêm mã `REOPEN` vào vòng lặp quyền của phiếu (nhóm `Status`).
+  1. `SpecialRightCatalog.cs`: thêm mã `REOPEN` vào vòng lặp quyền của phiếu (nhóm `Status`, `PerUnit: true` nếu cấp theo đơn vị).
   2. `DocumentStatusPolicy.cs`: thêm `DocumentAction.Reopen` và luật của nó. Trạng thái mới: thêm vào `DocumentStatus` và xử lý trong từng luật.
   3. `src/utils/documentPolicy.ts`: sửa y hệt; thêm `REOPEN` vào `RIGHTS`.
   4. Thêm ca vào `ServerService/tests/Core.Tests/Common/DocumentPolicyCases.json`, rồi chạy `dotnet test` (backend) và `npm run check-policy` (frontend). Hai bên lệch nhau thì lệnh báo sai.

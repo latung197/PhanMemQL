@@ -42,8 +42,11 @@ public sealed class PermissionService(CoreContext db, IAppCache cache) : IPermis
         var units = (await db.UserCompanyUnits.AsNoTracking().Where(x => x.UserId == userId).Select(x => x.UnitCode)
             .ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
         if (isAdmin)
+        {
+            var activeUnits = await db.CompanyUnits.AsNoTracking().Where(x => x.IsActive).Select(x => x.Code).ToListAsync(ct);
             return new UserAccess(true, account!.SecurityVersion, true, PermissionMatrix.Uniform(ActionPermissions.Full),
-                SpecialRightCatalog.Keys, units);
+                SpecialRightCatalog.KeysFor(activeUnits), units);
+        }
 
         var roleIds = db.UserRoles.ActiveRoles().Where(x => x.UserId == userId).Select(x => x.RoleId);
         var own = await db.UserCommands.AsNoTracking().Where(x => x.UserId == userId && x.Status == "1").ToListAsync(ct);

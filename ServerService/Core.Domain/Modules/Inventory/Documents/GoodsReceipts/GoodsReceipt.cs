@@ -29,6 +29,9 @@ public class GoodsReceipt : ErpEntity, IApprovableDocument
     /// <summary>The supplier name when the receipt was saved; free text when no supplier of the catalog is chosen.</summary>
     [Column("supplier_name"), MaxLength(200)] public string? SupplierName { get; set; }
     [Column("deliverer_name"), MaxLength(200)] public string? DelivererName { get; set; }
+    /// <summary>The approved purchase orders this receipt receives, comma separated and derived from the lines (lines point to order lines); empty for a free receipt.</summary>
+    [NotReference("trỏ tới số đơn mua hàng (khóa của nó là id); PurchaseOrderService không cho hủy đơn mua còn phiếu nhập chưa hủy, và chỉ xóa được đơn mua nháp")]
+    [Column("purchase_order_code"), MaxLength(500)] public string? PurchaseOrderCode { get; set; }
     [Column("note"), MaxLength(1000)] public string? Note { get; set; }
     [Required, Column("status"), MaxLength(20)] public string Status { get; set; } = "Draft";
     [Column("total_value", TypeName = "numeric(18,2)")] public decimal TotalValue { get; set; }
@@ -56,4 +59,6 @@ public class GoodsReceiptLine : ErpEntity
     [Column("amount", TypeName = "numeric(18,2)")] public decimal Amount { get; set; }
     [Column("lot_number"), MaxLength(64)] public string? LotNumber { get; set; }
     [Column("position"), MaxLength(100)] public string? Position { get; set; }
+    /// <summary>The purchase order line this line receives; empty for a line received without an order.</summary>
+    [Column("purchase_order_line_id")] public long? PurchaseOrderLineId { get; set; }
 }

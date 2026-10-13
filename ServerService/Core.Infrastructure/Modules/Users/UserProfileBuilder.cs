@@ -53,7 +53,7 @@ public sealed class UserProfileBuilder(CoreContext db)
             var rights = PermissionMatrix.VisibleRights(PermissionMatrix.ResolveRights(isAdmin,
                 roleRights.Where(x => assigned.Any(r => r.RoleId == x.RoleId)).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)),
                 own.Where(x => x.IsGranted).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)),
-                own.Where(x => !x.IsGranted).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode))), permissions);
+                own.Where(x => !x.IsGranted).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)), activeUnits), permissions);
             var primaryRole = assigned.FirstOrDefault();
             var units = isAdmin ? activeUnits
                 : userUnits.Where(x => x.UserId == user.UserId).Select(x => x.UnitCode).ToList();

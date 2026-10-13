@@ -93,7 +93,7 @@ await unitOfWork.ExecuteAsync(async ct =>
 ### Quyền đặc biệt
 
 - Ngoài 5 thao tác, mỗi chức năng có thể có quyền đặc biệt dạng `{chức năng}:{mã}`, khai báo trong `Core.Application/Common/Permissions/SpecialRightCatalog.cs`, lưu ở `sys_role_right` / `sys_user_right` (không cần thêm cột khi thêm quyền mới).
-- Mã hiện có: `VIEW_PRICE` (xem đơn giá, thành tiền), `VIEW_COST` (xem giá vốn), `VIEW_ALL` (xem phiếu của người khác), `EDIT_PENDING`, `EDIT_APPROVED`, `POST`, `UNPOST`, `CANCEL`.
+- Mã hiện có: `VIEW_PRICE` (xem đơn giá, thành tiền), `VIEW_COST` (xem giá vốn), `VIEW_ALL` (xem phiếu của người khác), và các quyền **trạng thái chứng từ** `ST_PENDING`, `ST_APPROVED`, `ST_POSTED`, `ST_UNPOST`, `ST_CANCELLED`, cấp riêng từng đơn vị cơ sở: mã lưu kèm đơn vị, ví dụ `inv_receipt:ST_POSTED@DVCS01` (`SpecialRightCatalog.UnitKey`). Danh mục trạng thái theo đơn vị: bảng `sys_voucher_status`, API `/api/voucher-statuses` (script `43-voucher-status.sql`). Chi tiết: `docs/he-thong/trang-thai-chung-tu.md`.
 - Cách tính: quản trị viên có tất cả; người khác có quyền của vai trò, cộng các dòng `sys_user_right` có `is_granted = true`, trừ các dòng `is_granted = false`. Quyền mới thêm vào danh mục chưa ai có (trừ quản trị viên) cho tới khi được cấp.
 - Thêm quyền đặc biệt: xem mục "Quyền đặc biệt và trạng thái chứng từ" trong README gốc.
 - API: `[RequireRight("inv_receipt", SpecialRightCatalog.ViewPrice)]` hoặc `IPermissionService.HasRightAsync`. Frontend: `hasRight(user, 'inv_receipt', RIGHTS.VIEW_PRICE)`. Phiếu nhập kho ẩn giá cả ở API và giao diện khi không có `VIEW_PRICE`; phiếu xuất kho hiện chỉ ẩn trên giao diện mẫu.
@@ -105,6 +105,8 @@ await unitOfWork.ExecuteAsync(async ct =>
 Phiếu nhập kho dùng API `/api/inventory/goods-receipts` và các bảng trong `sql/postgresql/20-inventory-goods-receipts.sql`. Chạy script 20 sau các script Kho 15–19, rồi script 34 (sổ kho và ba bảng tồn). Ghi sổ gọi `IStockLedger.PostAsync` (sổ `erp_stock_movement` + tồn theo kho / lô / vị trí trong một giao dịch); bỏ ghi sổ gọi `UnpostAsync`, ghi dòng đảo chứ không xóa dòng sổ. Hướng dẫn chi tiết các bảng và luồng: `docs/kho/so-kho-va-phieu-nhap-kho.md`. Số phiếu có dạng `PNK-DVCS01-202610-0001` (mẫu số bắt buộc có `{DVCS}`, script `35`). Màn hình xem tồn kho chưa có, dùng API `/api/inventory/stock/...`.
 
 Phiếu xuất kho dùng API `/api/inventory/goods-issues` và các bảng trong `sql/postgresql/39-inventory-goods-issues.sql` (chạy sau 20 và 34); cấu trúc, luồng trạng thái, phân quyền và phê duyệt giống phiếu nhập kho, chỉ khác khách hàng / người nhận và ghi sổ theo chiều xuất (`StockDirection.Out`: sổ kho tự tính giá trị theo giá bình quân, từ chối khi không đủ tồn). Chi tiết: `docs/kho/phieu-xuat-kho.md`. `DocumentApprovalService` đổi trạng thái phiếu qua `IApprovableDocument`.
+
+Phiếu yêu cầu xuất kho dùng API `/api/inventory/issue-requests` và các bảng trong `sql/postgresql/42-inventory-issue-requests.sql` (chạy sau 39 và 40); duyệt như các phiếu khác nhưng **không ghi sổ kho** (trạng thái dừng ở Đã phê duyệt). Phiếu xuất kho thêm `issue_request_code` / `issue_request_line_id` và `GET /api/inventory/goods-issues/open-requests`; số đã xuất của một dòng yêu cầu là tổng các dòng phiếu xuất chưa hủy trỏ tới nó (`IssueRequestProgress`). Chi tiết: `docs/kho/phieu-yeu-cau-xuat-kho.md`.
 
 Danh mục nhà cung cấp dùng bảng `erp_supplier` trong `sql/postgresql/22-inventory-suppliers.sql`. Trên database đã tồn tại, chạy lại `00-helpers.sql` để cập nhật hàm tìm kiếm `sys_search_match`, rồi chạy script 22. Phiếu nhập kho hiện chưa liên kết tới danh mục này.
 

@@ -81,7 +81,7 @@ Tổng giá trị phiếu = tổng (số lượng × đơn giá) của các dòn
 | Lập chứng từ | luôn có | chỉ lưu |
 | Chờ duyệt | quyền Thêm hoặc Sửa | lưu rồi gửi duyệt như bấm Trình duyệt (dựng các cấp, thông báo người duyệt) |
 | Đã phê duyệt | quyền **Duyệt** và là người duyệt của **mọi cấp** theo quy tắc phê duyệt (quản trị viên luôn đạt) | lưu rồi ghi một vòng duyệt, mỗi cấp một dòng đã duyệt bởi chính người lưu; nhật ký ghi gửi và duyệt, ghi chú "Lưu thẳng ở trạng thái đã duyệt…" |
-| Chuyển sổ kho | như Đã phê duyệt **cộng** quyền đặc biệt `POST` | lưu, duyệt rồi ghi sổ |
+| Chuyển sổ kho | như Đã phê duyệt **cộng** quyền trạng thái `ST_POSTED` | lưu, duyệt rồi ghi sổ |
 
 Tất cả chạy trong **một transaction**: bước nào bị từ chối (thiếu quyền, không phải người duyệt cấp nào đó, không đủ tồn, kỳ đã khóa) thì **cả lần lưu bị hủy**, phiếu không bao giờ bị dở dang. Sửa một phiếu nháp rồi lưu ở trạng thái cao hơn cũng được. API: thêm `"targetStatus": "Pending" | "Approved" | "Posted"` vào nội dung lập / sửa phiếu. Nút Duyệt trên phiếu của người khác vẫn không cho tự duyệt phiếu mình lập; chỉ lưu thẳng ở Đã phê duyệt mới cho người lập tự duyệt, nên **ai không nên tự duyệt thì đừng cấp quyền Duyệt**.
 
@@ -107,13 +107,13 @@ Cả hai mẫu có: tên, địa chỉ, mã số thuế, điện thoại công t
 
 | Trạng thái | Sửa | Thao tác được phép | Quyền cần |
 |---|---|---|---|
-| **Lập chứng từ** (Draft) | Được | Sửa, Xóa (người lập), Trình duyệt, Hủy | Sửa: `edit`; Xóa: `delete`; Trình duyệt: `create` hoặc `edit` |
+| **Lập chứng từ** (Draft) | Được | Sửa, Xóa (người lập), Trình duyệt, Hủy | Sửa: `edit`; Xóa: `delete`; Trình duyệt: `create` hoặc `edit` và quyền trạng thái `ST_PENDING` |
 | **Chờ duyệt** (Pending) | Phải **rút lại** trước | Duyệt, Từ chối (người duyệt, không phải người lập), Rút lại (người lập) | Duyệt: `approve` hoặc quyền Duyệt trên màn phê duyệt |
-| **Đã duyệt** (Approved) | Không (xem ghi chú dưới bảng) | Ghi sổ, Hủy | Ghi sổ: quyền đặc biệt `POST`; Hủy: `CANCEL` |
-| **Đã ghi sổ** (Posted) | Không | Bỏ ghi sổ | Quyền đặc biệt `UNPOST` |
+| **Đã duyệt** (Approved) | Không (xem ghi chú dưới bảng) | Ghi sổ, Hủy | Ghi sổ: quyền trạng thái `ST_POSTED`; Hủy: `ST_CANCELLED` |
+| **Đã ghi sổ** (Posted) | Không | Bỏ ghi sổ | Quyền trạng thái `ST_UNPOST` |
 | **Đã hủy** (Cancelled) | Không | Không | — |
 
-Ghi chú: bộ quy tắc chung cho phép sửa phiếu đã duyệt nếu có quyền đặc biệt `EDIT_APPROVED` (và phiếu chờ duyệt với `EDIT_PENDING`), nhưng **service phiếu nhập kho hiện chỉ cho sửa khi phiếu đang Lập chứng từ** ("Rút phiếu khỏi quy trình duyệt trước khi sửa phiếu nhập kho"). Sửa phiếu đã duyệt chưa được hỗ trợ ở phiếu nhập kho; cần thay đổi thì hủy phiếu và lập phiếu mới.
+Ghi chú: bộ quy tắc chung cho phép sửa phiếu đã duyệt nếu có quyền trạng thái `ST_APPROVED` (và phiếu chờ duyệt với `ST_PENDING`), nhưng **service phiếu nhập kho hiện chỉ cho sửa khi phiếu đang Lập chứng từ** ("Rút phiếu khỏi quy trình duyệt trước khi sửa phiếu nhập kho"). Sửa phiếu đã duyệt chưa được hỗ trợ ở phiếu nhập kho; cần thay đổi thì hủy phiếu và lập phiếu mới.
 
 Quy tắc chung (bộ `DocumentStatusPolicy`, có bản sao ở frontend `utils/documentPolicy.ts`, hai bên được kiểm bằng cùng một bộ 34 ca thử):
 
@@ -146,14 +146,14 @@ Quy tắc chung (bộ `DocumentStatusPolicy`, có bản sao ở frontend `utils/
 
 **Ghi sổ** (`post`) — bước làm đổi tồn:
 
-1. Cần quyền đặc biệt `POST` và phiếu ở **Đã duyệt**; kiểm lại khóa sổ.
+1. Cần quyền trạng thái `ST_POSTED` (ở đơn vị của phiếu) và phiếu ở **Đã duyệt**; kiểm lại khóa sổ.
 2. Dựng một lệnh ghi sổ **nhập** gồm các dòng `ITEM` (giá trị mỗi dòng = thành tiền × tỷ giá, quy ra đồng hạch toán).
 3. Gọi **dịch vụ sổ kho** (`IStockLedger.PostAsync`): kiểm tra từng dòng, ghi sổ và cộng ba bảng tồn trong **một giao dịch**. Dòng nào sai thì **cả phiếu không ghi** và phiếu vẫn ở Đã duyệt. Chi tiết các kiểm tra ở mục 4.4.
 4. Phiếu chuyển **Đã ghi sổ**.
 
 > Số lô và vị trí gõ trên dòng phiếu hiện chỉ đi vào sổ với vật tư **có bật theo dõi lô / theo dõi vị trí**. Với vật tư không theo dõi, hai ô này chỉ là ghi chú và bị bỏ qua. Vật tư theo dõi lô mà để trống lô sẽ bị từ chối khi ghi sổ.
 
-**Bỏ ghi sổ** (`unpost`): cần quyền `UNPOST` và phiếu **Đã ghi sổ**; kiểm khóa sổ. Dịch vụ sổ kho **ghi dòng đảo** cho mọi dòng sổ đang hiệu lực của phiếu và trừ lại ba bảng tồn đúng bằng những gì đã cộng (cả số lượng lẫn giá trị). Nếu hàng đã được xuất đi nên tồn không đủ để trừ lại thì **bị chặn** (trừ khi đơn vị cho phép tồn âm). Phiếu về **Đã duyệt**.
+**Bỏ ghi sổ** (`unpost`): cần quyền `ST_UNPOST` (ở đơn vị của phiếu) và phiếu **Đã ghi sổ**; kiểm khóa sổ. Dịch vụ sổ kho **ghi dòng đảo** cho mọi dòng sổ đang hiệu lực của phiếu và trừ lại ba bảng tồn đúng bằng những gì đã cộng (cả số lượng lẫn giá trị). Nếu hàng đã được xuất đi nên tồn không đủ để trừ lại thì **bị chặn** (trừ khi đơn vị cho phép tồn âm). Phiếu về **Đã duyệt**.
 
 **Hủy** (`cancel`): chỉ khi chưa ghi sổ và không đang chờ duyệt. Phiếu Lập chứng từ do chính người lập có quyền `delete` thì dùng nút **Xóa** (xóa hẳn phiếu và dòng).
 
@@ -163,7 +163,8 @@ Tiền tố `/api/inventory/goods-receipts`:
 
 | Phương thức, đường dẫn | Việc | Quyền |
 |---|---|---|
-| `GET /` | Danh sách phiếu của đơn vị | Xem |
+| `GET /?page=&pageSize=&sort=&dir=&search=&status=&warehouse=&voucherType=&code=&from=&to=` | **Một trang** danh sách phiếu của đơn vị (`PagedResult`), lọc, tìm và sắp xếp ở máy chủ (xem mục 2.4.1 bên dưới) | Xem |
+| `GET /export?...` | Tệp Excel của **mọi** dòng bộ lọc để lại (không phải một trang), cùng bộ lọc với danh sách | Xem + Xuất |
 | `GET /options` | Kho và loại tiền dùng được cho form | Xem |
 | `GET /{id}` | Một phiếu | Xem |
 | `POST /` | Lập phiếu | Thêm |
@@ -175,6 +176,25 @@ Tiền tố `/api/inventory/goods-receipts`:
 > Lưu ý kỹ thuật: tham số đường dẫn tên là `operation`, **không** đặt `action` (từ khóa dành riêng của ASP.NET, route sẽ không bao giờ khớp).
 
 API duyệt dùng chung: `/api/approvals/{function}/{documentId}/...` (màn Phê duyệt nhập kho gọi các API này).
+
+### 2.4.1. Danh sách phân trang phía máy chủ
+
+Danh sách phiếu không tải hết một lần: `GET /` nhận `VoucherListQuery` (`Core.Application/Common/Paging/VoucherListQuery.cs`, dùng chung ba phiếu kho) và trả `PagedResult` (`items`, `total`, `page`, `pageSize`; tối đa 200 dòng một trang, mặc định 20; màn hình dùng 15).
+
+| Tham số | Ý nghĩa |
+|---|---|
+| `page`, `pageSize` | Trang và số dòng |
+| `sort`, `dir` | Cột sắp xếp: `date` (mặc định, mới nhất trước), `code`, `warehouse`, `voucherType`, `{partner}`, `status`, `totalValue` (người không có `VIEW_PRICE` không sắp xếp theo giá được), `createdAt`, `updatedAt`; `dir` = `asc` / `desc`. Tên cột lạ trả 400 |
+| `search` | Tìm không phân biệt hoa thường và dấu ("dong a" ra "Đông Á") trong số phiếu, ghi chú, đối tác, kho (mã và tên) và vật tư của dòng (mã và tên) |
+| `status` | `Draft`, `Pending`, `Approved`, `Posted`, `Cancelled` (tên khác trả 400) |
+| `warehouse`, `voucherType` | Mã kho; loại phiếu (đúng chữ) |
+| `code` | Một phần số phiếu, hoặc nhiều số phiếu đầy đủ cách nhau dấu phẩy |
+| `from`, `to` | Ngày chứng từ từ / đến (`yyyy-MM-dd`) |
+
+- Người không có `VIEW_ALL` chỉ thấy phiếu mình lập, ở cả danh sách và tệp Excel.
+- Các dòng chi tiết chỉ đọc cho những phiếu của trang đang hiển thị. Sắp xếp luôn có thêm khóa phụ (`id`) nên các trang không lặp hay sót phiếu.
+- Frontend: `usePagedList` + `GridView serverSide`; đổi tìm kiếm, bộ lọc, cột sắp xếp hay cỡ trang thì về trang 1; sau khi lưu, đổi trạng thái, xóa thì đọc lại trang. Mở phiếu từ thông báo mà phiếu nằm ở trang khác thì hỏi máy chủ theo số phiếu (`code`).
+- **Xuất Excel** do máy chủ làm (`IExcelExporter`): cần quyền Xem và Xuất, tối đa `PagingLimits.MaxExportRows` dòng, cột giá chỉ có khi người dùng có `VIEW_PRICE`, và được ghi vào nhật ký (`EXPORT`). Tiêu đề cột là các khóa `export.<loại>.*`.
 
 ### 2.5. Thông báo lỗi thường gặp
 
@@ -208,7 +228,7 @@ Khác nhau:
 | Kiểm tra tồn | Không bao giờ bị từ chối vì tồn | **Chỉ khi Ghi sổ**: thiếu hàng thì từ chối "Không đủ tồn kho: vật tư X tại kho Y chỉ còn n", cả phiếu không ghi (trừ khi đơn vị bật tham số `allowNegativeStock`) |
 | Lập, sửa, gửi duyệt, duyệt | Không kiểm tồn | Không kiểm tồn (phiếu xuất chỉ là chứng từ cho tới khi ghi sổ) |
 
-Luồng **Ghi sổ** của phiếu xuất: (1) cần quyền `POST` và phiếu **Đã duyệt**, kiểm khóa sổ; (2) dựng lệnh ghi sổ **xuất** gồm các dòng `ITEM` (mỗi dòng gửi mã vật tư, số lượng, mã đơn vị tính, số lô và vị trí nếu vật tư theo dõi; **không** gửi giá trị); (3) `IStockLedger.PostAsync` khóa dòng tồn (`FOR UPDATE`), kiểm tồn, tính giá bình quân, ghi sổ với số lượng và giá trị **âm**, trừ ba bảng tồn trong một giao dịch; (4) phiếu thành **Đã ghi sổ**. **Bỏ ghi sổ** ghi dòng đảo (dương) và cộng lại tồn đúng bằng đã trừ; phiếu về Đã duyệt.
+Luồng **Ghi sổ** của phiếu xuất: (1) cần quyền `ST_POSTED` (ở đơn vị của phiếu) và phiếu **Đã duyệt**, kiểm khóa sổ; (2) dựng lệnh ghi sổ **xuất** gồm các dòng `ITEM` (mỗi dòng gửi mã vật tư, số lượng, mã đơn vị tính, số lô và vị trí nếu vật tư theo dõi; **không** gửi giá trị); (3) `IStockLedger.PostAsync` khóa dòng tồn (`FOR UPDATE`), kiểm tồn, tính giá bình quân, ghi sổ với số lượng và giá trị **âm**, trừ ba bảng tồn trong một giao dịch; (4) phiếu thành **Đã ghi sổ**. **Bỏ ghi sổ** ghi dòng đảo (dương) và cộng lại tồn đúng bằng đã trừ; phiếu về Đã duyệt.
 
 Ví dụ đã chạy thật: nhập 10 cái giá 100.000 (tồn 10, giá trị 1.000.000); lập phiếu xuất 5 cái đơn giá bán 150.000 → ghi sổ ra dòng sổ **−5, giá trị −500.000** (bình quân 100.000, không phải 150.000), tồn còn 5 và 500.000; phiếu xuất khác 20 cái bị từ chối vì chỉ còn 5; bỏ ghi sổ phiếu đầu thì tồn về 10 và 1.000.000, `GET /api/inventory/stock/verify` không báo lệch.
 
@@ -455,6 +475,7 @@ Khóa là **vật tư + số lô**, viết thành mã `VT001@LOT-2610` (cột `c
 
 ---
 
+
 ## 6. Bảng hệ thống dùng chung
 
 ### 6.1. Đánh số chứng từ — `sys_voucher_numbering`, `sys_voucher_sequence`
@@ -481,7 +502,7 @@ Mọi thêm / sửa / xóa của bản ghi có khai `[Audited]` tự ghi một d
 ### 6.5. Quyền — `sys_command`, `sys_role_command`, `sys_user_command`, `sys_role_right`, `sys_user_right`
 
 - Mỗi chức năng (`inv_receipt`...) có 7 thao tác: xem, thêm, sửa, xóa, duyệt, in, xuất. Quyền hiệu lực = **quyền của vai trò + ngoại lệ của người dùng**; quản trị viên có tất cả.
-- **Quyền đặc biệt** của phiếu (`{chức năng}:{mã}`): `VIEW_PRICE` (xem giá), `VIEW_ALL` (xem phiếu người khác), `EDIT_PENDING` (sửa phiếu chờ duyệt), `EDIT_APPROVED` (sửa phiếu đã duyệt), `POST` (ghi sổ), `UNPOST` (bỏ ghi sổ), `CANCEL` (hủy). Đọc sổ kho / tồn dùng chức năng `inv_report_stock` (giá trị cần `VIEW_COST`).
+- **Quyền đặc biệt** của phiếu (`{chức năng}:{mã}`): `VIEW_PRICE` (xem giá), `VIEW_ALL` (xem phiếu người khác) và các quyền **trạng thái**, cấp riêng từng đơn vị cơ sở (mã có đơn vị, ví dụ `inv_receipt:ST_POSTED@DVCS01`): `ST_PENDING` (gửi duyệt, sửa phiếu chờ duyệt), `ST_APPROVED` (lưu thẳng ở đã duyệt, sửa phiếu đã duyệt), `ST_POSTED` (ghi sổ), `ST_UNPOST` (bỏ ghi sổ), `ST_CANCELLED` (hủy); xem `docs/he-thong/trang-thai-chung-tu.md`. Đọc sổ kho / tồn dùng chức năng `inv_report_stock` (giá trị cần `VIEW_COST`).
 
 ### 6.6. Tham số hệ thống — `sys_setting`
 
@@ -535,7 +556,7 @@ Xem toàn bộ bản đồ bằng câu lệnh `select * from sys_v_columns where
 2. Khởi động backend; chạy lại `00-helpers.sql` nếu thiếu hàm tìm kiếm.
 3. Khai: đơn vị cơ sở → tiền tệ và tỷ giá → loại kho, **kho** (kèm đơn vị) → đơn vị tính → loại / nhóm vật tư → **vật tư** (đặt cờ lô / vị trí / hạn dùng) → **vị trí lưu kho** → **lô** (hoặc để phiếu tự tạo).
 4. Cài đặt: mẫu số chứng từ (Tham số mặc định & đánh số chứng từ), khóa sổ (Năm tài chính & khóa sổ), quy tắc phê duyệt cho `inv_receipt` và `inv_issue`, tham số tồn âm.
-5. Cấp quyền cho vai trò, gồm các quyền đặc biệt `POST`, `UNPOST`, `VIEW_PRICE`, `VIEW_ALL` cho đúng người.
+5. Cấp quyền cho vai trò, gồm các quyền đặc biệt `VIEW_PRICE`, `VIEW_ALL` và quyền trạng thái `ST_*` của từng đơn vị cơ sở (ghi sổ: `ST_POSTED`, bỏ ghi sổ: `ST_UNPOST`) cho đúng người.
 
 ### 8.2. Xem tồn và sổ (API)
 
@@ -566,7 +587,7 @@ Dữ liệu dev có **toàn bộ các tháng 2026 của DVCS01 đã khóa sổ**
 
 - Ô chọn vật tư, đơn vị tính và nhà cung cấp trên phiếu **đọc danh mục thật** (tra cứu `materials`, `uoms`, `suppliers`). Danh mục vật tư chưa có giá nên đơn giá dòng bắt đầu bằng 0, nhập tay. Lô và vị trí vẫn nhập tay (chữ): vật tư theo dõi vị trí phải nhập vị trí thuộc kho của phiếu (kiểm tra khi lưu), vật tư theo dõi lô phải có số lô khi ghi sổ. Khi lưu, backend kiểm tra mã vật tư, đơn vị tính, nhà cung cấp, vị trí (thông báo `voucherLine.*`, `receipt.supplierInvalid`) và lấy tên vật tư từ danh mục.
 - Đơn vị tính trên dòng **đi vào sổ**: phiếu gửi `uom_code` của dòng, sổ kho quy đổi về đơn vị gốc của vật tư qua `erp_uom_conversion` (dòng sổ lưu cả số lượng và đơn vị gốc lẫn của dòng phiếu).
-- Phiếu nhập và phiếu xuất chưa có phân trang phía máy chủ và xuất Excel từ trình duyệt (khác các danh mục); danh sách tải hết phiếu của đơn vị một lần.
+- Danh sách phiếu nhập, phiếu xuất và phiếu yêu cầu đã **phân trang, lọc, tìm và sắp xếp ở máy chủ**, xuất Excel do máy chủ làm (xem mục 2.4.1).
 - Người **không có quyền xem giá** (`VIEW_PRICE`) thấy đơn giá 0 trên phiếu; nếu họ sửa và lưu phiếu nháp thì tổng tiền bị tính lại từ số 0 đó. Cần giữ nguyên đơn giá cũ khi người sửa không có quyền xem giá (chưa làm, áp dụng cho cả hai phiếu).
 - Mới có phiếu nhập và phiếu xuất ghi vào sổ; **điều chuyển và kiểm kê** chưa ghi sổ. Chưa có màn hình xem tồn kho và báo cáo nhập xuất tồn (mới có API). Khách hàng trên phiếu xuất là chữ tự do cho tới khi có danh mục khách hàng.
 - Giá xuất tính **bình quân di động** theo kho tại thời điểm ghi sổ; tính lại bình quân cuối tháng và FIFO theo lô chưa làm.

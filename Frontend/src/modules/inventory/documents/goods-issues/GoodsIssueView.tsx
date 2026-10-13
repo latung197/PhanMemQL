@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { 
+  ClipboardCheck,
   ArrowUpRight,
   Plus, 
   CheckCircle2, 
@@ -45,18 +46,27 @@ import { MasterLookupModal, ColumnDef } from '../../../../components/common/Mast
 import { NumberInput, QuantityInput, DateTimePicker, ComboBox, VoucherDetailGrid } from '../../../../components/common';
 import { goodsIssueItemsGridConfig, goodsIssueMaterialsGridConfig } from '../../../../mock/voucherGridConfigs';
 import { useNumberFormat } from '../../../../context/NumberFormatContext';
+import { systemSettingsService } from '../../../../services/systemSettingsService';
+import { PrintMenuButton } from '../PrintMenuButton';
+import { printVoucher } from '../voucherPrint';
 import { GoodsVoucher, VoucherItem, Product, Warehouse as WarehouseType, CompanyUnit, UserProfile } from '../../../../types';
-import { SAVE_STATUS_LABELS, saveStatusChoices, type SaveStatus } from '../SaveStatusSelect';
+import { SAVE_STATUS_LABELS, saveStatusChoices, saveStatusName, type SaveStatus } from '../SaveStatusSelect';
+import { VoucherStatusBadge } from '../VoucherStatusBadge';
+import { useVoucherStatuses, voucherStatusService } from '../../../../services/voucherStatusService';
+import { reachesStatus } from '../../../../utils/documentPolicy';
 import { getActionPermission } from '../../../../mock/initialRoles';
-import { canApproveVoucher, hasRight, RIGHTS } from '../../../../utils/permissions';
+import { canApproveVoucher, hasRight, hasStatusRight, RIGHTS } from '../../../../utils/permissions';
 import { useOpenDocumentRequest } from '../../../../utils/documentLinks';
 import { showToast } from '../../../../utils/toast';
 import { getErrorMessage } from '../../../../services/apiClient';
 import { loadMaterialOptions } from '../../../../services/lookupOptions';
 import { voucherNumberingApi, exchangeRatesApi } from '../../../../services/settingsApi';
 import { goodsIssuesApi } from './api';
-import { exportExcel } from '../../../../components/catalog/excel';
-import type { ExcelColumn } from '../../../../components/catalog/catalogTypes';
+import type { OpenIssueRequest } from '../issue-requests/api';
+import { IssueRequestPicker, type PickedRequestLine } from './IssueRequestPicker';
+import { useDebounced } from '../../../../hooks/useDebounced';
+import { usePagedList } from '../../../../hooks/usePagedList';
+import { pagedQueryString, type PagedQuery } from '../../../../services/paging';
 
 // Shared look of the header fields of a voucher form (goods receipt and goods issue keep the same layout).
 const VOUCHER_LABEL = 'block text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5 truncate';
@@ -80,6 +90,11 @@ export const MOCK_CUSTOMERS = [
   { id: 'KH008', code: 'KH-GELEX', name: 'Tập đoàn GELEX - Thiết bị điện', group: 'Công nghiệp điện', taxCode: '0100100742', phone: '024 3826 6200', address: '52 Lê Đại Hành, Q. Hai Bà Trưng, Hà Nội' }
 ];
 
+/** The status filter of the form holds the labels the screens keep; the server filters by the status name. */
+const STATUS_OF_LABEL: Record<string, string> = {
+  'Lập chứng từ': 'Draft', 'Chờ duyệt': 'Pending', 'Đã phê duyệt': 'Approved', 'Chuyển sổ kho': 'Posted', 'Hủy': 'Cancelled'
+};
+
 export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   companyUnits = [],
   activeUnitCode,
@@ -96,10 +111,13 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   // The pickers read the real catalogs through the lookups (materials; suppliers on a receipt).
   const [products, setProducts] = useState<Product[]>([]);
 
+  // loadData also refreshes the list; the paging block below fills this in.
+  const reloadListRef = useRef<() => void>(() => {});
+
   const loadData = async () => {
     try {
-      const [issues, options, materials] = await Promise.all([goodsIssuesApi.getAll(), goodsIssuesApi.getOptions(), loadMaterialOptions()]);
-      setLocalVouchers(issues);
+      const [options, materials] = await Promise.all([goodsIssuesApi.getOptions(), loadMaterialOptions()]);
+      reloadListRef.current();
       setProducts(materials);
       setCurrencies(options.currencies);
       setWarehouses(options.warehouses.map(w => ({
@@ -117,7 +135,6 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [codeFilter, setCodeFilter] = useState('');
-  const [unitFilter, setUnitFilter] = useState('');
   const [voucherTypeFilter, setVoucherTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('');
@@ -149,6 +166,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const [formVoucherType, setFormVoucherType] = useState('Xuất bán hàng');
   const [formWarehouseId, setFormWarehouseId] = useState('');
   const [formWarehouseName, setFormWarehouseName] = useState('');
+  // The approved issue request this issue carries out (empty = a free issue); its lines are the lines of the issue.
   const [formCustomerName, setFormCustomerName] = useState('');
   const [formReceiverName, setFormReceiverName] = useState('');
   const [formCurrencyCode, setFormCurrencyCode] = useState('VND');
@@ -158,6 +176,13 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
 
   // Form Fields - Line Items List (Tab 1: Chi Tiết Xuất Kho)
   const [formItems, setFormItems] = useState<VoucherItem[]>([]);
+  // The requests the lines follow, read from the lines themselves (each carries the number of its request).
+  const formRequestCode = useMemo(() => [...new Set(formItems.map(item => item.issueRequestCode).filter(Boolean) as string[])].join(','), [formItems]);
+  // What each request line is already taken for by the lines of this form.
+  const takenByForm = useMemo(() => formItems.reduce<Record<number, number>>((acc, item) => {
+    if (item.issueRequestLineId) acc[item.issueRequestLineId] = (acc[item.issueRequestLineId] ?? 0) + (Number(item.quantity) || 0);
+    return acc;
+  }, {}), [formItems]);
 
   // Form Fields - Material Items List (Tab 2: Nguyên Vật Liệu / Cấu Trúc SP)
   const [formMaterialItems, setFormMaterialItems] = useState<VoucherItem[]>([]);
@@ -166,17 +191,20 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const [isMaterialLookupOpen, setIsMaterialLookupOpen] = useState(false);
   const [isWarehouseLookupOpen, setIsWarehouseLookupOpen] = useState(false);
   const [isCustomerLookupOpen, setIsCustomerLookupOpen] = useState(false);
+  const [openRequests, setOpenRequests] = useState<OpenIssueRequest[]>([]);
+  const [isRequestPickerOpen, setIsRequestPickerOpen] = useState(false);
   const [lookupTargetRowIndex, setLookupTargetRowIndex] = useState<number | null>(null);
   const [activeRowSearchIdx, setActiveRowSearchIdx] = useState<number | null>(null);
 
+  useVoucherStatuses();
   const perm = getActionPermission(currentUser, 'inv_issue');
   // "Duyệt" on the voucher or on its approval screen (Phê duyệt xuất kho), as the backend.
   const canApprove = canApproveVoucher(currentUser, 'inv_issue');
   // Quyền đặc biệt "Xem đơn giá & thành tiền": không có thì ẩn mọi cột/ô giá trị trên phiếu.
   const canViewPrice = hasRight(currentUser, 'inv_issue', RIGHTS.VIEW_PRICE);
   const hiddenPriceFields = canViewPrice ? undefined : ['unitPrice', 'amount'];
-  const statusChoices = saveStatusChoices({ create: perm.create, edit: perm.edit, approve: perm.approve,
-    canPost: hasRight(currentUser, 'inv_issue', RIGHTS.POST) });
+  const statusChoices = saveStatusChoices(currentUser, 'inv_issue', { voucherType: 'PXK', posts: true });
+  const approvalInUse = voucherStatusService.isEnabled('PXK', 'Pending');
   const canSaveForm = !editingVoucherId ? perm.create : perm.edit && formStatus === 'Lập chứng từ';
   // The "Trạng thái" field of the form is the choice while the voucher is new or still a draft and the user's rights reach more than one status.
   const canChooseStatus = canSaveForm && statusChoices.length > 1;
@@ -184,85 +212,45 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     (Object.keys(SAVE_STATUS_LABELS) as SaveStatus[]).find(key => SAVE_STATUS_LABELS[key] === label) ?? 'Draft';
   const shownStatus = canChooseStatus ? SAVE_STATUS_LABELS[saveStatus] : formStatus;
 
-  // Filter issue vouchers only (type === 'Xuất kho')
-  const issueVouchers = useMemo(() => {
-    return localVouchers.filter(v => v.type === 'Xuất kho');
-  }, [localVouchers]);
+  // The server already lists only this voucher type of the unit.
+  const issueVouchers = localVouchers;
 
   // Compute active filters count
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (codeFilter.trim()) count++;
-    if (unitFilter) count++;
     if (voucherTypeFilter) count++;
     if (statusFilter) count++;
     if (warehouseFilter) count++;
     if (fromDate) count++;
     if (toDate) count++;
     return count;
-  }, [codeFilter, unitFilter, voucherTypeFilter, statusFilter, warehouseFilter, fromDate, toDate]);
+  }, [codeFilter, voucherTypeFilter, statusFilter, warehouseFilter, fromDate, toDate]);
 
-  // Filtered vouchers array
-  const filteredVouchers = useMemo(() => {
-    return issueVouchers.filter(v => {
-      // General Search
-      if (searchText.trim()) {
-        const term = searchText.toLowerCase();
-        const matchesCode = v.code.toLowerCase().includes(term);
-        const matchesNote = (v.note || '').toLowerCase().includes(term);
-        const matchesWh = (v.warehouseName || '').toLowerCase().includes(term);
-        const matchesUnit = (v.companyUnitName || '').toLowerCase().includes(term);
-        const matchesCustomer = (v.supplierName || '').toLowerCase().includes(term);
-        const matchesProduct = v.items?.some(it => it.productName.toLowerCase().includes(term) || (it.sku || '').toLowerCase().includes(term));
-        if (!matchesCode && !matchesNote && !matchesWh && !matchesUnit && !matchesCustomer && !matchesProduct) {
-          return false;
-        }
-      }
 
-      // Code filter
-      if (codeFilter.trim()) {
-        const codes = codeFilter.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-        if (codes.length > 0 && !codes.some(c => v.code.toLowerCase().includes(c))) {
-          return false;
-        }
-      }
+  // ---- The list: the server filters, sorts and cuts the pages (backend VoucherListQuery, services/paging.ts) ------------------
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
+  const debouncedSearch = useDebounced(searchText, 300);
+  const debouncedCode = useDebounced(codeFilter, 300);
+  const listFilters = useMemo(() => ({
+    status: STATUS_OF_LABEL[statusFilter] ?? '', warehouse: warehouseFilter, voucherType: voucherTypeFilter,
+    code: debouncedCode.trim(), from: fromDate, to: toDate
+  }), [statusFilter, warehouseFilter, voucherTypeFilter, debouncedCode, fromDate, toDate]);
+  const filterKey = `${JSON.stringify(listFilters)}|${debouncedSearch}|${sort ? `${sort.key}:${sort.dir}` : ''}|${pageSize}|${activeUnitCode}`;
+  // A new search, filter, sort or page size starts again at the first page.
+  useEffect(() => { setPage(1); }, [filterKey]);
+  const listQuery = useMemo<PagedQuery>(() => ({
+    page, pageSize, sort: sort?.key, dir: sort?.dir, search: debouncedSearch, filters: listFilters
+  }), [page, pageSize, sort, debouncedSearch, listFilters]);
+  const fetchPage = useCallback((query: PagedQuery) => goodsIssuesApi.getPage(query), []);
+  const { items: pageItems, total: totalVouchers, loading: listLoading, error: listError, reload: reloadList } = usePagedList(fetchPage, listQuery);
+  reloadListRef.current = reloadList;
+  useEffect(() => { setLocalVouchers(pageItems); }, [pageItems]);
+  useEffect(() => { if (listError) showToast.error(listError); }, [listError]);
 
-      // Company Unit filter
-      if (unitFilter && v.companyUnitId !== unitFilter && v.companyUnitName !== unitFilter) {
-        return false;
-      }
-
-      // Voucher Type filter
-      if (voucherTypeFilter && (v.voucherType || 'Xuất bán hàng') !== voucherTypeFilter) {
-        return false;
-      }
-
-      // Status filter
-      if (statusFilter) {
-        const currentStatus = v.status || 'Đã phê duyệt';
-        if (currentStatus !== statusFilter) return false;
-      }
-
-      // Warehouse filter
-      if (warehouseFilter && v.warehouseId !== warehouseFilter) {
-        return false;
-      }
-
-      // From date filter
-      if (fromDate && v.date < fromDate) {
-        return false;
-      }
-
-      // To date filter
-      if (toDate && v.date > toDate) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [issueVouchers, searchText, codeFilter, unitFilter, voucherTypeFilter, statusFilter, warehouseFilter, fromDate, toDate]);
-
-  const { formatQuantity } = useNumberFormat();
+  const { formatQuantity, formatUnitPrice, formatNumber } = useNumberFormat();
 
   const formatVND = (num: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num || 0);
@@ -287,7 +275,6 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
 
   const handleClearFilter = () => {
     setCodeFilter('');
-    setUnitFilter('');
     setVoucherTypeFilter('');
     setStatusFilter('');
     setWarehouseFilter('');
@@ -304,20 +291,11 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       showToast.error('Tài khoản của bạn không có quyền Xuất Excel!');
       return;
     }
-    try {
-      const columns: ExcelColumn<GoodsVoucher>[] = [
-        { key: 'code', header: 'Số chứng từ' },
-        { key: 'date', header: 'Ngày chứng từ' },
-        { key: 'companyUnitName', header: 'Đơn vị cơ sở' },
-        { key: 'warehouseName', header: 'Kho xuất' },
-        { key: 'voucherType', header: 'Loại xuất' },
-        { key: 'supplierName', header: 'Khách hàng' },
-        { key: 'status', header: 'Trạng thái' }
-      ];
-      if (canViewPrice) columns.push({ key: 'totalValue', header: 'Tổng tiền', type: 'number' });
-      await exportExcel('phieu_xuat_kho', 'Phiếu xuất kho', columns, filteredVouchers);
-    } catch (error) { showToast.error(getErrorMessage(error)); }
+    try { await goodsIssuesApi.exportAll(listQuery); }
+    catch (error) { showToast.error(getErrorMessage(error)); }
   };
+
+  const emptyBlankItem: VoucherItem = { productId: '', productName: '', sku: '', unit: '', quantity: 1, unitPrice: 0, totalPrice: 0, lotNumber: '', position: '' };
 
   // Open Add Modal
   const handleOpenAdd = async () => {
@@ -382,9 +360,14 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   // Open Edit/View Modal
   // Opened from a notification (e.g. "Chờ duyệt: {mã phiếu}"): show that voucher.
   useOpenDocumentRequest('inv_issue', (documentId) => {
-    const voucher = issueVouchers.find(v => v.code === documentId || v.id === documentId);
-    if (voucher) handleOpenEdit(voucher);
-    else showToast.warning(`Không tìm thấy phiếu xuất kho ${documentId}.`, 'Phiếu có thể đã bị xóa hoặc thuộc đơn vị khác.');
+    const voucher = localVouchers.find(v => v.code === documentId || v.id === documentId);
+    if (voucher) { handleOpenEdit(voucher); return; }
+    // Not on the page shown: ask the server for the voucher with that code.
+    void goodsIssuesApi.getPage({ page: 1, pageSize: 1, filters: { code: documentId } }).then(result => {
+      const found = result.items.find(v => v.code === documentId);
+      if (found) handleOpenEdit(found);
+      else showToast.warning(`Không tìm thấy phiếu xuất kho ${documentId}.`, 'Phiếu có thể đã bị xóa hoặc thuộc đơn vị khác.');
+    }).catch(error => showToast.error(getErrorMessage(error)));
   });
 
   const handleOpenEdit = (voucher: GoodsVoucher) => {
@@ -435,7 +418,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
           unitPrice: it.unitPrice || 0,
           totalPrice: (it.quantity || 1) * (it.unitPrice || 0),
           lotNumber: it.lotNumber || '',
-          position: it.position || prod?.position || ''
+          position: it.position || prod?.position || '',
+          issueRequestLineId: it.issueRequestLineId
         };
       });
       mapped.push({ ...emptyItem });
@@ -668,6 +652,59 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
 
     setIsMaterialLookupOpen(false);
     setLookupTargetRowIndex(null);
+  };
+
+  // "Lấy từ phiếu yêu cầu": the approved requests with something left, read fresh every time. Editing a saved issue, what it already
+  // takes is not counted as issued (the picker takes off what the form holds).
+  const handleOpenRequestPicker = async () => {
+    try {
+      setOpenRequests(await goodsIssuesApi.getOpenRequests(editingVoucherId ?? undefined));
+      setIsRequestPickerOpen(true);
+    } catch (error) { showToast.error(getErrorMessage(error)); }
+  };
+
+  /**
+   * Carries the ticked materials (with the quantity chosen) into the lines: every line keeps the request line it carries out and the
+   * number of its request. The header comes from the first request pulled; later ones must share its warehouse and currency (the
+   * picker only lets those be ticked). A request line already in the form gets the quantity added to its line.
+   */
+  const handleConfirmRequest = (picked: PickedRequestLine[]) => {
+    setIsRequestPickerOpen(false);
+    if (picked.length === 0) return;
+    const first = formRequestCode ? undefined : picked[0].request;
+    const items = formItems.filter(item => (item.sku || item.productId || '').trim() !== '').map(item => ({ ...item }));
+    picked.forEach(({ request, line, quantity }) => {
+      const existing = items.find(item => item.issueRequestLineId === line.lineId);
+      if (existing) {
+        existing.quantity = (Number(existing.quantity) || 0) + quantity;
+        existing.totalPrice = existing.quantity * (existing.unitPrice || 0);
+        existing.amount = existing.totalPrice;
+        return;
+      }
+      items.push({
+        productId: line.materialCode, sku: line.materialCode, productName: line.materialName, unit: line.uomCode,
+        quantity, unitPrice: line.unitPrice, totalPrice: quantity * line.unitPrice, amount: quantity * line.unitPrice, lotNumber: '', position: '',
+        issueRequestLineId: line.lineId, issueRequestCode: request.code
+      } as VoucherItem);
+    });
+    const codes = [...new Set(items.map(item => item.issueRequestCode).filter(Boolean) as string[])];
+    if (first) {
+      setFormVoucherType(first.voucherType);
+      setFormWarehouseId(first.warehouseCode);
+      setFormWarehouseName(first.warehouseName);
+      setFormCustomerName(first.customerName || '');
+      setFormReceiverName(first.requesterName || '');
+      if (first.currencyCode !== formCurrencyCode) void handleCurrencyChange(first.currencyCode);
+    }
+    setFormNote(prev => prev.trim() && !formRequestCode && !prev.startsWith('Xuất theo phiếu yêu cầu') ? prev : `Xuất theo phiếu yêu cầu ${codes.join(', ')}`);
+    setFormItems([...items, { ...emptyBlankItem }]);
+    setActiveTab('items');
+    showToast.success(`Đã lấy ${picked.length} vật tư từ ${new Set(picked.map(p => p.request.code)).size} phiếu yêu cầu. Có thể sửa số lượng ở bảng chi tiết.`);
+  };
+
+  /** Unlinks the issue from its requests: the lines stay but no longer follow a request line. */
+  const handleClearRequest = () => {
+    setFormItems(prev => prev.map(item => ({ ...item, issueRequestLineId: undefined, issueRequestCode: undefined })));
   };
 
   // Confirm Warehouse Lookup
@@ -961,6 +998,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       voucherType: formVoucherType,
       currencyCode: formCurrencyCode,
       exchangeRate: formExchangeRate,
+      issueRequestCode: formRequestCode || undefined,
       supplierName: formCustomerName.trim(),
       delivererName: formReceiverName.trim(),
       warehouseId: formWarehouseId,
@@ -981,6 +1019,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       setLocalVouchers(prev => editingVoucherId
         ? prev.map(v => v.id === editingVoucherId ? result : v)
         : [result, ...prev]);
+      reloadListRef.current();
       showToast.success(`Đã lưu phiếu xuất kho [${result.code}], trạng thái: ${result.status}.`);
       setIsModalOpen(false);
     } catch (error) {
@@ -991,10 +1030,11 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     }
   };
 
-  const handleQuickStatusChange = async (voucherId: string, action: 'submit' | 'withdraw' | 'approve' | 'post' | 'unpost') => {
+  const handleQuickStatusChange = async (voucherId: string, action: 'submit' | 'withdraw' | 'approve' | 'post' | 'unpost' | 'cancel') => {
     try {
       const result = await goodsIssuesApi.changeStatus(voucherId, action);
       setLocalVouchers(prev => prev.map(v => v.id === voucherId ? result : v));
+      reloadListRef.current();
       showToast.success(`Phiếu ${result.code}: ${result.status}.`);
     } catch (error) {
       showToast.error(getErrorMessage(error));
@@ -1008,6 +1048,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     try {
       await goodsIssuesApi.remove(itemToDelete.id);
       setLocalVouchers(prev => prev.filter(v => v.id !== itemToDelete.id));
+      reloadListRef.current();
       showToast.success(`Đã xóa phiếu xuất kho [${itemToDelete.code}].`);
       setItemToDelete(null);
     } catch (error) { showToast.error(getErrorMessage(error)); }
@@ -1019,77 +1060,30 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     const results = await Promise.allSettled(bulkToDeleteIds.map(id => goodsIssuesApi.remove(id)));
     const deleted = bulkToDeleteIds.filter((_, index) => results[index].status === 'fulfilled');
     setLocalVouchers(prev => prev.filter(v => !deleted.includes(v.id)));
+    reloadListRef.current();
     showToast.info(`Đã xóa ${deleted.length}/${bulkToDeleteIds.length} phiếu. Chỉ phiếu nháp đủ quyền mới được xóa.`);
     setSelectedIds([]);
     setBulkToDeleteIds(null);
   };
 
-  const handlePrint = (code: string) => {
+  /** Two print forms: with prices and amounts (needs VIEW_PRICE) and without. */
+  const handlePrint = (code: string, withPrice: boolean) => {
     if (!perm.print) {
       showToast.error('Tài khoản của bạn không có quyền In chứng từ!');
       return;
     }
     const voucher = localVouchers.find(v => v.code === code);
     if (!voucher) return;
-    const printable = window.open('', '_blank');
-    if (!printable) { showToast.error('Trình duyệt đã chặn cửa sổ in.'); return; }
-    const escape = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, ch =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] || ch);
-    const priceHead = canViewPrice ? '<th>Đơn giá</th><th>Thành tiền</th>' : '';
-    const rows = voucher.items.map((item, index) => `<tr><td>${index + 1}</td><td>${escape(item.sku)}</td><td>${escape(item.productName)}</td><td>${escape(item.unit)}</td><td>${escape(item.quantity)}</td>${canViewPrice ? `<td>${escape(item.unitPrice)}</td><td>${escape(item.totalPrice)}</td>` : ''}</tr>`).join('');
-    printable.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escape(code)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #555;padding:6px;text-align:left}th{background:#eee}p{margin:6px 0}@media print{body{padding:0}}</style></head><body><h1>PHIẾU XUẤT KHO</h1><p>Số phiếu: ${escape(voucher.code)} · Ngày: ${escape(voucher.date)}</p><p>Đơn vị: ${escape(voucher.companyUnitName)} · Kho: ${escape(voucher.warehouseName)}</p><p>Khách hàng: ${escape(voucher.supplierName)} · Người nhận: ${escape(voucher.delivererName)}</p><p>Trạng thái: ${escape(voucher.status)}</p><table><thead><tr><th>STT</th><th>Mã vật tư</th><th>Tên vật tư</th><th>ĐVT</th><th>Số lượng</th>${priceHead}</tr></thead><tbody>${rows}</tbody></table>${canViewPrice ? `<p>Tổng tiền: ${escape(voucher.totalValue)} VND</p>` : ''}<p>Ghi chú: ${escape(voucher.note)}</p></body></html>`);
-    printable.document.close();
-    printable.focus();
-    printable.print();
+    const opened = printVoucher({
+      kind: 'issue', withPrice: withPrice && canViewPrice, voucher, company: systemSettingsService.getCompanyProfile(),
+      format: { quantity: formatQuantity, unitPrice: formatUnitPrice, amount: value => formatNumber(value) },
+      printedBy: currentUser?.fullName
+    });
+    if (!opened) showToast.error('Trình duyệt đã chặn cửa sổ in.');
   };
 
   // Render Status Badge
-  const renderStatusBadge = (status?: string) => {
-    const st = status || 'Chờ duyệt';
-    switch (st) {
-      case 'Chuyển sổ kho':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-            Chuyển Sổ Kho
-          </span>
-        );
-      case 'Đã phê duyệt':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800">
-            <ShieldCheck className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-            Đã Phê Duyệt
-          </span>
-        );
-      case 'Chờ duyệt':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 animate-pulse">
-            <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-            Chờ Duyệt
-          </span>
-        );
-      case 'Lập chứng từ':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
-            <FileText className="h-3.5 w-3.5 text-slate-500" />
-            Lập Chứng Từ
-          </span>
-        );
-      case 'Hủy':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
-            <AlertOctagon className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
-            Đã Hủy
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-            {st}
-          </span>
-        );
-    }
-  };
+  const renderStatusBadge = (status?: string) => <VoucherStatusBadge voucherType="PXK" label={status} />;
 
   // Table Columns Definition
   const columns: GridViewColumn<GoodsVoucher>[] = [
@@ -1119,7 +1113,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       )
     },
     {
-      key: 'companyUnitName',
+      key: 'companyUnitName', sortKey: 'warehouse',
       title: 'Đơn Vị Cơ Sở / Kho',
       sortable: true,
       render: (v) => (
@@ -1221,7 +1215,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
             <Edit3 className="h-4 w-4" />
           </button>
 
-          {v.status === 'Lập chứng từ' && (perm.create || perm.edit) && (
+          {v.status === 'Lập chứng từ' && (perm.create || perm.edit) && approvalInUse && (
             <button
               type="button"
               onClick={() => void handleQuickStatusChange(v.id, 'submit')}
@@ -1247,7 +1241,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
               <Undo2 className="h-4 w-4" />
             </button>
           )}
-          {v.status === 'Đã phê duyệt' && hasRight(currentUser, 'inv_issue', RIGHTS.POST) && (
+          {v.status === 'Đã phê duyệt' && reachesStatus(currentUser, 'inv_issue', 'Posted') && (
             <button
               type="button"
               onClick={() => void handleQuickStatusChange(v.id, 'post')}
@@ -1257,23 +1251,20 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
               <CheckCircle2 className="h-4 w-4" />
             </button>
           )}
-          {v.status === 'Chuyển sổ kho' && hasRight(currentUser, 'inv_issue', RIGHTS.UNPOST) && (
+          {v.status === 'Chuyển sổ kho' && hasStatusRight(currentUser, 'inv_issue', RIGHTS.ST_UNPOST) && (
             <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'unpost')}
               className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Bỏ ghi sổ kho">
               <RotateCcw className="h-4 w-4" />
             </button>
           )}
-
-          {perm.print && (
-            <button
-              type="button"
-              onClick={() => handlePrint(v.code)}
-              className="p-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-              title="In phiếu PDF"
-            >
-              <Printer className="h-4 w-4" />
+          {v.status === 'Đã phê duyệt' && reachesStatus(currentUser, 'inv_issue', 'Cancelled') && (
+            <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'cancel')}
+              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg" title="Hủy phiếu xuất kho (chưa ghi sổ)">
+              <XCircle className="h-4 w-4" />
             </button>
           )}
+
+          {perm.print && <PrintMenuButton canPrintPrice={canViewPrice} onPrint={withPrice => handlePrint(v.code, withPrice)} />}
 
           {perm.delete && (
             <button
@@ -1298,7 +1289,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
         icon={<ArrowUpRight className="h-6 w-6 text-rose-400" />}
         title="Danh Mục Phiếu Xuất Kho (Goods Issues)"
         subtitle="Quản lý, lập mới, xem, sửa, xóa, tìm kiếm & lọc chứng từ xuất kho vật tư hàng hóa"
-        count={filteredVouchers.length}
+        count={totalVouchers}
         countLabel="Phiếu Xuất"
         showAdvancedFilter={showAdvancedFilter}
         onToggleAdvancedFilter={() => setShowAdvancedFilter(!showAdvancedFilter)}
@@ -1309,7 +1300,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
         canCreate={perm.create}
         onOpenAdd={handleOpenAdd}
         filterPanelContent={
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">
             <div>
               <label className="block text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-0.5">Mã / Số Chứng Từ</label>
               <input
@@ -1319,20 +1310,6 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                 onChange={(e) => setCodeFilter(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
-            </div>
-
-            <div>
-              <label className="block text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-0.5">Đơn Vị Cơ Sở</label>
-              <select
-                value={unitFilter}
-                onChange={(e) => setUnitFilter(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
-              >
-                <option value="">-- Tất cả ĐVCS --</option>
-                {companyUnits.map(cu => (
-                  <option key={cu.id} value={cu.id}>{cu.name}</option>
-                ))}
-              </select>
             </div>
 
             <div>
@@ -1408,7 +1385,16 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
 
       {/* GridView Data Table Component */}
       <GridView<GoodsVoucher>
-        data={filteredVouchers}
+        data={localVouchers}
+        serverSide
+        loading={listLoading}
+        currentPage={page}
+        totalItems={totalVouchers}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        sortColumn={sort?.key ?? ''}
+        sortDirection={sort?.dir ?? 'asc'}
+        onSort={(key, dir) => setSort({ key, dir })}
         columns={canViewPrice ? columns : columns.filter(c => c.key !== 'totalValue')}
         keyExtractor={(item) => item.id}
         searchable={true}
@@ -1429,7 +1415,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
           ] : []
         }
         emptyText="Không tìm thấy chứng từ phiếu xuất kho nào phù hợp."
-        pageSize={15}
+        pageSize={pageSize}
         pageSizeOptions={[10, 15, 20, 30, 50, 100]}
         dense={true}
       />
@@ -1442,18 +1428,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
         fullScreen={true}
         headerActions={
           <div className="flex items-center gap-2 shrink-0">
-            {editingVoucherId && perm.print && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handlePrint(formCode)}
-                icon={<Printer className="h-3.5 w-3.5" />}
-                className="py-1 px-2.5 text-xs font-medium cursor-pointer"
-              >
-                In PDF
-              </Button>
-            )}
+            {editingVoucherId && perm.print && <PrintMenuButton variant="button" canPrintPrice={canViewPrice} onPrint={withPrice => handlePrint(formCode, withPrice)} />}
             <Button
               type="button"
               variant="outline"
@@ -1490,7 +1465,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
               disabled={isSaving || !canSaveForm}
               className="py-1 px-4 text-xs font-bold cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs border border-emerald-600"
             >
-              {saveStatus === 'Draft' ? (editingVoucherId ? 'Lưu & Cập Nhật' : 'Lưu Phiếu Xuất Kho') : `Lưu và ${SAVE_STATUS_LABELS[saveStatus].toLowerCase()}`}
+              {saveStatus === 'Draft' ? (editingVoucherId ? 'Lưu & Cập Nhật' : 'Lưu Phiếu Xuất Kho') : `Lưu và ${saveStatusName('PXK', saveStatus).toLowerCase()}`}
             </Button>
           </div>
         }
@@ -1541,6 +1516,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                     <select
                       required
                       value={formWarehouseId}
+                      disabled={Boolean(formRequestCode)}
+                      title={formRequestCode ? 'Phiếu xuất theo yêu cầu phải xuất từ kho của phiếu yêu cầu' : undefined}
                       onChange={(e) => {
                         setFormWarehouseId(e.target.value);
                         const wh = warehouses.find(w => w.id === e.target.value);
@@ -1554,6 +1531,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                     </select>
                     <button
                       type="button"
+                      disabled={Boolean(formRequestCode)}
                       onClick={() => setIsWarehouseLookupOpen(true)}
                       className="px-1.5 h-[26px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-2xs"
                       title="Tra cứu danh mục Kho (F4)"
@@ -1600,6 +1578,18 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                     className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                   />
                 </div>
+
+                {formRequestCode && (
+                  <div className="sm:col-span-2 xl:col-span-3 flex items-center justify-between gap-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-2 py-1">
+                    <span className="flex items-center gap-1.5 text-[11px] text-amber-800 dark:text-amber-300 min-w-0">
+                      <ClipboardCheck className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">Xuất theo phiếu yêu cầu <strong className="font-mono">{formRequestCode.split(',').join(', ')}</strong> (mỗi dòng gắn với một dòng yêu cầu, không xuất quá số còn lại)</span>
+                    </span>
+                    {canSaveForm && (
+                      <button type="button" onClick={handleClearRequest} className="shrink-0 text-[10.5px] font-bold text-rose-600 hover:underline cursor-pointer">Bỏ liên kết</button>
+                    )}
+                  </div>
+                )}
 
                 {/* Ghi chú / Diễn giải (Spans 2 cols) */}
                 <div className="sm:col-span-2 lg:col-span-2">
@@ -1677,7 +1667,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                     className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-1.5 py-0.5 font-extrabold text-slate-800 dark:text-slate-100 text-[10.5px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                   >
                     {canChooseStatus
-                      ? statusChoices.map(choice => <option key={choice} value={SAVE_STATUS_LABELS[choice]}>{SAVE_STATUS_LABELS[choice]}</option>)
+                      ? statusChoices.map(choice => <option key={choice} value={SAVE_STATUS_LABELS[choice]}>{saveStatusName('PXK', choice)}</option>)
                       : (
                         <>
                           <option value="Lập chứng từ">Lập chứng từ</option>
@@ -1795,6 +1785,20 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                 </button>
               </div>
 
+              <div className="flex items-center gap-1.5 flex-wrap">
+              {canSaveForm && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void handleOpenRequestPicker()}
+                  icon={<ClipboardCheck className="h-3.5 w-3.5" />}
+                  title="Lấy dữ liệu từ phiếu yêu cầu xuất kho đã duyệt"
+                  className="text-[10.5px] py-1 px-2.5 h-[26px] shadow-2xs font-semibold border-amber-400 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                >
+                  Lấy từ phiếu yêu cầu
+                </Button>
+              )}
               <Button
                 type="button"
                 size="sm"
@@ -1808,6 +1812,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
               >
                 Tra cứu vật tư (F2)
               </Button>
+              </div>
             </div>
 
             {activeTab === 'items' && (
@@ -1906,6 +1911,17 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
         }
         onConfirm={handleConfirmMasterLookup}
         pageSize={8}
+      />
+
+      {/* Approved issue requests with something left to issue: requests on top, their materials below */}
+      <IssueRequestPicker
+        isOpen={isRequestPickerOpen}
+        onClose={() => setIsRequestPickerOpen(false)}
+        requests={openRequests}
+        taken={takenByForm}
+        lockedWarehouse={formRequestCode ? formWarehouseId : undefined}
+        lockedCurrency={formRequestCode ? formCurrencyCode : undefined}
+        onConfirm={handleConfirmRequest}
       />
 
       {/* Master Lookup Modal for Warehouses */}

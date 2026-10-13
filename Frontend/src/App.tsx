@@ -10,6 +10,7 @@ import { getSubMenuMeta, NavHistoryItem } from './utils/navigationHelper';
 import { LoginView } from './modules/auth/LoginView';
 import { OverviewModule } from './modules/overview/OverviewModule';
 import { InventoryModule } from './modules/inventory/InventoryModule';
+import { PurchasingModule } from './modules/purchasing/PurchasingModule';
 import { SalesModule } from './modules/sales/SalesModule';
 import { FinanceModule } from './modules/finance/FinanceModule';
 import { HRModule } from './modules/hr/HRModule';
@@ -27,6 +28,7 @@ import { startNotificationStream } from './services/notificationStream';
 import { BANNERS_CHANGED_EVENT, SystemBanner, clearHiddenBanners } from './components/layout/SystemBanner';
 import { requestOpenDocument } from './utils/documentLinks';
 import { systemSettingsService } from './services/systemSettingsService';
+import { voucherStatusService } from './services/voucherStatusService';
 import { menuService } from './services/menuService';
 import type { SysModule } from './types/menu';
 import { getErrorMessage, UNAUTHORIZED_EVENT } from './services/apiClient';
@@ -210,7 +212,7 @@ const ERPAppContent: React.FC = () => {
     applyNumberFormat(systemSettingsService.getNumberFormat());
     await Promise.all([
       menuService.load().then(setMenuTree).catch(error => showToast.error(getErrorMessage(error))),
-      refreshCompanyUnits(), refreshNotifications()
+      voucherStatusService.load(), refreshCompanyUnits(), refreshNotifications()
     ]);
   }, [refreshCompanyUnits, refreshNotifications, applyNumberFormat, setLanguage]);
 
@@ -218,6 +220,7 @@ const ERPAppContent: React.FC = () => {
     authService.logout();
     clearHiddenBanners();
     systemSettingsService.clear();
+    voucherStatusService.clear();
     setMenuVisibility(EMPTY_MENU_VISIBILITY);
     setMenuTree([]);
     setCurrentUser(null);
@@ -276,6 +279,7 @@ const ERPAppContent: React.FC = () => {
   const reloadSettingsRef = useRef<() => void>(() => {});
   reloadSettingsRef.current = () => {
     void menuService.load().then(setMenuTree).catch(() => {});
+    void voucherStatusService.load();
     if (activeSubMenu === 'sys_menu') return;
     void systemSettingsService.load()
       .then(() => setMenuVisibility(systemSettingsService.getMenuVisibility()))
@@ -429,7 +433,7 @@ const ERPAppContent: React.FC = () => {
 
   const openModule = (mod: string) => {
     const firstScreen: Partial<Record<ModuleCategoryKey, SubMenuKey>> = {
-      overview: 'overview_main', inventory: 'inv_material_cat', sales: 'sales_orders', finance: 'fin_report',
+      overview: 'overview_main', inventory: 'inv_material_cat', purchasing: 'pur_request', sales: 'sales_orders', finance: 'fin_report',
       hr: 'hr_list', reports: 'reports_main', settings: 'settings_main'
     };
     const subKey = firstScreen[mod as ModuleCategoryKey];
@@ -513,7 +517,7 @@ const ERPAppContent: React.FC = () => {
 
   // Module title and subtitle in the user's language (texts: app.headers.<module>).
   const getSubTitleText = (): { title: string; subtitle: string } => {
-    const withHeader = ['inventory', 'sales', 'finance', 'hr', 'reports', 'ai', 'settings'];
+    const withHeader = ['inventory', 'purchasing', 'sales', 'finance', 'hr', 'reports', 'ai', 'settings'];
     const key = withHeader.includes(activeCategory) ? activeCategory : 'overview';
     return { title: t(`app.headers.${key}.title`), subtitle: t(`app.headers.${key}.subtitle`) };
   };
@@ -638,6 +642,15 @@ const ERPAppContent: React.FC = () => {
                     activeCompanyUnitCode={activeCompanyUnitCode}
                     onSelectCompanyUnit={handleSelectCompanyUnit}
                     onNavigate={navigateTo}
+                  />
+                )}
+
+                {activeCategory === 'purchasing' && (
+                  <PurchasingModule
+                    subKey={activeSubMenu}
+                    currentUser={currentUser}
+                    companyUnits={companyUnits}
+                    activeCompanyUnitCode={activeCompanyUnitCode}
                   />
                 )}
 

@@ -13,6 +13,7 @@ import { DepartmentCategoryView } from './DepartmentCategoryView';
 import { CompanySettingsView } from './CompanySettingsView';
 import { LanguageCategoryView } from './LanguageCategoryView';
 import { TaxRateCategoryView } from './TaxRateCategoryView';
+import { VoucherStatusView } from './VoucherStatusView';
 import { BannerCategoryView } from './BannerCategoryView';
 import { LoginNoticeCategoryView } from './LoginNoticeCategoryView';
 import { AuditLogView } from './AuditLogView';
@@ -65,6 +66,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       case 'sys_login_notices': return <LoginNoticeCategoryView currentUser={user} />;
       case 'sys_banners': return <BannerCategoryView currentUser={user} />;
       case 'sys_tax_rates': return <TaxRateCategoryView currentUser={user} />;
+      case 'sys_voucher_status': return <VoucherStatusView canEdit={perms.edit} unitCode={user.ma_dvcs ?? ''} companyUnits={companyUnits} />;
       case 'sys_audit_log': return <AuditLogView {...rights} />;
       case 'sys_menu': return <MenuManagementView canEdit={perms.edit} visibility={menuVisibility} menuTree={menuTree} onSaved={onMenuVisibilityChanged} onStructureChanged={onMenuStructureChanged} />;
       case 'sys_users': return <UserPermissionManager currentUser={user} companyUnits={companyUnits} />;

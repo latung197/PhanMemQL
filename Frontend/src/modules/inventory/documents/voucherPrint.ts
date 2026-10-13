@@ -4,7 +4,7 @@
 import type { GoodsVoucher, VoucherItem } from '../../../types';
 import type { CompanyProfileConfig } from '../../../services/systemSettingsService';
 
-export type VoucherPrintKind = 'receipt' | 'issue';
+export type VoucherPrintKind = 'receipt' | 'issue' | 'request' | 'purchaseRequest' | 'purchaseOrder';
 
 export interface VoucherPrintFormat {
   quantity: (value: number) => string;
@@ -28,7 +28,15 @@ const KINDS: Record<VoucherPrintKind, { title: string; form: string; warehouse: 
   receipt: { title: 'PHIẾU NHẬP KHO', form: 'Mẫu số 01 - VT', warehouse: 'Nhập tại kho', type: 'Loại nhập', partner: 'Nhà cung cấp',
     person: 'Người giao hàng', signatures: ['Người lập phiếu', 'Người giao hàng', 'Thủ kho', 'Kế toán trưởng'], typeFallback: 'Nhập mua mới' },
   issue: { title: 'PHIẾU XUẤT KHO', form: 'Mẫu số 02 - VT', warehouse: 'Xuất tại kho', type: 'Loại xuất', partner: 'Khách hàng',
-    person: 'Người nhận hàng', signatures: ['Người lập phiếu', 'Người nhận hàng', 'Thủ kho', 'Kế toán trưởng'], typeFallback: 'Xuất bán hàng' }
+    person: 'Người nhận hàng', signatures: ['Người lập phiếu', 'Người nhận hàng', 'Thủ kho', 'Kế toán trưởng'], typeFallback: 'Xuất bán hàng' },
+  // The request keeps the customer in supplierName and the requester in delivererName, like the issue.
+  request: { title: 'PHIẾU YÊU CẦU XUẤT KHO', form: 'Phiếu yêu cầu', warehouse: 'Đề nghị xuất tại kho', type: 'Mục đích', partner: 'Khách hàng',
+    person: 'Người yêu cầu', signatures: ['Người lập phiếu', 'Trưởng bộ phận', 'Thủ kho', 'Giám đốc'], typeFallback: 'Xuất bán hàng' },
+  // The purchase request keeps the suggested supplier in supplierName and the requester in delivererName.
+  purchaseRequest: { title: 'PHIẾU YÊU CẦU MUA HÀNG', form: 'Phiếu yêu cầu', warehouse: 'Nhập về kho', type: 'Loại mua', partner: 'Nhà cung cấp đề nghị',
+    person: 'Người yêu cầu', signatures: ['Người lập phiếu', 'Trưởng bộ phận', 'Phụ trách mua hàng', 'Giám đốc'], typeFallback: 'Nhập mua mới' },
+  purchaseOrder: { title: 'ĐƠN MUA HÀNG', form: 'Đơn mua hàng', warehouse: 'Giao về kho', type: 'Loại mua', partner: 'Nhà cung cấp',
+    person: 'Người liên hệ', signatures: ['Người lập đơn', 'Nhà cung cấp', 'Phụ trách mua hàng', 'Giám đốc'], typeFallback: 'Nhập mua mới' }
 };
 
 const escapeHtml = (value: unknown): string => String(value ?? '').replace(/[&<>"']/g, ch =>
@@ -143,6 +151,8 @@ export function buildVoucherPrintHtml(options: VoucherPrintOptions): string {
     ${withPrice ? '<th style="width:80px">Đơn giá</th><th style="width:92px">Thành tiền</th>' : ''}</tr>`;
   const spanBeforeTotal = 4 + (showLot ? 1 : 0) + (showPosition ? 1 : 0) + 1;
   const total = withPrice ? `<tfoot>
+    ${voucher.taxAmount ? `<tr><td colspan="${spanBeforeTotal + 1}" style="text-align:right">Cộng tiền hàng (${escapeHtml(voucher.currencyCode)})</td><td class="n">${escapeHtml(format.amount(voucher.subTotal ?? sumForeign))}</td></tr>
+    <tr><td colspan="${spanBeforeTotal + 1}" style="text-align:right">Thuế${voucher.taxRate ? ` (${escapeHtml(voucher.taxRate)}%)` : ''}</td><td class="n">${escapeHtml(format.amount(voucher.taxAmount))}</td></tr>` : ''}
     ${foreign ? `<tr><td colspan="${spanBeforeTotal + 1}" style="text-align:right">Cộng thành tiền (${escapeHtml(voucher.currencyCode)})</td><td class="n">${escapeHtml(format.amount(sumForeign))}</td></tr>` : ''}
     <tr><td colspan="${spanBeforeTotal + 1}" style="text-align:right">Tổng cộng${foreign ? ` quy đổi (VND, tỷ giá ${escapeHtml(voucher.exchangeRate ?? 1)})` : ''}</td><td class="n">${escapeHtml(format.amount(voucher.totalValue))}</td></tr></tfoot>` : '';
 
@@ -171,6 +181,9 @@ export function buildVoucherPrintHtml(options: VoucherPrintOptions): string {
     <div><b>${labels.partner}:</b> ${escapeHtml(voucher.supplierName)}</div>
     <div><b>${labels.person}:</b> ${escapeHtml(voucher.delivererName)}</div>
     ${approved}
+    ${voucher.deliveryDate ? `<div><b>Ngày giao hàng:</b> ${escapeHtml(shortDate(voucher.deliveryDate))}</div>` : ''}
+    ${voucher.paymentTerms ? `<div><b>Điều khoản thanh toán:</b> ${escapeHtml(voucher.paymentTerms)}</div>` : ''}
+    ${voucher.purchaseRequestCode ? `<div class="wide"><b>Theo phiếu yêu cầu:</b> ${escapeHtml(voucher.purchaseRequestCode)}</div>` : ''}
     ${withPrice && foreign ? `<div><b>Loại tiền:</b> ${escapeHtml(voucher.currencyCode)} · tỷ giá ${escapeHtml(voucher.exchangeRate ?? 1)}</div>` : ''}
     ${voucher.note ? `<div class="wide"><b>Ghi chú:</b> ${escapeHtml(voucher.note)}</div>` : ''}
   </div>

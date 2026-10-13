@@ -1,4 +1,5 @@
-import { apiRequest } from '../../../../services/apiClient';
+import { apiDownload, apiRequest } from '../../../../services/apiClient';
+import { pagedQueryString, type PagedQuery, type PagedResult } from '../../../../services/paging';
 import type { GoodsVoucher, VoucherItem } from '../../../../types';
 
 const url = '/api/inventory/goods-receipts';
@@ -57,6 +58,7 @@ const toItem = (line: ReceiptLine): VoucherItem => ({
   quantity: line.quantity,
   unitPrice: line.unitPrice,
   totalPrice: line.amount,
+  amount: line.amount,
   lotNumber: line.lotNumber ?? '',
   position: line.position ?? ''
 });
@@ -92,7 +94,14 @@ const toRequest = (voucher: GoodsVoucher, targetStatus?: string) => ({
 });
 
 export const goodsReceiptsApi = {
-  getAll: async () => (await apiRequest<ReceiptRecord[]>('GET', url)).map(toVoucher),
+  /** One page of the list: the server filters, sorts and cuts it (services/paging.ts). */
+  getPage: async (query: PagedQuery): Promise<PagedResult<GoodsVoucher>> => {
+    const page = await apiRequest<PagedResult<ReceiptRecord>>('GET', `${url}${pagedQueryString(query)}`);
+    return { ...page, items: page.items.map(toVoucher) };
+  },
+  /** Excel file of every row the filters leave (not only the page), made by the server. */
+  exportAll: (query: PagedQuery) => apiDownload(`${url}/export${pagedQueryString(query, false)}`,
+    `PhieuNhapKho_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`),
   getOptions: () => apiRequest<{ warehouses: { code: string; name: string }[]; currencies: { code: string; name: string }[] }>('GET', `${url}/options`),
   create: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<ReceiptRecord>('POST', url, toRequest(voucher, targetStatus))),
   update: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<ReceiptRecord>('PUT', `${url}/${voucher.id}`, toRequest(voucher, targetStatus))),

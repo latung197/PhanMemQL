@@ -1,5 +1,7 @@
-import { apiRequest } from '../../../../services/apiClient';
+import { apiDownload, apiRequest } from '../../../../services/apiClient';
+import { pagedQueryString, type PagedQuery, type PagedResult } from '../../../../services/paging';
 import type { GoodsVoucher, VoucherItem } from '../../../../types';
+import type { OpenIssueRequest } from '../issue-requests/api';
 
 const url = '/api/inventory/goods-issues';
 
@@ -14,6 +16,8 @@ interface IssueLine {
   amount: number;
   lotNumber?: string | null;
   position?: string | null;
+  issueRequestLineId?: number | null;
+  issueRequestCode?: string | null;
 }
 
 interface IssueRecord {
@@ -30,6 +34,7 @@ interface IssueRecord {
   exchangeRate: number;
   customerName?: string | null;
   receiverName?: string | null;
+  issueRequestCode?: string | null;
   note?: string | null;
   status: 'Draft' | 'Pending' | 'Approved' | 'Posted' | 'Cancelled';
   totalValue: number;
@@ -56,8 +61,11 @@ const toItem = (line: IssueLine): VoucherItem => ({
   quantity: line.quantity,
   unitPrice: line.unitPrice,
   totalPrice: line.amount,
+  amount: line.amount,
   lotNumber: line.lotNumber ?? '',
-  position: line.position ?? ''
+  position: line.position ?? '',
+  issueRequestLineId: line.issueRequestLineId ?? undefined,
+  issueRequestCode: line.issueRequestCode ?? undefined
 });
 
 // GoodsVoucher keeps the partner in supplierName and the person handing over / taking over in delivererName for both
@@ -68,7 +76,7 @@ const toVoucher = (row: IssueRecord): GoodsVoucher => ({
   companyUnitId: row.unitCode, companyUnitName: row.unitName,
   warehouseId: row.warehouseCode, warehouseName: row.warehouseName,
   voucherType: row.voucherType, currencyCode: row.currencyCode, exchangeRate: row.exchangeRate,
-  supplierName: row.customerName ?? '', delivererName: row.receiverName ?? '',
+  supplierName: row.customerName ?? '', delivererName: row.receiverName ?? '', issueRequestCode: row.issueRequestCode ?? '',
   note: row.note ?? '', status: statusLabels[row.status], totalValue: row.totalValue,
   createdBy: row.createdBy, approvedBy: row.approvedBy ?? undefined,
   items: row.items.map(toItem), materialItems: row.materialItems.map(toItem)
@@ -77,7 +85,8 @@ const toVoucher = (row: IssueRecord): GoodsVoucher => ({
 const toLine = (item: VoucherItem, kind: 'ITEM' | 'MATERIAL') => ({
   kind, materialCode: item.sku || item.productId || '',
   uomCode: item.unit || '', quantity: item.quantity, unitPrice: item.unitPrice,
-  lotNumber: item.lotNumber || null, position: item.position || null
+  lotNumber: item.lotNumber || null, position: item.position || null,
+  issueRequestLineId: kind === 'ITEM' ? item.issueRequestLineId ?? null : null
 });
 
 const toRequest = (voucher: GoodsVoucher, targetStatus?: string) => ({
@@ -86,6 +95,7 @@ const toRequest = (voucher: GoodsVoucher, targetStatus?: string) => ({
   voucherType: voucher.voucherType || 'Xuất bán hàng',
   currencyCode: voucher.currencyCode || 'VND', exchangeRate: voucher.exchangeRate || 1,
   customerName: voucher.supplierName || null, receiverName: voucher.delivererName || null,
+  issueRequestCode: voucher.issueRequestCode || null,
   note: voucher.note || null,
   items: voucher.items.map(item => toLine(item, 'ITEM')),
   materialItems: (voucher.materialItems || []).map(item => toLine(item, 'MATERIAL')),
@@ -93,7 +103,16 @@ const toRequest = (voucher: GoodsVoucher, targetStatus?: string) => ({
 });
 
 export const goodsIssuesApi = {
-  getAll: async () => (await apiRequest<IssueRecord[]>('GET', url)).map(toVoucher),
+  /** One page of the list: the server filters, sorts and cuts it (services/paging.ts). */
+  getPage: async (query: PagedQuery): Promise<PagedResult<GoodsVoucher>> => {
+    const page = await apiRequest<PagedResult<IssueRecord>>('GET', `${url}${pagedQueryString(query)}`);
+    return { ...page, items: page.items.map(toVoucher) };
+  },
+  /** Excel file of every row the filters leave (not only the page), made by the server. */
+  exportAll: (query: PagedQuery) => apiDownload(`${url}/export${pagedQueryString(query, false)}`,
+    `PhieuXuatKho_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`),
+  /** Approved issue requests with something left to issue ("Lấy từ phiếu yêu cầu"). */
+  getOpenRequests: (editingIssueId?: string) => apiRequest<OpenIssueRequest[]>('GET', `${url}/open-requests${editingIssueId ? `?issueId=${encodeURIComponent(editingIssueId)}` : ''}`),
   getOptions: () => apiRequest<{ warehouses: { code: string; name: string }[]; currencies: { code: string; name: string }[] }>('GET', `${url}/options`),
   create: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<IssueRecord>('POST', url, toRequest(voucher, targetStatus))),
   update: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<IssueRecord>('PUT', `${url}/${voucher.id}`, toRequest(voucher, targetStatus))),

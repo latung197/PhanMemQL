@@ -20,6 +20,7 @@ public sealed class ReadAccessContractTests
         ["FiscalPeriodsController.GetYear"] = "Trạng thái khóa sổ hiện trên phiếu; chỉ đọc",
         ["FiscalPeriodsController.Check"] = "Mọi người lập phiếu cần biết ngày đã khóa sổ chưa",
         ["VoucherNumberingController.Preview"] = "Số phiếu dự kiến hiện khi lập phiếu",
+        ["VoucherStatusesController.Current"] = "Tên trạng thái chứng từ hiện trên mọi màn phiếu (chỉ tên và đang dùng hay không)",
     };
 
     private static IEnumerable<(Type Controller, string Function, MethodInfo Action)> FunctionGets() =>

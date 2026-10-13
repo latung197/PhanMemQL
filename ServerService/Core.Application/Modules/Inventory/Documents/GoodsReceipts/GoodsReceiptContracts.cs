@@ -1,17 +1,21 @@
+using Core.Application.Common.Export;
+using Core.Application.Common.Paging;
 namespace Core.Application.Modules.Inventory.Documents.GoodsReceipts;
 
 public sealed record GoodsReceiptLineDto(long Id, string Kind, string MaterialCode, string MaterialName,
-    string UomCode, decimal Quantity, decimal UnitPrice, decimal Amount, string? LotNumber, string? Position);
+    string UomCode, decimal Quantity, decimal UnitPrice, decimal Amount, string? LotNumber, string? Position,
+    long? PurchaseOrderLineId = null, string? PurchaseOrderCode = null);
 
 /// <summary>A line: the material and unit are codes of the catalogs; the name is taken from the material when saved.</summary>
 public sealed record SaveGoodsReceiptLine(string Kind, string MaterialCode,
-    string UomCode, decimal Quantity, decimal UnitPrice, string? LotNumber, string? Position);
+    string UomCode, decimal Quantity, decimal UnitPrice, string? LotNumber, string? Position, long? PurchaseOrderLineId = null);
 
 public sealed record GoodsReceiptDto(long Id, string Code, DateOnly Date, DateOnly CreatedDate,
     string UnitCode, string UnitName, string WarehouseCode, string WarehouseName, string VoucherType,
     string CurrencyCode, decimal ExchangeRate, string? SupplierCode, string? SupplierName, string? DelivererName,
     string? Note, string Status, decimal TotalValue, string CreatedBy, string? ApprovedBy,
-    IReadOnlyList<GoodsReceiptLineDto> Items, IReadOnlyList<GoodsReceiptLineDto> MaterialItems, uint Version);
+    IReadOnlyList<GoodsReceiptLineDto> Items, IReadOnlyList<GoodsReceiptLineDto> MaterialItems, uint Version,
+    string? PurchaseOrderCode = null);
 
 public sealed record SaveGoodsReceiptRequest(DateOnly Date, string WarehouseCode, string VoucherType,
     /// <summary>SupplierCode is a supplier of the catalog (optional); its name is kept on the receipt.</summary>
@@ -27,7 +31,10 @@ public sealed record GoodsReceiptOptionsDto(IReadOnlyList<GoodsReceiptOption> Wa
 
 public interface IGoodsReceiptService
 {
-    Task<IReadOnlyList<GoodsReceiptDto>> GetAllAsync(int userId, string unitCode, CancellationToken ct);
+    /// <summary>One page of the receipts of the unit the user may see (filters, search and sort of <see cref="VoucherListQuery"/>).</summary>
+    Task<PagedResult<GoodsReceiptDto>> ListAsync(int userId, string unitCode, VoucherListQuery query, CancellationToken ct);
+    /// <summary>The same list as an Excel file (all rows the filter leaves, not one page); needs the Export right.</summary>
+    Task<ExportFile> ExportAsync(int userId, string unitCode, VoucherListQuery query, CancellationToken ct);
     /// <summary>Warehouses the company unit may use (shared ones included) and the active currencies.</summary>
     Task<GoodsReceiptOptionsDto> GetOptionsAsync(string unitCode, CancellationToken ct);
     Task<GoodsReceiptDto> GetAsync(int userId, string unitCode, long id, CancellationToken ct);

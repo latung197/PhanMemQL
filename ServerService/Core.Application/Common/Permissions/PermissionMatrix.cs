@@ -76,11 +76,14 @@ public static class PermissionMatrix
         a.View || b.View, a.Create || b.Create, a.Edit || b.Edit, a.Delete || b.Delete,
         a.Approve || b.Approve, a.Print || b.Print, a.Export || b.Export);
 
-    /// <summary>Special rights: admins have all; otherwise role rights plus own grants, minus own denials.</summary>
+    /// <summary>
+    /// Special rights: admins have all (the per-unit rights for every unit in <paramref name="activeUnits"/>); otherwise role
+    /// rights plus own grants, minus own denials.
+    /// </summary>
     public static IReadOnlySet<string> ResolveRights(bool isAdmin, IEnumerable<string> fromRoles,
-        IEnumerable<string> granted, IEnumerable<string> denied)
+        IEnumerable<string> granted, IEnumerable<string> denied, IEnumerable<string>? activeUnits = null)
     {
-        if (isAdmin) return SpecialRightCatalog.Keys;
+        if (isAdmin) return SpecialRightCatalog.KeysFor(activeUnits ?? []);
         var rights = fromRoles.Concat(granted).Where(SpecialRightCatalog.IsKnown).ToHashSet(StringComparer.Ordinal);
         rights.ExceptWith(denied);
         return rights;

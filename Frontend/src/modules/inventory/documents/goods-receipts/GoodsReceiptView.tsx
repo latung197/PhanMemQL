@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { 
   ArrowDownLeft, 
   ArrowUpRight,
@@ -49,17 +49,21 @@ import { systemSettingsService } from '../../../../services/systemSettingsServic
 import { PrintMenuButton } from '../PrintMenuButton';
 import { printVoucher } from '../voucherPrint';
 import { GoodsVoucher, VoucherItem, Product, Warehouse as WarehouseType, CompanyUnit, UserProfile } from '../../../../types';
-import { SAVE_STATUS_LABELS, saveStatusChoices, type SaveStatus } from '../SaveStatusSelect';
+import { SAVE_STATUS_LABELS, saveStatusChoices, saveStatusName, type SaveStatus } from '../SaveStatusSelect';
+import { VoucherStatusBadge } from '../VoucherStatusBadge';
+import { useVoucherStatuses, voucherStatusService } from '../../../../services/voucherStatusService';
+import { reachesStatus } from '../../../../utils/documentPolicy';
 import { getActionPermission } from '../../../../mock/initialRoles';
-import { canApproveVoucher, hasRight, RIGHTS } from '../../../../utils/permissions';
+import { canApproveVoucher, hasRight, hasStatusRight, RIGHTS } from '../../../../utils/permissions';
 import { useOpenDocumentRequest } from '../../../../utils/documentLinks';
 import { showToast } from '../../../../utils/toast';
 import { getErrorMessage } from '../../../../services/apiClient';
 import { loadMaterialOptions, loadSupplierOptions, type SupplierOption } from '../../../../services/lookupOptions';
 import { voucherNumberingApi, exchangeRatesApi } from '../../../../services/settingsApi';
 import { goodsReceiptsApi } from './api';
-import { exportExcel } from '../../../../components/catalog/excel';
-import type { ExcelColumn } from '../../../../components/catalog/catalogTypes';
+import { useDebounced } from '../../../../hooks/useDebounced';
+import { usePagedList } from '../../../../hooks/usePagedList';
+import { pagedQueryString, type PagedQuery } from '../../../../services/paging';
 
 // Shared look of the header fields of a voucher form (goods receipt and goods issue keep the same layout).
 const VOUCHER_LABEL = 'block text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-0.5 truncate';
@@ -72,6 +76,11 @@ interface GoodsReceiptViewProps {
   currentUser?: UserProfile;
 }
 
+
+/** The status filter of the form holds the labels the screens keep; the server filters by the status name. */
+const STATUS_OF_LABEL: Record<string, string> = {
+  'Lập chứng từ': 'Draft', 'Chờ duyệt': 'Pending', 'Đã phê duyệt': 'Approved', 'Chuyển sổ kho': 'Posted', 'Hủy': 'Cancelled'
+};
 
 export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   companyUnits = [],
@@ -90,11 +99,13 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
 
+  // loadData also refreshes the list; the paging block below fills this in.
+  const reloadListRef = useRef<() => void>(() => {});
+
   const loadData = async () => {
     try {
-      const [receipts, options, materials, supplierList] = await Promise.all([goodsReceiptsApi.getAll(), goodsReceiptsApi.getOptions(),
-        loadMaterialOptions(), loadSupplierOptions()]);
-      setLocalVouchers(receipts);
+      const [options, materials, supplierList] = await Promise.all([goodsReceiptsApi.getOptions(), loadMaterialOptions(), loadSupplierOptions()]);
+      reloadListRef.current();
       setProducts(materials);
       setSuppliers(supplierList);
       setCurrencies(options.currencies);
@@ -113,7 +124,6 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [codeFilter, setCodeFilter] = useState('');
-  const [unitFilter, setUnitFilter] = useState('');
   const [voucherTypeFilter, setVoucherTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('');
@@ -166,14 +176,15 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   const [lookupTargetRowIndex, setLookupTargetRowIndex] = useState<number | null>(null);
   const [activeRowSearchIdx, setActiveRowSearchIdx] = useState<number | null>(null);
 
+  useVoucherStatuses();
   const perm = getActionPermission(currentUser, 'inv_receipt');
   // "Duyệt" on the voucher or on its approval screen (Phê duyệt nhập / xuất kho), as the backend.
   const canApprove = canApproveVoucher(currentUser, 'inv_receipt');
   // Quyền đặc biệt "Xem đơn giá & thành tiền": không có thì ẩn mọi cột/ô giá trị trên phiếu.
   const canViewPrice = hasRight(currentUser, 'inv_receipt', RIGHTS.VIEW_PRICE);
   const hiddenPriceFields = canViewPrice ? undefined : ['unitPrice', 'amount'];
-  const statusChoices = saveStatusChoices({ create: perm.create, edit: perm.edit, approve: perm.approve,
-    canPost: hasRight(currentUser, 'inv_receipt', RIGHTS.POST) });
+  const statusChoices = saveStatusChoices(currentUser, 'inv_receipt', { voucherType: 'PNK', posts: true });
+  const approvalInUse = voucherStatusService.isEnabled('PNK', 'Pending');
   const canSaveForm = !editingVoucherId ? perm.create : perm.edit && formStatus === 'Lập chứng từ';
   // The "Trạng thái" field of the form is the choice while the voucher is new or still a draft and the user's rights reach more than one status.
   const canChooseStatus = canSaveForm && statusChoices.length > 1;
@@ -181,83 +192,43 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     (Object.keys(SAVE_STATUS_LABELS) as SaveStatus[]).find(key => SAVE_STATUS_LABELS[key] === label) ?? 'Draft';
   const shownStatus = canChooseStatus ? SAVE_STATUS_LABELS[saveStatus] : formStatus;
 
-  // Filter receipt vouchers only (type === 'Nhập kho')
-  const receiptVouchers = useMemo(() => {
-    return localVouchers.filter(v => v.type === 'Nhập kho');
-  }, [localVouchers]);
+  // The server already lists only this voucher type of the unit.
+  const receiptVouchers = localVouchers;
 
   // Compute active filters count
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (codeFilter.trim()) count++;
-    if (unitFilter) count++;
     if (voucherTypeFilter) count++;
     if (statusFilter) count++;
     if (warehouseFilter) count++;
     if (fromDate) count++;
     if (toDate) count++;
     return count;
-  }, [codeFilter, unitFilter, voucherTypeFilter, statusFilter, warehouseFilter, fromDate, toDate]);
+  }, [codeFilter, voucherTypeFilter, statusFilter, warehouseFilter, fromDate, toDate]);
 
-  // Filtered vouchers array
-  const filteredVouchers = useMemo(() => {
-    return receiptVouchers.filter(v => {
-      // General Search
-      if (searchText.trim()) {
-        const term = searchText.toLowerCase();
-        const matchesCode = v.code.toLowerCase().includes(term);
-        const matchesNote = (v.note || '').toLowerCase().includes(term);
-        const matchesWh = (v.warehouseName || '').toLowerCase().includes(term);
-        const matchesUnit = (v.companyUnitName || '').toLowerCase().includes(term);
-        const matchesSupplier = (v.supplierName || '').toLowerCase().includes(term);
-        const matchesProduct = v.items?.some(it => it.productName.toLowerCase().includes(term) || (it.sku || '').toLowerCase().includes(term));
-        if (!matchesCode && !matchesNote && !matchesWh && !matchesUnit && !matchesSupplier && !matchesProduct) {
-          return false;
-        }
-      }
 
-      // Code filter
-      if (codeFilter.trim()) {
-        const codes = codeFilter.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-        if (codes.length > 0 && !codes.some(c => v.code.toLowerCase().includes(c))) {
-          return false;
-        }
-      }
-
-      // Company Unit filter
-      if (unitFilter && v.companyUnitId !== unitFilter && v.companyUnitName !== unitFilter) {
-        return false;
-      }
-
-      // Voucher Type filter
-      if (voucherTypeFilter && (v.voucherType || 'Nhập mua mới') !== voucherTypeFilter) {
-        return false;
-      }
-
-      // Status filter
-      if (statusFilter) {
-        const currentStatus = v.status || 'Đã phê duyệt';
-        if (currentStatus !== statusFilter) return false;
-      }
-
-      // Warehouse filter
-      if (warehouseFilter && v.warehouseId !== warehouseFilter) {
-        return false;
-      }
-
-      // From date filter
-      if (fromDate && v.date < fromDate) {
-        return false;
-      }
-
-      // To date filter
-      if (toDate && v.date > toDate) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [receiptVouchers, searchText, codeFilter, unitFilter, voucherTypeFilter, statusFilter, warehouseFilter, fromDate, toDate]);
+  // ---- The list: the server filters, sorts and cuts the pages (backend VoucherListQuery, services/paging.ts) ------------------
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
+  const debouncedSearch = useDebounced(searchText, 300);
+  const debouncedCode = useDebounced(codeFilter, 300);
+  const listFilters = useMemo(() => ({
+    status: STATUS_OF_LABEL[statusFilter] ?? '', warehouse: warehouseFilter, voucherType: voucherTypeFilter,
+    code: debouncedCode.trim(), from: fromDate, to: toDate
+  }), [statusFilter, warehouseFilter, voucherTypeFilter, debouncedCode, fromDate, toDate]);
+  const filterKey = `${JSON.stringify(listFilters)}|${debouncedSearch}|${sort ? `${sort.key}:${sort.dir}` : ''}|${pageSize}|${activeUnitCode}`;
+  // A new search, filter, sort or page size starts again at the first page.
+  useEffect(() => { setPage(1); }, [filterKey]);
+  const listQuery = useMemo<PagedQuery>(() => ({
+    page, pageSize, sort: sort?.key, dir: sort?.dir, search: debouncedSearch, filters: listFilters
+  }), [page, pageSize, sort, debouncedSearch, listFilters]);
+  const fetchPage = useCallback((query: PagedQuery) => goodsReceiptsApi.getPage(query), []);
+  const { items: pageItems, total: totalVouchers, loading: listLoading, error: listError, reload: reloadList } = usePagedList(fetchPage, listQuery);
+  reloadListRef.current = reloadList;
+  useEffect(() => { setLocalVouchers(pageItems); }, [pageItems]);
+  useEffect(() => { if (listError) showToast.error(listError); }, [listError]);
 
   const { formatQuantity, formatUnitPrice, formatNumber } = useNumberFormat();
 
@@ -284,7 +255,6 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
 
   const handleClearFilter = () => {
     setCodeFilter('');
-    setUnitFilter('');
     setVoucherTypeFilter('');
     setStatusFilter('');
     setWarehouseFilter('');
@@ -301,19 +271,8 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
       showToast.error('Tài khoản của bạn không có quyền Xuất Excel!');
       return;
     }
-    try {
-      const columns: ExcelColumn<GoodsVoucher>[] = [
-        { key: 'code', header: 'Số chứng từ' },
-        { key: 'date', header: 'Ngày chứng từ' },
-        { key: 'companyUnitName', header: 'Đơn vị cơ sở' },
-        { key: 'warehouseName', header: 'Kho nhập' },
-        { key: 'voucherType', header: 'Loại nhập' },
-        { key: 'supplierName', header: 'Nhà cung cấp' },
-        { key: 'status', header: 'Trạng thái' }
-      ];
-      if (canViewPrice) columns.push({ key: 'totalValue', header: 'Tổng tiền', type: 'number' });
-      await exportExcel('phieu_nhap_kho', 'Phiếu nhập kho', columns, filteredVouchers);
-    } catch (error) { showToast.error(getErrorMessage(error)); }
+    try { await goodsReceiptsApi.exportAll(listQuery); }
+    catch (error) { showToast.error(getErrorMessage(error)); }
   };
 
   // Open Add Modal
@@ -380,9 +339,14 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   // Open Edit/View Modal
   // Opened from a notification (e.g. "Chờ duyệt: {mã phiếu}"): show that voucher.
   useOpenDocumentRequest('inv_receipt', (documentId) => {
-    const voucher = receiptVouchers.find(v => v.code === documentId || v.id === documentId);
-    if (voucher) handleOpenEdit(voucher);
-    else showToast.warning(`Không tìm thấy phiếu nhập kho ${documentId}.`, 'Phiếu có thể đã bị xóa hoặc thuộc đơn vị khác.');
+    const voucher = localVouchers.find(v => v.code === documentId || v.id === documentId);
+    if (voucher) { handleOpenEdit(voucher); return; }
+    // Not on the page shown: ask the server for the voucher with that code.
+    void goodsReceiptsApi.getPage({ page: 1, pageSize: 1, filters: { code: documentId } }).then(result => {
+      const found = result.items.find(v => v.code === documentId);
+      if (found) handleOpenEdit(found);
+      else showToast.warning(`Không tìm thấy phiếu nhập kho ${documentId}.`, 'Phiếu có thể đã bị xóa hoặc thuộc đơn vị khác.');
+    }).catch(error => showToast.error(getErrorMessage(error)));
   });
 
   const handleOpenEdit = (voucher: GoodsVoucher) => {
@@ -977,6 +941,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
       setLocalVouchers(prev => editingVoucherId
         ? prev.map(v => v.id === editingVoucherId ? result : v)
         : [result, ...prev]);
+      reloadListRef.current();
       showToast.success(`Đã lưu phiếu nhập kho [${result.code}], trạng thái: ${result.status}.`);
       setIsModalOpen(false);
     } catch (error) {
@@ -987,10 +952,11 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     }
   };
 
-  const handleQuickStatusChange = async (voucherId: string, action: 'submit' | 'withdraw' | 'approve' | 'post' | 'unpost') => {
+  const handleQuickStatusChange = async (voucherId: string, action: 'submit' | 'withdraw' | 'approve' | 'post' | 'unpost' | 'cancel') => {
     try {
       const result = await goodsReceiptsApi.changeStatus(voucherId, action);
       setLocalVouchers(prev => prev.map(v => v.id === voucherId ? result : v));
+      reloadListRef.current();
       showToast.success(`Phiếu ${result.code}: ${result.status}.`);
     } catch (error) {
       showToast.error(getErrorMessage(error));
@@ -1004,6 +970,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     try {
       await goodsReceiptsApi.remove(itemToDelete.id);
       setLocalVouchers(prev => prev.filter(v => v.id !== itemToDelete.id));
+      reloadListRef.current();
       showToast.success(`Đã xóa phiếu nhập kho [${itemToDelete.code}].`);
       setItemToDelete(null);
     } catch (error) { showToast.error(getErrorMessage(error)); }
@@ -1015,6 +982,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     const results = await Promise.allSettled(bulkToDeleteIds.map(id => goodsReceiptsApi.remove(id)));
     const deleted = bulkToDeleteIds.filter((_, index) => results[index].status === 'fulfilled');
     setLocalVouchers(prev => prev.filter(v => !deleted.includes(v.id)));
+    reloadListRef.current();
     showToast.info(`Đã xóa ${deleted.length}/${bulkToDeleteIds.length} phiếu. Chỉ phiếu nháp đủ quyền mới được xóa.`);
     setSelectedIds([]);
     setBulkToDeleteIds(null);
@@ -1037,52 +1005,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   };
 
   // Render Status Badge
-  const renderStatusBadge = (status?: string) => {
-    const st = status || 'Chờ duyệt';
-    switch (st) {
-      case 'Chuyển sổ kho':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-            Chuyển Sổ Kho
-          </span>
-        );
-      case 'Đã phê duyệt':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800">
-            <ShieldCheck className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-            Đã Phê Duyệt
-          </span>
-        );
-      case 'Chờ duyệt':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 animate-pulse">
-            <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-            Chờ Duyệt
-          </span>
-        );
-      case 'Lập chứng từ':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
-            <FileText className="h-3.5 w-3.5 text-slate-500" />
-            Lập Chứng Từ
-          </span>
-        );
-      case 'Hủy':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
-            <AlertOctagon className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
-            Đã Hủy
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-            {st}
-          </span>
-        );
-    }
-  };
+  const renderStatusBadge = (status?: string) => <VoucherStatusBadge voucherType="PNK" label={status} />;
 
   // Table Columns Definition
   const columns: GridViewColumn<GoodsVoucher>[] = [
@@ -1112,7 +1035,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
       )
     },
     {
-      key: 'companyUnitName',
+      key: 'companyUnitName', sortKey: 'warehouse',
       title: 'Đơn Vị Cơ Sở / Kho',
       sortable: true,
       render: (v) => (
@@ -1214,7 +1137,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
             <Edit3 className="h-4 w-4" />
           </button>
 
-          {v.status === 'Lập chứng từ' && (perm.create || perm.edit) && (
+          {v.status === 'Lập chứng từ' && (perm.create || perm.edit) && approvalInUse && (
             <button
               type="button"
               onClick={() => void handleQuickStatusChange(v.id, 'submit')}
@@ -1240,7 +1163,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
               <Undo2 className="h-4 w-4" />
             </button>
           )}
-          {v.status === 'Đã phê duyệt' && hasRight(currentUser, 'inv_receipt', RIGHTS.POST) && (
+          {v.status === 'Đã phê duyệt' && reachesStatus(currentUser, 'inv_receipt', 'Posted') && (
             <button
               type="button"
               onClick={() => void handleQuickStatusChange(v.id, 'post')}
@@ -1250,10 +1173,16 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
               <CheckCircle2 className="h-4 w-4" />
             </button>
           )}
-          {v.status === 'Chuyển sổ kho' && hasRight(currentUser, 'inv_receipt', RIGHTS.UNPOST) && (
+          {v.status === 'Chuyển sổ kho' && hasStatusRight(currentUser, 'inv_receipt', RIGHTS.ST_UNPOST) && (
             <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'unpost')}
               className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Bỏ ghi sổ kho">
               <RotateCcw className="h-4 w-4" />
+            </button>
+          )}
+          {v.status === 'Đã phê duyệt' && reachesStatus(currentUser, 'inv_receipt', 'Cancelled') && (
+            <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'cancel')}
+              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg" title="Hủy phiếu nhập kho (chưa ghi sổ)">
+              <XCircle className="h-4 w-4" />
             </button>
           )}
 
@@ -1282,7 +1211,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
         icon={<ArrowDownLeft className="h-6 w-6 text-emerald-400" />}
         title="Danh Mục Phiếu Nhập Kho (Goods Receipts)"
         subtitle="Quản lý, lập mới, xem, sửa, xóa, tìm kiếm & lọc chứng từ nhập kho vật tư hàng hóa"
-        count={filteredVouchers.length}
+        count={totalVouchers}
         countLabel="Phiếu Nhập"
         showAdvancedFilter={showAdvancedFilter}
         onToggleAdvancedFilter={() => setShowAdvancedFilter(!showAdvancedFilter)}
@@ -1293,7 +1222,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
         canCreate={perm.create}
         onOpenAdd={handleOpenAdd}
         filterPanelContent={
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">
             <div>
               <label className="block text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-0.5">Mã / Số Chứng Từ</label>
               <input
@@ -1303,20 +1232,6 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                 onChange={(e) => setCodeFilter(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
-            </div>
-
-            <div>
-              <label className="block text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-0.5">Đơn Vị Cơ Sở</label>
-              <select
-                value={unitFilter}
-                onChange={(e) => setUnitFilter(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
-              >
-                <option value="">-- Tất cả ĐVCS --</option>
-                {companyUnits.map(cu => (
-                  <option key={cu.id} value={cu.id}>{cu.name}</option>
-                ))}
-              </select>
             </div>
 
             <div>
@@ -1392,7 +1307,16 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
 
       {/* GridView Data Table Component */}
       <GridView<GoodsVoucher>
-        data={filteredVouchers}
+        data={localVouchers}
+        serverSide
+        loading={listLoading}
+        currentPage={page}
+        totalItems={totalVouchers}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        sortColumn={sort?.key ?? ''}
+        sortDirection={sort?.dir ?? 'asc'}
+        onSort={(key, dir) => setSort({ key, dir })}
         columns={canViewPrice ? columns : columns.filter(c => c.key !== 'totalValue')}
         keyExtractor={(item) => item.id}
         searchable={true}
@@ -1413,7 +1337,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
           ] : []
         }
         emptyText="Không tìm thấy chứng từ phiếu nhập kho nào phù hợp."
-        pageSize={15}
+        pageSize={pageSize}
         pageSizeOptions={[10, 15, 20, 30, 50, 100]}
         dense={true}
       />
@@ -1463,7 +1387,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
               disabled={isSaving || !canSaveForm}
               className="py-1 px-4 text-xs font-bold cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs border border-emerald-600"
             >
-              {saveStatus === 'Draft' ? (editingVoucherId ? 'Lưu & Cập Nhật' : 'Lưu Phiếu Nhập Kho') : `Lưu và ${SAVE_STATUS_LABELS[saveStatus].toLowerCase()}`}
+              {saveStatus === 'Draft' ? (editingVoucherId ? 'Lưu & Cập Nhật' : 'Lưu Phiếu Nhập Kho') : `Lưu và ${saveStatusName('PNK', saveStatus).toLowerCase()}`}
             </Button>
           </div>
         }
@@ -1650,7 +1574,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                     className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-1.5 py-0.5 font-extrabold text-slate-800 dark:text-slate-100 text-[10.5px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                   >
                     {canChooseStatus
-                      ? statusChoices.map(choice => <option key={choice} value={SAVE_STATUS_LABELS[choice]}>{SAVE_STATUS_LABELS[choice]}</option>)
+                      ? statusChoices.map(choice => <option key={choice} value={SAVE_STATUS_LABELS[choice]}>{saveStatusName('PNK', choice)}</option>)
                       : (
                         <>
                           <option value="Lập chứng từ">Lập chứng từ</option>

@@ -270,15 +270,33 @@ export interface VoucherItem {
   quantity: number;
   unitPrice: number;
   totalPrice?: number;
+  /** Thành tiền của dòng như lưới chi tiết đọc (cùng giá trị với totalPrice). */
+  amount?: number;
   lotNumber?: string;
   position?: string;
+  /** Phiếu yêu cầu xuất kho: ghi chú của dòng, số đã xuất theo các phiếu xuất (chỉ đọc). */
+  note?: string;
+  issuedQuantity?: number;
+  /** Phiếu xuất kho lấy từ phiếu yêu cầu: dòng yêu cầu mà dòng này thực hiện. */
+  issueRequestLineId?: number;
+  /** Số phiếu yêu cầu xuất kho mà dòng này thực hiện (chỉ đọc, backend trả về). */
+  issueRequestCode?: string;
+  /** Yêu cầu mua hàng: số đã đặt trên các đơn mua (chỉ đọc). Đơn mua: số đã nhập theo các phiếu nhập (chỉ đọc). */
+  orderedQuantity?: number;
+  receivedQuantity?: number;
+  /** Đơn mua lấy từ phiếu yêu cầu mua hàng: dòng yêu cầu mà dòng này thực hiện và số phiếu yêu cầu. */
+  purchaseRequestLineId?: number;
+  purchaseRequestCode?: string;
+  /** Phiếu nhập lấy từ đơn mua hàng: dòng đơn mà dòng này nhận và số đơn. */
+  purchaseOrderLineId?: number;
+  purchaseOrderCode?: string;
 }
 
 export interface GoodsVoucher {
   id: string;
   /** Backend row version used when editing a receipt. */
   version?: number;
-  type: 'Nhập kho' | 'Xuất kho';
+  type: 'Nhập kho' | 'Xuất kho' | 'Yêu cầu xuất kho' | 'Yêu cầu mua hàng' | 'Đơn mua hàng';
   code: string;
   date: string;                      // Ngày chứng từ (Document Date)
   createdDate?: string;               // Ngày lập chứng từ
@@ -291,6 +309,23 @@ export interface GoodsVoucher {
   supplierName?: string;              // Nhà cung cấp / Đối tác
   partnerName?: string;               // Khách hàng / Đơn vị nhận hàng
   delivererName?: string;             // Người giao hàng / Người nhận hàng
+  /** Phiếu yêu cầu xuất kho: ngày cần hàng, bộ phận và người yêu cầu (người yêu cầu cũng nằm ở delivererName để in phiếu). */
+  requiredDate?: string;
+  departmentCode?: string;
+  departmentName?: string;
+  requesterName?: string;
+  /** Phiếu xuất kho lấy từ phiếu yêu cầu xuất kho: mã phiếu yêu cầu. */
+  issueRequestCode?: string;
+  /** Đơn mua hàng: ngày giao hàng dự kiến, điều khoản thanh toán, thuế (đầu phiếu) và tổng tiền hàng / thuế. */
+  deliveryDate?: string;
+  paymentTerms?: string;
+  taxRateCode?: string;
+  taxRate?: number;
+  subTotal?: number;
+  taxAmount?: number;
+  /** Đơn mua hàng: số các phiếu yêu cầu mua hàng mà đơn thực hiện; phiếu nhập: số các đơn mua hàng mà phiếu nhận (chỉ đọc, suy từ các dòng). */
+  purchaseRequestCode?: string;
+  purchaseOrderCode?: string;
   warehouseId: string;
   warehouseName: string;
   items: VoucherItem[];
@@ -411,6 +446,7 @@ export interface ERPData {
 export type ModuleCategoryKey = 
   | 'overview'
   | 'inventory'
+  | 'purchasing'
   | 'sales'
   | 'finance'
   | 'hr'
@@ -421,6 +457,7 @@ export type ModuleCategoryKey =
 export type SubMenuKey = 
   // Inventory submenus - 1. Cập nhật số liệu
   | 'inv_receipt'               // Phiếu nhập kho
+  | 'inv_issue_request'         // Phiếu yêu cầu xuất kho
   | 'inv_issue'                 // Phiếu xuất kho
   | 'inv_transfer_order'        // Lệnh điều chuyển kho
   | 'inv_transfer_issue'        // Phiếu xuất điều chuyển kho
@@ -432,7 +469,14 @@ export type SubMenuKey =
   // Inventory submenus - 2. Phê duyệt
   | 'inv_approve_receipt'       // Phê duyệt nhập
   | 'inv_approve_issue'         // Phê duyệt xuất
+  | 'inv_approve_issue_request' // Phê duyệt yêu cầu xuất kho
   | 'inv_approve_transfer'      // Phê duyệt điều chuyển
+
+  // Purchasing
+  | 'pur_request'               // Phiếu yêu cầu mua hàng
+  | 'pur_order'                 // Đơn mua hàng
+  | 'pur_approve_request'       // Phê duyệt yêu cầu mua hàng
+  | 'pur_approve_order'         // Phê duyệt đơn mua hàng
 
   // Inventory submenus - 3. Danh mục
   | 'inv_material_cat'          // Khai báo vật tư & SP
@@ -469,6 +513,7 @@ export type SubMenuKey =
   | 'sys_languages'             // Danh mục ngôn ngữ
   | 'sys_login_notices'        // Thông báo trang đăng nhập
   | 'sys_banners'              // Thanh thông báo hệ thống
+  | 'sys_voucher_status'       // Trạng thái chứng từ theo đơn vị cơ sở
   | 'sys_tax_rates'            // Danh mục mã thuế
   | 'sys_audit_log'             // Nhật ký thay đổi (mọi chức năng)
   | 'sys_menu'                  // Quản lý ẩn/hiện menu

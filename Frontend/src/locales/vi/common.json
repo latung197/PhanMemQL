@@ -56,6 +56,7 @@
   "navigation": {
     "overview": "Bàn Tổng Quan",
     "inventory": "Phân Hệ Kho Hàng",
+    "purchasing": "Phân Hệ Mua Hàng",
     "sales": "Bán Hàng & CRM",
     "finance": "Phân Hệ Tài Chính",
     "hr": "Nhân Sự & Quỹ Lương",
@@ -94,6 +95,9 @@
       "inv_lot_cat": "Danh mục Lô & Hạn sử dụng",
       "inv_location_cat": "Danh mục Vị trí kho (Bin/Rack)",
       "inv_receipt": "Phiếu Nhập kho",
+      "inv_issue_request": "Phiếu Yêu cầu xuất kho",
+      "pur_request": "Phiếu Yêu cầu mua hàng",
+      "pur_order": "Đơn Mua hàng",
       "inv_issue": "Phiếu Xuất kho",
       "inv_report_stock": "Báo cáo Tồn kho hiện tại",
       "inv_report_nxt": "Báo cáo Tổng hợp Nhập-Xuất-Tồn (NXT)",
@@ -139,15 +143,16 @@
       "noViewRight": "Không có quyền xem chức năng này.",
       "ownOnly": "Chỉ được thao tác trên phiếu do mình lập.",
       "noEditRight": "Không có quyền sửa phiếu.",
-      "editPending": "Phiếu đang chờ duyệt; cần quyền \"Sửa phiếu đang chờ duyệt\".",
-      "editApproved": "Phiếu đã duyệt; cần quyền \"Sửa phiếu đã duyệt\".",
+      "editPending": "Phiếu đang chờ duyệt; cần quyền trạng thái \"Chờ duyệt\" tại đơn vị này.",
+      "editApproved": "Phiếu đã duyệt; cần quyền trạng thái \"Đã duyệt\" tại đơn vị này.",
       "postedNoEdit": "Phiếu đã ghi sổ; phải bỏ ghi sổ trước khi sửa.",
       "cancelled": "Phiếu đã hủy.",
       "submitDraftOnly": "Chỉ trình duyệt được phiếu đang lập.",
-      "postApprovedOnly": "Chỉ ghi sổ phiếu đã duyệt; cần quyền \"Ghi sổ\".",
-      "unpostRight": "Cần quyền \"Bỏ ghi sổ\".",
+      "postApprovedOnly": "Chỉ ghi sổ phiếu đã duyệt; cần quyền trạng thái \"Đã ghi sổ\" tại đơn vị này.",
+      "unpostRight": "Cần quyền \"Bỏ ghi sổ\" tại đơn vị này.",
       "postedNoCancel": "Phiếu đã ghi sổ; phải bỏ ghi sổ trước khi hủy.",
-      "cancelRight": "Cần quyền \"Hủy phiếu\".",
+      "cancelRight": "Cần quyền trạng thái \"Hủy phiếu\" tại đơn vị này.",
+      "noStatusRight": "Không có quyền ở trạng thái này tại đơn vị cơ sở đang làm việc.",
       "invalidAction": "Thao tác không hợp lệ."
     }
   },
@@ -454,6 +459,7 @@
   "modules": {
     "overview": "Tổng quan",
     "inventory": "Kho hàng",
+    "purchasing": "Mua hàng",
     "sales": "Bán hàng",
     "finance": "Tài chính",
     "hr": "Nhân sự",
@@ -473,6 +479,10 @@
       "inventory": {
         "title": "Phân Hệ Quản Lý Kho Hàng",
         "subtitle": "Danh mục vật tư, Quản lý kho, Phiếu Nhập - Xuất và Báo cáo NXT"
+      },
+      "purchasing": {
+        "title": "Phân Hệ Mua Hàng",
+        "subtitle": "Phiếu yêu cầu mua hàng, Đơn mua hàng và nhập kho theo đơn"
       },
       "sales": {
         "title": "Phân Hệ Bán Hàng & CRM",

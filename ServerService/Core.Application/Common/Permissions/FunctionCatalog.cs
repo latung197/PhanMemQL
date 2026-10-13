@@ -14,6 +14,9 @@ public static class FunctionCatalog
         {
             ["overview_main"] = "Bàn tổng quan",
             ["inv_receipt"] = "Phiếu nhập kho",
+            ["inv_issue_request"] = "Phiếu yêu cầu xuất kho",
+            ["pur_request"] = "Phiếu yêu cầu mua hàng",
+            ["pur_order"] = "Đơn mua hàng",
             ["inv_issue"] = "Phiếu xuất kho",
             ["inv_transfer_order"] = "Lệnh điều chuyển kho",
             ["inv_transfer_issue"] = "Phiếu xuất điều chuyển kho",
@@ -23,6 +26,9 @@ public static class FunctionCatalog
             ["inv_calc_instant_stock"] = "Tính tồn kho tức thời",
             ["inv_approve_receipt"] = "Phê duyệt nhập kho",
             ["inv_approve_issue"] = "Phê duyệt xuất kho",
+            ["inv_approve_issue_request"] = "Phê duyệt yêu cầu xuất kho",
+            ["pur_approve_request"] = "Phê duyệt yêu cầu mua hàng",
+            ["pur_approve_order"] = "Phê duyệt đơn mua hàng",
             ["inv_approve_transfer"] = "Phê duyệt điều chuyển",
             ["inv_material_cat"] = "Danh mục vật tư và sản phẩm",
             ["inv_material_type_cat"] = "Danh mục loại vật tư",
@@ -46,6 +52,7 @@ public static class FunctionCatalog
             ["sys_tax_rates"] = "Mã thuế",
             ["sys_login_notices"] = "Thông báo trang đăng nhập",
             ["sys_banners"] = "Thanh thông báo hệ thống",
+            ["sys_voucher_status"] = "Trạng thái chứng từ",
             ["sys_default_config"] = "Cài đặt mặc định",
             ["sys_fiscal_year"] = "Năm làm việc và khóa sổ",
             ["sys_currencies"] = "Ngoại tệ",
@@ -72,7 +79,7 @@ public static class FunctionCatalog
 
     public static IReadOnlySet<string> ModuleKeys { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
-        "overview", "inventory", "sales", "finance", "hr", "reports", "ai", "settings"
+        "overview", "inventory", "purchasing", "sales", "finance", "hr", "reports", "ai", "settings"
     };
 
     public static bool IsFunction(string code) => Functions.ContainsKey(code);

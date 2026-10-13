@@ -27,7 +27,8 @@ public enum DocumentAction
 
 /// <summary>
 /// Rights of one user on one voucher function, plus whether they created the document. ApproveOnScreen = the
-/// "Duyệt" right on an approval screen of the voucher (VoucherCatalog.ApprovalScreens).
+/// "Duyệt" right on an approval screen of the voucher (VoucherCatalog.ApprovalScreens). Rights holds the codes
+/// of the function for the company unit of the voucher: the status rights are per unit (ST_POSTED...), the others are not.
 /// </summary>
 public sealed record DocumentActor(ActionPermissions Actions, IReadOnlySet<string> Rights, bool IsOwner,
     bool ApproveOnScreen = false)
@@ -36,14 +37,35 @@ public sealed record DocumentActor(ActionPermissions Actions, IReadOnlySet<strin
 
     public bool CanApprove => Actions.Approve || ApproveOnScreen;
 
-    /// <summary>The actor as voucher services build it: matrix and special rights from IPermissionService.</summary>
+    /// <summary>
+    /// Whether the user may take a voucher into <paramref name="status"/>: they hold its status right or the right of a later
+    /// step (rights are granted up to a status, so whoever may post may also send for approval and approve).
+    /// </summary>
+    public bool Reaches(DocumentStatus status) => status switch
+    {
+        DocumentStatus.Draft => true,
+        DocumentStatus.Pending => Has(SpecialRightCatalog.StatusPending) || Reaches(DocumentStatus.Approved),
+        DocumentStatus.Approved => Has(SpecialRightCatalog.StatusApproved) || Reaches(DocumentStatus.Posted),
+        DocumentStatus.Posted => Has(SpecialRightCatalog.StatusPosted),
+        _ => Has(SpecialRightCatalog.StatusCancelled)
+    };
+
+    /// <summary>
+    /// The actor as voucher services build it: matrix and special rights from IPermissionService, for the company unit
+    /// of the voucher (a status right granted for another unit does not count).
+    /// </summary>
     public static DocumentActor For(IReadOnlyDictionary<string, ActionPermissions> matrix, IReadOnlySet<string> rights,
-        string function, bool isOwner)
+        string function, bool isOwner, string unitCode)
     {
         var actions = matrix.GetValueOrDefault(function) ?? ActionPermissions.None;
         var prefix = function + ":";
-        var codes = rights.Where(x => x.StartsWith(prefix, StringComparison.Ordinal)).Select(x => x[prefix.Length..])
-            .ToHashSet(StringComparer.Ordinal);
+        var codes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var key in rights)
+        {
+            if (!key.StartsWith(prefix, StringComparison.Ordinal)) continue;
+            var (code, unit) = SpecialRightCatalog.SplitUnit(key[prefix.Length..]);
+            if (unit is null || string.Equals(unit, unitCode, StringComparison.Ordinal)) codes.Add(code);
+        }
         return new DocumentActor(actions, codes, isOwner,
             !actions.Approve && PermissionMatrix.CanApprove(matrix, function));
     }
@@ -84,21 +106,22 @@ public static class DocumentStatusPolicy
             DocumentAction.Edit => status switch
             {
                 DocumentStatus.Draft => a.Edit ? PolicyDecision.Allow : PolicyDecision.Deny("policy.noEditRight"),
-                DocumentStatus.Pending => a.Edit && actor.Has(SpecialRightCatalog.EditPending)
+                DocumentStatus.Pending => a.Edit && actor.Reaches(DocumentStatus.Pending)
                     ? PolicyDecision.Allow : PolicyDecision.Deny("policy.editPending"),
-                DocumentStatus.Approved => a.Edit && actor.Has(SpecialRightCatalog.EditApproved)
+                DocumentStatus.Approved => a.Edit && actor.Reaches(DocumentStatus.Approved)
                     ? PolicyDecision.Allow : PolicyDecision.Deny("policy.editApproved"),
                 DocumentStatus.Posted => PolicyDecision.Deny("policy.postedNoEdit"),
                 _ => PolicyDecision.Deny("policy.cancelled")
             },
 
-            DocumentAction.Submit => status == DocumentStatus.Draft && (a.Create || a.Edit)
-                ? PolicyDecision.Allow : PolicyDecision.Deny("policy.submitDraftOnly"),
+            DocumentAction.Submit => status != DocumentStatus.Draft || !(a.Create || a.Edit)
+                ? PolicyDecision.Deny("policy.submitDraftOnly")
+                : actor.Reaches(DocumentStatus.Pending) ? PolicyDecision.Allow : PolicyDecision.Deny("policy.noStatusRight"),
 
-            DocumentAction.Post => status == DocumentStatus.Approved && actor.Has(SpecialRightCatalog.Post)
+            DocumentAction.Post => status == DocumentStatus.Approved && actor.Reaches(DocumentStatus.Posted)
                 ? PolicyDecision.Allow : PolicyDecision.Deny("policy.postApprovedOnly"),
 
-            DocumentAction.Unpost => status == DocumentStatus.Posted && actor.Has(SpecialRightCatalog.Unpost)
+            DocumentAction.Unpost => status == DocumentStatus.Posted && actor.Has(SpecialRightCatalog.StatusUnpost)
                 ? PolicyDecision.Allow : PolicyDecision.Deny("policy.unpostRight"),
 
             DocumentAction.Cancel => status switch
@@ -106,11 +129,23 @@ public static class DocumentStatusPolicy
                 DocumentStatus.Posted => PolicyDecision.Deny("policy.postedNoCancel"),
                 DocumentStatus.Cancelled => PolicyDecision.Deny("policy.cancelled"),
                 DocumentStatus.Draft when actor.IsOwner && a.Delete => PolicyDecision.Allow,
-                _ => actor.Has(SpecialRightCatalog.Cancel) ? PolicyDecision.Allow : PolicyDecision.Deny("policy.cancelRight")
+                _ => actor.Reaches(DocumentStatus.Cancelled) ? PolicyDecision.Allow : PolicyDecision.Deny("policy.cancelRight")
             },
 
             _ => PolicyDecision.Deny("policy.invalidAction")
         };
+    }
+
+    /// <summary>
+    /// Whether a user may save a new voucher straight at <paramref name="target"/> (the rights reach that status), before anything
+    /// is saved. Draft is always allowed; Pending needs the right to add / change and the status right; Approved and Posted need
+    /// the status right (Posted: also the voucher must be postable by <see cref="Check"/>). Approving still needs an approver.
+    /// </summary>
+    public static PolicyDecision CheckTarget(DocumentStatus target, DocumentActor actor)
+    {
+        if (target == DocumentStatus.Draft) return PolicyDecision.Allow;
+        if (!(actor.Actions.Create || actor.Actions.Edit)) return PolicyDecision.Deny("policy.submitDraftOnly");
+        return actor.Reaches(target) ? PolicyDecision.Allow : PolicyDecision.Deny("policy.noStatusRight");
     }
 }
 

@@ -56,6 +56,7 @@
   "navigation": {
     "overview": "Overview Dashboard",
     "inventory": "Inventory Module",
+    "purchasing": "Purchasing Module",
     "sales": "Sales & CRM",
     "finance": "Finance Module",
     "hr": "HR & Payroll",
@@ -94,6 +95,9 @@
       "inv_lot_cat": "Lots & Expiration",
       "inv_location_cat": "Rack Locations (Bin/Rack)",
       "inv_receipt": "Goods Receipt Vouchers",
+      "inv_issue_request": "Goods Issue Requests",
+      "pur_request": "Purchase Requests",
+      "pur_order": "Purchase Orders",
       "inv_issue": "Goods Issue Vouchers",
       "inv_report_stock": "Current Stock Balance",
       "inv_report_nxt": "In-Out-Stock Report (NXT)",
@@ -139,15 +143,16 @@
       "noViewRight": "You have no right to view this function.",
       "ownOnly": "You may only work on vouchers you created.",
       "noEditRight": "You have no right to edit vouchers.",
-      "editPending": "The voucher is waiting for approval; the \"Edit pending vouchers\" right is required.",
-      "editApproved": "The voucher is approved; the \"Edit approved vouchers\" right is required.",
+      "editPending": "The voucher is waiting for approval; the \"Pending approval\" status right is required in this unit.",
+      "editApproved": "The voucher is approved; the \"Approved\" status right is required in this unit.",
       "postedNoEdit": "The voucher is posted; unpost it before editing.",
       "cancelled": "The voucher is cancelled.",
       "submitDraftOnly": "Only draft vouchers can be submitted for approval.",
-      "postApprovedOnly": "Only approved vouchers can be posted; the \"Post\" right is required.",
-      "unpostRight": "The \"Unpost\" right is required.",
+      "postApprovedOnly": "Only approved vouchers can be posted; the \"Posted\" status right is required in this unit.",
+      "unpostRight": "The \"Unpost\" right is required in this unit.",
       "postedNoCancel": "The voucher is posted; unpost it before cancelling.",
-      "cancelRight": "The \"Cancel vouchers\" right is required.",
+      "cancelRight": "The \"Cancel vouchers\" status right is required in this unit.",
+      "noStatusRight": "You have no right for this status in the company unit you are working in.",
       "invalidAction": "Invalid action."
     }
   },
@@ -454,6 +459,7 @@
   "modules": {
     "overview": "Overview",
     "inventory": "Inventory",
+    "purchasing": "Purchasing",
     "sales": "Sales",
     "finance": "Finance",
     "hr": "Human resources",
@@ -473,6 +479,10 @@
       "inventory": {
         "title": "Inventory Management",
         "subtitle": "Materials, warehouses, goods receipts and issues, stock movement reports"
+      },
+      "purchasing": {
+        "title": "Purchasing",
+        "subtitle": "Purchase requests, purchase orders and receiving by order"
       },
       "sales": {
         "title": "Sales & CRM",
@@ -578,6 +588,7 @@
   "function": {
     "overview_main": "Overview dashboard",
     "inv_receipt": "Goods receipt",
+    "inv_issue_request": "Goods issue requests",
     "inv_issue": "Goods issue",
     "inv_transfer_order": "Stock transfer order",
     "inv_transfer_issue": "Transfer issue",
@@ -587,7 +598,12 @@
     "inv_calc_instant_stock": "Instant stock calculation",
     "inv_approve_receipt": "Approve goods receipts",
     "inv_approve_issue": "Approve goods issues",
+    "inv_approve_issue_request": "Approve goods issue requests",
     "inv_approve_transfer": "Approve transfers",
+    "pur_request": "Purchase requests",
+    "pur_order": "Purchase orders",
+    "pur_approve_request": "Approve purchase requests",
+    "pur_approve_order": "Approve purchase orders",
     "inv_material_cat": "Materials & products",
     "inv_material_type_cat": "Material types",
     "inv_material_group_cat": "Material groups",
@@ -612,6 +628,7 @@
     "sys_languages": "Languages",
     "sys_login_notices": "Login screen notices",
     "sys_banners": "System notice bar",
+    "sys_voucher_status": "Voucher statuses",
     "sys_tax_rates": "Tax codes",
     "sales_customers": "Customers",
     "sales_orders": "Sales orders",

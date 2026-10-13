@@ -44,10 +44,22 @@ public sealed class GrantGuard(CoreContext db, IPermissionService permissions)
         var extra = (rightsAfter ?? []).FirstOrDefault(key => !oldRights.Contains(key) && !ownRights.Contains(key));
         if (extra is not null)
         {
-            var (function, code) = SpecialRightCatalog.Split(extra);
+            var (function, fullCode) = SpecialRightCatalog.Split(extra);
+            var code = SpecialRightCatalog.SplitUnit(fullCode).Code;
             var name = SpecialRightCatalog.All.FirstOrDefault(r => r.Function == function && r.Code == code)?.Name ?? code;
             throw new ForbiddenException("grant.action", name, FunctionCatalog.Name(function));
         }
+    }
+
+    /// <summary>A per-unit right ("inv_receipt:ST_POSTED@DVCS01") must name a company unit that exists.</summary>
+    public async Task EnsureRightUnitsExistAsync(IEnumerable<string>? rights, CancellationToken ct)
+    {
+        var units = (rights ?? []).Select(key => SpecialRightCatalog.SplitUnit(SpecialRightCatalog.Split(key).Code).Unit)
+            .Where(unit => unit is not null).Distinct().ToList();
+        if (units.Count == 0) return;
+        var known = await db.CompanyUnits.AsNoTracking().Where(x => units.Contains(x.Code)).Select(x => x.Code).ToListAsync(ct);
+        var missing = units.FirstOrDefault(unit => !known.Contains(unit!));
+        if (missing is not null) throw new BusinessRuleException("users.unitUnavailable", missing);
     }
 
     /// <summary>Non-administrators may only give access to company units they can work in themselves.</summary>

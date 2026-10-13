@@ -208,6 +208,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
               userCount={userCounts[selectedRole.id] ?? 0}
               rightDefs={catalog.specialRights}
               rightGroupLabels={catalog.groups}
+              units={activeUnits.map(u => ({ code: u.code, name: u.localizedName || u.name }))}
               canEdit={perms.edit}
               canDelete={perms.delete}
               onSaved={(role) => setRoles(prev => prev.map(r => r.id === role.id ? role : r))}

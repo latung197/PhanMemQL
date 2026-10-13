@@ -70,5 +70,9 @@ public sealed class VoucherNumberFormatTests
 
     [Fact]
     public void EveryVoucherHasTheVoucherSpecialRights() =>
-        Assert.All(VoucherCatalog.All, v => Assert.Contains(SpecialRightCatalog.Key(v.Function, SpecialRightCatalog.Post), SpecialRightCatalog.Keys));
+        Assert.All(VoucherCatalog.All, v =>
+        {
+            Assert.Contains(SpecialRightCatalog.Key(v.Function, SpecialRightCatalog.ViewPrice), SpecialRightCatalog.Keys);
+            Assert.Contains(SpecialRightCatalog.UnitKey(v.Function, SpecialRightCatalog.StatusApproved, "DVCS01"), SpecialRightCatalog.KeysFor(["DVCS01"]));
+        });
 }

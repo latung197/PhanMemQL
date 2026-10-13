@@ -120,9 +120,18 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
     {
         if (await db.RoleRights.AnyAsync(ct) || await db.UserRights.AnyAsync(ct) || !await db.Users.AnyAsync(ct)) return;
         var roleGrants = await db.RoleCommands.AsNoTracking().Where(x => x.Status == "1").ToListAsync(ct);
+        var units = await db.CompanyUnits.AsNoTracking().Select(x => x.Code).ToListAsync(ct);
         foreach (var role in roleGrants.GroupBy(x => x.RoleId))
-            foreach (var right in SpecialRightCatalog.InitialFor(role.ToDictionary(x => x.MenuId0, x => x.ToActions())))
+        {
+            var matrix = role.ToDictionary(x => x.MenuId0, x => x.ToActions());
+            foreach (var right in SpecialRightCatalog.InitialFor(matrix))
                 db.RoleRights.Add(new SysRoleRight { RoleId = role.Key, MenuId0 = right.Function, RightCode = right.Code });
+            foreach (var key in SpecialRightCatalog.InitialStatusKeysFor(matrix, units))
+            {
+                var (function, code) = SpecialRightCatalog.Split(key);
+                db.RoleRights.Add(new SysRoleRight { RoleId = role.Key, MenuId0 = function, RightCode = code });
+            }
+        }
         // Users with matrix exceptions: the rights their own matrix calls for, stored as exceptions to the role's.
         var userGrants = await db.UserCommands.AsNoTracking().Where(x => x.Status == "1").ToListAsync(ct);
         var userRoles = await db.UserRoles.AsNoTracking().Where(x => x.Status == "1").ToListAsync(ct);
@@ -132,10 +141,13 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
             var fromRoles = roleGrants.Where(x => roleIds.Contains(x.RoleId)).Select(x => (x.MenuId0, x.ToActions())).ToList();
             var roleMatrix = PermissionMatrix.Build(fromRoles);
             var effective = PermissionMatrix.Resolve(false, user.Select(x => (x.MenuId0, x.ToActions())).ToList(), fromRoles);
+            // The user's units: where their status rights apply.
+            var userUnits = await db.UserCompanyUnits.AsNoTracking().Where(x => x.UserId == user.Key).Select(x => x.UnitCode).ToListAsync(ct);
             static IEnumerable<string> Keys(IEnumerable<SpecialRightDefinition> rights) =>
                 rights.Select(r => SpecialRightCatalog.Key(r.Function, r.Code));
-            var (granted, denied) = PermissionMatrix.RightOverrides(Keys(SpecialRightCatalog.InitialFor(roleMatrix)),
-                Keys(SpecialRightCatalog.InitialFor(effective)));
+            var (granted, denied) = PermissionMatrix.RightOverrides(
+                Keys(SpecialRightCatalog.InitialFor(roleMatrix)).Concat(SpecialRightCatalog.InitialStatusKeysFor(roleMatrix, units)),
+                Keys(SpecialRightCatalog.InitialFor(effective)).Concat(SpecialRightCatalog.InitialStatusKeysFor(effective, userUnits)));
             await access.ReplaceRightOverridesAsync(user.Key, granted, denied, ct);
         }
         var count = await db.SaveChangesAsync(ct);

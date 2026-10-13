@@ -108,6 +108,7 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
         await grants.EnsureNotSelfAsync(actorUserId, userId, ct);
         PermissionMatrix.EnsureKnownCodes(request.Permissions);
         PermissionMatrix.EnsureKnownRights(request.SpecialRights);
+        await grants.EnsureRightUnitsExistAsync(request.SpecialRights, ct);
 
         // The request carries the wanted rights; only what differs from the (new) role is stored, so later
         // changes of the role still reach the functions and rights the user was not given exceptions for.

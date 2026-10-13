@@ -38,6 +38,15 @@
             "isActive": true
           },
           {
+            "id": "MNU_INV_ISSUE_REQUEST",
+            "subKey": "inv_issue_request",
+            "titleVi": "Phiếu Yêu cầu xuất kho",
+            "titleEn": "Goods Issue Requests",
+            "icon": "ClipboardCheck",
+            "orderNo": 15,
+            "isActive": true
+          },
+          {
             "id": "MNU_INV_ISSUE",
             "subKey": "inv_issue",
             "titleVi": "Phiếu Xuất kho",
@@ -128,6 +137,15 @@
             "titleEn": "Approve Issues",
             "icon": "CheckSquare",
             "orderNo": 20,
+            "isActive": true
+          },
+          {
+            "id": "MNU_INV_APPROVE_ISSUE_REQUEST",
+            "subKey": "inv_approve_issue_request",
+            "titleVi": "Phê duyệt yêu cầu xuất kho",
+            "titleEn": "Approve Issue Requests",
+            "icon": "CheckSquare",
+            "orderNo": 25,
             "isActive": true
           },
           {
@@ -330,6 +348,77 @@
             "titleEn": "Inventory Aging Analysis",
             "icon": "Clock",
             "orderNo": 30,
+            "isActive": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "MOD_PURCHASING",
+    "key": "purchasing",
+    "titleVi": "Phân Hệ Mua Hàng",
+    "titleEn": "Purchasing Module",
+    "icon": "ShoppingBag",
+    "orderNo": 25,
+    "isActive": true,
+    "subGroups": [
+      {
+        "id": "GRP_PUR_DATA_UPDATE",
+        "groupCode": "data_processing",
+        "titleVi": "1. Cập Nhật Số Liệu",
+        "titleEn": "Vouchers & Operations",
+        "icon": "FileText",
+        "iconColor": "text-emerald-400",
+        "orderNo": 10,
+        "isActive": true,
+        "items": [
+          {
+            "id": "MNU_PUR_REQUEST",
+            "subKey": "pur_request",
+            "titleVi": "Phiếu Yêu cầu mua hàng",
+            "titleEn": "Purchase Requests",
+            "icon": "ClipboardList",
+            "orderNo": 10,
+            "isActive": true
+          },
+          {
+            "id": "MNU_PUR_ORDER",
+            "subKey": "pur_order",
+            "titleVi": "Đơn Mua hàng",
+            "titleEn": "Purchase Orders",
+            "icon": "FileSignature",
+            "orderNo": 20,
+            "isActive": true
+          }
+        ]
+      },
+      {
+        "id": "GRP_PUR_APPROVALS",
+        "groupCode": "approvals",
+        "titleVi": "2. Phê Duyệt Mua Hàng",
+        "titleEn": "Purchase Approvals",
+        "icon": "CheckCircle2",
+        "iconColor": "text-indigo-400",
+        "orderNo": 20,
+        "isActive": true,
+        "items": [
+          {
+            "id": "MNU_PUR_APPROVE_REQUEST",
+            "subKey": "pur_approve_request",
+            "titleVi": "Phê duyệt yêu cầu mua hàng",
+            "titleEn": "Approve Purchase Requests",
+            "icon": "CheckSquare",
+            "orderNo": 10,
+            "isActive": true
+          },
+          {
+            "id": "MNU_PUR_APPROVE_ORDER",
+            "subKey": "pur_approve_order",
+            "titleVi": "Phê duyệt đơn mua hàng",
+            "titleEn": "Approve Purchase Orders",
+            "icon": "CheckSquare",
+            "orderNo": 20,
             "isActive": true
           }
         ]
@@ -731,6 +820,15 @@
             "titleEn": "Fiscal Year & Entry Start Date",
             "icon": "Calendar",
             "orderNo": 20,
+            "isActive": true
+          },
+          {
+            "id": "MNU_SYS_VOUCHER_STATUS",
+            "subKey": "sys_voucher_status",
+            "titleVi": "Trạng thái chứng từ",
+            "titleEn": "Voucher Statuses",
+            "icon": "ListChecks",
+            "orderNo": 25,
             "isActive": true
           },
           {

@@ -101,7 +101,7 @@ Trigger xóa dòng chi tiết cùng đầu phiếu, từ chối nếu phiếu c�
 | Việc | Ở đâu |
 |---|---|
 | Mã chức năng | `Core.Application/Common/Permissions/FunctionCatalog.cs`: `["<ma>"] = "Tên"` |
-| **Số chứng từ, quyền đặc biệt, chỗ trong màn quy tắc duyệt** | `Core.Application/Common/Documents/VoucherCatalog.cs`: thêm `new("<ma>", "<LOAI>", "Tên")` vào `All`. Chỉ một dòng này là có ngay: dải số trong `sys_voucher_numbering` (tạo khi khởi động), bộ quyền đặc biệt `VIEW_PRICE`, `VIEW_ALL`, `EDIT_PENDING`, `EDIT_APPROVED`, `POST`, `UNPOST`, `CANCEL`, và mục trong màn Quy tắc phê duyệt |
+| **Số chứng từ, quyền đặc biệt, chỗ trong màn quy tắc duyệt** | `Core.Application/Common/Documents/VoucherCatalog.cs`: thêm `new("<ma>", "<LOAI>", "Tên")` vào `All`. Chỉ một dòng này là có ngay: dải số trong `sys_voucher_numbering` (tạo khi khởi động), bộ quyền đặc biệt `VIEW_PRICE`, `VIEW_ALL` và các quyền trạng thái theo đơn vị `ST_PENDING`, `ST_APPROVED`, `ST_POSTED`, `ST_UNPOST`, `ST_CANCELLED` (phiếu không ghi sổ thì thêm vào `NonPosting` của `VoucherStatusCatalog`: không có `ST_POSTED`, `ST_UNPOST`), danh mục trạng thái theo đơn vị ở Cài đặt › Trạng thái chứng từ, và mục trong màn Quy tắc phê duyệt |
 | `VIEW_COST` (xem giá vốn) nếu cần | `SpecialRightCatalog.cs`, danh sách `inv_issue`, `inv_transfer_issue`... |
 | Màn phê duyệt riêng | `VoucherCatalog.ApprovalScreens` (backend) **và** `APPROVAL_SCREENS` trong `Frontend/src/utils/permissions.ts` (bản sao, giữ khớp nhau) |
 | Thông báo lỗi tiếng Việt và Anh | `Messages.vi.json` và `Messages.en.json`: `<loai>.notFound`, `<loai>.itemsRequired`, `<loai>.deleteDraftOnly`, `<loai>.editDraftOnly`..., nhãn `field.*`, `voucher.<LOAI>` (tên chứng từ), `function.<ma>` (bản en) |

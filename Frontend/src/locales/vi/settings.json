@@ -211,6 +211,7 @@
     },
     "module": {
       "inventory": "Kho Hàng",
+      "purchasing": "Mua Hàng",
       "sales": "Bán Hàng",
       "finance": "Tài Chính",
       "hr": "Nhân Sự",
@@ -221,6 +222,9 @@
       "search": "Tìm chức năng hoặc quyền...",
       "onlyGranted": "Chỉ hiện chức năng đã cấp quyền",
       "collapseRights": "Thu gọn quyền đặc biệt",
+      "statusUnit": "Đơn vị cho quyền trạng thái:",
+      "statusUnitHint": "Quyền đưa chứng từ vào từng trạng thái (Chờ duyệt, Đã duyệt, Đã ghi sổ, Hủy, Bỏ ghi sổ) được cấp riêng cho từng đơn vị cơ sở: chọn đơn vị rồi tích quyền.",
+      "otherUnits": "Đã có ở {n} đơn vị khác.",
       "expandRights": "Mở tất cả quyền đặc biệt",
       "quickSet": "Thiết lập nhanh:",
       "all": "Toàn quyền",
@@ -538,5 +542,19 @@
     "inactive": "Ngừng sử dụng",
     "isActive": "Đang sử dụng",
     "isActiveHint": "Ngôn ngữ ngừng sử dụng không chọn được nữa; người đang dùng chuyển về ngôn ngữ mặc định"
+  },
+  "voucherStatus": {
+    "title": "Trạng thái chứng từ",
+    "subtitle": "Mỗi chứng từ có các trạng thái cố định: Lập chứng từ → Chờ duyệt → Đã duyệt → Đã ghi sổ, hoặc Hủy. Mỗi đơn vị cơ sở có thể đổi tên trạng thái và tắt bước \"Chờ duyệt\" (chứng từ khi đó không cần duyệt); không thêm được trạng thái mới.",
+    "rightsHint": "Quyền đưa chứng từ vào từng trạng thái được cấp riêng cho từng đơn vị cơ sở ở Cài đặt › Người dùng & phân quyền (nhóm \"Trạng thái chứng từ\"): quyền cấp đến trạng thái nào thì lập chứng từ được lưu đến trạng thái đó.",
+    "unit": "Đơn vị cơ sở",
+    "loading": "Đang tải trạng thái chứng từ...",
+    "status": "Trạng thái",
+    "name": "Tên hiển thị",
+    "nameEn": "Tên tiếng Anh",
+    "inUse": "Đang dùng",
+    "fixed": "Trạng thái bắt buộc, không tắt được",
+    "save": "Lưu",
+    "saved": "Đã lưu trạng thái \"{status}\" của {voucher}"
   }
 }

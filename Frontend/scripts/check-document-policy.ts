@@ -34,7 +34,8 @@ const fn = 'inv_receipt';
 
 const failures = cases.filter(c => {
   const permissions = { [fn]: toActions(c.actions), inv_approve_receipt: toActions(c.screenActions) };
-  const user = { isSystemAdmin: false, permissions, specialRights: c.rights.map(r => `${fn}:${r}`) };
+  // The voucher is of company unit DVCS01; status rights are written with their unit ("ST_POSTED@DVCS01").
+  const user = { isSystemAdmin: false, permissions, ma_dvcs: 'DVCS01', specialRights: c.rights.map(r => `${fn}:${r}`) };
   return checkDocumentAction(user, fn, c.action, c.status, c.isOwner).allowed !== c.allowed;
 });
 

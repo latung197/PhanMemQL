@@ -56,6 +56,8 @@ export interface SpecialRightDef {
   name: string;
   group: 'data' | 'scope' | 'status' | 'feature';
   description: string;
+  /** Granted per company unit (the voucher status rights ST_*): stored as "{key}@{unit}". */
+  perUnit?: boolean;
 }
 
 export interface PermissionCatalog {
@@ -289,6 +291,40 @@ export const voucherNumberingApi = {
   preview: async (voucherType: string, date?: string) =>
     (await apiRequest<{ number: string }>('GET',
       `/api/settings/voucher-numbering/${encodeURIComponent(voucherType)}/preview${date ? `?date=${date}` : ''}`)).number
+};
+
+/** One status of one voucher type in one company unit (Settings › Trạng thái chứng từ). */
+export interface VoucherStatusRow {
+  unitCode: string;
+  voucherType: string;
+  voucherName: string;
+  function: string;
+  /** Draft, Pending, Approved, Posted or Cancelled. */
+  status: 'Draft' | 'Pending' | 'Approved' | 'Posted' | 'Cancelled';
+  /** Name this unit set (empty = default) and its English name. */
+  name?: string | null;
+  nameEn?: string | null;
+  defaultName: string;
+  /** The name in the user's language. */
+  displayName: string;
+  isEnabled: boolean;
+  /** Only the approval step can be switched off. */
+  canDisable: boolean;
+  order: number;
+  version: number;
+}
+
+export interface SaveVoucherStatusInput {
+  name: string | null;
+  nameEn: string | null;
+  isEnabled: boolean;
+  version: number;
+}
+
+export const voucherStatusesApi = {
+  getAll: (unitCode: string) => apiRequest<VoucherStatusRow[]>('GET', `/api/voucher-statuses?unit=${encodeURIComponent(unitCode)}`),
+  update: (unitCode: string, row: Pick<VoucherStatusRow, 'voucherType' | 'status'>, input: SaveVoucherStatusInput) =>
+    apiRequest<VoucherStatusRow>('PUT', `/api/voucher-statuses/${encodeURIComponent(row.voucherType)}/${row.status}?unit=${encodeURIComponent(unitCode)}`, input)
 };
 
 /** Whole-settings backup file (administrators only). */

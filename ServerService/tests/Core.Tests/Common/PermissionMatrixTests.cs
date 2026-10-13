@@ -45,7 +45,7 @@ public sealed class PermissionMatrixTests
     public void SpecialRightsAreRoleRightsPlusGrantsMinusDenials()
     {
         var price = SpecialRightCatalog.Key("inv_receipt", SpecialRightCatalog.ViewPrice);
-        var post = SpecialRightCatalog.Key("inv_receipt", SpecialRightCatalog.Post);
+        var post = SpecialRightCatalog.UnitKey("inv_receipt", SpecialRightCatalog.StatusPosted, "DVCS01");
         var cost = SpecialRightCatalog.Key("inv_issue", SpecialRightCatalog.ViewCost);
         var (granted, denied) = PermissionMatrix.RightOverrides([price, post], [price, cost]);
         Assert.Equal([cost], granted);

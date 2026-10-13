@@ -14,7 +14,7 @@ public sealed class PermissionCatalogController : ApiControllerBase
     {
         SpecialRights = SpecialRightCatalog.All.Select(x => new
         {
-            x.Function, x.Code, Key = SpecialRightCatalog.Key(x.Function, x.Code), x.Name, x.Group, x.Description
+            x.Function, x.Code, Key = SpecialRightCatalog.Key(x.Function, x.Code), x.Name, x.Group, x.Description, x.PerUnit
         }),
         Groups = new Dictionary<string, string>
         {

@@ -53,6 +53,17 @@ export const goodsReceiptItemsGridConfig: VoucherGridInfo = {
       placeholder: 'Tên vật tư...'
     },
     {
+      field: 'purchaseOrderCode',
+      headerName: 'Đơn Mua Hàng',
+      headerNameEn: 'Purchase Order',
+      type: 'text',
+      width: 170,
+      minWidth: 130,
+      align: 'left',
+      readOnly: true,
+      placeholder: ''
+    },
+    {
       field: 'unit',
       headerName: 'ĐVT',
       headerNameEn: 'UOM',
@@ -265,6 +276,17 @@ export const goodsIssueItemsGridConfig: VoucherGridInfo = {
       placeholder: 'Tên vật tư xuất...'
     },
     {
+      field: 'issueRequestCode',
+      headerName: 'Phiếu Yêu Cầu',
+      headerNameEn: 'Request No.',
+      type: 'text',
+      width: 170,
+      minWidth: 130,
+      align: 'left',
+      readOnly: true,
+      placeholder: ''
+    },
+    {
       field: 'unit',
       headerName: 'ĐVT',
       headerNameEn: 'UOM',
@@ -318,6 +340,79 @@ export const goodsIssueItemsGridConfig: VoucherGridInfo = {
       align: 'left',
       placeholder: 'Lô sản xuất / Kệ'
     }
+  ]
+};
+
+// Phiếu yêu cầu xuất kho (YCX): mã vật tư, tên, ĐVT, số lượng yêu cầu, đơn giá dự kiến, thành tiền, số đã xuất (chỉ đọc), ghi chú.
+export const issueRequestItemsGridConfig: VoucherGridInfo = {
+  voucherType: 'YCX',
+  voucherName: 'Phiếu Yêu Cầu Xuất Kho',
+  gridId: 'YCX_ITEMS',
+  allowAddRow: true,
+  allowDeleteRow: true,
+  defaultNewRow: { sku: '', productName: '', unit: '', quantity: 1, unitPrice: 0, amount: 0, note: '' },
+  columns: [
+    {
+      field: 'sku', headerName: 'Mã VT / Code', headerNameEn: 'Item Code', type: 'lookup', width: 140, minWidth: 120, align: 'left',
+      required: true, placeholder: 'Mã SKU...',
+      lookupConfig: { lookupCode: 'MATERIAL', displayField: 'productName', codeField: 'sku', unitField: 'unit', priceField: 'unitPrice' }
+    },
+    { field: 'productName', headerName: 'Tên Vật Tư / Hàng Hóa', headerNameEn: 'Item Name', type: 'text', width: 240, minWidth: 180, align: 'left', required: true, placeholder: 'Tên vật tư...' },
+    { field: 'unit', headerName: 'ĐVT', headerNameEn: 'UOM', type: 'uom', width: 80, align: 'center', required: false, placeholder: 'Cái' },
+    { field: 'quantity', headerName: 'Số Lượng Yêu Cầu', headerNameEn: 'Requested Quantity', type: 'quantity', width: 110, align: 'right', required: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'issuedQuantity', headerName: 'Đã Xuất', headerNameEn: 'Issued', type: 'quantity', width: 90, align: 'right', readOnly: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'unitPrice', headerName: 'Đơn Giá Dự Kiến', headerNameEn: 'Expected Price', type: 'currency', width: 110, align: 'right', required: false, decimals: 0 },
+    { field: 'amount', headerName: 'Thành Tiền', headerNameEn: 'Amount', type: 'currency', width: 130, align: 'right', readOnly: true, decimals: 0, summary: 'sum', summaryFormat: 'currency' },
+    { field: 'note', headerName: 'Ghi Chú', headerNameEn: 'Note', type: 'text', width: 170, minWidth: 120, align: 'left', placeholder: 'Ghi chú dòng...' }
+  ]
+};
+
+// Phiếu yêu cầu mua hàng (YCM): đề nghị mua; "Đã đặt" là số các đơn mua hàng đã đặt (chỉ đọc).
+export const purchaseRequestItemsGridConfig: VoucherGridInfo = {
+  voucherType: 'YCM',
+  voucherName: 'Phiếu Yêu Cầu Mua Hàng',
+  gridId: 'YCM_ITEMS',
+  allowAddRow: true,
+  allowDeleteRow: true,
+  defaultNewRow: { sku: '', productName: '', unit: '', quantity: 1, unitPrice: 0, amount: 0, note: '' },
+  columns: [
+    {
+      field: 'sku', headerName: 'Mã VT / Code', headerNameEn: 'Item Code', type: 'lookup', width: 140, minWidth: 120, align: 'left',
+      required: true, placeholder: 'Mã SKU...',
+      lookupConfig: { lookupCode: 'MATERIAL', displayField: 'productName', codeField: 'sku', unitField: 'unit', priceField: 'unitPrice' }
+    },
+    { field: 'productName', headerName: 'Tên Vật Tư / Hàng Hóa', headerNameEn: 'Item Name', type: 'text', width: 240, minWidth: 180, align: 'left', required: true, placeholder: 'Tên vật tư...' },
+    { field: 'unit', headerName: 'ĐVT', headerNameEn: 'UOM', type: 'uom', width: 80, align: 'center', required: false, placeholder: 'Cái' },
+    { field: 'quantity', headerName: 'Số Lượng Yêu Cầu', headerNameEn: 'Requested Quantity', type: 'quantity', width: 110, align: 'right', required: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'orderedQuantity', headerName: 'Đã Đặt Mua', headerNameEn: 'Ordered', type: 'quantity', width: 90, align: 'right', readOnly: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'unitPrice', headerName: 'Đơn Giá Dự Kiến', headerNameEn: 'Expected Price', type: 'currency', width: 110, align: 'right', required: false, decimals: 0 },
+    { field: 'amount', headerName: 'Thành Tiền', headerNameEn: 'Amount', type: 'currency', width: 130, align: 'right', readOnly: true, decimals: 0, summary: 'sum', summaryFormat: 'currency' },
+    { field: 'note', headerName: 'Ghi Chú', headerNameEn: 'Note', type: 'text', width: 170, minWidth: 120, align: 'left', placeholder: 'Ghi chú dòng...' }
+  ]
+};
+
+// Đơn mua hàng (DMH): "Phiếu yêu cầu" là số phiếu yêu cầu mua hàng mà dòng thực hiện, "Đã nhập" là số các phiếu nhập kho đã nhận (cả hai chỉ đọc).
+export const purchaseOrderItemsGridConfig: VoucherGridInfo = {
+  voucherType: 'DMH',
+  voucherName: 'Đơn Mua Hàng',
+  gridId: 'DMH_ITEMS',
+  allowAddRow: true,
+  allowDeleteRow: true,
+  defaultNewRow: { sku: '', productName: '', unit: '', quantity: 1, unitPrice: 0, amount: 0, note: '' },
+  columns: [
+    {
+      field: 'sku', headerName: 'Mã VT / Code', headerNameEn: 'Item Code', type: 'lookup', width: 140, minWidth: 120, align: 'left',
+      required: true, placeholder: 'Mã SKU...',
+      lookupConfig: { lookupCode: 'MATERIAL', displayField: 'productName', codeField: 'sku', unitField: 'unit', priceField: 'unitPrice' }
+    },
+    { field: 'productName', headerName: 'Tên Vật Tư / Hàng Hóa', headerNameEn: 'Item Name', type: 'text', width: 240, minWidth: 180, align: 'left', required: true, placeholder: 'Tên vật tư...' },
+    { field: 'purchaseRequestCode', headerName: 'Phiếu Yêu Cầu', headerNameEn: 'Request No.', type: 'text', width: 170, minWidth: 130, align: 'left', readOnly: true, placeholder: '' },
+    { field: 'unit', headerName: 'ĐVT', headerNameEn: 'UOM', type: 'uom', width: 80, align: 'center', required: false, placeholder: 'Cái' },
+    { field: 'quantity', headerName: 'Số Lượng Đặt', headerNameEn: 'Ordered Quantity', type: 'quantity', width: 110, align: 'right', required: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'receivedQuantity', headerName: 'Đã Nhập', headerNameEn: 'Received', type: 'quantity', width: 90, align: 'right', readOnly: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'unitPrice', headerName: 'Đơn Giá', headerNameEn: 'Unit Price', type: 'currency', width: 110, align: 'right', required: true, decimals: 0 },
+    { field: 'amount', headerName: 'Thành Tiền', headerNameEn: 'Amount', type: 'currency', width: 130, align: 'right', readOnly: true, decimals: 0, summary: 'sum', summaryFormat: 'currency' },
+    { field: 'note', headerName: 'Ghi Chú', headerNameEn: 'Note', type: 'text', width: 170, minWidth: 120, align: 'left', placeholder: 'Ghi chú dòng...' }
   ]
 };
 
@@ -435,6 +530,9 @@ export const systemVoucherGridRegistry: Record<string, VoucherGridInfo> = {
   'PNK_BOM': goodsReceiptMaterialsGridConfig,
   'PXK_ITEMS': goodsIssueItemsGridConfig,
   'PXK_BOM': goodsIssueMaterialsGridConfig,
+  'YCX_ITEMS': issueRequestItemsGridConfig,
+  'YCM_ITEMS': purchaseRequestItemsGridConfig,
+  'DMH_ITEMS': purchaseOrderItemsGridConfig,
 };
 
 export const getVoucherGridConfig = (gridId: string): VoucherGridInfo => {

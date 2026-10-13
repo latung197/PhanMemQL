@@ -15,6 +15,7 @@ import { LotCategoryView } from './categories/lots';
 import { LocationCategoryView } from './categories/locations';
 import { GoodsReceiptView } from './documents/goods-receipts';
 import { GoodsIssueView } from './documents/goods-issues';
+import { IssueRequestView } from './documents/issue-requests';
 import { StockReportView, NXTReportView } from './reports';
 import { TransferOrderView } from './documents/transfer-order/TransferOrderView';
 import { TransferIssueView } from './documents/transfer-issue/TransferIssueView';
@@ -24,6 +25,7 @@ import { MonthlyCostCalcView } from './documents/monthly-cost/MonthlyCostCalcVie
 import { InstantStockCalcView } from './documents/instant-stock/InstantStockCalcView';
 import { ReceiptApprovalView } from './documents/approval-receipt/ReceiptApprovalView';
 import { IssueApprovalView } from './documents/approval-issue/IssueApprovalView';
+import { IssueRequestApprovalView } from './documents/approval-issue-request/IssueRequestApprovalView';
 import { TransferApprovalView } from './documents/approval-transfer/TransferApprovalView';
 import { InwardReportView } from './reports/inward/InwardReportView';
 import { OutwardReportView } from './reports/outward/OutwardReportView';
@@ -88,6 +90,14 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
             currentUser={currentUser}
           />
         );
+      case 'inv_issue_request':
+        return (
+          <IssueRequestView
+            companyUnits={companyUnits}
+            activeUnitCode={activeCompanyUnitCode}
+            currentUser={currentUser}
+          />
+        );
       case 'inv_issue':
         return (
           <GoodsIssueView
@@ -114,6 +124,8 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
         return <ReceiptApprovalView currentUser={currentUser} />;
       case 'inv_approve_issue':
         return <IssueApprovalView currentUser={currentUser} />;
+      case 'inv_approve_issue_request':
+        return <IssueRequestApprovalView currentUser={currentUser} />;
       case 'inv_approve_transfer':
         return <TransferApprovalView currentUser={currentUser} />;
 

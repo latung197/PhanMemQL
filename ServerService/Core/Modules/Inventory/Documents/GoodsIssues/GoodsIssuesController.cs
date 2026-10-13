@@ -1,4 +1,7 @@
+using Core.Application.Common.Export;
+using Core.Application.Common.Paging;
 using Core.Application.Modules.Inventory.Documents.GoodsIssues;
+using Core.Application.Modules.Inventory.Documents.IssueRequests;
 using Core.Application.Modules.Approvals;
 using Core.Common.Authorization;
 using Core.Common.Controllers;
@@ -8,16 +11,30 @@ using Microsoft.AspNetCore.Mvc;
 namespace Core.Modules.Inventory.Documents.GoodsIssues;
 
 [Route("api/inventory/goods-issues")]
-public sealed class GoodsIssuesController(IGoodsIssueService issues) : ApiControllerBase
+public sealed class GoodsIssuesController(IGoodsIssueService issues, IIssueRequestService requests) : ApiControllerBase
 {
     private const string Function = "inv_issue";
 
+    /// <summary>One page: ?page=1&amp;pageSize=20&amp;sort=date&amp;dir=desc&amp;search=...&amp;status=Approved&amp;warehouse=KHO01&amp;from=2026-10-01.</summary>
     [HttpGet, RequirePermission(Function, PermissionAction.View)]
-    public Task<IReadOnlyList<GoodsIssueDto>> GetAll(CancellationToken ct) =>
-        issues.GetAllAsync(CurrentUserId, CurrentUnitCode, ct);
+    public Task<PagedResult<GoodsIssueDto>> GetAll([FromQuery] VoucherListQuery query, CancellationToken ct) =>
+        issues.ListAsync(CurrentUserId, CurrentUnitCode, query, ct);
+
+    /// <summary>The same list (same filters, without the page) as an Excel file.</summary>
+    [HttpGet("export"), RequirePermission(Function, PermissionAction.View), RequirePermission(Function, PermissionAction.Export)]
+    public async Task<IActionResult> Export([FromQuery] VoucherListQuery query, CancellationToken ct)
+    {
+        var file = await issues.ExportAsync(CurrentUserId, CurrentUnitCode, query, ct);
+        return File(file.Content, ExportFile.ContentType, file.FileName);
+    }
 
     [HttpGet("options"), RequirePermission(Function, PermissionAction.View)]
     public Task<GoodsIssueOptionsDto> Options(CancellationToken ct) => issues.GetOptionsAsync(CurrentUnitCode, ct);
+
+    /// <summary>Approved issue requests with something left to issue: what "Lấy từ phiếu yêu cầu" lists (needs the goods issue View right).</summary>
+    [HttpGet("open-requests"), RequirePermission(Function, PermissionAction.View)]
+    public Task<IReadOnlyList<OpenIssueRequestDto>> OpenRequests([FromQuery] long? issueId, CancellationToken ct) =>
+        requests.GetOpenAsync(CurrentUserId, CurrentUnitCode, issueId, ct);
 
     [HttpGet("{id:long}"), RequirePermission(Function, PermissionAction.View)]
     public Task<GoodsIssueDto> Get(long id, CancellationToken ct) =>

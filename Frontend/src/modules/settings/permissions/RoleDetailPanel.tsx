@@ -13,7 +13,8 @@ import { PermissionMatrixTable } from './PermissionMatrixTable';
 import { SaveBar } from './SaveBar';
 import { useLanguage } from '../../../context/LanguageContext';
 import {
-  countDifferences, countRightDifferences, countViewable, FullMatrix, matrixEquals, normalizeRights, toFullMatrix, uniformMatrix
+  allRightKeys, countDifferences, countRightDifferences, countViewable, FullMatrix, matrixEquals, normalizeRights, RightUnit, toFullMatrix,
+  uniformMatrix
 } from './permissionCatalog';
 
 interface RoleDetailPanelProps {
@@ -21,6 +22,8 @@ interface RoleDetailPanelProps {
   userCount: number;
   rightDefs: SpecialRightDef[];
   rightGroupLabels: Record<string, string>;
+  /** Active company units: the status rights of a role are granted per unit. */
+  units: RightUnit[];
   canEdit: boolean;
   canDelete: boolean;
   onSaved: (role: RoleDefinition) => void;
@@ -39,7 +42,7 @@ interface RoleDraft {
 
 /** Role name, description and its standard permission matrix. */
 export const RoleDetailPanel: React.FC<RoleDetailPanelProps> = ({
-  role, userCount, rightDefs, rightGroupLabels, canEdit, canDelete, onSaved, onDeleted, onSynced, onDirtyChange
+  role, userCount, rightDefs, rightGroupLabels, units, canEdit, canDelete, onSaved, onDeleted, onSynced, onDirtyChange
 }) => {
   const confirm = useConfirm();
   const { t } = useLanguage();
@@ -156,10 +159,11 @@ export const RoleDetailPanel: React.FC<RoleDetailPanelProps> = ({
       <PermissionMatrixTable
         value={role.isSystemRole ? uniformMatrix('all') : draft.matrix}
         onChange={(matrix) => setDraft(prev => ({ ...prev, matrix }))}
-        rights={role.isSystemRole ? rightDefs.map(d => d.key) : draft.rights}
+        rights={role.isSystemRole ? allRightKeys(rightDefs, units) : draft.rights}
         onRightsChange={(rights) => setDraft(prev => ({ ...prev, rights: normalizeRights(rights) }))}
         rightDefs={rightDefs}
         rightGroupLabels={rightGroupLabels}
+        units={units}
         readOnly={readOnly}
       />
 

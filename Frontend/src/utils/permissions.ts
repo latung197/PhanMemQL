@@ -41,16 +41,25 @@ export const hasRight = (user: Pick<UserProfile, 'isSystemAdmin' | 'specialRight
   subKey: SubMenuKey, rightCode: string): boolean =>
   !!user && (!!user.isSystemAdmin || !!user.specialRights?.includes(`${subKey}:${rightCode}`));
 
-/** Codes of the special rights, same as the backend. */
+/**
+ * Status right of a voucher function in the company unit the user is working in (stored as "{function}:{code}@{unit}",
+ * e.g. "inv_receipt:ST_POSTED@DVCS01"): the right to take a voucher into that status and to change one while it is in it.
+ */
+export const hasStatusRight = (user: Pick<UserProfile, 'isSystemAdmin' | 'specialRights' | 'ma_dvcs'> | null | undefined,
+  subKey: SubMenuKey, rightCode: string): boolean =>
+  !!user && (!!user.isSystemAdmin || (!!user.ma_dvcs && !!user.specialRights?.includes(`${subKey}:${rightCode}@${user.ma_dvcs}`)));
+
+/** Codes of the special rights, same as the backend. The ST_* status rights are granted per company unit: see hasStatusRight. */
 export const RIGHTS = {
   VIEW_PRICE: 'VIEW_PRICE',
   VIEW_COST: 'VIEW_COST',
   VIEW_ALL: 'VIEW_ALL',
-  EDIT_PENDING: 'EDIT_PENDING',
-  EDIT_APPROVED: 'EDIT_APPROVED',
-  POST: 'POST',
-  UNPOST: 'UNPOST',
-  CANCEL: 'CANCEL',
+  ST_PENDING: 'ST_PENDING',
+  ST_APPROVED: 'ST_APPROVED',
+  ST_POSTED: 'ST_POSTED',
+  ST_CANCELLED: 'ST_CANCELLED',
+  /** Backward step: take a posted voucher back to Approved. */
+  ST_UNPOST: 'ST_UNPOST',
   /** On overview_main: send notifications inside the current unit / to every unit. */
   SEND_NOTIFICATION: 'SEND_NOTIFICATION',
   SEND_NOTIFICATION_ALL: 'SEND_NOTIFICATION_ALL'
@@ -63,6 +72,9 @@ export const RIGHTS = {
 export const APPROVAL_SCREENS: Partial<Record<SubMenuKey, SubMenuKey[]>> = {
   inv_approve_receipt: ['inv_receipt'],
   inv_approve_issue: ['inv_issue'],
+  inv_approve_issue_request: ['inv_issue_request'],
+  pur_approve_request: ['pur_request'],
+  pur_approve_order: ['pur_order'],
   inv_approve_transfer: ['inv_transfer_order', 'inv_transfer_issue', 'inv_transfer_receipt']
 };
 
