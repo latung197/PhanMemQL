@@ -892,6 +892,15 @@
             "isActive": true
           },
           {
+            "id": "MNU_SYS_VOUCHER_GRID",
+            "subKey": "sys_voucher_grid",
+            "titleVi": "Cấu hình lưới chứng từ",
+            "titleEn": "Voucher Grids",
+            "icon": "Layers",
+            "orderNo": 26,
+            "isActive": true
+          },
+          {
             "id": "MNU_SYS_LANGUAGES",
             "subKey": "sys_languages",
             "titleVi": "Danh mục ngôn ngữ",

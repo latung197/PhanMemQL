@@ -46,5 +46,6 @@ module.exports = {
   '43': 'Trạng thái chứng từ theo đơn vị cơ sở và quyền theo trạng thái',
   '44': 'Phiếu yêu cầu mua hàng, đơn mua hàng, cột nối sang phiếu nhập kho',
   '45': 'Danh mục dự án, điều khoản thanh toán, nhóm nhà cung cấp; cột dự án trên các chứng từ',
-  '46': 'Ngày dự kiến nhận hàng theo từng dòng đơn mua hàng'
+  '46': 'Ngày dự kiến nhận hàng theo từng dòng đơn mua hàng',
+  '49': 'Cấu hình lưới chi tiết chứng từ dùng chung toàn hệ thống (lưới, cột, số cột gim)'
 };

@@ -38,6 +38,7 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
     {
         await EnsureFunctionCatalogAsync(ct);
         await EnsureMenuTreeAsync(ct);
+        await EnsureVoucherGridsAsync(ct);
         await SyncTableReferencesAsync(ct);
         if (!await db.Users.AnyAsync(ct))
         {
@@ -287,6 +288,58 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
         if (added == 0) return;
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Đã thêm {Count} mục menu còn thiếu từ menu.json.", added);
+    }
+
+    /// <summary>One grid of SeedData/voucher-grids.json (generated from the frontend code by npm run export-voucher-grids).</summary>
+    private sealed record SeedGrid(string Code, string VoucherType, string Name, string TabKey, int TabOrder, bool AllowAddRow, bool AllowDeleteRow,
+        int PinCount, List<SeedGridColumn> Columns);
+
+    private sealed record SeedGridColumn(string Field, string Header, string? HeaderEn, string Type, int? Width, int? MinWidth, string? Align, int? Decimals,
+        bool Required, bool ReadOnly, string? Summary, string? SummaryFormat, int SortOrder);
+
+    /// <summary>
+    /// Insert-only: a grid or a column of voucher-grids.json that sys_voucher_grid / sys_voucher_grid_column do not have yet is added
+    /// (a new column goes to the end of its grid); what already exists is never touched, so the administrator's changes stay.
+    /// </summary>
+    private async Task EnsureVoucherGridsAsync(CancellationToken ct)
+    {
+        var path = Path.Combine(environment.ContentRootPath, "SeedData", "voucher-grids.json");
+        if (!File.Exists(path)) return;
+        await using var stream = File.OpenRead(path);
+        var seed = await JsonSerializer.DeserializeAsync<List<SeedGrid>>(stream, JsonOptions, ct) ?? [];
+        var grids = await db.VoucherGrids.ToDictionaryAsync(x => x.Code, StringComparer.Ordinal, ct);
+        var columns = (await db.VoucherGridColumns.ToListAsync(ct)).GroupBy(x => x.VoucherGridCode).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
+        var added = 0;
+        foreach (var item in seed)
+        {
+            if (!grids.ContainsKey(item.Code))
+            {
+                db.VoucherGrids.Add(new Core.Domain.Modules.VoucherGrids.VoucherGrid
+                {
+                    Code = item.Code, VoucherType = item.VoucherType, Name = item.Name, TabKey = item.TabKey, TabOrder = item.TabOrder,
+                    AllowAddRow = item.AllowAddRow, AllowDeleteRow = item.AllowDeleteRow, PinCount = item.PinCount
+                });
+                added++;
+            }
+            var have = columns.GetValueOrDefault(item.Code) ?? [];
+            var next = (have.Count == 0 ? 0 : have.Max(c => c.SortOrder)) + 10;
+            foreach (var column in item.Columns.OrderBy(c => c.SortOrder))
+            {
+                if (have.Any(c => c.Field == column.Field)) continue;
+                db.VoucherGridColumns.Add(new Core.Domain.Modules.VoucherGrids.VoucherGridColumn
+                {
+                    VoucherGridCode = item.Code, Field = column.Field, Header = column.Header, HeaderEn = column.HeaderEn, ColType = column.Type,
+                    Width = column.Width, MinWidth = column.MinWidth, Align = column.Align ?? "left", Decimals = column.Decimals,
+                    IsRequired = column.Required, IsReadOnly = column.ReadOnly, Summary = column.Summary, SummaryFormat = column.SummaryFormat,
+                    SortOrder = have.Count == 0 ? column.SortOrder : next
+                });
+                if (have.Count != 0) next += 10;
+                added++;
+            }
+        }
+        if (added == 0) return;
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Đã thêm {Count} lưới / cột chứng từ còn thiếu từ voucher-grids.json.", added);
     }
 
     private async Task SeedDemoDataAsync(CancellationToken ct)

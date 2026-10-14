@@ -979,15 +979,17 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({ companyUni
                   <span>Lịch giao hàng</span>
                 </button>
               </div>
-              {detailTab === 'items' && <><Button type="button" size="sm" variant="primary" onClick={() => { setLookupTargetRowIndex(null); setIsMaterialLookupOpen(true); }}
+              {detailTab === 'items' && <div className="flex items-center gap-2 flex-wrap ml-auto">
+                <Button type="button" size="sm" variant="outline" onClick={() => void handleOpenRequestPicker()} icon={<ClipboardCheck className="h-3.5 w-3.5" />}
+                  disabled={!canSaveForm} className="text-[10.5px] py-1 px-2.5 h-[26px] font-semibold">
+                  Lấy từ phiếu yêu cầu mua hàng
+                </Button>
+                <Button type="button" size="sm" variant="primary" onClick={() => { setLookupTargetRowIndex(null); setIsMaterialLookupOpen(true); }}
                 icon={<Search className="h-3.5 w-3.5" />}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10.5px] py-1 px-2.5 h-[26px] shadow-2xs font-semibold">
                 Tra cứu vật tư (F2)
               </Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => void handleOpenRequestPicker()} icon={<ClipboardCheck className="h-3.5 w-3.5" />}
-                disabled={!canSaveForm} className="text-[10.5px] py-1 px-2.5 h-[26px] font-semibold">
-                Lấy từ phiếu yêu cầu mua hàng
-              </Button></>}
+</div>}
             </div>
 
             {detailTab === 'delivery' ? (

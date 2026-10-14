@@ -97,6 +97,7 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
   sys_login_notices: fn('settings', '/settings/login-notices', 'Thông báo đăng nhập', 'system'),
   sys_banners: fn('settings', '/settings/banners', 'Thanh thông báo', 'system'),
   sys_voucher_status: fn('settings', '/settings/voucher-status', 'Trạng thái chứng từ', 'system'),
+  sys_voucher_grid: fn('settings', '/settings/voucher-grids', 'Cấu hình lưới chứng từ', 'system'),
   sys_tax_rates: fn('settings', '/settings/tax-rates', 'Mã thuế', 'system'),
   sys_audit_log: fn('settings', '/settings/audit-log', 'Nhật ký thay đổi', 'system'),
   sys_menu: fn('settings', '/settings/menu', 'Quản lý menu', 'system')

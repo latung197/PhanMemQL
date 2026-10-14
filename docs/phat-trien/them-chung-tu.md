@@ -134,6 +134,7 @@ Quy tắc đặt khóa thông báo: dùng tiền tố riêng của chứng từ 
 - **`Update`**: chỉ khi **Lập chứng từ**; kiểm khóa sổ cả ngày cũ và mới; `ExpectVersion`; xóa dòng cũ, thêm dòng mới.
 - **`ChangeStatus`**: `submit`, `approve`, `post`, `unpost`, `cancel`, `withdraw`; mỗi thao tác qua `EnsureActionAsync` (policy theo trạng thái và quyền) rồi chạy trong một transaction.
 - **`Delete`**: chỉ phiếu Lập chứng từ.
+- **Đầu `ChangeStatus` và `Reject`**: gọi `PermissionGate.EnsureTouchAsync(permissions, userId, Function, ct)` **trước khi tìm phiếu**: người không có quyền gì với chức năng nhận 403 dù id có hay không, nên không dò được id nào tồn tại (404 với id không có, 403 với id có). Quyền cụ thể trên phiếu vẫn do `DocumentStatusPolicy` quyết định sau đó.
 
 ### 5.2. Ghi sổ
 

@@ -201,7 +201,7 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         // Seen from the voucher or from its approval screen (Phê duyệt nhập kho...).
         if (!PermissionMatrix.CanViewForApproval(await permissions.GetEffectiveAsync(userId, ct), function))
             throw new ForbiddenException("permission.denied");
-        var steps = await LatestRoundAsync(function, documentId, ct);
+        var steps = await LatestRoundAsync(function, documentId, ct, unitCode: unitCode);
         if (steps.Count == 0)
             return new DocumentApprovalDto(function, documentId, null, "NONE", 0, null, false, null, null, []);
 
@@ -262,9 +262,11 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         };
 
     private async Task<List<DocumentApproval>> LatestRoundAsync(string function, string documentId, CancellationToken ct,
-        bool tracking = false)
+        bool tracking = false, string? unitCode = null)
     {
         var query = db.DocumentApprovals.Where(x => x.MenuId0 == function && x.DocumentId == documentId);
+        // Reading the approval of a voucher is limited to the session's unit (voucher numbers are unique system-wide, so they can be guessed).
+        if (unitCode is not null) query = query.Where(x => x.UnitCode == unitCode);
         if (!tracking) query = query.AsNoTracking();
         var round = await query.MaxAsync(x => (int?)x.Round, ct);
         return round is null ? [] : await query.Where(x => x.Round == round).OrderBy(x => x.Level).ToListAsync(ct);

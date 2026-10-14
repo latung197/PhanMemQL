@@ -1823,7 +1823,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Bên phải: nút lấy dữ liệu ngay bên trái nút tra cứu vật tư */}
+              <div className="flex items-center gap-1.5 flex-wrap ml-auto">
               {canSaveForm && (
                 <Button
                   type="button"

@@ -6,6 +6,7 @@ import { Button, QuantityInput, NumberInput, ComboBox, DateTimePicker } from './
 import { useNumberFormat } from '../../context/NumberFormatContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { apiRequest } from '../../services/apiClient';
+import { applyVoucherGrid, useVoucherGrids } from '../../services/voucherGridService';
 import { interpolate } from '../../utils/interpolate';
 
 /**
@@ -127,7 +128,9 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
   showAddButton = true,
   hiddenFields
 }: VoucherDetailGridProps<T>) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  // The system configuration of the grid (order, headers, widths, hidden columns, pinned columns) re-renders the grid when it changes.
+  const voucherGrids = useVoucherGrids();
   const { formatNumber, formatCurrency } = useNumberFormat();
   const [uoms, setUoms] = React.useState<UomOption[]>([]);
   React.useEffect(() => { let alive = true; void loadUomOptions().then(list => { if (alive) setUoms(list); }); return () => { alive = false; }; }, []);
@@ -175,10 +178,29 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
   // Load cấu hình cột từ Bảng Hệ Thống `sys_voucher_grid` (Registry DB Metadata)
   const hiddenKey = (hiddenFields ?? []).join('|');
   const gridConfig: VoucherGridInfo = React.useMemo(() => {
-    const base = propGridInfo ?? getVoucherGridConfig(gridId ?? 'PNK_ITEMS');
+    const declared = propGridInfo ?? getVoucherGridConfig(gridId ?? 'PNK_ITEMS');
+    const base = applyVoucherGrid(declared, language);
     const hidden = new Set(hiddenKey ? hiddenKey.split('|') : []);
     return hidden.size ? { ...base, columns: base.columns.filter(c => !hidden.has(c.field)) } : base;
-  }, [propGridInfo, gridId, hiddenKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propGridInfo, gridId, hiddenKey, language, voucherGrids.get(propGridInfo?.gridId ?? gridId ?? 'PNK_ITEMS')]);
+
+  // Pinned columns: the first columns stay in place when the grid scrolls sideways (the # column goes with them).
+  const INDEX_WIDTH = 32;
+  const pins = React.useMemo(() => {
+    const count = Math.min(gridConfig.pinCount ?? 0, gridConfig.columns.length);
+    const widths = gridConfig.columns.slice(0, count).map(c => Number(c.width) || Number(c.minWidth) || 120);
+    const offsets = widths.map((_, i) => INDEX_WIDTH + widths.slice(0, i).reduce((a, b) => a + b, 0));
+    return { count, widths, offsets };
+  }, [gridConfig]);
+  const pinStyle = (index: number, layer: 'head' | 'body' | 'foot'): React.CSSProperties => index < pins.count
+    ? { position: 'sticky', left: pins.offsets[index], width: pins.widths[index], minWidth: pins.widths[index], maxWidth: pins.widths[index], zIndex: layer === 'body' ? 5 : 30 }
+    : {};
+  const pinBg = (index: number, layer: 'head' | 'body' | 'foot') => index < pins.count
+    ? (layer === 'body' ? 'bg-white dark:bg-slate-900' : 'bg-slate-100 dark:bg-slate-800') : '';
+  const pinnedLast = (index: number) => index === pins.count - 1 ? 'border-r-2 border-slate-300 dark:border-slate-600' : '';
+  const indexStyle = (layer: 'head' | 'body' | 'foot'): React.CSSProperties => pins.count > 0
+    ? { position: 'sticky', left: 0, width: INDEX_WIDTH, minWidth: INDEX_WIDTH, maxWidth: INDEX_WIDTH, zIndex: layer === 'body' ? 5 : 30 } : {};
 
   // THÊM MỘT DÒNG MỚI (Xử lý BeforeAdd & AfterAdd)
   const handleAddRow = async () => {
@@ -371,12 +393,12 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
             <tr className="text-[10px] uppercase tracking-wider divide-x divide-slate-200 dark:divide-slate-700">
               
               {/* Index Column */}
-              <th className="py-2 px-1.5 w-8 text-center bg-slate-200/60 dark:bg-slate-800">
+              <th style={indexStyle('head')} className={`py-2 px-1.5 w-8 text-center ${pins.count > 0 ? 'bg-slate-200 dark:bg-slate-800' : 'bg-slate-200/60 dark:bg-slate-800'}`}>
                 #
               </th>
 
               {/* Dynamic Columns from sys_voucher_grid */}
-              {gridConfig.columns.map((col) => {
+              {gridConfig.columns.map((col, colIndex) => {
                 let headerTitle = col.headerName;
                 if (col.field === 'unitPrice' && currencyCode) {
                   headerTitle = `${col.headerName} (${currencyCode})`;
@@ -387,9 +409,10 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                     key={col.field}
                     style={{ 
                       width: col.width ? (typeof col.width === 'number' ? `${col.width}px` : col.width) : undefined,
-                      minWidth: col.minWidth ? (typeof col.minWidth === 'number' ? `${col.minWidth}px` : col.minWidth) : undefined 
+                      minWidth: col.minWidth ? (typeof col.minWidth === 'number' ? `${col.minWidth}px` : col.minWidth) : undefined,
+                      ...pinStyle(colIndex, 'head'), 
                     }}
-                    className={`py-2 px-2 font-extrabold ${
+                    className={`py-2 px-2 font-extrabold ${pinBg(colIndex, 'head')} ${pinnedLast(colIndex)} ${
                       col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
                     }`}
                   >
@@ -430,12 +453,12 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                     className="hover:bg-indigo-50/30 dark:hover:bg-slate-800/50 divide-x divide-slate-200 dark:divide-slate-800 transition-colors cursor-pointer"
                   >
                     {/* Row Index */}
-                    <td className="py-1 px-1 text-center font-bold text-slate-400 text-[10px] bg-slate-50/50 dark:bg-slate-800/30">
+                    <td style={indexStyle('body')} className={`py-1 px-1 text-center font-bold text-slate-400 text-[10px] ${pins.count > 0 ? 'bg-slate-50 dark:bg-slate-800' : 'bg-slate-50/50 dark:bg-slate-800/30'}`}>
                       {rowIndex + 1}
                     </td>
 
                     {/* Render Cells dynamically based on Column Type */}
-                    {gridConfig.columns.map((col) => {
+                    {gridConfig.columns.map((col, colIndex) => {
                       const value = row[col.field];
                       const isReadOnlyCol = readOnly || col.readOnly;
 
@@ -444,7 +467,8 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                           key={col.field} 
                           onClick={() => onCellClick?.(rowIndex, col.field, value, row)}
                           onFocus={() => onCellFocus?.(rowIndex, col.field, row)}
-                          className={`py-1 px-1.5 ${
+                          style={pinStyle(colIndex, 'body')}
+                          className={`py-1 px-1.5 ${pinBg(colIndex, 'body')} ${pinnedLast(colIndex)} ${
                             col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
                           }`}
                         >
@@ -746,7 +770,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
           {/* Dynamic Table Summary Footer */}
           <tfoot className="sticky bottom-0 bg-slate-100 dark:bg-slate-800/95 backdrop-blur-xs border-t-2 border-slate-300 dark:border-slate-700 font-extrabold text-[11px] text-slate-800 dark:text-slate-100 z-10 shadow-xs">
             <tr className="divide-x divide-slate-200 dark:divide-slate-700">
-              <td className="py-1.5 px-1.5 text-center bg-slate-200/80 dark:bg-slate-700/80">
+              <td style={indexStyle('foot')} className={`py-1.5 px-1.5 text-center ${pins.count > 0 ? 'bg-slate-200 dark:bg-slate-700' : 'bg-slate-200/80 dark:bg-slate-700/80'}`}>
                 ∑
               </td>
 
@@ -756,7 +780,8 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                 return (
                   <td 
                     key={col.field}
-                    className={`py-1.5 px-2 font-mono font-black ${
+                    style={pinStyle(idx, 'foot')}
+                    className={`py-1.5 px-2 font-mono font-black ${pinBg(idx, 'foot')} ${pinnedLast(idx)} ${
                       col.align === 'right' ? 'text-right text-indigo-600 dark:text-indigo-400' : col.align === 'center' ? 'text-center' : 'text-left'
                     }`}
                   >

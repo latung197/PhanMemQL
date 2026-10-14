@@ -56,4 +56,5 @@ export interface VoucherGridInfo {
   allowAddRow?: boolean;       // Cho phép thêm dòng mới
   allowDeleteRow?: boolean;    // Cho phép xóa dòng
   defaultNewRow?: Record<string, any>; // Giá trị mặc định khi bấm thêm dòng
+  pinCount?: number;           // Số cột đầu (đang hiện) được gim bên trái khi cuộn ngang; lấy từ cấu hình hệ thống sys_voucher_grid
 }

@@ -54,6 +54,8 @@ const T = {
   sys_voucher_numbering: [G.sys_config, 'Mẫu số chứng từ theo loại chứng từ và đơn vị (có `{DVCS}`, năm, tháng, số thứ tự).'],
   sys_voucher_sequence: [G.sys_config, 'Bộ đếm số chứng từ theo loại + đơn vị + kỳ (`period_key`); cấp số nguyên tử trong giao dịch lưu phiếu.'],
   sys_voucher_status: [G.sys_config, 'Tên trạng thái chứng từ đổi theo đơn vị và việc bật / tắt bước **Chờ duyệt**; chỉ lưu trạng thái đã đổi so với mặc định.'],
+  sys_voucher_grid: [G.sys_config, 'Một dòng một lưới chi tiết của chứng từ (mỗi tab là một lưới, ví dụ PNK_ITEMS, PNK_BOM); giữ số cột gim cho cả hệ thống.'],
+  sys_voucher_grid_column: [G.sys_config, 'Các cột của lưới chứng từ: thứ tự, tiêu đề, độ rộng, số lẻ, ẩn / hiện; kiểu và tra cứu vẫn do code quy định.'],
   sys_grid_layout: [G.sys_config, 'Bố cục lưới của từng người dùng (cột ẩn, thứ tự, độ rộng, sắp xếp, cỡ trang) và bố cục mặc định của công ty, theo chức năng + tên lưới.'],
   sys_login_notice: [G.sys_config, 'Thông báo hiện ở bảng bên trái màn đăng nhập (đang dùng, khoảng ngày, nội dung vi / en, ghim, loại nền).'],
   sys_login_image: [G.sys_config, 'Ảnh của thông báo đăng nhập (đã thu nhỏ, lưu dạng base64), đọc qua API mở `GET /api/auth/notice-images/{mã}`.'],

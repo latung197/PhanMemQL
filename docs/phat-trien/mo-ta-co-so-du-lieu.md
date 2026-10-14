@@ -1,6 +1,6 @@
 # Mô tả cơ sở dữ liệu S-ERP
 
-Tài liệu này mô tả toàn bộ cơ sở dữ liệu PostgreSQL của S-ERP: **63 bảng**, 1 view, 798 cột, 204 chỉ mục. Kiểu dữ liệu, độ dài, ràng buộc, chỉ mục, trigger và tham chiếu được **sinh tự động từ database thật** (`erp_dev`) bằng `docs/cong-cu/gen-database-doc.cjs`; phần mô tả bảng và cột viết tay trong `docs/cong-cu/database-notes.cjs` và công cụ. Nhờ vậy khớp với cấu trúc đang chạy. Khi đổi cấu trúc: chạy script SQL, rồi chạy lại công cụ để sinh lại tài liệu.
+Tài liệu này mô tả toàn bộ cơ sở dữ liệu PostgreSQL của S-ERP: **71 bảng**, 1 view, 931 cột, 243 chỉ mục. Kiểu dữ liệu, độ dài, ràng buộc, chỉ mục, trigger và tham chiếu được **sinh tự động từ database thật** (`erp_dev`) bằng `docs/cong-cu/gen-database-doc.cjs`; phần mô tả bảng và cột viết tay trong `docs/cong-cu/database-notes.cjs` và công cụ. Nhờ vậy khớp với cấu trúc đang chạy. Khi đổi cấu trúc: chạy script SQL, rồi chạy lại công cụ để sinh lại tài liệu.
 
 ## 1. Quy ước chung
 
@@ -59,6 +59,8 @@ Dự án **không dùng ràng buộc khóa ngoại**. Các bảng liên kết b�
 | Cài đặt hệ thống | `sys_login_image` | 8 | Ảnh của thông báo đăng nhập (đã thu nhỏ, lưu dạng base64), đọc qua API mở `GET /api/auth/notice-images/{mã}` |
 | Cài đặt hệ thống | `sys_login_notice` | 16 | Thông báo hiện ở bảng bên trái màn đăng nhập (đang dùng, khoảng ngày, nội dung vi / en, ghim, loại nền) |
 | Cài đặt hệ thống | `sys_setting` | 7 | Cấu hình dạng JSON theo mục (`section`) và đơn vị: mặc định, năm làm việc, hồ sơ doanh nghiệp, định dạng số, ẩn / hiện menu, thời hạn giữ nhật ký. |
+| Cài đặt hệ thống | `sys_voucher_grid` | 13 | Một dòng một lưới chi tiết của chứng từ (mỗi tab là một lưới, ví dụ PNK_ITEMS, PNK_BOM); giữ số cột gim cho cả hệ thống |
+| Cài đặt hệ thống | `sys_voucher_grid_column` | 20 | Các cột của lưới chứng từ: thứ tự, tiêu đề, độ rộng, số lẻ, ẩn / hiện; kiểu và tra cứu vẫn do code quy định |
 | Cài đặt hệ thống | `sys_voucher_numbering` | 8 | Mẫu số chứng từ theo loại chứng từ và đơn vị (có `{DVCS}`, năm, tháng, số thứ tự) |
 | Cài đặt hệ thống | `sys_voucher_sequence` | 4 | Bộ đếm số chứng từ theo loại + đơn vị + kỳ (`period_key`); cấp số nguyên tử trong giao dịch lưu phiếu |
 | Cài đặt hệ thống | `sys_voucher_status` | 11 | Tên trạng thái chứng từ đổi theo đơn vị và việc bật / tắt bước **Chờ duyệt**; chỉ lưu trạng thái đã đổi so với mặc định |
@@ -107,6 +109,12 @@ Dự án **không dùng ràng buộc khóa ngoại**. Các bảng liên kết b�
 | Kỹ thuật (hạ tầng của khung) | `sys_migration` | 2 | Dấu các script SQL đã chạy (nếu dùng); không chứa dữ liệu nghiệp vụ |
 | Kỹ thuật (hạ tầng của khung) | `sys_table_ref` | 9 | Bản đồ tham chiếu giữa các bảng (không có khóa ngoại): mỗi cột `*_code` / `*_id` trỏ tới bảng nào, có chặn xóa không, có thể rỗng không |
 | Kỹ thuật (hạ tầng của khung) | `sys_v_columns` | 12 | View: mọi cột của các bảng `erp_*` / `sys_*` ghép với bản đồ tham chiếu để thấy cột nào trỏ sang bảng nào |
+| (chưa phân nhóm) | `erp_transfer_issue` | 18 | |
+| (chưa phân nhóm) | `erp_transfer_issue_line` | 17 | |
+| (chưa phân nhóm) | `erp_transfer_order` | 18 | |
+| (chưa phân nhóm) | `erp_transfer_order_line` | 12 | |
+| (chưa phân nhóm) | `erp_transfer_receipt` | 18 | |
+| (chưa phân nhóm) | `erp_transfer_receipt_line` | 17 | |
 
 ## 3. Quan hệ giữa các nhóm bảng
 
@@ -198,7 +206,23 @@ Mỗi dòng: cột của một bảng trỏ tới khóa của bảng nào. **Ch�
 | `erp_stock_movement` | `uom_code` | `erp_uom.code` | có |  |
 | `erp_stock_movement` | `warehouse_code` | `erp_warehouse.code` | có |  |
 | `erp_supplier` | `supplier_group_code` | `erp_supplier_group.code` | có |  |
+| `erp_transfer_issue` | `from_warehouse_code` | `erp_warehouse.code` | có |  |
+| `erp_transfer_issue` | `to_warehouse_code` | `erp_warehouse.code` | có |  |
+| `erp_transfer_issue` | `unit_code` | `sys_company_unit.code` | có |  |
+| `erp_transfer_issue_line` | `material_code` | `erp_material.code` | có |  |
+| `erp_transfer_issue_line` | `uom_code` | `erp_uom.code` | có |  |
+| `erp_transfer_order` | `from_warehouse_code` | `erp_warehouse.code` | có |  |
+| `erp_transfer_order` | `to_warehouse_code` | `erp_warehouse.code` | có |  |
+| `erp_transfer_order` | `unit_code` | `sys_company_unit.code` | có |  |
+| `erp_transfer_order_line` | `material_code` | `erp_material.code` | có |  |
+| `erp_transfer_order_line` | `uom_code` | `erp_uom.code` | có |  |
+| `erp_transfer_receipt` | `from_warehouse_code` | `erp_warehouse.code` | có |  |
+| `erp_transfer_receipt` | `to_warehouse_code` | `erp_warehouse.code` | có |  |
+| `erp_transfer_receipt` | `unit_code` | `sys_company_unit.code` | có |  |
+| `erp_transfer_receipt_line` | `material_code` | `erp_material.code` | có |  |
+| `erp_transfer_receipt_line` | `uom_code` | `erp_uom.code` | có |  |
 | `erp_uom_conversion` | `from_uom_code` | `erp_uom.code` | có |  |
+| `erp_uom_conversion` | `material_code` | `erp_material.code` | không |  |
 | `erp_uom_conversion` | `to_uom_code` | `erp_uom.code` | có |  |
 | `erp_uom_translation` | `language_code` | `sys_language.code` | không |  |
 | `erp_uom_translation` | `uom_code` | `erp_uom.code` | không |  |
@@ -219,10 +243,11 @@ Mỗi dòng: cột của một bảng trỏ tới khóa của bảng nào. **Ch�
 | `sys_notification` | `unit_code` | `sys_company_unit.code` | không |  |
 | `sys_user_company_unit` | `unit_code` | `sys_company_unit.code` | có |  |
 | `sys_users` | `department_code` | `sys_department.code` | không |  |
+| `sys_voucher_grid_column` | `voucher_grid_code` | `sys_voucher_grid.code` | có |  |
 | `sys_voucher_sequence` | `unit_code` | `sys_company_unit.code` | có |  |
 | `sys_voucher_status` | `unit_code` | `sys_company_unit.code` | có |  |
 
-(Tổng 89 tham chiếu. Cột chứng từ trỏ dòng nguồn bằng id như `purchase_request_line_id`, `purchase_order_line_id`, `issue_request_line_id` không nằm trong bản đồ vì là id, không phải mã danh mục; chúng được mô tả ở từng bảng.)
+(Tổng 106 tham chiếu. Cột chứng từ trỏ dòng nguồn bằng id như `purchase_request_line_id`, `purchase_order_line_id`, `issue_request_line_id` không nằm trong bản đồ vì là id, không phải mã danh mục; chúng được mô tả ở từng bảng.)
 
 ## 5. Mô tả từng bảng
 
@@ -627,7 +652,78 @@ Ràng buộc:
 
 - `ux_sys_setting_key_scope` (UNIQUE): UNIQUE (key, scope)
 
-#### 5.2.7. `sys_voucher_numbering`
+#### 5.2.7. `sys_voucher_grid`
+
+Một dòng một lưới chi tiết của chứng từ (mỗi tab là một lưới, ví dụ PNK_ITEMS, PNK_BOM); giữ số cột gim cho cả hệ thống.
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `code` | varchar(40) | không |  |  | Mã lưới: <LOẠI>_<TAB>, ví dụ PNK_ITEMS |
+| 2 | `voucher_type` | varchar(20) | không |  |  | Loại chứng từ chứa lưới (PNK, PXK...) |
+| 3 | `name` | varchar(200) | không |  |  | Tên tiếng Việt của lưới (tab) |
+| 4 | `name_en` | varchar(200) | có |  |  | Tên tiếng Anh |
+| 5 | `tab_key` | varchar(20) | không | 'items' |  | Khóa tab (items, materials) |
+| 6 | `tab_order` | integer | không | 1 |  | Thứ tự tab trong chứng từ |
+| 7 | `allow_add_row` | boolean | không | true |  | Cho thêm dòng |
+| 8 | `allow_delete_row` | boolean | không | true |  | Cho xóa dòng |
+| 9 | `pin_count` | integer | không | 0 |  | Số cột đầu đang hiện được gim khi cuộn ngang (0-5) |
+| 10 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 11 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 12 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 13 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `ix_sys_voucher_grid_voucher_type`: (voucher_type, tab_order)
+- `sys_voucher_grid_pkey`: **duy nhất** (code)
+
+Ràng buộc:
+
+- `ck_sys_voucher_grid_pin` (CHECK): CHECK (((pin_count >= 0) AND (pin_count <= 5)))
+
+Được trỏ tới bởi: `sys_voucher_grid_column.voucher_grid_code`.
+
+#### 5.2.8. `sys_voucher_grid_column`
+
+Các cột của lưới chứng từ: thứ tự, tiêu đề, độ rộng, số lẻ, ẩn / hiện; kiểu và tra cứu vẫn do code quy định.
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
+| 2 | `voucher_grid_code` | varchar(40) | không |  |  | Lưới chứa cột. Trỏ `sys_voucher_grid` |
+| 3 | `field` | varchar(60) | không |  |  | Tên trường dữ liệu của dòng (không đổi) |
+| 4 | `header` | varchar(200) | không |  |  | Tiêu đề tiếng Việt |
+| 5 | `header_en` | varchar(200) | có |  |  | Tiêu đề tiếng Anh |
+| 6 | `col_type` | varchar(20) | không |  |  | Kiểu cột (text, number, lookup...) do code quy định |
+| 7 | `width` | integer | có |  |  | Độ rộng (px), trống = theo code |
+| 8 | `min_width` | integer | có |  |  | Độ rộng tối thiểu (40-800) |
+| 9 | `align` | varchar(10) | không | 'left' |  | Căn lề |
+| 10 | `decimals` | integer | có |  |  | Số chữ số thập phân (0-6), chỉ cột số |
+| 11 | `is_required` | boolean | không | false |  | Cột bắt buộc, không ẩn được |
+| 12 | `is_read_only` | boolean | không | false |  | Cột chỉ đọc |
+| 13 | `is_visible` | boolean | không | true |  | Cột đang hiện |
+| 14 | `summary` | varchar(10) | có |  |  | Cách tính tổng cuối lưới |
+| 15 | `summary_format` | varchar(10) | có |  |  | Định dạng tổng |
+| 16 | `sort_order` | integer | không | 0 |  | Thứ tự cột trong lưới |
+| 17 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 18 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 19 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 20 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `ix_sys_voucher_grid_column_voucher_grid_code`: (voucher_grid_code, sort_order)
+- `sys_voucher_grid_column_pkey`: **duy nhất** (id)
+- `sys_voucher_grid_column_voucher_grid_code_field_key`: **duy nhất** (voucher_grid_code, field)
+
+Ràng buộc:
+
+- `ck_sys_voucher_grid_column_decimals` (CHECK): CHECK (((decimals IS NULL) OR ((decimals >= 0) AND (decimals <= 6))))
+- `ck_sys_voucher_grid_column_min_width` (CHECK): CHECK (((min_width IS NULL) OR ((min_width >= 40) AND (min_width <= 800))))
+- `ck_sys_voucher_grid_column_width` (CHECK): CHECK (((width IS NULL) OR ((width >= 40) AND (width <= 800))))
+- `sys_voucher_grid_column_voucher_grid_code_field_key` (UNIQUE): UNIQUE (voucher_grid_code, field)
+
+#### 5.2.9. `sys_voucher_numbering`
 
 Mẫu số chứng từ theo loại chứng từ và đơn vị (có `{DVCS}`, năm, tháng, số thứ tự).
 
@@ -646,7 +742,7 @@ Chỉ mục:
 
 - `sys_voucher_numbering_pkey`: **duy nhất** (voucher_type)
 
-#### 5.2.8. `sys_voucher_sequence`
+#### 5.2.10. `sys_voucher_sequence`
 
 Bộ đếm số chứng từ theo loại + đơn vị + kỳ (`period_key`); cấp số nguyên tử trong giao dịch lưu phiếu.
 
@@ -662,7 +758,7 @@ Chỉ mục:
 - `ix_sys_voucher_sequence_unit`: (unit_code)
 - `sys_voucher_sequence_pkey`: **duy nhất** (voucher_type, unit_code, period_key)
 
-#### 5.2.9. `sys_voucher_status`
+#### 5.2.11. `sys_voucher_status`
 
 Tên trạng thái chứng từ đổi theo đơn vị và việc bật / tắt bước **Chờ duyệt**; chỉ lưu trạng thái đã đổi so với mặc định.
 
@@ -717,7 +813,7 @@ Chỉ mục:
 
 - `sys_company_unit_pkey`: **duy nhất** (code)
 
-Được trỏ tới bởi: `erp_goods_issue.unit_code`, `erp_goods_receipt.unit_code`, `erp_issue_request.unit_code`, `erp_purchase_order.unit_code`, `erp_purchase_request.unit_code`, `erp_stock_balance.unit_code`, `erp_stock_location_balance.unit_code`, `erp_stock_lot_balance.unit_code`, `erp_stock_movement.unit_code`, `erp_warehouse.unit_code`, `erp_warehouse_unit.unit_code`, `sys_approval_rule.unit_code`, `sys_company_unit_translation.unit_code`, `sys_document_approval.unit_code`, `sys_fiscal_period.unit_code`, `sys_notification.unit_code`, `sys_user_company_unit.unit_code`, `sys_voucher_sequence.unit_code`, `sys_voucher_status.unit_code`.
+Được trỏ tới bởi: `erp_goods_issue.unit_code`, `erp_goods_receipt.unit_code`, `erp_issue_request.unit_code`, `erp_purchase_order.unit_code`, `erp_purchase_request.unit_code`, `erp_stock_balance.unit_code`, `erp_stock_location_balance.unit_code`, `erp_stock_lot_balance.unit_code`, `erp_stock_movement.unit_code`, `erp_transfer_issue.unit_code`, `erp_transfer_order.unit_code`, `erp_transfer_receipt.unit_code`, `erp_warehouse.unit_code`, `erp_warehouse_unit.unit_code`, `sys_approval_rule.unit_code`, `sys_company_unit_translation.unit_code`, `sys_document_approval.unit_code`, `sys_fiscal_period.unit_code`, `sys_notification.unit_code`, `sys_user_company_unit.unit_code`, `sys_voucher_sequence.unit_code`, `sys_voucher_status.unit_code`.
 
 #### 5.3.2. `sys_company_unit_translation`
 
@@ -1121,7 +1217,7 @@ Ràng buộc:
 - `ck_erp_material_stock` (CHECK): CHECK (((min_stock IS NULL) OR (min_stock >= (0)::numeric)))
 - `ck_erp_material_stock_max` (CHECK): CHECK (((max_stock IS NULL) OR (min_stock IS NULL) OR (max_stock >= min_stock)))
 
-Được trỏ tới bởi: `erp_goods_issue_line.material_code`, `erp_goods_receipt_line.material_code`, `erp_issue_request_line.material_code`, `erp_lot.material_code`, `erp_purchase_order_line.material_code`, `erp_purchase_request_line.material_code`, `erp_stock_balance.material_code`, `erp_stock_location_balance.material_code`, `erp_stock_lot_balance.material_code`, `erp_stock_movement.material_code`.
+Được trỏ tới bởi: `erp_goods_issue_line.material_code`, `erp_goods_receipt_line.material_code`, `erp_issue_request_line.material_code`, `erp_lot.material_code`, `erp_purchase_order_line.material_code`, `erp_purchase_request_line.material_code`, `erp_stock_balance.material_code`, `erp_stock_location_balance.material_code`, `erp_stock_lot_balance.material_code`, `erp_stock_movement.material_code`, `erp_transfer_issue_line.material_code`, `erp_transfer_order_line.material_code`, `erp_transfer_receipt_line.material_code`, `erp_uom_conversion.material_code`.
 
 #### 5.5.4. `erp_material_group`
 
@@ -1221,7 +1317,7 @@ Chỉ mục:
 - `erp_uom_pkey`: **duy nhất** (code)
 - `ux_erp_uom_name`: **duy nhất** (lower((name)::text))
 
-Được trỏ tới bởi: `erp_goods_issue_line.uom_code`, `erp_goods_receipt_line.uom_code`, `erp_issue_request_line.uom_code`, `erp_material.uom_code`, `erp_purchase_order_line.uom_code`, `erp_purchase_request_line.uom_code`, `erp_stock_movement.line_uom_code`, `erp_stock_movement.uom_code`, `erp_uom_conversion.from_uom_code`, `erp_uom_conversion.to_uom_code`, `erp_uom_translation.uom_code`.
+Được trỏ tới bởi: `erp_goods_issue_line.uom_code`, `erp_goods_receipt_line.uom_code`, `erp_issue_request_line.uom_code`, `erp_material.uom_code`, `erp_purchase_order_line.uom_code`, `erp_purchase_request_line.uom_code`, `erp_stock_movement.line_uom_code`, `erp_stock_movement.uom_code`, `erp_transfer_issue_line.uom_code`, `erp_transfer_order_line.uom_code`, `erp_transfer_receipt_line.uom_code`, `erp_uom_conversion.from_uom_code`, `erp_uom_conversion.to_uom_code`, `erp_uom_translation.uom_code`.
 
 #### 5.5.8. `erp_uom_conversion`
 
@@ -1229,8 +1325,8 @@ Quy đổi đơn vị tính (có thể riêng cho một vật tư): hệ số t�
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | varchar(40) | không |  |  | Mã gộp từ đơn vị và vật tư |
-| 2 | `material_code` | varchar(50) | có |  |  | Quy đổi riêng cho vật tư (rỗng = quy đổi chung) |
+| 1 | `code` | varchar(80) | không |  |  | Mã gộp từ đơn vị và vật tư |
+| 2 | `material_code` | varchar(50) | có |  |  | Quy đổi riêng cho vật tư (rỗng = quy đổi chung). Trỏ `erp_material` |
 | 3 | `material_name` | varchar(200) | có |  |  | Tên vật tư chép từ danh mục lúc lưu |
 | 4 | `from_uom_code` | varchar(20) | không |  |  | Đơn vị nguồn (trỏ erp_uom) |
 | 5 | `to_uom_code` | varchar(20) | không |  |  | Đơn vị đích (trỏ erp_uom) |
@@ -1302,7 +1398,7 @@ Chỉ mục:
 - `ix_erp_warehouse_unit_code`: (unit_code)
 - `ux_erp_warehouse_name`: **duy nhất** (lower((name)::text))
 
-Được trỏ tới bởi: `erp_goods_issue.warehouse_code`, `erp_goods_receipt.warehouse_code`, `erp_issue_request.warehouse_code`, `erp_location.warehouse_code`, `erp_purchase_order.warehouse_code`, `erp_purchase_request.warehouse_code`, `erp_stock_balance.warehouse_code`, `erp_stock_location_balance.warehouse_code`, `erp_stock_lot_balance.warehouse_code`, `erp_stock_movement.warehouse_code`, `erp_warehouse_unit.warehouse_code`.
+Được trỏ tới bởi: `erp_goods_issue.warehouse_code`, `erp_goods_receipt.warehouse_code`, `erp_issue_request.warehouse_code`, `erp_location.warehouse_code`, `erp_purchase_order.warehouse_code`, `erp_purchase_request.warehouse_code`, `erp_stock_balance.warehouse_code`, `erp_stock_location_balance.warehouse_code`, `erp_stock_lot_balance.warehouse_code`, `erp_stock_movement.warehouse_code`, `erp_transfer_issue.from_warehouse_code`, `erp_transfer_issue.to_warehouse_code`, `erp_transfer_order.from_warehouse_code`, `erp_transfer_order.to_warehouse_code`, `erp_transfer_receipt.from_warehouse_code`, `erp_transfer_receipt.to_warehouse_code`, `erp_warehouse_unit.warehouse_code`.
 
 #### 5.5.11. `erp_warehouse_type`
 
@@ -2106,6 +2202,8 @@ Các hàm `unaccent*` do extension PostgreSQL `unaccent` cung cấp (bắt buộ
 |---|---|---|
 | `erp_goods_issue` | `trg_erp_goods_issue_delete` | BEFORE DELETE ON public.erp_goods_issue FOR EACH ROW EXECUTE FUNCTION erp_voucher_delete_cleanup('inv_issue', 'erp_goods_issue_line', 'issue_id') |
 | `erp_goods_receipt` | `trg_erp_goods_receipt_delete` | BEFORE DELETE ON public.erp_goods_receipt FOR EACH ROW EXECUTE FUNCTION erp_voucher_delete_cleanup('inv_receipt', 'erp_goods_receipt_line', 'receipt_id') |
+| `erp_transfer_issue` | `trg_erp_transfer_issue_delete` | BEFORE DELETE ON public.erp_transfer_issue FOR EACH ROW EXECUTE FUNCTION erp_voucher_delete_cleanup('inv_transfer_issue', 'erp_transfer_issue_line', 'issue_id') |
+| `erp_transfer_receipt` | `trg_erp_transfer_receipt_delete` | BEFORE DELETE ON public.erp_transfer_receipt FOR EACH ROW EXECUTE FUNCTION erp_voucher_delete_cleanup('inv_transfer_receipt', 'erp_transfer_receipt_line', 'receipt_id') |
 
 Trigger xóa phiếu (`erp_voucher_delete_cleanup`, script `41`): khi xóa đầu phiếu nhập / xuất, xóa luôn các dòng; từ chối nếu phiếu còn đang ghi sổ; với phiếu đã bỏ ghi sổ thì xóa cả các dòng sổ kho (cộng dồn bằng 0) để bảng tồn luôn bằng sổ kho.
 
@@ -2162,6 +2260,9 @@ Chạy theo thứ tự tên file trong `ServerService/sql/postgresql/`:
 | `44-purchasing.sql` | Phiếu yêu cầu mua hàng, đơn mua hàng, cột nối sang phiếu nhập kho |
 | `45-purchasing-catalogs.sql` | Danh mục dự án, điều khoản thanh toán, nhóm nhà cung cấp; cột dự án trên các chứng từ |
 | `46-purchase-order-line-delivery.sql` | Ngày dự kiến nhận hàng theo từng dòng đơn mua hàng |
+| `47-material-uom-conversions.sql` | (chưa mô tả) |
+| `48-transfers.sql` | (chưa mô tả) |
+| `49-voucher-grids.sql` | Cấu hình lưới chi tiết chứng từ dùng chung toàn hệ thống (lưới, cột, số cột gim) |
 
 ## 8. Kiểm tra cấu trúc bằng test tự động
 

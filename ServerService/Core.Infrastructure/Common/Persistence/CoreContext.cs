@@ -11,6 +11,7 @@ using Core.Domain.Modules.Purchasing.Categories.Projects;
 using Core.Domain.Modules.Purchasing.Categories.SupplierGroups;
 using Core.Domain.Modules.Purchasing.Documents.PurchaseOrders;
 using Core.Domain.Modules.Purchasing.Documents.PurchaseRequests;
+using Core.Domain.Modules.VoucherGrids;
 using Core.Domain.Modules.VoucherStatuses;
 using Core.Domain.Modules.LoginNotices;
 using Core.Domain.Modules.TaxRates;
@@ -82,6 +83,8 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<VoucherNumberingRule> VoucherNumberingRules => Set<VoucherNumberingRule>();
     public DbSet<VoucherSequence> VoucherSequences => Set<VoucherSequence>();
     public DbSet<VoucherStatus> VoucherStatuses => Set<VoucherStatus>();
+    public DbSet<VoucherGrid> VoucherGrids => Set<VoucherGrid>();
+    public DbSet<VoucherGridColumn> VoucherGridColumns => Set<VoucherGridColumn>();
 
     // Languages
     public DbSet<Language> Languages => Set<Language>();

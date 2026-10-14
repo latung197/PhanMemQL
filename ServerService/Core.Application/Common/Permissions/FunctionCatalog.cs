@@ -57,6 +57,7 @@ public static class FunctionCatalog
             ["sys_login_notices"] = "Thông báo trang đăng nhập",
             ["sys_banners"] = "Thanh thông báo hệ thống",
             ["sys_voucher_status"] = "Trạng thái chứng từ",
+            ["sys_voucher_grid"] = "Cấu hình lưới chứng từ",
             ["sys_default_config"] = "Cài đặt mặc định",
             ["sys_fiscal_year"] = "Năm làm việc và khóa sổ",
             ["sys_currencies"] = "Ngoại tệ",

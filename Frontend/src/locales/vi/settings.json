@@ -556,5 +556,30 @@
     "fixed": "Trạng thái bắt buộc, không tắt được",
     "save": "Lưu",
     "saved": "Đã lưu trạng thái \"{status}\" của {voucher}"
+  },
+  "voucherGrid": {
+    "title": "Cấu hình lưới chứng từ",
+    "subtitle": "Cấu hình dùng chung toàn hệ thống cho lưới chi tiết của chứng từ (mỗi tab là một lưới): đổi thứ tự cột, tiêu đề, độ rộng, số chữ số thập phân, ẩn / hiện cột không bắt buộc và gim các cột đầu bên trái khi cuộn ngang. Kiểu dữ liệu, tra cứu và cột bắt buộc do hệ thống quy định, không đổi ở đây. Người dùng áp dụng sau khi tải lại trang.",
+    "loading": "Đang tải cấu hình lưới...",
+    "grid": "Lưới chứng từ",
+    "tabItems": "Chi tiết mặt hàng",
+    "tabMaterials": "Nguyên vật liệu (BOM)",
+    "pin": "Gim số cột đầu",
+    "pinHint": "Các cột đầu đang hiện này đứng yên khi cuộn ngang (tối đa {n}). Cột # đi cùng.",
+    "order": "Thứ tự",
+    "field": "Trường dữ liệu",
+    "header": "Tiêu đề (tiếng Việt)",
+    "headerEn": "Tiêu đề (tiếng Anh)",
+    "width": "Độ rộng (px)",
+    "decimals": "Số lẻ",
+    "visible": "Hiện",
+    "required": "bắt buộc",
+    "readOnly": "chỉ đọc",
+    "up": "Lên",
+    "down": "Xuống",
+    "save": "Lưu cấu hình",
+    "saving": "Đang lưu...",
+    "saved": "Đã lưu cấu hình lưới của {name}",
+    "note": "Cột bắt buộc không ẩn được. Cột mới thêm trong code tự hiện ở cuối lưới, kéo lên vị trí mong muốn ở đây. Cột đang gim được đánh dấu 📌."
   }
 }

@@ -221,6 +221,7 @@ public sealed class TransferIssueService(CoreContext db, IUnitOfWork unitOfWork,
 
     public async Task<TransferDto> ChangeStatusAsync(int userId, string unitCode, long id, string action, CancellationToken ct)
     {
+        await Core.Application.Common.Permissions.PermissionGate.EnsureTouchAsync(permissions, userId, Function, ct);
         var row = await FindAsync(id, unitCode, ct, tracking: true);
         var normalized = action.ToLowerInvariant();
         if (normalized == "withdraw")
@@ -434,6 +435,7 @@ public sealed class TransferIssueService(CoreContext db, IUnitOfWork unitOfWork,
 
     public async Task<TransferDto> RejectAsync(int userId, string unitCode, long id, string reason, CancellationToken ct)
     {
+        await Core.Application.Common.Permissions.PermissionGate.EnsureTouchAsync(permissions, userId, Function, ct);
         var row = await FindAsync(id, unitCode, ct, tracking: true);
         await EnsureActionAsync(userId, row, DocumentAction.Reject, ct);
         await unitOfWork.ExecuteAsync(async token =>

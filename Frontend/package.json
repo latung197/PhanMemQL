@@ -10,6 +10,7 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "export-seed": "tsx scripts/export-seed.ts",
+    "export-voucher-grids": "tsx scripts/export-voucher-grids.ts",
     "check-policy": "tsx scripts/check-document-policy.ts",
     "check-menu": "tsx scripts/check-menu.ts",
     "check-i18n": "tsx scripts/check-i18n.ts"

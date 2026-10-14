@@ -535,6 +535,7 @@ export type SubMenuKey =
   | 'sys_login_notices'        // Thông báo trang đăng nhập
   | 'sys_banners'              // Thanh thông báo hệ thống
   | 'sys_voucher_status'       // Trạng thái chứng từ theo đơn vị cơ sở
+  | 'sys_voucher_grid'         // Cấu hình lưới chi tiết chứng từ (dùng chung toàn hệ thống)
   | 'sys_tax_rates'            // Danh mục mã thuế
   | 'sys_audit_log'             // Nhật ký thay đổi (mọi chức năng)
   | 'sys_menu'                  // Quản lý ẩn/hiện menu

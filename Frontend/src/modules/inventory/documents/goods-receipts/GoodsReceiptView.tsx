@@ -1847,6 +1847,14 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                 </button>
               </div>
 
+              {/* Bên phải: nút lấy dữ liệu ngay bên trái nút tra cứu vật tư */}
+              <div className="flex items-center gap-2 flex-wrap ml-auto">
+              {activeTab === 'items' && (
+                <Button type="button" size="sm" variant="outline" onClick={() => void handleOpenOrderPicker()} icon={<OrderPickIcon className="h-3.5 w-3.5" />}
+                  disabled={!canSaveForm} className="text-[10.5px] py-1 px-2.5 h-[26px] font-semibold">
+                  Lấy từ đơn mua hàng
+                </Button>
+              )}
               <Button
                 type="button"
                 size="sm"
@@ -1860,12 +1868,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
               >
                 Tra cứu vật tư (F2)
               </Button>
-              {activeTab === 'items' && (
-                <Button type="button" size="sm" variant="outline" onClick={() => void handleOpenOrderPicker()} icon={<OrderPickIcon className="h-3.5 w-3.5" />}
-                  disabled={!canSaveForm} className="text-[10.5px] py-1 px-2.5 h-[26px] font-semibold">
-                  Lấy từ đơn mua hàng
-                </Button>
-              )}
+              </div>
             </div>
 
             {activeTab === 'items' && overOrder.length > 0 && (

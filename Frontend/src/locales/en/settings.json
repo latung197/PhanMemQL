@@ -556,5 +556,30 @@
     "fixed": "A required status, it cannot be switched off",
     "save": "Save",
     "saved": "Saved status \"{status}\" of {voucher}"
+  },
+  "voucherGrid": {
+    "title": "Voucher grid settings",
+    "subtitle": "System-wide settings of the detail grids of the vouchers (each tab is a grid): reorder columns, headers, widths, decimals, hide or show columns that are not required and pin the first columns on the left when scrolling sideways. Data types, lookups and required columns are fixed by the system. Users get the change after reloading the page.",
+    "loading": "Loading grid settings...",
+    "grid": "Voucher grid",
+    "tabItems": "Item lines",
+    "tabMaterials": "Materials (BOM)",
+    "pin": "Pinned columns",
+    "pinHint": "These first visible columns stay in place when scrolling sideways (at most {n}). The # column goes with them.",
+    "order": "Order",
+    "field": "Data field",
+    "header": "Header (Vietnamese)",
+    "headerEn": "Header (English)",
+    "width": "Width (px)",
+    "decimals": "Decimals",
+    "visible": "Show",
+    "required": "required",
+    "readOnly": "read only",
+    "up": "Up",
+    "down": "Down",
+    "save": "Save settings",
+    "saving": "Saving...",
+    "saved": "Saved the grid settings of {name}",
+    "note": "A required column cannot be hidden. A column added in the code appears at the end of the grid; move it here. Pinned columns are marked 📌."
   }
 }

@@ -29,6 +29,7 @@ import { BANNERS_CHANGED_EVENT, SystemBanner, clearHiddenBanners } from './compo
 import { requestOpenDocument } from './utils/documentLinks';
 import { systemSettingsService } from './services/systemSettingsService';
 import { voucherStatusService } from './services/voucherStatusService';
+import { voucherGridService } from './services/voucherGridService';
 import { menuService } from './services/menuService';
 import type { SysModule } from './types/menu';
 import { getErrorMessage, UNAUTHORIZED_EVENT } from './services/apiClient';
@@ -212,7 +213,7 @@ const ERPAppContent: React.FC = () => {
     applyNumberFormat(systemSettingsService.getNumberFormat());
     await Promise.all([
       menuService.load().then(setMenuTree).catch(error => showToast.error(getErrorMessage(error))),
-      voucherStatusService.load(), refreshCompanyUnits(), refreshNotifications()
+      voucherStatusService.load(), voucherGridService.load(), refreshCompanyUnits(), refreshNotifications()
     ]);
   }, [refreshCompanyUnits, refreshNotifications, applyNumberFormat, setLanguage]);
 
@@ -221,6 +222,7 @@ const ERPAppContent: React.FC = () => {
     clearHiddenBanners();
     systemSettingsService.clear();
     voucherStatusService.clear();
+    voucherGridService.clear();
     setMenuVisibility(EMPTY_MENU_VISIBILITY);
     setMenuTree([]);
     setCurrentUser(null);
@@ -280,6 +282,7 @@ const ERPAppContent: React.FC = () => {
   reloadSettingsRef.current = () => {
     void menuService.load().then(setMenuTree).catch(() => {});
     void voucherStatusService.load();
+    void voucherGridService.load();
     if (activeSubMenu === 'sys_menu') return;
     void systemSettingsService.load()
       .then(() => setMenuVisibility(systemSettingsService.getMenuVisibility()))
