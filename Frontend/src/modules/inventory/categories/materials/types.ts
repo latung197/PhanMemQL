@@ -1,5 +1,14 @@
 import type { RecordStamp } from '../../../../components/common/RecordStamp';
 
+/** One line of the conversions grid: 1 uomCode = factor base units of the material. */
+export interface MaterialUomRecord {
+  uomCode: string;
+  uomName?: string | null;
+  factor: number;
+  note?: string | null;
+  isActive: boolean;
+}
+
 export type CostingMethod = 'AVERAGE' | 'FIFO';
 
 /** A material from the backend catalog (erp_material); the code is the key. */
@@ -37,6 +46,8 @@ export interface MaterialRecord {
   isActive: boolean;
   stamp: RecordStamp;
   version: number;
+  /** Units other than the base unit: 1 unit = factor base units. */
+  conversions?: MaterialUomRecord[];
 }
 
 export interface SaveMaterialInput {
@@ -66,4 +77,5 @@ export interface SaveMaterialInput {
   note: string;
   isActive: boolean;
   version?: number;
+  conversions?: { uomCode: string; factor: number; note: string; isActive: boolean }[];
 }

@@ -151,7 +151,7 @@ export const goodsReceiptsApi = {
     apiRequest<OpenPurchaseOrder[]>('GET', `${url}/open-orders${editingReceiptId ? `?receiptId=${encodeURIComponent(editingReceiptId)}` : ''}`),
   create: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<ReceiptRecord>('POST', url, toRequest(voucher, targetStatus))),
   update: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<ReceiptRecord>('PUT', `${url}/${voucher.id}`, toRequest(voucher, targetStatus))),
-  changeStatus: async (id: string, action: 'submit' | 'withdraw' | 'approve' | 'post' | 'unpost' | 'cancel') =>
+  changeStatus: async (id: string, action: 'submit' | 'withdraw' | 'approve' | 'post' | 'unpost' | 'cancel' | 'reopen') =>
     toVoucher(await apiRequest<ReceiptRecord>('POST', `${url}/${id}/${action}`)),
   remove: (id: string) => apiRequest<void>('DELETE', `${url}/${id}`)
 };

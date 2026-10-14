@@ -1,6 +1,6 @@
-import type { Product, Warehouse } from '../../../../types';
-import { TransferVouchersView } from '../_shared/TransferVouchersView';
+import type { CompanyUnit, UserProfile } from '../../../../types';
+import { TransferVoucherView } from '../transfers/TransferVoucherView';
 
-export function TransferOrderView(props: { products: Product[]; warehouses: Warehouse[] }) {
-  return <TransferVouchersView typeFilter="order" {...props} />;
+export function TransferOrderView(props: { companyUnits?: CompanyUnit[]; activeUnitCode: string; currentUser?: UserProfile }) {
+  return <TransferVoucherView kind="order" {...props} />;
 }

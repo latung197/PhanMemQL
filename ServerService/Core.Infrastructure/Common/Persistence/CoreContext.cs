@@ -20,6 +20,7 @@ using Core.Domain.Modules.Inventory.Categories.suppliers;
 using Core.Domain.Modules.Inventory.Documents.GoodsIssues;
 using Core.Domain.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Domain.Modules.Inventory.Documents.IssueRequests;
+using Core.Domain.Modules.Inventory.Documents.Transfers;
 using Core.Domain.Modules.Languages;
 using Core.Domain.Modules.Notifications;
 using Core.Domain.Modules.SystemConfig;
@@ -109,6 +110,12 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<GoodsIssueLine> GoodsIssueLines => Set<GoodsIssueLine>();
     public DbSet<IssueRequest> IssueRequests => Set<IssueRequest>();
     public DbSet<IssueRequestLine> IssueRequestLines => Set<IssueRequestLine>();
+    public DbSet<TransferOrder> TransferOrders => Set<TransferOrder>();
+    public DbSet<TransferOrderLine> TransferOrderLines => Set<TransferOrderLine>();
+    public DbSet<TransferIssue> TransferIssues => Set<TransferIssue>();
+    public DbSet<TransferIssueLine> TransferIssueLines => Set<TransferIssueLine>();
+    public DbSet<TransferReceipt> TransferReceipts => Set<TransferReceipt>();
+    public DbSet<TransferReceiptLine> TransferReceiptLines => Set<TransferReceiptLine>();
     public DbSet<PurchaseRequest> PurchaseRequests => Set<PurchaseRequest>();
     public DbSet<PurchaseRequestLine> PurchaseRequestLines => Set<PurchaseRequestLine>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
@@ -166,6 +173,9 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<GoodsReceipt>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.ReceiptId);
         model.Entity<GoodsIssue>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.IssueId);
         model.Entity<IssueRequest>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.RequestId);
+        model.Entity<TransferOrder>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.OrderId);
+        model.Entity<TransferIssue>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.IssueId);
+        model.Entity<TransferReceipt>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.ReceiptId);
         model.Entity<PurchaseRequest>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.RequestId);
         model.Entity<PurchaseOrder>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.OrderId);
 

@@ -123,6 +123,7 @@ Lần chạy đầu của script 43 (dấu hiệu: bảng `sys_voucher_status` c
 | Ghi sổ | Phiếu Đã duyệt + `ST_POSTED` |
 | Bỏ ghi sổ | Phiếu Đã ghi sổ + `ST_UNPOST` |
 | Hủy | Người lập hủy phiếu nháp của mình cần Xóa; trường hợp khác cần `ST_CANCELLED`; phiếu Đã ghi sổ phải bỏ ghi sổ trước |
+| Khôi phục (Hủy → Lập chứng từ) | Chỉ phiếu đã hủy; cần `ST_CANCELLED` của đơn vị (ai hủy được thì khôi phục được) |
 | Lưu thẳng ở trạng thái (`TargetStatus`) | `DocumentStatusPolicy.CheckTarget`: Thêm hoặc Sửa + với tới trạng thái đó; ghi sổ còn kiểm như thao tác Ghi sổ; Chờ duyệt cần bước đang dùng |
 
 "Với tới" một trạng thái = có quyền của trạng thái đó hoặc của trạng thái sau nó trong chuỗi Chờ duyệt < Đã duyệt < Đã ghi sổ (`DocumentActor.Reaches`). Hủy không nằm trong chuỗi.
@@ -146,7 +147,8 @@ Thêm một chứng từ mới ở `VoucherCatalog` thì có đủ trạng thái
 ## 6. Giới hạn hiện tại
 
 - Chỉ tắt được bước Chờ duyệt; Đã ghi sổ tắt được cho chứng từ không làm sổ kho sẽ làm sau khi có loại chứng từ cần.
-- Quyền "mở lại phiếu đã hủy" chưa có (chưa có thao tác mở lại).
+- **Khôi phục phiếu đã hủy** (`DocumentAction.Reopen`, nút "Khôi phục" trên danh sách): đưa phiếu về Lập chứng từ để sửa và duyệt lại, dùng quyền `ST_CANCELLED`. Kỳ phải chưa khóa; phiếu có dòng lấy từ phiếu khác (phiếu xuất lấy từ yêu cầu, phiếu nhập lấy từ đơn mua, đơn mua lấy từ yêu cầu mua, phiếu xuất / nhập điều chuyển) chỉ khôi phục được khi phiếu nguồn còn hiệu lực và còn đủ số lượng cho các dòng đó (`reopen.sourceNotReady`, `reopen.exceedsSource`). Vòng duyệt cũ không tính: gửi duyệt lại bắt đầu vòng mới.
+- **Hỏi xác nhận**: nút Hủy và Bỏ ghi sổ trên danh sách hiện hộp xác nhận trước khi thực hiện (Xóa vốn đã có hộp xác nhận).
 - Quyền theo đơn vị chỉ áp dụng cho quyền trạng thái; bảy quyền chức năng (Xem, Thêm, Sửa...) và các quyền xem giá, phạm vi vẫn chung cho mọi đơn vị của người dùng.
 - Tên quyền ở màn phân quyền là tên trạng thái mặc định; tên đơn vị đã đổi chưa hiện ở đó.
 - Màn phiếu nhập kho dùng tên trạng thái do đơn vị đặt ở danh sách và ô trạng thái; bản in phiếu vẫn dùng tên cố định.

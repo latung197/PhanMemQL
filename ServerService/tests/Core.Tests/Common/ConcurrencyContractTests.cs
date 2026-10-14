@@ -20,7 +20,7 @@ public sealed partial class ConcurrencyContractTests
     private static IEnumerable<(Type Service, MethodInfo Method)> UpdateMethods() =>
         typeof(IUomService).Assembly.GetTypes()
             .Where(t => t.IsInterface && t.Name.EndsWith("Service", StringComparison.Ordinal))
-            .SelectMany(t => t.GetMethods().Where(m => m.Name == "UpdateAsync").Select(m => (t, m)))
+            .SelectMany(t => t.GetMethods().Concat(t.GetInterfaces().Where(i => !i.IsGenericType).SelectMany(i => i.GetMethods())).Where(m => m.Name == "UpdateAsync").Select(m => (t, m)))
             .Where(x => !Exempt.ContainsKey($"{x.t.Name}.UpdateAsync"));
 
     [Fact]
@@ -60,7 +60,9 @@ public sealed partial class ConcurrencyContractTests
         var implementations = typeof(CoreContext).Assembly.GetTypes().Where(t => t.IsClass && !t.IsAbstract).ToList();
         foreach (var (service, _) in UpdateMethods())
         {
-            var implementation = implementations.Single(t => service.IsAssignableFrom(t));
+            var matches = implementations.Where(t => service.IsAssignableFrom(t)).ToList();
+            Assert.True(matches.Count == 1, $"{service.Name} has {matches.Count} implementations: {string.Join(", ", matches.Select(m => m.Name))}");
+            var implementation = matches[0];
             var file = Directory.EnumerateFiles(Path.Combine(root, "Core.Infrastructure"), $"{implementation.Name}.cs", SearchOption.AllDirectories)
                 .Single(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"));
             var source = File.ReadAllText(file);

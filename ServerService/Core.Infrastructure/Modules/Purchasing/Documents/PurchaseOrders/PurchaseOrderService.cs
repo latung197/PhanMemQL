@@ -271,11 +271,12 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
         var policyAction = normalized switch
         {
             "submit" => DocumentAction.Submit, "approve" => DocumentAction.Approve,
-            "cancel" => DocumentAction.Cancel, _ => throw new BusinessRuleException("purchaseOrder.invalidAction")
+            "cancel" => DocumentAction.Cancel, "reopen" => DocumentAction.Reopen, _ => throw new BusinessRuleException("purchaseOrder.invalidAction")
         };
         if (normalized == "cancel" && row.Status == "Pending")
             throw new BusinessRuleException("purchaseOrder.withdrawBeforeCancel");
         await EnsureActionAsync(userId, row, policyAction, ct);
+        if (normalized == "reopen") await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         if (normalized == "cancel" && await PurchaseOrderProgress.HasReceiptsAsync(db, row.Id, ct))
             throw new BusinessRuleException("purchaseOrder.cancelHasReceipts");
         await unitOfWork.ExecuteAsync(async token =>
@@ -295,6 +296,13 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
                     row.Status = "Approved";
                     row.ApprovedByUserId = userId;
                 }
+            }
+            else if (normalized == "reopen")
+            {
+                // A cancelled voucher comes back as a draft: what it follows must still have room for it.
+                await EnsureLinksStillFitAsync(row, token);
+                row.Status = "Draft";
+                row.ApprovedByUserId = null;
             }
             else row.Status = "Cancelled";
             await db.SaveChangesAsync(token);
@@ -339,6 +347,27 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
             await approvals.ApproveDirectAsync(userId, unitCode, Function, row.Code, row.Code, token);
         }
         else await approvals.ApproveWithoutFlowAsync(userId, unitCode, Function, row.Code, token);
+    }
+
+    /// <summary>
+    /// Reopening a cancelled voucher: the lines that follow a line of another voucher must still fit what is left of it (the others
+    /// may have taken it while this one was cancelled), and that voucher must still be Approved.
+    /// </summary>
+    private async Task EnsureLinksStillFitAsync(PurchaseOrder row, CancellationToken ct)
+    {
+        var lines = row.Lines.Where(l => l.PurchaseRequestLineId != null).ToList();
+        if (lines.Count == 0) return;
+        var ids = lines.Select(l => l.PurchaseRequestLineId!.Value).Distinct().ToList();
+        var sources = await (from l in db.PurchaseRequestLines.AsNoTracking() join o in db.PurchaseRequests.AsNoTracking() on l.RequestId equals o.Id
+                             where ids.Contains(l.Id) select new { l.Id, l.Quantity, o.Code, o.Status }).ToListAsync(ct);
+        var done = await PurchaseRequestProgress.OrderedByLineAsync(db, ids, row.Id, ct);
+        foreach (var src in sources)
+        {
+            if (src.Status != "Approved") throw new BusinessRuleException("reopen.sourceNotReady", src.Code);
+            var taken = lines.Where(l => l.PurchaseRequestLineId == src.Id).Sum(l => l.Quantity);
+            var remaining = src.Quantity - done.GetValueOrDefault(src.Id);
+            if (taken > remaining) throw new BusinessRuleException("reopen.exceedsSource", src.Code, remaining.ToString("0.####"));
+        }
     }
 
     public async Task DeleteAsync(int userId, string unitCode, long id, CancellationToken ct)
@@ -458,6 +487,7 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
             if (!material.IsStockItem) throw new BusinessRuleException("voucherLine.materialNotStock", code);
             if (!activeUoms.Contains(item.UomCode.Trim().ToUpperInvariant()))
                 throw new BusinessRuleException("voucherLine.uomInvalid", item.UomCode.Trim().ToUpperInvariant(), code);
+            await UomRules.EnsureUsableAsync(db, material, item.UomCode, ct);
         }
         var requestCodes = await ValidateRequestLinkAsync(unitCode, warehouseCode, request, orderId, ct);
         return new Checked(rate, materials.ToDictionary(x => x.Key, x => x.Value.Name), supplier.Code, supplier.Name, taxCode, taxRate, requestCodes, termCode, termsText);

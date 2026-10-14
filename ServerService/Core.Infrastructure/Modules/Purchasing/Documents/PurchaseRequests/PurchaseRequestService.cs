@@ -264,11 +264,12 @@ public sealed class PurchaseRequestService(CoreContext db, IUnitOfWork unitOfWor
         var policyAction = normalized switch
         {
             "submit" => DocumentAction.Submit, "approve" => DocumentAction.Approve,
-            "cancel" => DocumentAction.Cancel, _ => throw new BusinessRuleException("purchaseRequest.invalidAction")
+            "cancel" => DocumentAction.Cancel, "reopen" => DocumentAction.Reopen, _ => throw new BusinessRuleException("purchaseRequest.invalidAction")
         };
         if (normalized == "cancel" && row.Status == "Pending")
             throw new BusinessRuleException("purchaseRequest.withdrawBeforeCancel");
         await EnsureActionAsync(userId, row, policyAction, ct);
+        if (normalized == "reopen") await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         if (normalized == "cancel" && await PurchaseRequestProgress.HasOrdersAsync(db, row.Id, ct))
             throw new BusinessRuleException("purchaseRequest.cancelHasOrders");
         await unitOfWork.ExecuteAsync(async token =>
@@ -288,6 +289,13 @@ public sealed class PurchaseRequestService(CoreContext db, IUnitOfWork unitOfWor
                     row.Status = "Approved";
                     row.ApprovedByUserId = userId;
                 }
+            }
+            else if (normalized == "reopen")
+            {
+                // A cancelled voucher comes back as a draft: what it follows must still have room for it.
+                await EnsureLinksStillFitAsync(row, token);
+                row.Status = "Draft";
+                row.ApprovedByUserId = null;
             }
             else row.Status = "Cancelled";
             await db.SaveChangesAsync(token);
@@ -333,6 +341,9 @@ public sealed class PurchaseRequestService(CoreContext db, IUnitOfWork unitOfWor
         }
         else await approvals.ApproveWithoutFlowAsync(userId, unitCode, Function, row.Code, token);
     }
+
+    /// <summary>Reopening a cancelled voucher: nothing it follows can be taken by others, so there is nothing to check.</summary>
+    private static Task EnsureLinksStillFitAsync(PurchaseRequest row, CancellationToken ct) => Task.CompletedTask;
 
     public async Task DeleteAsync(int userId, string unitCode, long id, CancellationToken ct)
     {
@@ -438,6 +449,7 @@ public sealed class PurchaseRequestService(CoreContext db, IUnitOfWork unitOfWor
             if (!material.IsStockItem) throw new BusinessRuleException("voucherLine.materialNotStock", code);
             if (!activeUoms.Contains(item.UomCode.Trim().ToUpperInvariant()))
                 throw new BusinessRuleException("voucherLine.uomInvalid", item.UomCode.Trim().ToUpperInvariant(), code);
+            await UomRules.EnsureUsableAsync(db, material, item.UomCode, ct);
         }
         return new Checked(rate, materials.ToDictionary(x => x.Key, x => x.Value.Name), department, supplierCode, supplierName);
     }

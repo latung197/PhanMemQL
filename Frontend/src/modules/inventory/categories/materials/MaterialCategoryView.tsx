@@ -20,7 +20,7 @@ const emptyInput: SaveMaterialInput = {
   code: '', name: '', uomCode: '', customerMaterialCode: '', partNo: '', materialTypeCode: '', materialGroupCode: '',
   vatTaxRateCode: '', importTaxRateCode: '', isStockItem: true, trackLot: false, hasExpiry: false, shelfLifeDays: null,
   trackLocation: false, isCycleCounted: false, costingMethod: 'AVERAGE', minStock: null, maxStock: null, length: null,
-  width: null, height: null, weight: null, volume: null, note: '', isActive: true
+  width: null, height: null, weight: null, volume: null, note: '', isActive: true, conversions: []
 };
 
 export const MaterialCategoryView: React.FC<{ currentUser?: UserProfile }> = ({ currentUser }) => {
@@ -142,5 +142,6 @@ const toInput = (row: MaterialRecord): SaveMaterialInput => ({
   trackLot: row.trackLot, hasExpiry: row.hasExpiry, shelfLifeDays: row.shelfLifeDays ?? null, trackLocation: row.trackLocation,
   isCycleCounted: row.isCycleCounted, costingMethod: row.costingMethod, minStock: row.minStock ?? null, maxStock: row.maxStock ?? null,
   length: row.length ?? null, width: row.width ?? null, height: row.height ?? null, weight: row.weight ?? null,
-  volume: row.volume ?? null, note: row.note ?? '', isActive: row.isActive
+  volume: row.volume ?? null, note: row.note ?? '', isActive: row.isActive,
+  conversions: (row.conversions ?? []).map(c => ({ uomCode: c.uomCode, factor: c.factor, note: c.note ?? '', isActive: c.isActive }))
 });

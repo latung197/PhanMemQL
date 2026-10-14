@@ -48,6 +48,8 @@ public static class SpecialRightCatalog
     public const string StatusCancelled = "ST_CANCELLED";
     /// <summary>Backward step: take a posted voucher back to Approved.</summary>
     public const string StatusUnpost = "ST_UNPOST";
+    /// <summary>Change or delete a voucher that is already posted: the posting is reversed, the change made and the voucher posted again in one transaction (refused when the stock would go negative).</summary>
+    public const string StatusEditPosted = "ST_EDIT_POSTED";
 
     /// <summary>Separates the code from the company unit in the stored code of a per-unit right.</summary>
     public const char UnitSeparator = '@';
@@ -83,7 +85,7 @@ public static class SpecialRightCatalog
         foreach (var fn in Vouchers)
         {
             list.Add(new(fn, ViewPrice, "voucherViewPrice", SpecialRightGroups.Data));
-            if (fn is "inv_issue" or "inv_transfer_issue" or "sales_orders" or "sales_delivery")
+            if (fn is "inv_issue" or "inv_transfer_issue" or "inv_transfer_receipt" or "sales_orders" or "sales_delivery")
                 list.Add(new(fn, ViewCost, "voucherViewCost", SpecialRightGroups.Data));
             list.Add(new(fn, ViewAll, "viewAll", SpecialRightGroups.Scope));
             list.Add(new(fn, StatusPending, "statusPending", SpecialRightGroups.Status, PerUnit: true));
@@ -92,6 +94,7 @@ public static class SpecialRightCatalog
             {
                 list.Add(new(fn, StatusPosted, "statusPosted", SpecialRightGroups.Status, PerUnit: true));
                 list.Add(new(fn, StatusUnpost, "statusUnpost", SpecialRightGroups.Status, PerUnit: true));
+                list.Add(new(fn, StatusEditPosted, "statusEditPosted", SpecialRightGroups.Status, PerUnit: true));
             }
             list.Add(new(fn, StatusCancelled, "statusCancelled", SpecialRightGroups.Status, PerUnit: true));
         }

@@ -118,7 +118,7 @@ export const goodsIssuesApi = {
   getOptions: () => apiRequest<{ warehouses: { code: string; name: string }[]; currencies: { code: string; name: string }[] }>('GET', `${url}/options`),
   create: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<IssueRecord>('POST', url, toRequest(voucher, targetStatus))),
   update: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<IssueRecord>('PUT', `${url}/${voucher.id}`, toRequest(voucher, targetStatus))),
-  changeStatus: async (id: string, action: 'submit' | 'withdraw' | 'approve' | 'post' | 'unpost' | 'cancel') =>
+  changeStatus: async (id: string, action: 'submit' | 'withdraw' | 'approve' | 'post' | 'unpost' | 'cancel' | 'reopen') =>
     toVoucher(await apiRequest<IssueRecord>('POST', `${url}/${id}/${action}`)),
   remove: (id: string) => apiRequest<void>('DELETE', `${url}/${id}`)
 };

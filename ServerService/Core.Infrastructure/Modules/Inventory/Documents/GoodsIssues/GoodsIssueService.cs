@@ -154,13 +154,23 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
         SaveGoodsIssueRequest request, CancellationToken ct)
     {
         var row = await FindAsync(id, unitCode, ct, tracking: true);
-        await EnsureActionAsync(userId, row, DocumentAction.Edit, ct);
-        if (row.Status != "Draft") throw new BusinessRuleException("issue.editDraftOnly");
+        // A posted voucher may be changed with the right ST_EDIT_POSTED: reverse the posting, change, post again (all or nothing).
+        var posted = row.Status == "Posted";
+        if (posted)
+        {
+            await EnsureActionAsync(userId, row, DocumentAction.View, ct);
+            await PostedEdit.EnsureAsync(permissions, userId, Function, row.UnitCode, forDelete: false, ct);
+        }
+        else
+        {
+            await EnsureActionAsync(userId, row, DocumentAction.Edit, ct);
+            if (row.Status != "Draft") throw new BusinessRuleException("issue.editDraftOnly");
+        }
         await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         var check = await ValidateAsync(unitCode, request, id, ct);
         await ProjectChecks.EnsureAsync(db, request.ProjectCode, row.ProjectCode, ct);
-        var target = VoucherTargetStatus.Parse(request.TargetStatus);
-        await EnsureTargetAllowedAsync(userId, unitCode, row.CreatedBy == userId, target, ct);
+        var target = posted ? DocumentStatus.Posted : VoucherTargetStatus.Parse(request.TargetStatus);
+        if (!posted) await EnsureTargetAllowedAsync(userId, unitCode, row.CreatedBy == userId, target, ct);
         db.ExpectVersion(row, request.Version, touch: true);
         var before = LineSummary(row.Lines);
         await unitOfWork.ExecuteAsync(async token =>
@@ -172,7 +182,13 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
             await db.SaveChangesAsync(token);
             row.Lines.AddRange(Lines(request, id, check.Names));
             await db.SaveChangesAsync(token);
-            await AdvanceAsync(row, unitCode, userId, target, token);
+            if (posted)
+            {
+                // Reverse the old posting and post the changed voucher; the stock is checked on the end result only.
+                await ledger.ReplaceAsync(userId, await ToPostingAsync(row, unitCode, token), token);
+                await db.SaveChangesAsync(token);
+            }
+            else await AdvanceAsync(row, unitCode, userId, target, token);
         }, ct);
         return await ResultAsync(userId, unitCode, id, ct);
     }
@@ -198,11 +214,12 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
         {
             "submit" => DocumentAction.Submit, "approve" => DocumentAction.Approve,
             "post" => DocumentAction.Post, "unpost" => DocumentAction.Unpost,
-            "cancel" => DocumentAction.Cancel, _ => throw new BusinessRuleException("issue.invalidAction")
+            "cancel" => DocumentAction.Cancel, "reopen" => DocumentAction.Reopen, _ => throw new BusinessRuleException("issue.invalidAction")
         };
         if (normalized == "cancel" && row.Status == "Pending")
             throw new BusinessRuleException("issue.withdrawBeforeCancel");
         await EnsureActionAsync(userId, row, policyAction, ct);
+        if (normalized == "reopen") await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         if (normalized is "post" or "unpost") await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         await unitOfWork.ExecuteAsync(async token =>
         {
@@ -231,6 +248,13 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
             {
                 await ledger.UnpostAsync(userId, Function, row.Id, token);
                 row.Status = "Approved";
+            }
+            else if (normalized == "reopen")
+            {
+                // A cancelled voucher comes back as a draft: what it follows must still have room for it.
+                await EnsureLinksStillFitAsync(row, token);
+                row.Status = "Draft";
+                row.ApprovedByUserId = null;
             }
             else row.Status = "Cancelled";
             await db.SaveChangesAsync(token);
@@ -305,14 +329,46 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
         return new StockPosting(Function, row.Id, unitCode, row.WarehouseCode, row.DocumentDate, StockDirection.Out, lines);
     }
 
+    /// <summary>
+    /// Reopening a cancelled voucher: the lines that follow a line of another voucher must still fit what is left of it (the others
+    /// may have taken it while this one was cancelled), and that voucher must still be Approved.
+    /// </summary>
+    private async Task EnsureLinksStillFitAsync(GoodsIssue row, CancellationToken ct)
+    {
+        var lines = row.Lines.Where(l => l.IssueRequestLineId != null).ToList();
+        if (lines.Count == 0) return;
+        var ids = lines.Select(l => l.IssueRequestLineId!.Value).Distinct().ToList();
+        var sources = await (from l in db.IssueRequestLines.AsNoTracking() join o in db.IssueRequests.AsNoTracking() on l.RequestId equals o.Id
+                             where ids.Contains(l.Id) select new { l.Id, l.Quantity, o.Code, o.Status }).ToListAsync(ct);
+        var done = await IssueRequestProgress.IssuedByLineAsync(db, ids, row.Id, ct);
+        foreach (var src in sources)
+        {
+            if (src.Status != "Approved") throw new BusinessRuleException("reopen.sourceNotReady", src.Code);
+            var taken = lines.Where(l => l.IssueRequestLineId == src.Id).Sum(l => l.Quantity);
+            var remaining = src.Quantity - done.GetValueOrDefault(src.Id);
+            if (taken > remaining) throw new BusinessRuleException("reopen.exceedsSource", src.Code, remaining.ToString("0.####"));
+        }
+    }
+
     public async Task DeleteAsync(int userId, string unitCode, long id, CancellationToken ct)
     {
         var row = await FindAsync(id, unitCode, ct, tracking: true);
-        await EnsureActionAsync(userId, row, DocumentAction.Cancel, ct);
-        if (row.Status != "Draft") throw new BusinessRuleException("issue.deleteDraftOnly");
+        // A posted voucher is deleted with the right ST_EDIT_POSTED: the posting is reversed first (refused when the stock would go negative).
+        var posted = row.Status == "Posted";
+        if (posted)
+        {
+            await EnsureActionAsync(userId, row, DocumentAction.View, ct);
+            await PostedEdit.EnsureAsync(permissions, userId, Function, row.UnitCode, forDelete: true, ct);
+        }
+        else
+        {
+            await EnsureActionAsync(userId, row, DocumentAction.Cancel, ct);
+            if (row.Status != "Draft") throw new BusinessRuleException("issue.deleteDraftOnly");
+        }
         await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         await unitOfWork.ExecuteAsync(async token =>
         {
+            if (posted) await ledger.UnpostAsync(userId, Function, row.Id, token);
             db.GoodsIssueLines.RemoveRange(row.Lines);
             db.GoodsIssues.Remove(row);
             await db.SaveChangesAsync(token);
@@ -402,6 +458,7 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
             if (IsStockLine(item) && !material.IsStockItem) throw new BusinessRuleException("voucherLine.materialNotStock", code);
             if (!activeUoms.Contains(item.UomCode.Trim().ToUpperInvariant()))
                 throw new BusinessRuleException("voucherLine.uomInvalid", item.UomCode.Trim().ToUpperInvariant(), code);
+            if (IsStockLine(item)) await UomRules.EnsureUsableAsync(db, material, item.UomCode, ct);
             // A material tracked by location needs a location of this warehouse; for other materials the position is only a note.
             var position = item.Position?.Trim().ToUpperInvariant();
             if (IsStockLine(item) && material.TrackLocation && !string.IsNullOrEmpty(position)

@@ -426,6 +426,69 @@ export const purchaseOrderItemsGridConfig: VoucherGridInfo = {
   ]
 };
 
+// Điều chuyển kho. Lệnh (LDC) không ghi sổ; phiếu xuất (PXDC) và phiếu nhập (PNDC) ghi sổ kho. "Đơn giá" / "Thành tiền" là giá trị của
+// hàng (tiền hạch toán) do sổ kho tính, chỉ đọc; "Số hiệu nguồn" là số lệnh / phiếu xuất mà dòng theo; "Đã xuất" / "Đã nhận" do máy chủ tính.
+const transferMaterialColumns = [
+  {
+    field: 'sku', headerName: 'Mã VT / Code', headerNameEn: 'Item Code', type: 'lookup' as const, width: 140, minWidth: 120, align: 'left' as const,
+    required: true, placeholder: 'Mã SKU...',
+    lookupConfig: { lookupCode: 'MATERIAL', displayField: 'productName', codeField: 'sku', unitField: 'unit', priceField: 'unitPrice' }
+  },
+  { field: 'productName', headerName: 'Tên Vật Tư / Hàng Hóa', headerNameEn: 'Item Name', type: 'text' as const, width: 240, minWidth: 180, align: 'left' as const, required: true, placeholder: 'Tên vật tư...' }
+];
+const transferSourceColumn = (name: string, nameEn: string) => (
+  { field: 'transferSourceCode', headerName: name, headerNameEn: nameEn, type: 'text' as const, width: 170, minWidth: 130, align: 'left' as const, readOnly: true, placeholder: '' });
+const transferValueColumns = [
+  { field: 'unitPrice', headerName: 'Đơn Giá Vốn', headerNameEn: 'Cost Price', type: 'currency' as const, width: 110, align: 'right' as const, readOnly: true, decimals: 0 },
+  { field: 'amount', headerName: 'Giá Trị', headerNameEn: 'Value', type: 'currency' as const, width: 130, align: 'right' as const, readOnly: true, decimals: 0, summary: 'sum' as const, summaryFormat: 'currency' as const }
+];
+const transferNoteColumn = { field: 'note', headerName: 'Ghi Chú', headerNameEn: 'Note', type: 'text' as const, width: 170, minWidth: 120, align: 'left' as const, placeholder: 'Ghi chú dòng...' };
+
+export const transferOrderItemsGridConfig: VoucherGridInfo = {
+  voucherType: 'LDC', voucherName: 'Lệnh Điều Chuyển Kho', gridId: 'LDC_ITEMS', allowAddRow: true, allowDeleteRow: true,
+  defaultNewRow: { sku: '', productName: '', unit: '', quantity: 1, note: '' },
+  columns: [
+    ...transferMaterialColumns,
+    { field: 'unit', headerName: 'ĐVT', headerNameEn: 'UOM', type: 'uom', width: 80, align: 'center', required: false, placeholder: 'Cái' },
+    { field: 'quantity', headerName: 'Số Lượng Cần Chuyển', headerNameEn: 'Quantity', type: 'quantity', width: 120, align: 'right', required: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'doneQuantity', headerName: 'Đã Xuất', headerNameEn: 'Issued', type: 'quantity', width: 90, align: 'right', readOnly: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    transferNoteColumn
+  ]
+};
+
+export const transferIssueItemsGridConfig: VoucherGridInfo = {
+  voucherType: 'PXDC', voucherName: 'Phiếu Xuất Điều Chuyển Kho', gridId: 'PXDC_ITEMS', allowAddRow: true, allowDeleteRow: true,
+  defaultNewRow: { sku: '', productName: '', unit: '', quantity: 1, lotNumber: '', position: '', note: '' },
+  columns: [
+    ...transferMaterialColumns,
+    transferSourceColumn('Lệnh Điều Chuyển', 'Order No.'),
+    { field: 'unit', headerName: 'ĐVT', headerNameEn: 'UOM', type: 'uom', width: 80, align: 'center', required: false, placeholder: 'Cái' },
+    { field: 'quantity', headerName: 'Số Lượng Xuất', headerNameEn: 'Issued Quantity', type: 'quantity', width: 110, align: 'right', required: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'doneQuantity', headerName: 'Đã Nhận', headerNameEn: 'Received', type: 'quantity', width: 90, align: 'right', readOnly: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'lotNumber', headerName: 'Số Lô', headerNameEn: 'Lot', type: 'text', width: 110, minWidth: 90, align: 'left', placeholder: 'Số lô' },
+    { field: 'position', headerName: 'Vị Trí Kho Đi', headerNameEn: 'Source Location', type: 'text', width: 110, minWidth: 90, align: 'left', placeholder: 'Vị trí' },
+    ...transferValueColumns,
+    transferNoteColumn
+  ]
+};
+
+export const transferReceiptItemsGridConfig: VoucherGridInfo = {
+  voucherType: 'PNDC', voucherName: 'Phiếu Nhập Điều Chuyển Kho', gridId: 'PNDC_ITEMS', allowAddRow: false, allowDeleteRow: true,
+  defaultNewRow: { sku: '', productName: '', unit: '', quantity: 1, position: '', note: '' },
+  columns: [
+    { ...transferMaterialColumns[0], readOnly: true },
+    { ...transferMaterialColumns[1], readOnly: true },
+    transferSourceColumn('Phiếu Xuất Điều Chuyển', 'Issue No.'),
+    { field: 'unit', headerName: 'ĐVT', headerNameEn: 'UOM', type: 'uom', width: 80, align: 'center', readOnly: true },
+    { field: 'quantity', headerName: 'Số Lượng Nhận', headerNameEn: 'Received Quantity', type: 'quantity', width: 110, align: 'right', required: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'lotNumber', headerName: 'Số Lô', headerNameEn: 'Lot', type: 'text', width: 110, minWidth: 90, align: 'left', readOnly: true },
+    { field: 'position', headerName: 'Vị Trí Kho Đến', headerNameEn: 'Destination Location', type: 'text', width: 110, minWidth: 90, align: 'left', placeholder: 'Vị trí' },
+    ...transferValueColumns,
+    transferNoteColumn
+  ]
+};
+
+
 // 4. Cấu hình Lưới Chi tiết NVL BOM (Voucher PXK - Tab 2: Cấu trúc SP / BOM)
 export const goodsIssueMaterialsGridConfig: VoucherGridInfo = {
   voucherType: 'PXK',
@@ -541,6 +604,9 @@ export const systemVoucherGridRegistry: Record<string, VoucherGridInfo> = {
   'PXK_ITEMS': goodsIssueItemsGridConfig,
   'PXK_BOM': goodsIssueMaterialsGridConfig,
   'YCX_ITEMS': issueRequestItemsGridConfig,
+  'LDC_ITEMS': transferOrderItemsGridConfig,
+  'PXDC_ITEMS': transferIssueItemsGridConfig,
+  'PNDC_ITEMS': transferReceiptItemsGridConfig,
   'YCM_ITEMS': purchaseRequestItemsGridConfig,
   'DMH_ITEMS': purchaseOrderItemsGridConfig,
 };

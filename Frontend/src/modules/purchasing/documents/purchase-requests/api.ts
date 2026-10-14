@@ -110,7 +110,7 @@ export const purchaseRequestsApi = {
   getOptions: () => apiRequest<{ warehouses: { code: string; name: string }[]; currencies: { code: string; name: string }[]; departments: { code: string; name: string }[]; suppliers: { code: string; name: string }[] }>('GET', `${url}/options`),
   create: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<RequestRecord>('POST', url, toRequest(voucher, targetStatus))),
   update: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<RequestRecord>('PUT', `${url}/${voucher.id}`, toRequest(voucher, targetStatus))),
-  changeStatus: async (id: string, action: 'submit' | 'withdraw' | 'approve' | 'cancel') =>
+  changeStatus: async (id: string, action: 'submit' | 'withdraw' | 'approve' | 'cancel' | 'reopen') =>
     toVoucher(await apiRequest<RequestRecord>('POST', `${url}/${id}/${action}`)),
   remove: (id: string) => apiRequest<void>('DELETE', `${url}/${id}`)
 };

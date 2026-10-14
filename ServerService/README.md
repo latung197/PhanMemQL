@@ -106,6 +106,8 @@ Phiếu nhập kho dùng API `/api/inventory/goods-receipts` và các bảng tro
 
 Phiếu xuất kho dùng API `/api/inventory/goods-issues` và các bảng trong `sql/postgresql/39-inventory-goods-issues.sql` (chạy sau 20 và 34); cấu trúc, luồng trạng thái, phân quyền và phê duyệt giống phiếu nhập kho, chỉ khác khách hàng / người nhận và ghi sổ theo chiều xuất (`StockDirection.Out`: sổ kho tự tính giá trị theo giá bình quân, từ chối khi không đủ tồn). Chi tiết: `docs/kho/phieu-xuat-kho.md`. `DocumentApprovalService` đổi trạng thái phiếu qua `IApprovableDocument`.
 
+Điều chuyển kho (`sql/postgresql/48-transfers.sql`, API `/api/inventory/transfer-orders`, `transfer-issues`, `transfer-receipts`): lệnh (không ghi sổ) → phiếu xuất (ghi sổ xuất, giá trị ghi ngược vào dòng) → phiếu nhập (bắt buộc lấy từ phiếu xuất đã ghi sổ, ghi sổ nhập đúng giá trị); số đã xuất / đã nhận tính từ chứng từ sau (`TransferProgress`). Chi tiết: `docs/kho/dieu-chuyen-kho.md`.
+
 Phiếu yêu cầu xuất kho dùng API `/api/inventory/issue-requests` và các bảng trong `sql/postgresql/42-inventory-issue-requests.sql` (chạy sau 39 và 40); duyệt như các phiếu khác nhưng **không ghi sổ kho** (trạng thái dừng ở Đã phê duyệt). Phiếu xuất kho thêm `issue_request_code` / `issue_request_line_id` và `GET /api/inventory/goods-issues/open-requests`; số đã xuất của một dòng yêu cầu là tổng các dòng phiếu xuất chưa hủy trỏ tới nó (`IssueRequestProgress`). Chi tiết: `docs/kho/phieu-yeu-cau-xuat-kho.md`.
 
 Danh mục nhà cung cấp dùng bảng `erp_supplier` trong `sql/postgresql/22-inventory-suppliers.sql`. Trên database đã tồn tại, chạy lại `00-helpers.sql` để cập nhật hàm tìm kiếm `sys_search_match`, rồi chạy script 22. Phiếu nhập kho hiện chưa liên kết tới danh mục này.

@@ -92,6 +92,15 @@ const loadUomOptions = (): Promise<UomOption[]> => {
   return uomRequest;
 };
 
+// The units a line may use for its material (GET /api/lookups/materialUoms?material=): the base unit and the units converted to it;
+// `factor` = base units in one unit, used to convert the price when the unit changes.
+interface MaterialUomOption { code: string; name: string; factor: number }
+const loadMaterialUoms = (material: string): Promise<MaterialUomOption[]> =>
+  apiRequest<{ items: { code: string; name: string; extra?: Record<string, unknown> }[] }>('GET',
+    `/api/lookups/materialUoms?material=${encodeURIComponent(material)}&q=&page=1&pageSize=100&includeInactive=false`)
+    .then(result => result.items.map(x => ({ code: x.code, name: x.name, factor: Number(x.extra?.factor ?? 1) || 1 })))
+    .catch(() => []);
+
 export function VoucherDetailGrid<T extends Record<string, any>>({
   gridId,
   gridInfo: propGridInfo,
@@ -122,6 +131,46 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
   const { formatNumber, formatCurrency } = useNumberFormat();
   const [uoms, setUoms] = React.useState<UomOption[]>([]);
   React.useEffect(() => { let alive = true; void loadUomOptions().then(list => { if (alive) setUoms(list); }); return () => { alive = false; }; }, []);
+
+  // The units of each material on the lines (by material code), read once per material while the grid is open.
+  const [materialUoms, setMaterialUoms] = React.useState<Record<string, MaterialUomOption[]>>({});
+  const requestedMaterials = React.useRef(new Set<string>());
+  const materialOf = (row: Record<string, any> | undefined): string => String(row?.sku ?? row?.productId ?? '').trim().toUpperCase();
+  const materialKey = data.map(row => materialOf(row)).filter(Boolean).join('|');
+  React.useEffect(() => {
+    let alive = true;
+    for (const code of new Set(materialKey ? materialKey.split('|') : [])) {
+      if (requestedMaterials.current.has(code)) continue;
+      requestedMaterials.current.add(code);
+      void loadMaterialUoms(code).then(list => { if (alive) setMaterialUoms(prev => ({ ...prev, [code]: list })); });
+    }
+    return () => { alive = false; };
+  }, [materialKey]);
+  const unitOptionsOf = (row: Record<string, any>): MaterialUomOption[] | undefined => {
+    const list = materialUoms[materialOf(row)];
+    return list && list.length > 0 ? list : undefined;
+  };
+
+  // A new unit on a line: the price is converted with the factors of the two units (the price of one unit follows its size).
+  const handleUnitChange = (rowIndex: number, field: string, newUom: string) => {
+    const row = data[rowIndex];
+    if (!row || readOnly) return;
+    const options = unitOptionsOf(row);
+    const oldFactor = options?.find(u => u.code === row[field])?.factor;
+    const newFactor = options?.find(u => u.code === newUom)?.factor;
+    const updatedRow: Record<string, any> = { ...row, [field]: newUom };
+    const price = parseFloat(row.unitPrice) || 0;
+    if (oldFactor && newFactor && oldFactor !== newFactor && price > 0) {
+      updatedRow.unitPrice = Math.round(price * newFactor / oldFactor * 1_000_000) / 1_000_000;
+      const amount = Math.round((parseFloat(row.quantity) || 0) * updatedRow.unitPrice);
+      updatedRow.amount = amount;
+      updatedRow.totalPrice = amount;
+    }
+    const updatedData = [...data];
+    updatedData[rowIndex] = updatedRow as T;
+    onChange(updatedData);
+    afterEdit?.(rowIndex, field, row[field], newUom, updatedRow as T, updatedData);
+  };
 
   // Load cấu hình cột từ Bảng Hệ Thống `sys_voucher_grid` (Registry DB Metadata)
   const hiddenKey = (hiddenFields ?? []).join('|');
@@ -488,10 +537,7 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                                 data-grid-row={rowIndex}
                                 data-grid-col={col.field}
                                 value={value || ''}
-                                onChange={(e) => {
-                                  handleCellChange(rowIndex, col.field, e.target.value);
-                                  handleCellCommit(rowIndex, col.field, e.target.value);
-                                }}
+                                onChange={(e) => handleUnitChange(rowIndex, col.field, e.target.value)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     e.preventDefault();
@@ -506,10 +552,10 @@ export function VoucherDetailGrid<T extends Record<string, any>>({
                                 className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded px-1 py-0.5 font-bold text-slate-800 dark:text-slate-100 text-[11px] text-center focus:ring-1 focus:ring-indigo-500 h-[24px] cursor-pointer"
                               >
                                 {!value && <option value="">{t('controls.voucherGrid.uom')}</option>}
-                                {value && !uoms.some(u => u.code === value) && (
+                                {value && !(unitOptionsOf(row) ?? uoms).some(u => u.code === value) && (
                                   <option key={value} value={value}>{value}</option>
                                 )}
-                                {uoms.map((u) => (
+                                {(unitOptionsOf(row) ?? uoms).map((u) => (
                                   <option key={u.code} value={u.code}>{u.name}</option>
                                 ))}
                               </select>

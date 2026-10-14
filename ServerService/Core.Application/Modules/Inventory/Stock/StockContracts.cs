@@ -40,6 +40,13 @@ public interface IStockLedger
     /// <summary>Reverses the active posting of a voucher with reversal rows (nothing is deleted). Refused when stock would go negative.</summary>
     Task UnpostAsync(int userId, string sourceFunction, long sourceId, CancellationToken ct);
 
+    /// <summary>
+    /// Replaces the active posting of a voucher by a new one (the voucher was changed): the old rows are reversed and the new ones written
+    /// in one transaction, and stock is checked only at the END, on the balances the two postings touch. So changing a receipt from 120
+    /// to 110 when 100 were issued is allowed, while changing it to 50 is refused. Nothing changes when the check fails.
+    /// </summary>
+    Task ReplaceAsync(int userId, StockPosting posting, CancellationToken ct);
+
     /// <summary>Differences between the ledger and the balance tables (none when all is well); all units when <paramref name="unitCode"/> is null.</summary>
     Task<IReadOnlyList<StockDiscrepancy>> VerifyAsync(string? unitCode, CancellationToken ct);
 

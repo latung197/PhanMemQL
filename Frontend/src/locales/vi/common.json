@@ -152,6 +152,8 @@
       "unpostRight": "Cần quyền \"Bỏ ghi sổ\" tại đơn vị này.",
       "postedNoCancel": "Phiếu đã ghi sổ; phải bỏ ghi sổ trước khi hủy.",
       "cancelRight": "Cần quyền trạng thái \"Hủy phiếu\" tại đơn vị này.",
+      "notCancelled": "Chỉ khôi phục được phiếu đã hủy.",
+      "reopenRight": "Cần quyền trạng thái \"Hủy phiếu\" tại đơn vị này để khôi phục phiếu.",
       "noStatusRight": "Không có quyền ở trạng thái này tại đơn vị cơ sở đang làm việc.",
       "invalidAction": "Thao tác không hợp lệ."
     }

@@ -36,6 +36,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { Button } from '../../../../components/common/Button';
+import { RowActionSlot } from '../../../../components/common/RowActionSlot';
 import { Modal } from '../../../../components/common/Modal';
 import { Badge } from '../../../../components/common/Badge';
 import { CategoryHeaderToolbar } from '../../../../components/common/CategoryHeaderToolbar';
@@ -43,6 +44,7 @@ import { DeleteConfirmModal } from '../../../../components/common/DeleteConfirmM
 import { GridView, GridViewColumn } from '../../../../components/common/GridView';
 import { MasterLookupModal, ColumnDef } from '../../../../components/common/MasterLookupModal';
 import { NumberInput, QuantityInput, DateTimePicker, ComboBox, VoucherDetailGrid } from '../../../../components/common';
+import { useConfirm } from '../../../../components/common/ConfirmDialog';
 import { goodsReceiptItemsGridConfig, goodsReceiptMaterialsGridConfig } from '../../../../mock/voucherGridConfigs';
 import { useNumberFormat } from '../../../../context/NumberFormatContext';
 import { systemSettingsService } from '../../../../services/systemSettingsService';
@@ -208,9 +210,13 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   const hiddenPriceFields = canViewPrice ? undefined : ['unitPrice', 'amount'];
   const statusChoices = saveStatusChoices(currentUser, 'inv_receipt', { voucherType: 'PNK', posts: true });
   const approvalInUse = voucherStatusService.isEnabled('PNK', 'Pending');
-  const canSaveForm = !editingVoucherId ? perm.create : perm.edit && formStatus === 'Lập chứng từ';
+  // A posted voucher can be changed with the right ST_EDIT_POSTED of the unit: the server reverses the posting, changes it and posts again, and
+  // refuses the save when that would make the stock negative.
+  const canEditPosted = hasStatusRight(currentUser, 'inv_receipt', RIGHTS.ST_EDIT_POSTED);
+  const editingPosted = !!editingVoucherId && formStatus === 'Chuyển sổ kho';
+  const canSaveForm = !editingVoucherId ? perm.create : perm.edit && (formStatus === 'Lập chứng từ' || (editingPosted && canEditPosted));
   // The "Trạng thái" field of the form is the choice while the voucher is new or still a draft and the user's rights reach more than one status.
-  const canChooseStatus = canSaveForm && statusChoices.length > 1;
+  const canChooseStatus = canSaveForm && !editingPosted && statusChoices.length > 1;
   const statusFromLabel = (label: string): SaveStatus =>
     (Object.keys(SAVE_STATUS_LABELS) as SaveStatus[]).find(key => SAVE_STATUS_LABELS[key] === label) ?? 'Draft';
   const shownStatus = canChooseStatus ? SAVE_STATUS_LABELS[saveStatus] : formStatus;
@@ -375,6 +381,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   });
 
   const handleOpenEdit = (voucher: GoodsVoucher) => {
+    if (voucher.status === 'Chuyển sổ kho' && canEditPosted) showToast.info('Phiếu đã ghi sổ: khi lưu, hệ thống bỏ ghi sổ, sửa rồi ghi sổ lại; nếu làm âm kho thì không lưu được.');
     setEditingVoucherId(voucher.id);
     setActiveTab('items');
 
@@ -1059,7 +1066,16 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
     }
   };
 
-  const handleQuickStatusChange = async (voucherId: string, action: 'submit' | 'withdraw' | 'approve' | 'post' | 'unpost' | 'cancel') => {
+  const confirm = useConfirm();
+  const handleQuickStatusChange = async (voucherId: string, action: 'submit' | 'withdraw' | 'approve' | 'post' | 'unpost' | 'cancel' | 'reopen') => {
+    // Cancelling and unposting cannot be taken back with one click: ask first (a cancelled voucher can be restored with Khôi phục).
+    if (action === 'cancel' || action === 'unpost') {
+      const code = localVouchers.find(v => v.id === voucherId)?.code ?? '';
+      const ok = await confirm(action === 'cancel'
+        ? { title: `Hủy phiếu nhập kho ${code}?`, message: 'Phiếu bị hủy không dùng được nữa. Nếu hủy nhầm, bấm Khôi phục để đưa phiếu về Lập chứng từ.', tone: 'warning', confirmLabel: 'Hủy phiếu', cancelLabel: 'Không' }
+        : { title: `Bỏ ghi sổ phiếu nhập kho ${code}?`, message: 'Sổ kho được đảo lại và phiếu quay về Đã phê duyệt. Nếu việc này làm âm kho thì không bỏ ghi sổ được.', tone: 'warning', confirmLabel: 'Bỏ ghi sổ', cancelLabel: 'Không' });
+      if (!ok) return;
+    }
     try {
       const result = await goodsReceiptsApi.changeStatus(voucherId, action);
       setLocalVouchers(prev => prev.map(v => v.id === voucherId ? result : v));
@@ -1235,76 +1251,87 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
       align: 'center',
       render: (v) => (
         <div className="flex items-center justify-center gap-1">
-          <button
-            type="button"
-            onClick={() => handleOpenEdit(v)}
-            className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors cursor-pointer"
-            title="Xem & Sửa phiếu nhập"
-          >
-            <Edit3 className="h-4 w-4" />
-          </button>
-
-          {v.status === 'Lập chứng từ' && (perm.create || perm.edit) && approvalInUse && (
-            <button
-              type="button"
-              onClick={() => void handleQuickStatusChange(v.id, 'submit')}
-              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-              title="Gửi duyệt phiếu nhập kho"
-            >
-              <ArrowUpRight className="h-4 w-4" />
-            </button>
-          )}
-          {v.status === 'Chờ duyệt' && canApprove && (
-            <button
-              type="button"
-              onClick={() => void handleQuickStatusChange(v.id, 'approve')}
-              className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
-              title="Phê duyệt phiếu nhập kho"
-            >
-              <ShieldCheck className="h-4 w-4" />
-            </button>
-          )}
-          {v.status === 'Chờ duyệt' && v.createdBy === currentUser?.fullName && (
-            <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'withdraw')}
-              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Rút phiếu khỏi quy trình duyệt">
-              <Undo2 className="h-4 w-4" />
-            </button>
-          )}
-          {v.status === 'Đã phê duyệt' && reachesStatus(currentUser, 'inv_receipt', 'Posted') && (
-            <button
-              type="button"
-              onClick={() => void handleQuickStatusChange(v.id, 'post')}
-              className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-colors cursor-pointer"
-              title="Chuyển sổ kho"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-            </button>
-          )}
-          {v.status === 'Chuyển sổ kho' && hasStatusRight(currentUser, 'inv_receipt', RIGHTS.ST_UNPOST) && (
-            <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'unpost')}
-              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Bỏ ghi sổ kho">
-              <RotateCcw className="h-4 w-4" />
-            </button>
-          )}
-          {v.status === 'Đã phê duyệt' && reachesStatus(currentUser, 'inv_receipt', 'Cancelled') && (
-            <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'cancel')}
-              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg" title="Hủy phiếu nhập kho (chưa ghi sổ)">
-              <XCircle className="h-4 w-4" />
-            </button>
-          )}
-
-          {perm.print && <PrintMenuButton canPrintPrice={canViewPrice} onPrint={withPrice => handlePrint(v.code, withPrice)} />}
-
-          {perm.delete && (
-            <button
-              type="button"
-              onClick={() => setItemToDelete(v)}
-              className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"
-              title="Xóa phiếu"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
+          <RowActionSlot>
+              <button
+                type="button"
+                onClick={() => handleOpenEdit(v)}
+                className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors cursor-pointer"
+                title="Xem & Sửa phiếu nhập"
+              >
+                <Edit3 className="h-4 w-4" />
+              </button>
+          </RowActionSlot>
+          <RowActionSlot>
+              {v.status === 'Hủy' && reachesStatus(currentUser, 'inv_receipt', 'Cancelled') && (
+                <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'reopen')} title="Khôi phục phiếu đã hủy (về Lập chứng từ)"
+                  className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg cursor-pointer"><RotateCcw className="h-4 w-4" /></button>
+              )}
+              {v.status === 'Lập chứng từ' && (perm.create || perm.edit) && approvalInUse && (
+                <button
+                  type="button"
+                  onClick={() => void handleQuickStatusChange(v.id, 'submit')}
+                  className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                  title="Gửi duyệt phiếu nhập kho"
+                >
+                  <ArrowUpRight className="h-4 w-4" />
+                </button>
+              )}
+              {v.status === 'Chờ duyệt' && canApprove && (
+                <button
+                  type="button"
+                  onClick={() => void handleQuickStatusChange(v.id, 'approve')}
+                  className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                  title="Phê duyệt phiếu nhập kho"
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                </button>
+              )}
+              {v.status === 'Đã phê duyệt' && reachesStatus(currentUser, 'inv_receipt', 'Posted') && (
+                <button
+                  type="button"
+                  onClick={() => void handleQuickStatusChange(v.id, 'post')}
+                  className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-colors cursor-pointer"
+                  title="Chuyển sổ kho"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                </button>
+              )}
+              {v.status === 'Chuyển sổ kho' && hasStatusRight(currentUser, 'inv_receipt', RIGHTS.ST_UNPOST) && (
+                <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'unpost')}
+                  className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Bỏ ghi sổ kho">
+                  <RotateCcw className="h-4 w-4" />
+                </button>
+              )}
+          </RowActionSlot>
+          <RowActionSlot>
+              {v.status === 'Chờ duyệt' && v.createdBy === currentUser?.fullName && (
+                <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'withdraw')}
+                  className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Rút phiếu khỏi quy trình duyệt">
+                  <Undo2 className="h-4 w-4" />
+                </button>
+              )}
+              {v.status === 'Đã phê duyệt' && reachesStatus(currentUser, 'inv_receipt', 'Cancelled') && (
+                <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'cancel')}
+                  className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg" title="Hủy phiếu nhập kho (chưa ghi sổ)">
+                  <XCircle className="h-4 w-4" />
+                </button>
+              )}
+          </RowActionSlot>
+          <RowActionSlot>
+              {perm.print && <PrintMenuButton canPrintPrice={canViewPrice} onPrint={withPrice => handlePrint(v.code, withPrice)} />}
+          </RowActionSlot>
+          <RowActionSlot>
+              {perm.delete && (v.status !== 'Chuyển sổ kho' || canEditPosted) && (
+                <button
+                  type="button"
+                  onClick={() => setItemToDelete(v)}
+                  className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"
+                  title="Xóa phiếu"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+          </RowActionSlot>
         </div>
       )
     }
@@ -1468,21 +1495,23 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
             >
               Hủy
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              icon={<Save className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />}
-              onClick={() => {
-                saveAsDraftRef.current = true;
-                (document.getElementById('goods-receipt-form') as HTMLFormElement | null)?.requestSubmit();
-              }}
-              disabled={isSaving || !canSaveForm}
-              title="Lưu phiếu ở trạng thái Lập chứng từ, dù ô Trạng thái đang chọn gì"
-              className="py-1 px-3 text-xs font-semibold cursor-pointer bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900"
-            >
-              Lưu Nháp
-            </Button>
+            {!editingPosted && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                icon={<Save className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />}
+                onClick={() => {
+                  saveAsDraftRef.current = true;
+                  (document.getElementById('goods-receipt-form') as HTMLFormElement | null)?.requestSubmit();
+                }}
+                disabled={isSaving || !canSaveForm}
+                title="Lưu phiếu ở trạng thái Lập chứng từ, dù ô Trạng thái đang chọn gì"
+                className="py-1 px-3 text-xs font-semibold cursor-pointer bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900"
+              >
+                Lưu Nháp
+              </Button>
+            )}
             <Button
               type="submit"
               variant="success"

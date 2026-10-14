@@ -62,6 +62,8 @@ export const RIGHTS = {
   ST_CANCELLED: 'ST_CANCELLED',
   /** Backward step: take a posted voucher back to Approved. */
   ST_UNPOST: 'ST_UNPOST',
+  /** Change or delete a posted voucher: the server reverses the posting, changes and posts again (refused when the stock would go negative). */
+  ST_EDIT_POSTED: 'ST_EDIT_POSTED',
   /** On overview_main: send notifications inside the current unit / to every unit. */
   SEND_NOTIFICATION: 'SEND_NOTIFICATION',
   SEND_NOTIFICATION_ALL: 'SEND_NOTIFICATION_ALL'

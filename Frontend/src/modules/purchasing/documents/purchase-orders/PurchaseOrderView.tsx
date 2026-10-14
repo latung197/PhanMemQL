@@ -20,9 +20,9 @@ import {
   XCircle,
   FileText,
   AlertOctagon,
-  User
-} from 'lucide-react';
+  User, RotateCcw } from 'lucide-react';
 import { Button } from '../../../../components/common/Button';
+import { RowActionSlot } from '../../../../components/common/RowActionSlot';
 import { Modal } from '../../../../components/common/Modal';
 import { Badge } from '../../../../components/common/Badge';
 import { CategoryHeaderToolbar } from '../../../../components/common/CategoryHeaderToolbar';
@@ -30,6 +30,7 @@ import { DeleteConfirmModal } from '../../../../components/common/DeleteConfirmM
 import { GridView, GridViewColumn } from '../../../../components/common/GridView';
 import { MasterLookupModal, ColumnDef } from '../../../../components/common/MasterLookupModal';
 import { NumberInput, DateTimePicker, ComboBox, VoucherDetailGrid } from '../../../../components/common';
+import { useConfirm } from '../../../../components/common/ConfirmDialog';
 import { purchaseOrderItemsGridConfig } from '../../../../mock/voucherGridConfigs';
 import { useNumberFormat } from '../../../../context/NumberFormatContext';
 import { systemSettingsService } from '../../../../services/systemSettingsService';
@@ -534,7 +535,14 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({ companyUni
     }
   };
 
-  const handleQuickStatusChange = async (voucherId: string, action: 'submit' | 'withdraw' | 'approve' | 'cancel') => {
+  const confirm = useConfirm();
+  const handleQuickStatusChange = async (voucherId: string, action: 'submit' | 'withdraw' | 'approve' | 'cancel' | 'reopen') => {
+    // Cancelling and unposting cannot be taken back with one click: ask first (a cancelled voucher can be restored with Khôi phục).
+    if (action === 'cancel') {
+      const code = localVouchers.find(v => v.id === voucherId)?.code ?? '';
+      const ok = await confirm({ title: `Hủy đơn mua hàng ${code}?`, message: 'Phiếu bị hủy không dùng được nữa. Nếu hủy nhầm, bấm Khôi phục để đưa phiếu về Lập chứng từ.', tone: 'warning', confirmLabel: 'Hủy phiếu', cancelLabel: 'Không' });
+      if (!ok) return;
+    }
     try {
       const result = await purchaseOrdersApi.changeStatus(voucherId, action);
       setLocalVouchers(prev => prev.map(v => v.id === voucherId ? result : v));
@@ -652,29 +660,43 @@ export const PurchaseOrderView: React.FC<PurchaseOrderViewProps> = ({ companyUni
       key: 'actions', title: 'Thao Tác', align: 'center',
       render: (v) => (
         <div className="flex items-center justify-center gap-1">
-          <button type="button" onClick={() => handleOpenEdit(v)} title="Xem & Sửa đơn mua hàng"
-            className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors cursor-pointer"><Edit3 className="h-4 w-4" /></button>
-          {v.status === 'Lập chứng từ' && (perm.create || perm.edit) && approvalInUse && (
-            <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'submit')} title="Gửi duyệt đơn mua hàng"
-              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"><ArrowUpRight className="h-4 w-4" /></button>
-          )}
-          {v.status === 'Chờ duyệt' && canApprove && (
-            <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'approve')} title="Phê duyệt đơn mua hàng"
-              className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"><ShieldCheck className="h-4 w-4" /></button>
-          )}
-          {v.status === 'Chờ duyệt' && v.createdBy === currentUser?.fullName && (
-            <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'withdraw')} title="Rút phiếu khỏi quy trình duyệt"
-              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg"><Undo2 className="h-4 w-4" /></button>
-          )}
-          {v.status === 'Đã phê duyệt' && reachesStatus(currentUser, FUNCTION, 'Cancelled') && (
-            <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'cancel')} title="Hủy đơn mua hàng (khi chưa có phiếu nhập)"
-              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"><XCircle className="h-4 w-4" /></button>
-          )}
-          {perm.print && <PrintMenuButton canPrintPrice={canViewPrice} onPrint={withPrice => handlePrint(v.code, withPrice)} />}
-          {perm.delete && (
-            <button type="button" onClick={() => setItemToDelete(v)} title="Xóa phiếu"
-              className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"><Trash2 className="h-4 w-4" /></button>
-          )}
+          <RowActionSlot>
+              <button type="button" onClick={() => handleOpenEdit(v)} title="Xem & Sửa đơn mua hàng"
+                className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors cursor-pointer"><Edit3 className="h-4 w-4" /></button>
+          </RowActionSlot>
+          <RowActionSlot>
+              {v.status === 'Hủy' && reachesStatus(currentUser, FUNCTION, 'Cancelled') && (
+                <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'reopen')} title="Khôi phục phiếu đã hủy (về Lập chứng từ)"
+                  className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg cursor-pointer"><RotateCcw className="h-4 w-4" /></button>
+              )}
+              {v.status === 'Lập chứng từ' && (perm.create || perm.edit) && approvalInUse && (
+                <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'submit')} title="Gửi duyệt đơn mua hàng"
+                  className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"><ArrowUpRight className="h-4 w-4" /></button>
+              )}
+              {v.status === 'Chờ duyệt' && canApprove && (
+                <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'approve')} title="Phê duyệt đơn mua hàng"
+                  className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"><ShieldCheck className="h-4 w-4" /></button>
+              )}
+          </RowActionSlot>
+          <RowActionSlot>
+              {v.status === 'Chờ duyệt' && v.createdBy === currentUser?.fullName && (
+                <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'withdraw')} title="Rút phiếu khỏi quy trình duyệt"
+                  className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg"><Undo2 className="h-4 w-4" /></button>
+              )}
+              {v.status === 'Đã phê duyệt' && reachesStatus(currentUser, FUNCTION, 'Cancelled') && (
+                <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'cancel')} title="Hủy đơn mua hàng (khi chưa có phiếu nhập)"
+                  className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"><XCircle className="h-4 w-4" /></button>
+              )}
+          </RowActionSlot>
+          <RowActionSlot>
+              {perm.print && <PrintMenuButton canPrintPrice={canViewPrice} onPrint={withPrice => handlePrint(v.code, withPrice)} />}
+          </RowActionSlot>
+          <RowActionSlot>
+              {perm.delete && (
+                <button type="button" onClick={() => setItemToDelete(v)} title="Xóa phiếu"
+                  className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"><Trash2 className="h-4 w-4" /></button>
+              )}
+          </RowActionSlot>
         </div>
       )
     }

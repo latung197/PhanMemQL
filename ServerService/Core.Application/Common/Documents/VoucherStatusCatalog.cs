@@ -12,7 +12,7 @@ namespace Core.Application.Common.Documents;
 public static class VoucherStatusCatalog
 {
     /// <summary>Vouchers that never post to the stock ledger: they have no "Đã ghi sổ" status (and no right for it).</summary>
-    private static readonly HashSet<string> NonPosting = new(StringComparer.Ordinal) { "inv_issue_request", "pur_request", "pur_order" };
+    private static readonly HashSet<string> NonPosting = new(StringComparer.Ordinal) { "inv_issue_request", "pur_request", "pur_order", "inv_transfer_order" };
 
     private static readonly DocumentStatus[] All =
         [DocumentStatus.Draft, DocumentStatus.Pending, DocumentStatus.Approved, DocumentStatus.Posted, DocumentStatus.Cancelled];

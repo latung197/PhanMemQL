@@ -294,13 +294,19 @@ export interface VoucherItem {
   /** Phiếu nhập lấy từ đơn mua: ngày dự kiến nhận của dòng đơn (chỉ đọc). */
   purchaseOrderDeliveryDate?: string;
   purchaseOrderCode?: string;
+  /** Điều chuyển kho: số đã xuất (trên lệnh) hoặc đã nhận (trên phiếu xuất) theo các phiếu sau (chỉ đọc). */
+  doneQuantity?: number;
+  /** Phiếu xuất lấy từ lệnh điều chuyển, phiếu nhập lấy từ phiếu xuất: dòng nguồn và số chứng từ nguồn. */
+  transferSourceLineId?: number;
+  transferSourceCode?: string;
 }
 
 export interface GoodsVoucher {
   id: string;
   /** Backend row version used when editing a receipt. */
   version?: number;
-  type: 'Nhập kho' | 'Xuất kho' | 'Yêu cầu xuất kho' | 'Yêu cầu mua hàng' | 'Đơn mua hàng';
+  type: 'Nhập kho' | 'Xuất kho' | 'Yêu cầu xuất kho' | 'Yêu cầu mua hàng' | 'Đơn mua hàng'
+    | 'Lệnh điều chuyển kho' | 'Xuất điều chuyển kho' | 'Nhập điều chuyển kho';
   code: string;
   date: string;                      // Ngày chứng từ (Document Date)
   createdDate?: string;               // Ngày lập chứng từ
@@ -335,6 +341,10 @@ export interface GoodsVoucher {
   purchaseOrderCode?: string;
   warehouseId: string;
   warehouseName: string;
+  /** Điều chuyển kho: kho đến (warehouseId / warehouseName là kho đi) và số lệnh / phiếu xuất mà phiếu này theo (chỉ đọc, suy từ các dòng). */
+  toWarehouseId?: string;
+  toWarehouseName?: string;
+  transferSourceCode?: string;
   items: VoucherItem[];
   materialItems?: VoucherItem[];       // Tab Nguyên vật liệu (Định mức / Cấu trúc SP - BOM)
   totalValue: number;

@@ -20,6 +20,7 @@ using Core.Application.Modules.Inventory.Categories.suppliers;
 using Core.Application.Modules.Inventory.Documents.GoodsIssues;
 using Core.Application.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Application.Modules.Inventory.Documents.IssueRequests;
+using Core.Application.Modules.Inventory.Documents.Transfers;
 using Core.Application.Modules.Purchasing.Categories;
 using Core.Application.Modules.Purchasing.Documents.PurchaseOrders;
 using Core.Application.Modules.Purchasing.Documents.PurchaseRequests;
@@ -56,6 +57,7 @@ using Core.Infrastructure.Modules.Inventory.Categories.suppliers;
 using Core.Infrastructure.Modules.Inventory.Documents.GoodsIssues;
 using Core.Infrastructure.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Infrastructure.Modules.Inventory.Documents.IssueRequests;
+using Core.Infrastructure.Modules.Inventory.Documents.Transfers;
 using Core.Infrastructure.Modules.Purchasing.Categories;
 using Core.Infrastructure.Modules.Purchasing.Documents.PurchaseOrders;
 using Core.Infrastructure.Modules.Purchasing.Documents.PurchaseRequests;
@@ -108,6 +110,7 @@ public static class DependencyInjection
         foreach (var lookup in LookupCatalogs.All) services.AddLookup(lookup);
         // Custom lookups (typed columns, parameters, rights): one class each, see LookupProvider.
         services.AddLookupProvider<UomFullLookup>();
+        services.AddLookupProvider<MaterialUomLookup>();
         services.AddLookupProvider<MaterialsLookup>();
         services.AddLookupProvider<LocationsLookup>();
         services.AddLookupProvider<LotsLookup>();
@@ -159,6 +162,9 @@ public static class DependencyInjection
         services.AddScoped<IGoodsReceiptService, GoodsReceiptService>();
         services.AddScoped<IGoodsIssueService, GoodsIssueService>();
         services.AddScoped<IIssueRequestService, IssueRequestService>();
+        services.AddScoped<ITransferOrderService, TransferOrderService>();
+        services.AddScoped<ITransferIssueService, TransferIssueService>();
+        services.AddScoped<ITransferReceiptService, TransferReceiptService>();
         services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
         services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
         services.AddScoped<IProjectService, ProjectService>();

@@ -73,7 +73,18 @@
     "tabBasic": "1. Basic information",
     "tabTracking": "2. Unit, lots & tracking flags",
     "tabNorms": "3. Warehouse, norms & tax",
-    "tabDims": "4. Dimensions & weight"
+    "tabDims": "4. Dimensions & weight",
+    "tabUoms": "5. Unit conversions",
+    "uomsTitle": "Unit conversions of the material",
+    "uomsHint": "Stock is always kept in the base unit {uom}. Declare here the other units vouchers may use: how many {uom} one of them is. A voucher in any of them is converted to the base quantity automatically.",
+    "uomsNoBase": "Pick the base unit on tab 2 first.",
+    "uomColumn": "Unit",
+    "factorColumn": "1 unit = ? base units",
+    "noteColumn": "Note",
+    "addUom": "Add conversion unit",
+    "noUoms": "No conversion units yet: vouchers can only use the base unit.",
+    "removeUom": "Remove row",
+    "uomsBaseChanged": "You changed the base unit: check the factors of the conversion rows again (they are in the new base unit)."
   },
   "uoms": {
     "noun": "unit of measure",

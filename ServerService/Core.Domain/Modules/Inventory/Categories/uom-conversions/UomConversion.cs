@@ -8,8 +8,9 @@ namespace Core.Domain.Modules.Inventory;
 [Table("erp_uom_conversion")]
 public class UomConversion : ErpEntity, ICatalogRecord
 {
-    [Key, Column("code"), MaxLength(40)] public string Code { get; set; } = string.Empty;
-    [NotReference("vật tư còn là dữ liệu mẫu trong trình duyệt; thêm [References<Material>] khi vật tư có backend")]
+    [Key, Column("code"), MaxLength(80)] public string Code { get; set; } = string.Empty;
+    // Empty = a general conversion (any material); the material form writes and deletes its own rows, so they do not keep it in use.
+    [References<Material>(Optional = true, BlocksDelete = false)]
     [Column("material_code"), MaxLength(50)] public string? MaterialCode { get; set; }
     [Column("material_name"), MaxLength(200)] public string? MaterialName { get; set; }
     [References<Uom>]

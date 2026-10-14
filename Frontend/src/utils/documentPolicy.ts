@@ -8,7 +8,7 @@ import { translate } from './i18n';
 /** Voucher life cycle: Lập → Chờ duyệt → Đã duyệt → Đã ghi sổ, or Hủy. Same names as the backend enum. */
 export type DocumentStatus = 'Draft' | 'Pending' | 'Approved' | 'Posted' | 'Cancelled';
 
-export type DocumentAction = 'View' | 'Edit' | 'Submit' | 'Approve' | 'Reject' | 'Post' | 'Unpost' | 'Cancel';
+export type DocumentAction = 'View' | 'Edit' | 'Submit' | 'Approve' | 'Reject' | 'Post' | 'Unpost' | 'Cancel' | 'Reopen';
 
 /** Name of a status in the user's language (texts: documentPolicy.status.*). */
 export const documentStatusLabel = (status: DocumentStatus): string => translate(`documentPolicy.status.${status}`);
@@ -103,6 +103,11 @@ export function checkDocumentAction(user: PolicyUser, fn: SubMenuKey, action: Do
       if (status === 'Cancelled') return deny('cancelled');
       if (status === 'Draft' && isOwner && a.delete) return allow;
       return reachesStatus(user, fn, 'Cancelled') ? allow : deny('cancelRight');
+
+    // A cancelled voucher comes back as a draft for whoever may cancel vouchers in this unit.
+    case 'Reopen':
+      if (status !== 'Cancelled') return deny('notCancelled');
+      return reachesStatus(user, fn, 'Cancelled') ? allow : deny('reopenRight');
 
     default:
       return deny('invalidAction');

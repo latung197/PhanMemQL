@@ -87,13 +87,23 @@ public sealed class MaterialService(CoreContext db, CatalogBatch batch, IExcelEx
         var uomCodes = rows.Select(x => x.UomCode).Distinct().ToList();
         var types = await Db.MaterialTypes.AsNoTracking().Where(x => typeCodes.Contains(x.Code)).ToDictionaryAsync(x => x.Code, x => x.Name, ct);
         var groups = await Db.MaterialGroups.AsNoTracking().Where(x => groupCodes.Contains(x.Code)).ToDictionaryAsync(x => x.Code, x => x.Name, ct);
+        var materialCodes = rows.Select(x => x.Code).ToList();
+        var saved = await Db.UomConversions.AsNoTracking().Where(x => x.MaterialCode != null && materialCodes.Contains(x.MaterialCode)).ToListAsync(ct);
+        uomCodes.AddRange(saved.SelectMany(x => new[] { x.FromUomCode, x.ToUomCode }));
         var uoms = await Db.Uoms.AsNoTracking().Where(x => uomCodes.Contains(x.Code)).ToDictionaryAsync(x => x.Code, x => x.Name, ct);
+        var conversions = rows.ToDictionary(x => x.Code, x => (IReadOnlyList<MaterialUomDto>)saved.Where(c => c.MaterialCode == x.Code)
+            .Select(c => Shape(x.UomCode, c)).OfType<MaterialUomDto>().OrderBy(c => c.UomCode, StringComparer.Ordinal).ToList());
+        // The grid shows every row of the material as "1 unit = factor base units": a row written the other way round is inverted.
+        MaterialUomDto? Shape(string baseUom, UomConversion c) =>
+            c.ToUomCode == baseUom && c.FromUomCode != baseUom ? new(c.FromUomCode, uoms.GetValueOrDefault(c.FromUomCode), c.Factor, c.Note, c.IsActive)
+            : c.FromUomCode == baseUom && c.ToUomCode != baseUom ? new(c.ToUomCode, uoms.GetValueOrDefault(c.ToUomCode), decimal.Round(1m / c.Factor, 8), c.Note, c.IsActive)
+            : null;
         return rows.Select(x => new MaterialDto(x.Code, x.Name, x.CustomerMaterialCode, x.PartNo,
             x.MaterialTypeCode, types.GetValueOrDefault(x.MaterialTypeCode ?? ""), x.MaterialGroupCode, groups.GetValueOrDefault(x.MaterialGroupCode ?? ""),
             x.UomCode, uoms.GetValueOrDefault(x.UomCode), x.VatTaxRateCode, x.ImportTaxRateCode,
             x.IsStockItem, x.TrackLot, x.HasExpiry, x.ShelfLifeDays, x.TrackLocation, x.IsCycleCounted,
             x.CostingMethod, x.MinStock, x.MaxStock, x.Length, x.Width, x.Height, x.Weight, x.Volume,
-            x.Note, x.IsActive, stamp(x), x.Version)).ToList();
+            x.Note, x.IsActive, stamp(x), x.Version, conversions.GetValueOrDefault(x.Code) ?? [])).ToList();
     }
 
     protected override Task ApplyAsync(Material row, SaveMaterialRequest request, CancellationToken ct)
@@ -136,6 +146,68 @@ public sealed class MaterialService(CoreContext db, CatalogBatch batch, IExcelEx
         row.IsActive = request.IsActive;
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// The conversions grid of the form: rows of <c>erp_uom_conversion</c> that carry this material, written as "1 unit = factor base
+    /// units" (code <c>MATERIAL@UNIT</c>). Saved in the same transaction; rows not in the grid are deleted, a row written the other
+    /// way round is turned around. Null = keep the saved ones. A change of the base unit needs the grid again, because the saved
+    /// factors are in the old unit.
+    /// </summary>
+    protected override async Task AfterApplyAsync(Material row, SaveMaterialRequest request, bool isNew, CancellationToken ct)
+    {
+        var existing = isNew ? [] : await Db.UomConversions.Where(x => x.MaterialCode == row.Code).ToListAsync(ct);
+        if (request.Conversions is null)
+        {
+            if (existing.Any(x => x.FromUomCode != row.UomCode && x.ToUomCode != row.UomCode)) throw new BusinessRuleException("material.uomChangeNeedsConversions");
+            return;
+        }
+        var wanted = new Dictionary<string, SaveMaterialUom>(StringComparer.Ordinal);
+        foreach (var item in request.Conversions)
+        {
+            var uom = Guard.Code(item.UomCode, 20, "field.uomCode");
+            if (uom == row.UomCode) throw new BusinessRuleException("material.conversionSameAsBase", uom);
+            if (item.Factor < 0.00000001m || item.Factor >= 1_000_000_000_000m || decimal.Round(item.Factor, 8) != item.Factor)
+                throw new BusinessRuleException("uomConversion.invalidFactor");
+            if (!wanted.TryAdd(uom, item with { UomCode = uom })) throw new BusinessRuleException("material.conversionDuplicate", uom);
+        }
+        string OtherUnit(UomConversion c) => c.FromUomCode == row.UomCode ? c.ToUomCode : c.FromUomCode;
+        var kept = existing.Where(c => c.FromUomCode == row.UomCode || c.ToUomCode == row.UomCode).Select(OtherUnit).ToHashSet(StringComparer.Ordinal);
+        var added = wanted.Keys.Where(uom => !kept.Contains(uom)).ToList();
+        foreach (var uom in added)
+            if (!await Db.Uoms.AnyAsync(x => x.Code == uom && x.IsActive, ct)) throw new BusinessRuleException("uomConversion.unitUnavailable", uom);
+
+        var changed = false;
+        var order = 0;
+        foreach (var c in existing.ToList())
+        {
+            var touchesBase = c.FromUomCode == row.UomCode || c.ToUomCode == row.UomCode;
+            if (!touchesBase || !wanted.TryGetValue(OtherUnit(c), out var item)) { Db.UomConversions.Remove(c); changed = true; continue; }
+            if (c.FromUomCode != item.UomCode || c.ToUomCode != row.UomCode || c.Factor != item.Factor || c.Note != item.Note?.Trim() || c.IsActive != item.IsActive) changed = true;
+            c.FromUomCode = item.UomCode;
+            c.ToUomCode = row.UomCode;
+            c.Factor = item.Factor;
+            c.Note = Guard.Optional(item.Note, 300, "field.note");
+            c.IsActive = item.IsActive;
+            c.MaterialName = row.Name;
+            c.SortOrder = order++;
+            wanted.Remove(item.UomCode);
+        }
+        foreach (var item in wanted.Values)
+        {
+            Db.UomConversions.Add(new UomConversion
+            {
+                Code = $"{row.Code}@{item.UomCode}", MaterialCode = row.Code, MaterialName = row.Name, FromUomCode = item.UomCode,
+                ToUomCode = row.UomCode, Factor = item.Factor, Note = Guard.Optional(item.Note, 300, "field.note"),
+                IsActive = item.IsActive, SortOrder = order++
+            });
+            changed = true;
+        }
+        // A conversions-only edit must advance the material version so concurrent forms cannot overwrite it.
+        if (!isNew && changed) Db.Entry(row).Property(x => x.Name).IsModified = true;
+    }
+
+    protected override async Task BeforeDeleteAsync(Material row, CancellationToken ct) =>
+        Db.UomConversions.RemoveRange(await Db.UomConversions.Where(x => x.MaterialCode == row.Code).ToListAsync(ct));
 
     /// <summary>An optional code of another catalog: empty = none; the code must exist (checked on save from [References]).</summary>
     private static string? Reference(string? code, int length, string label) =>

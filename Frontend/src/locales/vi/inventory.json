@@ -73,7 +73,18 @@
     "tabBasic": "1. Thông tin cơ bản",
     "tabTracking": "2. ĐVT, lô & cờ quản lý",
     "tabNorms": "3. Kho, giá & thuế",
-    "tabDims": "4. Kích thước & kỹ thuật"
+    "tabDims": "4. Kích thước & kỹ thuật",
+    "tabUoms": "5. Đơn vị quy đổi",
+    "uomsTitle": "Đơn vị quy đổi của vật tư",
+    "uomsHint": "Tồn kho luôn tính theo đơn vị gốc {uom}. Khai báo ở đây các đơn vị khác được dùng trên phiếu: 1 đơn vị đó bằng bao nhiêu {uom}. Phiếu chọn đơn vị nào thì hệ thống tự tính ra số lượng gốc.",
+    "uomsNoBase": "Chọn đơn vị gốc ở tab 2 trước.",
+    "uomColumn": "Đơn vị",
+    "factorColumn": "1 đơn vị = ? đơn vị gốc",
+    "noteColumn": "Ghi chú",
+    "addUom": "Thêm đơn vị quy đổi",
+    "noUoms": "Chưa có đơn vị quy đổi: phiếu chỉ được dùng đơn vị gốc.",
+    "removeUom": "Xóa dòng",
+    "uomsBaseChanged": "Bạn đã đổi đơn vị gốc: hãy kiểm tra lại hệ số của các dòng quy đổi (tính theo đơn vị gốc mới)."
   },
   "uoms": {
     "noun": "đơn vị tính",

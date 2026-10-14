@@ -55,6 +55,10 @@ public sealed class SpecialRightCatalogTests
         // A voucher that never posts has no posting rights.
         Assert.DoesNotContain(SpecialRightCatalog.All, r => r.Function == "inv_issue_request" && r.Code is "ST_POSTED" or "ST_UNPOST");
         Assert.Contains(SpecialRightCatalog.All, r => r.Function == "inv_issue" && r.Code == "ST_POSTED");
+        // Changing or deleting a posted voucher is a per-unit right of the vouchers that post (goods receipt / issue, transfer issue / receipt), not of the others.
+        foreach (var fn in new[] { "inv_receipt", "inv_issue", "inv_transfer_issue", "inv_transfer_receipt" })
+            Assert.Contains(SpecialRightCatalog.All, r => r.Function == fn && r.Code == SpecialRightCatalog.StatusEditPosted && r.PerUnit);
+        Assert.DoesNotContain(SpecialRightCatalog.All, r => r.Function is "inv_issue_request" or "inv_transfer_order" or "pur_order" && r.Code == SpecialRightCatalog.StatusEditPosted);
     }
 
     [Fact]

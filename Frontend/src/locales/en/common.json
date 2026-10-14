@@ -152,6 +152,8 @@
       "unpostRight": "The \"Unpost\" right is required in this unit.",
       "postedNoCancel": "The voucher is posted; unpost it before cancelling.",
       "cancelRight": "The \"Cancel vouchers\" status right is required in this unit.",
+      "notCancelled": "Only a cancelled voucher can be restored.",
+      "reopenRight": "The \"Cancel vouchers\" status right is required in this unit to restore a voucher.",
       "noStatusRight": "You have no right for this status in the company unit you are working in.",
       "invalidAction": "Invalid action."
     }

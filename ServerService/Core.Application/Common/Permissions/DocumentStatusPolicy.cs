@@ -22,7 +22,9 @@ public enum DocumentAction
     Reject,
     Post,
     Unpost,
-    Cancel
+    Cancel,
+    /// <summary>Take a cancelled voucher back to Draft (Khôi phục).</summary>
+    Reopen
 }
 
 /// <summary>
@@ -131,6 +133,10 @@ public static class DocumentStatusPolicy
                 DocumentStatus.Draft when actor.IsOwner && a.Delete => PolicyDecision.Allow,
                 _ => actor.Reaches(DocumentStatus.Cancelled) ? PolicyDecision.Allow : PolicyDecision.Deny("policy.cancelRight")
             },
+
+            // A cancelled voucher comes back as a draft for whoever may cancel vouchers in this unit.
+            DocumentAction.Reopen => status != DocumentStatus.Cancelled ? PolicyDecision.Deny("policy.notCancelled")
+                : actor.Reaches(DocumentStatus.Cancelled) ? PolicyDecision.Allow : PolicyDecision.Deny("policy.reopenRight"),
 
             _ => PolicyDecision.Deny("policy.invalidAction")
         };

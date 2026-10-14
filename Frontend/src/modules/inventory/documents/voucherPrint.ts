@@ -4,7 +4,7 @@
 import type { GoodsVoucher, VoucherItem } from '../../../types';
 import type { CompanyProfileConfig } from '../../../services/systemSettingsService';
 
-export type VoucherPrintKind = 'receipt' | 'issue' | 'request' | 'purchaseRequest' | 'purchaseOrder';
+export type VoucherPrintKind = 'receipt' | 'issue' | 'request' | 'purchaseRequest' | 'purchaseOrder' | 'transferOrder' | 'transferIssue' | 'transferReceipt';
 
 export interface VoucherPrintFormat {
   quantity: (value: number) => string;
@@ -35,6 +35,13 @@ const KINDS: Record<VoucherPrintKind, { title: string; form: string; warehouse: 
   // The purchase request keeps the suggested supplier in supplierName and the requester in delivererName.
   purchaseRequest: { title: 'PHIẾU YÊU CẦU MUA HÀNG', form: 'Phiếu yêu cầu', warehouse: 'Nhập về kho', type: 'Loại mua', partner: 'Nhà cung cấp đề nghị',
     person: 'Người yêu cầu', signatures: ['Người lập phiếu', 'Trưởng bộ phận', 'Phụ trách mua hàng', 'Giám đốc'], typeFallback: 'Nhập mua mới' },
+  // Transfers: the source warehouse is printed as the warehouse and the destination (kept in supplierName) as the partner.
+  transferOrder: { title: 'LỆNH ĐIỀU CHUYỂN KHO', form: 'Lệnh điều chuyển', warehouse: 'Kho đi', type: 'Lý do điều chuyển', partner: 'Kho đến',
+    person: 'Người đề nghị', signatures: ['Người lập lệnh', 'Trưởng bộ phận', 'Thủ kho', 'Giám đốc'], typeFallback: 'Điều chuyển nội bộ' },
+  transferIssue: { title: 'PHIẾU XUẤT ĐIỀU CHUYỂN KHO', form: 'Mẫu số 03 - VT', warehouse: 'Kho đi', type: 'Lý do điều chuyển', partner: 'Kho đến',
+    person: 'Người vận chuyển', signatures: ['Người lập phiếu', 'Người vận chuyển', 'Thủ kho xuất', 'Kế toán trưởng'], typeFallback: 'Điều chuyển nội bộ' },
+  transferReceipt: { title: 'PHIẾU NHẬP ĐIỀU CHUYỂN KHO', form: 'Mẫu số 03 - VT', warehouse: 'Kho đến', type: 'Lý do điều chuyển', partner: 'Kho đi',
+    person: 'Người giao hàng', signatures: ['Người lập phiếu', 'Người giao hàng', 'Thủ kho nhập', 'Kế toán trưởng'], typeFallback: 'Điều chuyển nội bộ' },
   purchaseOrder: { title: 'ĐƠN MUA HÀNG', form: 'Đơn mua hàng', warehouse: 'Giao về kho', type: 'Loại mua', partner: 'Nhà cung cấp',
     person: 'Người liên hệ', signatures: ['Người lập đơn', 'Nhà cung cấp', 'Phụ trách mua hàng', 'Giám đốc'], typeFallback: 'Nhập mua mới' }
 };

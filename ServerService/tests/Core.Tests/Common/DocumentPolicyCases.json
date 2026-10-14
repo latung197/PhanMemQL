@@ -51,6 +51,10 @@
     { "name": "cancel draft without delete or ST_CANCELLED", "action": "Cancel", "status": "Draft", "isOwner": true, "actions": ["view"], "rights": [], "allowed": false },
     { "name": "cancel approved with ST_CANCELLED", "action": "Cancel", "status": "Approved", "isOwner": true, "actions": ["view"], "rights": ["ST_CANCELLED@DVCS01"], "allowed": true },
     { "name": "cancel approved with the cancel right of another unit", "action": "Cancel", "status": "Approved", "isOwner": true, "actions": ["view"], "rights": ["ST_CANCELLED@DVCS02"], "allowed": false },
+    { "name": "reopen cancelled with ST_CANCELLED", "action": "Reopen", "status": "Cancelled", "isOwner": true, "actions": ["view"], "rights": ["ST_CANCELLED@DVCS01"], "allowed": true },
+    { "name": "reopen cancelled without the cancel right", "action": "Reopen", "status": "Cancelled", "isOwner": true, "actions": ["view", "edit"], "rights": ["ST_APPROVED@DVCS01"], "allowed": false },
+    { "name": "reopen cancelled with the cancel right of another unit", "action": "Reopen", "status": "Cancelled", "isOwner": true, "actions": ["view"], "rights": ["ST_CANCELLED@DVCS02"], "allowed": false },
+    { "name": "reopen only a cancelled voucher", "action": "Reopen", "status": "Approved", "isOwner": true, "actions": ["view"], "rights": ["ST_CANCELLED@DVCS01"], "allowed": false },
     { "name": "cancel posted never", "action": "Cancel", "status": "Posted", "isOwner": true, "actions": ["view", "delete"], "rights": ["ST_CANCELLED@DVCS01"], "allowed": false }
   ]
 }

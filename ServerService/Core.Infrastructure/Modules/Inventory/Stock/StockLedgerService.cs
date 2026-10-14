@@ -71,12 +71,15 @@ public sealed class StockLedgerService(CoreContext db, ISqlExecutor sql, IUnitOf
 
     // ---- Posting -----------------------------------------------------------------------------------------------------
 
-    public Task PostAsync(int userId, StockPosting posting, CancellationToken ct) => unitOfWork.ExecuteAsync(async token =>
+    public Task PostAsync(int userId, StockPosting posting, CancellationToken ct) => unitOfWork.ExecuteAsync(token => PostCoreAsync(userId, posting, false, token), ct);
+
+    /// <summary>Posts a voucher; <paramref name="lenient"/> lets the balances dip below zero on the way (the caller checks the end result).</summary>
+    private async Task PostCoreAsync(int userId, StockPosting posting, bool lenient, CancellationToken token)
     {
         if (posting.Lines.Count == 0) throw new BusinessRuleException("stock.noLines");
         var unit = posting.UnitCode;
         var warehouse = Guard.Code(posting.WarehouseCode, 20, "field.warehouseCode");
-        var allowNegative = (await parameters.GetAsync(unit, token)).AllowNegativeStock;
+        var allowNegative = lenient || (await parameters.GetAsync(unit, token)).AllowNegativeStock;
 
         // The warehouse must be active and usable by the unit (a warehouse listing other units only is not).
         if (!await db.UsableBy(unit).AnyAsync(x => x.Code == warehouse, token))
@@ -107,7 +110,7 @@ public sealed class StockLedgerService(CoreContext db, ISqlExecutor sql, IUnitOf
                 lineQuantity = sign * item.Line.Quantity, seq, reversalOf = (long?)null, user = userId
             }, token);
         }
-    }, ct);
+    }
 
     /// <summary>Checks every line and works out its lot, location and base quantity; creates the lots that stock coming in needs.</summary>
     private async Task<List<Resolved>> ResolveAsync(StockPosting posting, string warehouse, CancellationToken ct)
@@ -199,8 +202,13 @@ public sealed class StockLedgerService(CoreContext db, ISqlExecutor sql, IUnitOf
 
     // ---- Unposting ---------------------------------------------------------------------------------------------------
 
-    public Task UnpostAsync(int userId, string sourceFunction, long sourceId, CancellationToken ct) => unitOfWork.ExecuteAsync(async token =>
+    public Task UnpostAsync(int userId, string sourceFunction, long sourceId, CancellationToken ct) =>
+        unitOfWork.ExecuteAsync(async token => { await UnpostCoreAsync(userId, sourceFunction, sourceId, false, token); }, ct);
+
+    /// <summary>Reverses the active rows of a voucher and returns the slots they sat in (<paramref name="lenient"/>: see PostCoreAsync).</summary>
+    private async Task<List<(Slot Slot, string Uom)>> UnpostCoreAsync(int userId, string sourceFunction, long sourceId, bool lenient, CancellationToken token)
     {
+        var touched = new List<(Slot, string)>();
         var rows = await sql.QueryAsync<MovementRow>(ActiveRows, new { function = sourceFunction, id = sourceId }, token);
         if (rows.Count == 0) throw new BusinessRuleException("stock.notPosted");
         var allow = new Dictionary<string, bool>();
@@ -208,10 +216,11 @@ public sealed class StockLedgerService(CoreContext db, ISqlExecutor sql, IUnitOf
                      .ThenBy(x => x.LocationCode, StringComparer.Ordinal).ThenBy(x => x.Id))
         {
             if (!allow.TryGetValue(row.UnitCode, out var allowNegative))
-                allow[row.UnitCode] = allowNegative = (await parameters.GetAsync(row.UnitCode, token)).AllowNegativeStock;
+                allow[row.UnitCode] = allowNegative = lenient || (await parameters.GetAsync(row.UnitCode, token)).AllowNegativeStock;
             var slot = new Slot(row.UnitCode, row.WarehouseCode, row.MaterialCode, row.LotCode ?? string.Empty, row.LocationCode ?? string.Empty);
             // The reversal takes back exactly what was booked, quantity and value.
             await ApplyAsync(slot, -row.Quantity, -row.Value, userId, allowNegative, row.UomCode, token);
+            touched.Add((slot, row.UomCode));
             await sql.ExecuteAsync(InsertMovement, new
             {
                 function = row.SourceFunction, sourceId = row.SourceId, sourceLineId = row.SourceLineId, unit = row.UnitCode,
@@ -219,6 +228,33 @@ public sealed class StockLedgerService(CoreContext db, ISqlExecutor sql, IUnitOf
                 date = row.DocumentDate.ToDateTime(TimeOnly.MinValue), quantity = -row.Quantity, value = -row.Value, uom = row.UomCode, lineUom = row.LineUomCode,
                 lineQuantity = row.LineQuantity is { } q ? -q : (decimal?)null, seq = row.PostingSeq, reversalOf = (long?)row.Id, user = userId
             }, token);
+        }
+        return touched;
+    }
+
+    public Task ReplaceAsync(int userId, StockPosting posting, CancellationToken ct) => unitOfWork.ExecuteAsync(async token =>
+    {
+        var touched = await UnpostCoreAsync(userId, posting.SourceFunction, posting.SourceId, true, token);
+        await PostCoreAsync(userId, posting, true, token);
+        // The new rows count too: a line moved to another warehouse / lot / location touches a slot the old posting did not.
+        touched.AddRange((await sql.QueryAsync<MovementRow>(ActiveRows, new { function = posting.SourceFunction, id = posting.SourceId }, token))
+            .Select(row => (new Slot(row.UnitCode, row.WarehouseCode, row.MaterialCode, row.LotCode ?? string.Empty, row.LocationCode ?? string.Empty), row.UomCode)));
+        var allowed = await parameters.GetAsync(posting.UnitCode, token);
+        if (allowed.AllowNegativeStock) return;
+        foreach (var (slot, uom) in touched.DistinctBy(x => x.Slot).OrderBy(x => x.Slot.Material, StringComparer.Ordinal).ThenBy(x => x.Slot.Lot, StringComparer.Ordinal).ThenBy(x => x.Slot.Location, StringComparer.Ordinal))
+        {
+            var warehouse = await sql.QuerySingleOrDefaultAsync<BalanceRow>(LockWarehouseBalance, new { unit = slot.Unit, warehouse = slot.Warehouse, material = slot.Material }, token);
+            if ((warehouse?.Quantity ?? 0m) < 0) throw Insufficient(slot with { Lot = string.Empty, Location = string.Empty }, 0m, uom, warehouse!.Quantity);
+            if (slot.Lot.Length > 0)
+            {
+                var lot = await sql.QuerySingleOrDefaultAsync<BalanceRow>(LockLotBalance, new { unit = slot.Unit, warehouse = slot.Warehouse, material = slot.Material, lot = slot.Lot }, token);
+                if ((lot?.Quantity ?? 0m) < 0) throw Insufficient(slot with { Location = string.Empty }, 0m, uom, lot!.Quantity);
+            }
+            if (slot.Location.Length > 0)
+            {
+                var location = await sql.QuerySingleOrDefaultAsync<BalanceRow>(LockLocationBalance, new { unit = slot.Unit, warehouse = slot.Warehouse, material = slot.Material, lot = slot.Lot, location = slot.Location }, token);
+                if ((location?.Quantity ?? 0m) < 0) throw Insufficient(slot, 0m, uom, location!.Quantity);
+            }
         }
     }, ct);
 
@@ -254,6 +290,11 @@ public sealed class StockLedgerService(CoreContext db, ISqlExecutor sql, IUnitOf
         }
         return value;
     }
+
+    /// <summary>The shortage after a replace: the balance is below zero, so the stock that is really there is what the others leave plus the shortage.</summary>
+    private static BusinessRuleException Insufficient(Slot slot, decimal _, string uom, decimal shortage) =>
+        new("stock.insufficientAfterChange", slot.Material, slot.Warehouse + (slot.Lot.Length > 0 ? " / " + slot.Lot : "") + (slot.Location.Length > 0 ? " / " + slot.Location : ""),
+            (-shortage).ToString("0.####", CultureInfo.InvariantCulture), uom);
 
     private static BusinessRuleException Insufficient(Slot slot, decimal available, string uom) =>
         new("stock.insufficient", slot.Material, slot.Warehouse + (slot.Lot.Length > 0 ? " / " + slot.Lot : "") + (slot.Location.Length > 0 ? " / " + slot.Location : ""),

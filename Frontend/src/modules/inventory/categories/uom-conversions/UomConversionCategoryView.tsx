@@ -69,17 +69,11 @@ export const UomConversionCategoryView: React.FC<{ currentUser?: UserProfile; pr
       toUomCode: input.toUomCode.trim().toUpperCase(), note: input.note.trim() }),
     renderForm: ({ form, setForm, editing }) => (
       <>
-        <TextInput label={t('uomConversions.code')} required maxLength={40} disabled={!!editing} value={form.code}
+        <TextInput label={t('uomConversions.code')} required maxLength={80} disabled={!!editing} value={form.code}
           hint={t('uomConversions.codeHint')} onChange={e => setForm({ ...form, code: e.target.value.toUpperCase().replace(/\s/g, '') })} />
-        <SelectInput label={t('uomConversions.material')} value={form.materialCode}
-          placeholder={t('uomConversions.global')} onChange={e => {
-            const product = products.find(p => p.sku === e.target.value);
-            setForm({ ...form, materialCode: product?.sku ?? '', materialName: product?.name ?? '' });
-          }}>
-          {products.map(p => <option key={p.id} value={p.sku}>{p.sku} - {p.name}</option>)}
-          {form.materialCode && !products.some(p => p.sku === form.materialCode) &&
-            <option value={form.materialCode}>{form.materialCode} - {form.materialName}</option>}
-        </SelectInput>
+        {/* Empty = a general conversion; the material form keeps the conversions of one material in a grid. */}
+        <CatalogLookup lookup="materials" label={t('uomConversions.material')} value={form.materialCode}
+          onChange={(code, item) => setForm({ ...form, materialCode: code, materialName: item?.name ?? '' })} />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <CatalogLookup lookup="uoms" label={t('uomConversions.fromUom')} required value={form.fromUomCode}
             onChange={code => setForm({ ...form, fromUomCode: code })}

@@ -21,6 +21,9 @@ docs/
 | [trang-thai-chung-tu.md](he-thong/trang-thai-chung-tu.md) | Danh mục trạng thái chứng từ theo đơn vị cơ sở (đổi tên, tắt bước Chờ duyệt) và quyền theo trạng thái theo đơn vị: cấp đến trạng thái nào thì lưu phiếu được đến đó, mã quyền có đơn vị, màn phân quyền, chuyển dữ liệu từ quyền cũ, chính sách, API, giới hạn | `Trang-thai-chung-tu.docx` |
 | [phieu-xuat-kho.md](kho/phieu-xuat-kho.md) | Phiếu xuất kho đầy đủ: màn hình, trạng thái và duyệt, ghi sổ trừ tồn theo giá bình quân (ví dụ chạy số), từng cột hai bảng, xóa phiếu và trigger, quyền, API kèm mẫu JSON, lỗi, cách cài đặt và kiểm tra, giới hạn, danh sách tệp | `Phieu-xuat-kho.docx` |
 | [phieu-yeu-cau-xuat-kho.md](kho/phieu-yeu-cau-xuat-kho.md) | Phiếu yêu cầu xuất kho (YCX, không ghi sổ) và chức năng "Lấy từ phiếu yêu cầu" của phiếu xuất kho: luồng, số đã xuất, quy tắc kiểm, bảng, quyền, API, giới hạn | `Phieu-yeu-cau-xuat-kho.docx` |
+| [sua-xoa-phieu-da-ghi-so.md](kho/sua-xoa-phieu-da-ghi-so.md) | Sửa và xóa phiếu đã ghi sổ (nhập / xuất kho, xuất / nhập điều chuyển): quyền `ST_EDIT_POSTED` theo đơn vị, đảo và ghi sổ lại trong một giao dịch, chỉ kiểm âm kho trên kết quả cuối, các trường hợp bị chặn, giá vốn | `Sua-xoa-phieu-da-ghi-so.docx` |
+| [dieu-chuyen-kho.md](kho/dieu-chuyen-kho.md) | Điều chuyển kho giữa hai kho của một đơn vị: lệnh điều chuyển → phiếu xuất (ghi sổ xuất) → phiếu nhập (ghi sổ nhập đúng giá trị), nhận từng phần, số đã xuất / đã nhận, quyền, API | `Dieu-chuyen-kho.docx` |
+| [don-vi-tinh-vat-tu.md](kho/don-vi-tinh-vat-tu.md) | Đơn vị gốc cố định của vật tư, bảng đơn vị quy đổi trên form vật tư, cách tồn kho và các phiếu dùng đơn vị (đổi đơn vị tự quy đổi giá), quy đổi chung | `Don-vi-tinh-vat-tu.docx` |
 | [them-quy-doi-don-vi-tinh.md](kho/them-quy-doi-don-vi-tinh.md) | Ghi lại các bước đưa Quy đổi đơn vị tính từ dữ liệu mẫu lên backend (ví dụ làm theo) | `Them-quy-doi-don-vi-tinh.docx` |
 
 ## Mua hàng (`mua-hang/`)

@@ -18,7 +18,7 @@ namespace Core.Infrastructure.Modules.Inventory;
 public sealed class UomConversionService(CoreContext db, CatalogBatch batch, IExcelExporter excel, IAuditLog audit)
     : CatalogService<UomConversion, UomConversionDto, SaveUomConversionRequest>(db, batch, excel, audit), IUomConversionService
 {
-    private static readonly CatalogSpec Info = new("inv_uom_conversion_cat", "uomConversion", "field.uomConversionCode", 40,
+    private static readonly CatalogSpec Info = new("inv_uom_conversion_cat", "uomConversion", "field.uomConversionCode", 80,
         "DanhMucQuyDoiDonViTinh");
 
     private static readonly SortMap<UomConversion> SortColumns = SortMap<UomConversion>.By(x => x.Code, "order")
@@ -84,7 +84,10 @@ public sealed class UomConversionService(CoreContext db, CatalogBatch batch, IEx
             throw new BusinessRuleException("uomConversion.pairExists");
 
         row.MaterialCode = materialCode;
-        row.MaterialName = materialCode is null ? null : Guard.Optional(request.MaterialName, 200, "field.materialName");
+        // The name is the one of the catalog (the material is checked from its [References] on save).
+        row.MaterialName = materialCode is null ? null
+            : await Db.Materials.AsNoTracking().Where(x => x.Code == materialCode).Select(x => x.Name).FirstOrDefaultAsync(ct)
+              ?? Guard.Optional(request.MaterialName, 200, "field.materialName");
         row.FromUomCode = from;
         row.ToUomCode = to;
         row.Factor = request.Factor;

@@ -107,11 +107,11 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
           />
         );
       case 'inv_transfer_order':
-        return <TransferOrderView products={products} warehouses={warehouses} />;
+        return <TransferOrderView companyUnits={companyUnits} activeUnitCode={activeCompanyUnitCode ?? ''} currentUser={currentUser} />;
       case 'inv_transfer_issue':
-        return <TransferIssueView products={products} warehouses={warehouses} />;
+        return <TransferIssueView companyUnits={companyUnits} activeUnitCode={activeCompanyUnitCode ?? ''} currentUser={currentUser} />;
       case 'inv_transfer_receipt':
-        return <TransferReceiptView products={products} warehouses={warehouses} />;
+        return <TransferReceiptView companyUnits={companyUnits} activeUnitCode={activeCompanyUnitCode ?? ''} currentUser={currentUser} />;
       case 'inv_audit_count':
         return <StockAuditView />;
       case 'inv_calc_monthly_cost':
