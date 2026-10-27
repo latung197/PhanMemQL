@@ -48,15 +48,19 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
   inv_approve_issue: fn('inventory', '/inventory/approvals/issues', 'Phê duyệt xuất kho', 'process'),
   inv_approve_issue_request: fn('inventory', '/inventory/approvals/issue-requests', 'Phê duyệt yêu cầu xuất kho', 'process'),
   inv_approve_transfer: fn('inventory', '/inventory/approvals/transfers', 'Phê duyệt điều chuyển', 'process'),
+  inv_approve_audit: fn('inventory', '/inventory/approvals/stock-counts', 'Phê duyệt kiểm kê', 'process'),
   // Mua hàng
   pur_request: fn('purchasing', '/purchasing/requests', 'Phiếu yêu cầu mua hàng', 'voucher'),
   pur_project_cat: fn('purchasing', '/purchasing/projects', 'Danh mục dự án', 'catalog'),
   pur_payment_term_cat: fn('purchasing', '/purchasing/payment-terms', 'Danh mục điều khoản thanh toán', 'catalog'),
   pur_supplier_group_cat: fn('purchasing', '/purchasing/supplier-groups', 'Danh mục nhóm nhà cung cấp', 'catalog'),
   pur_report_project: fn('purchasing', '/purchasing/report-project', 'Báo cáo chi phí theo dự án', 'report'),
+  pur_report_payable: fn('purchasing', '/purchasing/report-payable', 'Báo cáo công nợ phải trả', 'report'),
   pur_order: fn('purchasing', '/purchasing/orders', 'Đơn mua hàng', 'voucher'),
+  pur_invoice: fn('purchasing', '/purchasing/invoices', 'Hóa đơn mua hàng', 'voucher'),
   pur_approve_request: fn('purchasing', '/purchasing/approvals/requests', 'Phê duyệt yêu cầu mua hàng', 'process'),
   pur_approve_order: fn('purchasing', '/purchasing/approvals/orders', 'Phê duyệt đơn mua hàng', 'process'),
+  pur_approve_invoice: fn('purchasing', '/purchasing/approvals/invoices', 'Phê duyệt hóa đơn mua hàng', 'process'),
   // Kho hàng - báo cáo
   inv_report_stock: fn('inventory', '/inventory/report-stock', 'Báo cáo tồn kho', 'report'),
   inv_report_nxt: fn('inventory', '/inventory/report-nxt', 'Báo cáo nhập - xuất - tồn', 'report'),
@@ -66,11 +70,15 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
 
   // Bán hàng
   sales_customers: fn('sales', '/sales/customers', 'Khách hàng', 'catalog'),
+  sales_customer_group_cat: fn('sales', '/sales/customer-groups', 'Danh mục nhóm khách hàng', 'catalog'),
+  sales_price_list_cat: fn('sales', '/sales/price-lists', 'Danh mục bảng giá bán', 'catalog'),
   sales_orders: fn('sales', '/sales/orders', 'Đơn bán hàng', 'voucher'),
+  sales_approve_order: fn('sales', '/sales/approvals/orders', 'Phê duyệt đơn bán hàng', 'process'),
   sales_delivery: fn('sales', '/sales/delivery', 'Phiếu giao hàng', 'voucher'),
   sales_report: fn('sales', '/sales/report', 'Báo cáo doanh số', 'report'),
 
   // Tài chính
+  fin_account_cat: fn('finance', '/finance/accounts', 'Hệ thống tài khoản kế toán', 'catalog'),
   fin_categories: fn('finance', '/finance/categories', 'Khoản mục thu chi', 'catalog'),
   fin_receipt_voucher: fn('finance', '/finance/receipts', 'Phiếu thu', 'voucher'),
   fin_payment_voucher: fn('finance', '/finance/payments', 'Phiếu chi', 'voucher'),

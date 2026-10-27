@@ -2,8 +2,11 @@ import React from 'react';
 import { SubMenuKey, UserProfile, CompanyUnit } from '../../types';
 import { PurchaseRequestView } from './documents/purchase-requests';
 import { PurchaseOrderView } from './documents/purchase-orders';
+import { PurchaseInvoiceView } from './documents/purchase-invoices';
+import { PurchaseInvoiceApprovalView } from './documents/approval-purchase-invoice/PurchaseInvoiceApprovalView';
 import { PurchaseOrderApprovalView } from './documents/approval-purchase-order/PurchaseOrderApprovalView';
 import { ProjectCostReportView } from './reports/ProjectCostReportView';
+import { PayableReportView } from './reports/PayableReportView';
 import { ProjectCategoryView } from './categories/ProjectCategoryView';
 import { PaymentTermCategoryView, SupplierGroupCategoryView } from './categories/SimpleCategoryViews';
 import { PurchaseRequestApprovalView } from './documents/approval-purchase-request/PurchaseRequestApprovalView';
@@ -15,7 +18,7 @@ interface PurchasingModuleProps {
   currentUser?: UserProfile;
 }
 
-/** Purchasing: purchase requests, purchase orders (and their approvals) and the purchasing catalogs. */
+/** Purchasing: purchase requests, purchase orders, purchase invoices (and their approvals) and the purchasing catalogs. */
 export const PurchasingModule: React.FC<PurchasingModuleProps> = ({ subKey, companyUnits, activeCompanyUnitCode, currentUser }) => {
   switch (subKey) {
     case 'pur_request':
@@ -26,6 +29,12 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({ subKey, comp
       return <PurchaseOrderView companyUnits={companyUnits} activeUnitCode={activeCompanyUnitCode ?? ''} currentUser={currentUser} />;
     case 'pur_approve_order':
       return <PurchaseOrderApprovalView currentUser={currentUser} />;
+    case 'pur_invoice':
+      return <PurchaseInvoiceView companyUnits={companyUnits} activeUnitCode={activeCompanyUnitCode ?? ''} currentUser={currentUser} />;
+    case 'pur_approve_invoice':
+      return <PurchaseInvoiceApprovalView currentUser={currentUser} />;
+    case 'pur_report_payable':
+      return <PayableReportView currentUser={currentUser} />;
     case 'pur_report_project':
       return <ProjectCostReportView currentUser={currentUser} />;
     case 'pur_project_cat':

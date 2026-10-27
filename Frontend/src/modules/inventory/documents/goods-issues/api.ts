@@ -3,6 +3,37 @@ import { pagedQueryString, type PagedQuery, type PagedResult } from '../../../..
 import type { GoodsVoucher, VoucherItem } from '../../../../types';
 import type { OpenIssueRequest } from '../issue-requests/api';
 
+/** An approved sales order with something left to deliver (what "Lấy từ đơn bán hàng" lists). */
+export interface OpenSalesOrderLine {
+  lineId: number;
+  materialCode: string;
+  materialName: string;
+  uomCode: string;
+  orderedQuantity: number;
+  issuedQuantity: number;
+  remainingQuantity: number;
+  unitPrice: number;
+  note?: string | null;
+}
+
+export interface OpenSalesOrder {
+  id: number;
+  code: string;
+  date: string;
+  deliveryDate?: string | null;
+  warehouseCode: string;
+  warehouseName: string;
+  voucherType: string;
+  customerCode: string;
+  customerName?: string | null;
+  deliveryAddress?: string | null;
+  currencyCode: string;
+  exchangeRate: number;
+  note?: string | null;
+  lines: OpenSalesOrderLine[];
+  projectCode?: string | null;
+}
+
 const url = '/api/inventory/goods-issues';
 
 interface IssueLine {
@@ -18,6 +49,8 @@ interface IssueLine {
   position?: string | null;
   issueRequestLineId?: number | null;
   issueRequestCode?: string | null;
+  salesOrderLineId?: number | null;
+  salesOrderCode?: string | null;
 }
 
 interface IssueRecord {
@@ -33,8 +66,10 @@ interface IssueRecord {
   currencyCode: string;
   exchangeRate: number;
   customerName?: string | null;
+  customerCode?: string | null;
   receiverName?: string | null;
   issueRequestCode?: string | null;
+  salesOrderCode?: string | null;
   projectCode?: string | null;
   note?: string | null;
   status: 'Draft' | 'Pending' | 'Approved' | 'Posted' | 'Cancelled';
@@ -66,7 +101,9 @@ const toItem = (line: IssueLine): VoucherItem => ({
   lotNumber: line.lotNumber ?? '',
   position: line.position ?? '',
   issueRequestLineId: line.issueRequestLineId ?? undefined,
-  issueRequestCode: line.issueRequestCode ?? undefined
+  issueRequestCode: line.issueRequestCode ?? undefined,
+  salesOrderLineId: line.salesOrderLineId ?? undefined,
+  salesOrderCode: line.salesOrderCode ?? undefined
 });
 
 // GoodsVoucher keeps the partner in supplierName and the person handing over / taking over in delivererName for both
@@ -77,7 +114,8 @@ const toVoucher = (row: IssueRecord): GoodsVoucher => ({
   companyUnitId: row.unitCode, companyUnitName: row.unitName,
   warehouseId: row.warehouseCode, warehouseName: row.warehouseName,
   voucherType: row.voucherType, currencyCode: row.currencyCode, exchangeRate: row.exchangeRate,
-  supplierName: row.customerName ?? '', delivererName: row.receiverName ?? '', issueRequestCode: row.issueRequestCode ?? '',
+  supplierName: row.customerName ?? '', customerCode: row.customerCode ?? '', delivererName: row.receiverName ?? '', issueRequestCode: row.issueRequestCode ?? '',
+  salesOrderCode: row.salesOrderCode ?? '',
   projectCode: row.projectCode ?? '', note: row.note ?? '', status: statusLabels[row.status], totalValue: row.totalValue,
   createdBy: row.createdBy, approvedBy: row.approvedBy ?? undefined,
   items: row.items.map(toItem), materialItems: row.materialItems.map(toItem)
@@ -87,7 +125,8 @@ const toLine = (item: VoucherItem, kind: 'ITEM' | 'MATERIAL') => ({
   kind, materialCode: item.sku || item.productId || '',
   uomCode: item.unit || '', quantity: item.quantity, unitPrice: item.unitPrice,
   lotNumber: item.lotNumber || null, position: item.position || null,
-  issueRequestLineId: kind === 'ITEM' ? item.issueRequestLineId ?? null : null
+  issueRequestLineId: kind === 'ITEM' ? item.issueRequestLineId ?? null : null,
+  salesOrderLineId: kind === 'ITEM' ? item.salesOrderLineId ?? null : null
 });
 
 const toRequest = (voucher: GoodsVoucher, targetStatus?: string) => ({
@@ -95,7 +134,7 @@ const toRequest = (voucher: GoodsVoucher, targetStatus?: string) => ({
   date: voucher.date, warehouseCode: voucher.warehouseId,
   voucherType: voucher.voucherType || 'Xuất bán hàng',
   currencyCode: voucher.currencyCode || 'VND', exchangeRate: voucher.exchangeRate || 1,
-  customerName: voucher.supplierName || null, receiverName: voucher.delivererName || null,
+  customerName: voucher.supplierName || null, customerCode: voucher.customerCode || null, receiverName: voucher.delivererName || null,
   issueRequestCode: voucher.issueRequestCode || null,
   projectCode: voucher.projectCode || null,
   note: voucher.note || null,
@@ -115,6 +154,8 @@ export const goodsIssuesApi = {
     `PhieuXuatKho_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`),
   /** Approved issue requests with something left to issue ("Lấy từ phiếu yêu cầu"). */
   getOpenRequests: (editingIssueId?: string) => apiRequest<OpenIssueRequest[]>('GET', `${url}/open-requests${editingIssueId ? `?issueId=${encodeURIComponent(editingIssueId)}` : ''}`),
+  /** Approved sales orders with something left to deliver ("Lấy từ đơn bán hàng"). */
+  getOpenSalesOrders: (editingIssueId?: string) => apiRequest<OpenSalesOrder[]>('GET', `${url}/open-sales-orders${editingIssueId ? `?issueId=${encodeURIComponent(editingIssueId)}` : ''}`),
   getOptions: () => apiRequest<{ warehouses: { code: string; name: string }[]; currencies: { code: string; name: string }[] }>('GET', `${url}/options`),
   create: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<IssueRecord>('POST', url, toRequest(voucher, targetStatus))),
   update: async (voucher: GoodsVoucher, targetStatus?: string) => toVoucher(await apiRequest<IssueRecord>('PUT', `${url}/${voucher.id}`, toRequest(voucher, targetStatus))),

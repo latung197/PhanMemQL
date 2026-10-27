@@ -19,9 +19,12 @@ using Core.Application.Modules.Inventory;
 using Core.Application.Modules.Inventory.Categories.suppliers;
 using Core.Application.Modules.Inventory.Documents.GoodsIssues;
 using Core.Application.Modules.Inventory.Documents.GoodsReceipts;
+using Core.Application.Modules.Accounts;
 using Core.Application.Modules.Inventory.Documents.IssueRequests;
+using Core.Application.Modules.Inventory.Documents.StockCounts;
 using Core.Application.Modules.Inventory.Documents.Transfers;
 using Core.Application.Modules.Purchasing.Categories;
+using Core.Application.Modules.Purchasing.Documents.PurchaseInvoices;
 using Core.Application.Modules.Purchasing.Documents.PurchaseOrders;
 using Core.Application.Modules.Purchasing.Documents.PurchaseRequests;
 using Core.Application.Modules.Inventory.Stock;
@@ -57,9 +60,12 @@ using Core.Infrastructure.Modules.Inventory;
 using Core.Infrastructure.Modules.Inventory.Categories.suppliers;
 using Core.Infrastructure.Modules.Inventory.Documents.GoodsIssues;
 using Core.Infrastructure.Modules.Inventory.Documents.GoodsReceipts;
+using Core.Infrastructure.Modules.Accounts;
 using Core.Infrastructure.Modules.Inventory.Documents.IssueRequests;
+using Core.Infrastructure.Modules.Inventory.Documents.StockCounts;
 using Core.Infrastructure.Modules.Inventory.Documents.Transfers;
 using Core.Infrastructure.Modules.Purchasing.Categories;
+using Core.Infrastructure.Modules.Purchasing.Documents.PurchaseInvoices;
 using Core.Infrastructure.Modules.Purchasing.Documents.PurchaseOrders;
 using Core.Infrastructure.Modules.Purchasing.Documents.PurchaseRequests;
 using Core.Infrastructure.Modules.Inventory.Stock;
@@ -113,6 +119,8 @@ public static class DependencyInjection
         // Custom lookups (typed columns, parameters, rights): one class each, see LookupProvider.
         services.AddLookupProvider<UomFullLookup>();
         services.AddLookupProvider<MaterialUomLookup>();
+        services.AddLookupProvider<AccountLookup>();
+        services.AddScoped<IAccountService, AccountService>();
         services.AddLookupProvider<MaterialsLookup>();
         services.AddLookupProvider<LocationsLookup>();
         services.AddLookupProvider<LotsLookup>();
@@ -165,15 +173,22 @@ public static class DependencyInjection
         services.AddScoped<IGoodsReceiptService, GoodsReceiptService>();
         services.AddScoped<IGoodsIssueService, GoodsIssueService>();
         services.AddScoped<IIssueRequestService, IssueRequestService>();
+        services.AddScoped<IStockCountService, StockCountService>();
         services.AddScoped<ITransferOrderService, TransferOrderService>();
         services.AddScoped<ITransferIssueService, TransferIssueService>();
         services.AddScoped<ITransferReceiptService, TransferReceiptService>();
         services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
         services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+        services.AddScoped<IPurchaseInvoiceService, PurchaseInvoiceService>();
+        services.AddScoped<Core.Application.Modules.Sales.Documents.SalesOrders.ISalesOrderService, Core.Infrastructure.Modules.Sales.Documents.SalesOrders.SalesOrderService>();
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<Core.Application.Modules.Purchasing.Reports.IProjectCostReport, Core.Infrastructure.Modules.Purchasing.Reports.ProjectCostService>();
+        services.AddScoped<Core.Application.Modules.Purchasing.Reports.IPayableReport, Core.Infrastructure.Modules.Purchasing.Reports.PayableService>();
         services.AddScoped<IPaymentTermService, PaymentTermService>();
         services.AddScoped<ISupplierGroupService, SupplierGroupService>();
+        services.AddScoped<Core.Application.Modules.Sales.Categories.ICustomerGroupService, Core.Infrastructure.Modules.Sales.Categories.CustomerGroupService>();
+        services.AddScoped<Core.Application.Modules.Sales.Categories.ICustomerService, Core.Infrastructure.Modules.Sales.Categories.CustomerService>();
+        services.AddScoped<Core.Application.Modules.Sales.Categories.IPriceListService, Core.Infrastructure.Modules.Sales.Categories.PriceListService>();
         return services;
     }
 }

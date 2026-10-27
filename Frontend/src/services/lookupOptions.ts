@@ -65,5 +65,18 @@ export interface SupplierOption {
   phone: string;
 }
 
+/** What the customer picker of a voucher needs (GET /api/lookups/customers). */
+export interface CustomerOption {
+  id: string;
+  code: string;
+  name: string;
+  taxCode: string;
+  groupCode: string;
+  paymentTermCode: string;
+}
+
+export const loadCustomerOptions = async (): Promise<CustomerOption[]> =>
+  (await allPages('customers')).map(x => ({ id: x.code, code: x.code, name: x.name, taxCode: text(x.extra.taxCode), groupCode: text(x.extra.customerGroupCode), paymentTermCode: text(x.extra.paymentTermCode) }));
+
 export const loadSupplierOptions = async (): Promise<SupplierOption[]> =>
   (await allPages('suppliers')).map(x => ({ id: x.code, code: x.code, name: x.name, taxCode: text(x.extra.taxCode), phone: text(x.extra.phone) }));

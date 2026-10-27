@@ -22,6 +22,7 @@ public static class VoucherCatalog
         new("inv_issue_request", "YCX", "Phiếu yêu cầu xuất kho"),
         new("pur_request", "YCM", "Phiếu yêu cầu mua hàng"),
         new("pur_order", "DMH", "Đơn mua hàng"),
+        new("pur_invoice", "HDM", "Hóa đơn mua hàng"),
         new("inv_issue", "PXK", "Phiếu xuất kho"),
         new("inv_transfer_order", "LDC", "Lệnh điều chuyển kho"),
         new("inv_transfer_issue", "PXDC", "Phiếu xuất điều chuyển"),
@@ -45,7 +46,10 @@ public static class VoucherCatalog
         ["inv_approve_issue_request"] = ["inv_issue_request"],
         ["pur_approve_request"] = ["pur_request"],
         ["pur_approve_order"] = ["pur_order"],
-        ["inv_approve_transfer"] = ["inv_transfer_order", "inv_transfer_issue", "inv_transfer_receipt"]
+        ["pur_approve_invoice"] = ["pur_invoice"],
+        ["sales_approve_order"] = ["sales_orders"],
+        ["inv_approve_transfer"] = ["inv_transfer_order", "inv_transfer_issue", "inv_transfer_receipt"],
+        ["inv_approve_audit"] = ["inv_audit_count"]
     };
 
     public static IEnumerable<string> ApprovalScreensOf(string voucherFunction) =>

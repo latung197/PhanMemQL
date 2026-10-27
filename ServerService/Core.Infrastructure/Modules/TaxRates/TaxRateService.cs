@@ -46,6 +46,7 @@ public sealed class TaxRateService(CoreContext db, CatalogBatch batch, IExcelExp
     [
         new("export.taxRate.code", x => x.Code), new("export.taxRate.name", x => x.Name), new("export.taxRate.taxType", x => x.TaxType),
         new("export.taxRate.rate", x => x.Rate), new("export.taxRate.isExempt", x => YesNo(x.IsExempt)),
+        new("export.taxRate.inputAccount", x => x.InputAccountCode), new("export.taxRate.outputAccount", x => x.OutputAccountCode),
         new("export.taxRate.note", x => x.Note), new("export.taxRate.isActive", x => YesNo(x.IsActive))
     ];
 
@@ -54,7 +55,7 @@ public sealed class TaxRateService(CoreContext db, CatalogBatch batch, IExcelExp
     protected override Task<IReadOnlyList<TaxRateDto>> MapAsync(IReadOnlyList<TaxRate> rows,
         Func<ErpEntity, RecordStampDto> stamp, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<TaxRateDto>>(rows.Select(x =>
-            new TaxRateDto(x.Code, x.Name, x.TaxType, x.Rate, x.IsExempt, x.Note, x.IsActive, stamp(x), x.Version)).ToList());
+            new TaxRateDto(x.Code, x.Name, x.TaxType, x.Rate, x.IsExempt, x.Note, x.IsActive, stamp(x), x.Version, x.InputAccountCode, x.OutputAccountCode)).ToList());
 
     protected override async Task ApplyAsync(TaxRate row, SaveTaxRateRequest request, CancellationToken ct)
     {
@@ -65,12 +66,24 @@ public sealed class TaxRateService(CoreContext db, CatalogBatch batch, IExcelExp
         if (request.IsExempt && request.Rate != 0) throw new BusinessRuleException("taxRate.exemptNoRate");
         if (await Db.TaxRates.AnyAsync(x => x.Code != row.Code && x.Name.ToLower() == name.ToLower(), ct))
             throw new BusinessRuleException("taxRate.nameExists", name);
+        row.InputAccountCode = await PostingAccountAsync(request.InputAccountCode, ct);
+        row.OutputAccountCode = await PostingAccountAsync(request.OutputAccountCode, ct);
         row.Name = name;
         row.TaxType = type;
         row.Rate = Math.Round(request.Rate, 4);
         row.IsExempt = request.IsExempt;
         row.Note = Guard.Optional(request.Note, 300, "field.note");
         row.IsActive = request.IsActive;
+    }
+    /// <summary>The account of a tax code: empty = none; otherwise it must exist, be active and be a leaf (a voucher posts to leaves only).</summary>
+    private async Task<string?> PostingAccountAsync(string? code, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return null;
+        var account = Guard.Code(code, 20, "field.accountCode");
+        var found = await Db.Accounts.AsNoTracking().FirstOrDefaultAsync(x => x.Code == account, ct);
+        if (found is null || !found.IsActive) throw new BusinessRuleException("taxRate.accountInvalid", account);
+        if (await Db.Accounts.AnyAsync(x => x.ParentAccountCode == account, ct)) throw new BusinessRuleException("taxRate.accountNotLeaf", account);
+        return account;
     }
     // Materials and vouchers are checked from their [References<TaxRate>] columns once they have a backend.
 }

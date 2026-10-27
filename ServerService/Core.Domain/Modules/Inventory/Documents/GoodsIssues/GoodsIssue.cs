@@ -24,10 +24,16 @@ public class GoodsIssue : ErpEntity, IApprovableDocument
     [Required, Column("currency_code"), MaxLength(10)] public string CurrencyCode { get; set; } = "VND";
     [Column("exchange_rate", TypeName = "numeric(18,6)")] public decimal ExchangeRate { get; set; } = 1;
     [Column("customer_name"), MaxLength(200)] public string? CustomerName { get; set; }
+    /// <summary>The customer of the catalog (optional: a free issue keeps the typed name). An issue that carries out sales orders is for the customer of those orders.</summary>
+    [References<Core.Domain.Modules.Sales.Categories.Customers.Customer>(Optional = true)]
+    [Column("customer_code"), MaxLength(20)] public string? CustomerCode { get; set; }
     [Column("receiver_name"), MaxLength(200)] public string? ReceiverName { get; set; }
     /// <summary>The approved issue requests this issue carries out, comma separated and derived from the lines (lines point to request lines); empty for a free issue.</summary>
     [NotReference("trỏ tới mã phiếu yêu cầu xuất kho (khóa của nó là id); IssueRequestService không cho hủy phiếu yêu cầu còn phiếu xuất chưa hủy, và chỉ xóa được phiếu yêu cầu nháp")]
     [Column("issue_request_code"), MaxLength(500)] public string? IssueRequestCode { get; set; }
+    /// <summary>The approved sales orders this issue delivers, comma separated and derived from the lines (lines point to order lines); empty for an issue without an order.</summary>
+    [NotReference("trỏ tới số đơn bán hàng (khóa của nó là id); SalesOrderService không cho hủy đơn còn phiếu xuất chưa hủy")]
+    [Column("sales_order_code"), MaxLength(500)] public string? SalesOrderCode { get; set; }
     [Column("note"), MaxLength(1000)] public string? Note { get; set; }
     /// <summary>The project this voucher belongs to (dự án), optional: costs are added up per project.</summary>
     [References<Core.Domain.Modules.Purchasing.Categories.Projects.Project>(Optional = true)]
@@ -60,4 +66,6 @@ public class GoodsIssueLine : ErpEntity
     [Column("position"), MaxLength(100)] public string? Position { get; set; }
     /// <summary>The line of the issue request this line carries out (null on a free issue).</summary>
     [Column("issue_request_line_id")] public long? IssueRequestLineId { get; set; }
+    /// <summary>The line of the sales order this line delivers (null on an issue without an order).</summary>
+    [Column("sales_order_line_id")] public long? SalesOrderLineId { get; set; }
 }

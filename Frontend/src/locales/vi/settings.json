@@ -414,7 +414,10 @@
     "active": "Đang dùng",
     "inactive": "Ngừng sử dụng",
     "isActive": "Đang sử dụng",
-    "exemptBadge": "Không chịu thuế"
+    "exemptBadge": "Không chịu thuế",
+    "inputAccount": "Tài khoản thuế đầu vào",
+    "outputAccount": "Tài khoản thuế đầu ra",
+    "accountHint": "Tài khoản hạch toán thuế của hàng mua vào / bán ra (chỉ chọn tài khoản chi tiết). Ví dụ GTGT: 1331 và 33311."
   },
   "loginNotices": {
     "title": "Thông báo trang đăng nhập",

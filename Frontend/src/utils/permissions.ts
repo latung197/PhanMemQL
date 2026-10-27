@@ -79,7 +79,10 @@ export const APPROVAL_SCREENS: Partial<Record<SubMenuKey, SubMenuKey[]>> = {
   inv_approve_issue_request: ['inv_issue_request'],
   pur_approve_request: ['pur_request'],
   pur_approve_order: ['pur_order'],
-  inv_approve_transfer: ['inv_transfer_order', 'inv_transfer_issue', 'inv_transfer_receipt']
+  pur_approve_invoice: ['pur_invoice'],
+  sales_approve_order: ['sales_orders'],
+  inv_approve_transfer: ['inv_transfer_order', 'inv_transfer_issue', 'inv_transfer_receipt'],
+  inv_approve_audit: ['inv_audit_count']
 };
 
 const approvalScreensOf = (voucher: SubMenuKey): SubMenuKey[] =>

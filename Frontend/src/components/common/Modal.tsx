@@ -34,20 +34,21 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, headerActi
     return (
       <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-3 z-50 animate-fade-in overflow-hidden">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[9px] w-full h-[calc(100vh-1rem)] sm:h-[calc(100vh-1.5rem)] p-3 sm:p-4 shadow-2xl flex flex-col min-h-0 gap-3">
-          <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0 gap-3">
-            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2 flex-1 min-w-0 truncate">
+          {/* Narrow screens: title + close on the first row, the action buttons wrap on a row of their own. */}
+          <div className="flex flex-wrap sm:flex-nowrap justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0 gap-x-3 gap-y-2">
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2 flex-1 min-w-0 truncate order-1">
               {title}
             </h3>
-            <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-[5px] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-hidden cursor-pointer order-2 sm:order-3"
+              title={t('controls.modal.closeEsc')}
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="flex flex-wrap items-center gap-2 order-3 sm:order-2 w-full sm:w-auto sm:shrink-0 max-sm:[&>div]:flex-wrap max-sm:[&>div]:shrink max-sm:[&>div]:min-w-0">
               {headerActions}
-              <button
-                type="button"
-                onClick={onClose}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-[5px] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-hidden cursor-pointer"
-                title={t('controls.modal.closeEsc')}
-              >
-                <X className="h-5 w-5" />
-              </button>
             </div>
           </div>
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden pt-1">{children}</div>

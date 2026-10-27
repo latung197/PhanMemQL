@@ -641,7 +641,7 @@ const ERPAppContent: React.FC = () => {
               <>
                 {activeCategory === 'overview' && (
                   <OverviewModule
-                    erpData={erpDataView}
+                    currentUser={currentUser}
                     activeCompanyUnitCode={activeCompanyUnitCode}
                     onSelectCompanyUnit={handleSelectCompanyUnit}
                     onNavigate={navigateTo}
@@ -694,6 +694,8 @@ const ERPAppContent: React.FC = () => {
                     onAddCustomer={handleAddCustomer}
                     onAddOrder={handleAddOrder}
                     onUpdateOrderStatus={handleUpdateOrderStatus}
+                    companyUnits={companyUnits}
+                    activeCompanyUnitCode={activeCompanyUnitCode}
                   />
                 )}
 

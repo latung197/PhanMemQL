@@ -98,13 +98,15 @@
       "inv_issue_request": "Phiếu Yêu cầu xuất kho",
       "pur_request": "Phiếu Yêu cầu mua hàng",
       "pur_order": "Đơn Mua hàng",
+      "pur_invoice": "Hóa đơn Mua hàng",
       "inv_issue": "Phiếu Xuất kho",
       "inv_report_stock": "Báo cáo Tồn kho hiện tại",
       "inv_report_nxt": "Báo cáo Tổng hợp Nhập-Xuất-Tồn (NXT)",
-      "sales_customers": "Danh mục Khách hàng & Phân nhóm",
-      "sales_orders": "Hóa đơn & Đơn bán hàng",
+      "sales_customers": "Danh mục Khách hàng",
+      "sales_orders": "Đơn bán hàng",
       "sales_delivery": "Phiếu giao hàng / Vận chuyển",
       "sales_report": "Báo cáo Doanh số & Công nợ",
+      "fin_account_cat": "Hệ thống tài khoản kế toán",
       "fin_categories": "Khai báo khoản mục Thu Chi",
       "fin_receipt_voucher": "Lập Phiếu Thu tiền",
       "fin_payment_voucher": "Lập Phiếu Chi tiền",
@@ -114,7 +116,9 @@
       "hr_report": "Báo cáo Biến động Nhân sự",
       "reports_main": "Báo cáo tổng hợp doanh nghiệp",
       "ai_main": "Cố vấn Gemini AI",
-      "settings_main": "Cài đặt & Phân quyền"
+      "settings_main": "Cài đặt & Phân quyền",
+      "sales_customer_group_cat": "Danh mục Nhóm khách hàng",
+      "sales_price_list_cat": "Danh mục Bảng giá bán"
     },
     "aiAdvisor": "Cố vấn Gemini AI",
     "aiSubtext": "Hỗ trợ kiểm toán 24/7"
@@ -606,6 +610,52 @@
     "changePassword": "Đổi mật khẩu",
     "passwordChanged": "Đã đổi mật khẩu. Các phiên đăng nhập khác của tài khoản đã bị đăng xuất."
   },
+  "accounts": {
+    "title": "Hệ thống tài khoản kế toán",
+    "noun": "tài khoản",
+    "add": "Thêm tài khoản",
+    "addTitle": "Thêm tài khoản",
+    "editTitle": "Sửa tài khoản {code}",
+    "search": "Tìm số hiệu, tên hoặc ghi chú...",
+    "code": "Số hiệu",
+    "codeHint": "Tài khoản con bắt đầu bằng mã tài khoản cha, ví dụ 13311 dưới 1331.",
+    "name": "Tên tài khoản",
+    "nameEn": "Tên tiếng Anh",
+    "parent": "Tài khoản cha",
+    "parentHint": "Để trống nếu là tài khoản cấp 1. Chọn xong không đổi được; chọn tài khoản cha thì loại và tính chất lấy theo tài khoản cha.",
+    "level": "Cấp",
+    "accountType": "Loại tài khoản",
+    "nature": "Tính chất",
+    "note": "Ghi chú",
+    "status": "Trạng thái",
+    "active": "Đang sử dụng",
+    "inactive": "Ngừng sử dụng",
+    "isActive": "Đang sử dụng",
+    "posting": "Hạch toán",
+    "postable": "Chi tiết",
+    "groupOnly": "Tổng hợp",
+    "allLevels": "Tất cả cấp",
+    "levelValue": "Cấp {n}",
+    "natureValue": {
+      "DEBIT": "Dư Nợ",
+      "CREDIT": "Dư Có",
+      "BOTH": "Lưỡng tính"
+    },
+    "type": {
+      "ASSET": "Tài sản",
+      "LIABILITY": "Nợ phải trả",
+      "EQUITY": "Vốn chủ sở hữu",
+      "REVENUE": "Doanh thu",
+      "COST": "Chi phí sản xuất, kinh doanh",
+      "OTHER_INCOME": "Thu nhập khác",
+      "OTHER_EXPENSE": "Chi phí khác",
+      "PROFIT_LOSS": "Xác định kết quả kinh doanh",
+      "OFF_BALANCE": "Ngoài bảng"
+    },
+    "postableFilter": "Hạch toán",
+    "postableOnly": "Chỉ tài khoản chi tiết",
+    "addChild": "Thêm tài khoản con"
+  },
   "audit": {
     "title": "Nhật ký thay đổi",
     "loading": "Đang tải lịch sử...",
@@ -770,6 +820,7 @@
       "uom": "Đơn vị tính",
       "materialGroup": "Nhóm vật tư",
       "materialType": "Loại vật tư",
+      "account": "Tài khoản kế toán",
       "taxRate": "Mã thuế",
       "loginNotice": "Thông báo đăng nhập",
       "banner": "Thanh thông báo",
@@ -778,7 +829,10 @@
       "paymentTerm": "Điều khoản thanh toán",
       "supplierGroup": "Nhóm nhà cung cấp",
       "auditLog": "Nhật ký thay đổi",
-      "menu": "Mục menu"
+      "menu": "Mục menu",
+      "customer": "Khách hàng",
+      "customerGroup": "Nhóm khách hàng",
+      "priceList": "Bảng giá bán"
     },
     "objectLabel": {
       "auditLog": "Dọn nhật ký cũ"
@@ -814,8 +868,7 @@
     "directFunction": "Chức năng chính",
     "save": "Lưu cấu hình menu",
     "saving": "Đang lưu...",
-    "saved": "Đã lưu cấu hình menu"
-,
+    "saved": "Đã lưu cấu hình menu",
     "tabVisibility": "Ẩn / hiện",
     "tabStructure": "Cấu trúc menu",
     "structureNote": "Chỉ tài khoản super admin sửa được cấu trúc. Chức năng không thêm hoặc xóa ở đây (do mã nguồn quyết định); muốn bỏ một mục hãy tắt \"Đang dùng\". Mục cần để vào màn này luôn bật.",

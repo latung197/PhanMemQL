@@ -242,10 +242,10 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
     }
 
     /// <summary>Vouchers whose status this service moves with the approval steps (each has its own table).</summary>
-    private static bool IsVoucherFunction(string function) => function is "inv_receipt" or "inv_issue" or "inv_issue_request" or "pur_request" or "pur_order"
-        or "inv_transfer_order" or "inv_transfer_issue" or "inv_transfer_receipt";
+    private static bool IsVoucherFunction(string function) => function is "inv_receipt" or "inv_issue" or "inv_issue_request" or "pur_request" or "pur_order" or "pur_invoice" or "sales_orders"
+        or "inv_transfer_order" or "inv_transfer_issue" or "inv_transfer_receipt" or "inv_audit_count";
 
-    private static string NotFoundKey(string function) => function switch { "inv_issue" => "issue.notFound", "inv_issue_request" => "issueRequest.notFound", "pur_request" => "purchaseRequest.notFound", "pur_order" => "purchaseOrder.notFound", "inv_transfer_order" => "transferOrder.notFound", "inv_transfer_issue" => "transferIssue.notFound", "inv_transfer_receipt" => "transferReceipt.notFound", _ => "receipt.notFound" };
+    private static string NotFoundKey(string function) => function switch { "inv_issue" => "issue.notFound", "inv_issue_request" => "issueRequest.notFound", "pur_request" => "purchaseRequest.notFound", "pur_order" => "purchaseOrder.notFound", "pur_invoice" => "purchaseInvoice.notFound", "sales_orders" => "salesOrder.notFound", "inv_transfer_order" => "transferOrder.notFound", "inv_transfer_issue" => "transferIssue.notFound", "inv_transfer_receipt" => "transferReceipt.notFound", "inv_audit_count" => "stockCount.notFound", _ => "receipt.notFound" };
 
     private async Task<IApprovableDocument?> FindVoucherAsync(string function, string documentId, string unitCode, CancellationToken ct) =>
         function switch
@@ -255,9 +255,12 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
             "inv_issue_request" => await db.IssueRequests.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             "pur_request" => await db.PurchaseRequests.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             "pur_order" => await db.PurchaseOrders.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
+            "pur_invoice" => await db.PurchaseInvoices.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
+            "sales_orders" => await db.SalesOrders.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             "inv_transfer_order" => await db.TransferOrders.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             "inv_transfer_issue" => await db.TransferIssues.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             "inv_transfer_receipt" => await db.TransferReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
+            "inv_audit_count" => await db.StockCounts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             _ => null
         };
 

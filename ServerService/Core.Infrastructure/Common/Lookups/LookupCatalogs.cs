@@ -40,6 +40,19 @@ public static class LookupCatalogs
         new LookupDefinition("supplierGroups", db => db.SupplierGroups.Select(x =>
             new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive }), ["erp_supplier_group"]),
 
+        new LookupDefinition("customerGroups", db => db.CustomerGroups.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive }), ["erp_customer_group"]),
+
+        // Extras: tax code, customer group, default payment term.
+        new LookupDefinition("customers", db => db.Customers.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.TaxCode, Extra2 = x.CustomerGroupCode, Extra3 = x.PaymentTermCode }),
+        ["erp_customer"], "taxCode", "customerGroupCode", "paymentTermCode"),
+
+        // Extras: currency, customer group (empty = every customer).
+        new LookupDefinition("priceLists", db => db.PriceLists.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.CurrencyCode, Extra2 = x.CustomerGroupCode }),
+        ["erp_price_list"], "currencyCode", "customerGroupCode"),
+
         new LookupDefinition("uomConversions", db => db.UomConversions.Select(x =>
             new LookupRow { Code = x.Code, Name = x.FromUomCode + " → " + x.ToUomCode, IsActive = x.IsActive,
                 Extra1 = x.MaterialCode, Extra2 = x.Factor.ToString() }), ["erp_uom_conversion"], "materialCode", "factor"),

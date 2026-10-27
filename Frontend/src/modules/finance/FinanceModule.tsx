@@ -1,11 +1,12 @@
 import React from 'react';
 import { SubMenuKey, Transaction, UserProfile } from '../../types';
 import { FinanceCategoriesView } from './FinanceCategoriesView';
+import { AccountCategoryView } from './accounts';
 import { ReceiptVoucherForm } from './ReceiptVoucherForm';
 import { PaymentVoucherForm } from './PaymentVoucherForm';
 import { FinanceReportView } from './FinanceReportView';
 import { ModuleHeader, ModuleNavGroup } from '../../components/layout/ModuleHeader';
-import { FolderTree, FileText, PieChart, DollarSign, CreditCard, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { FolderTree, ListTree, FileText, PieChart, DollarSign, CreditCard, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 
 interface FinanceModuleProps {
   subKey: SubMenuKey;
@@ -29,6 +30,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({
       badgeText: 'Khai báo tài khoản & khoản mục',
       icon: <FolderTree className="h-4 w-4 text-indigo-500" />,
       items: [
+        { subKey: 'fin_account_cat', label: 'Hệ thống tài khoản kế toán (Thông tư 200)', icon: <ListTree className="h-3.5 w-3.5" /> },
         { subKey: 'fin_categories', label: 'Danh mục Khoản Mục Thu / Chi & Tài khoản Qũy', icon: <CreditCard className="h-3.5 w-3.5" /> }
       ]
     },
@@ -55,6 +57,8 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({
 
   const renderActiveView = () => {
     switch (subKey) {
+      case 'fin_account_cat':
+        return <AccountCategoryView currentUser={currentUser} />;
       case 'fin_categories':
         return <FinanceCategoriesView currentUser={currentUser} />;
       case 'fin_receipt_voucher':
@@ -68,7 +72,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className={subKey === 'fin_account_cat' ? 'w-full min-w-0 flex-1 flex flex-col min-h-0 space-y-3' : 'space-y-4'}>
       {renderActiveView()}
     </div>
   );

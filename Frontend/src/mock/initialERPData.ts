@@ -1,4 +1,4 @@
-import { ERPData, SystemNotification, Warehouse, GoodsVoucher, DeliveryNote, Product, SalesOrder, Transaction, Employee, Customer, ActivityLog, UserProfile, CompanyUnit } from '../types';
+import { ERPData, SystemNotification, Warehouse, GoodsVoucher, DeliveryNote, Product, SalesOrder, Transaction, Employee, Customer, UserProfile, CompanyUnit } from '../types';
 
 export const initialCompanyUnits: CompanyUnit[] = [
   { id: 'DVCS01', code: 'DVCS01', name: 'Trụ sở chính TP. Hồ Chí Minh', shortName: 'HCMC HO', address: 'Quận 1, TP. Hồ Chí Minh', phone: '028 3822 1111', email: 'ho@erp-enterprise.vn', taxCode: '0301234567', status: 'Hoạt động', isDefault: true },
@@ -255,12 +255,6 @@ export const initialTransactions: Transaction[] = [
   { id: 'TX003', type: 'Chi', category: 'Chi trả lương', amount: 152000000, date: '2026-05-25', description: 'Chi trả quỹ lương toàn bộ cán bộ công nhân viên Tháng 5', refId: 'BANG-LUONG-T05', account: 'Ngân hàng VCB' },
   { id: 'TX004', type: 'Chi', category: 'Chi thuê văn phòng', amount: 45000000, date: '2026-05-01', description: 'Thanh toán tiền mặt thuê mặt bằng trụ sở chính', refId: 'HD-THUE-05', account: 'Tiền mặt' },
   { id: 'TX005', type: 'Thu', category: 'Doanh thu đơn hàng', amount: 158000000, date: '2026-06-01', description: 'Thu tiền chuyển khoản thanh toán đơn hàng DH004', refId: 'DH004', account: 'Ngân hàng VCB' }
-];
-
-export const initialActivities: ActivityLog[] = [
-  { id: 'ACT001', timestamp: '2026-05-30 09:15', user: 'Trần Thịnh (Admin)', action: 'Đăng nhập hệ thống S-ERP thành công từ địa chỉ IP 118.69.15.22', module: 'Tổng quan' },
-  { id: 'ACT002', timestamp: '2026-05-29 14:30', user: 'Trần Thịnh (Admin)', action: 'Lập phiếu xuất kho PXK-202605-02 và phiếu giao hàng PGH002 cho đơn hàng DH002', module: 'Kho hàng' },
-  { id: 'ACT003', timestamp: '2026-05-28 16:45', user: 'Trần Thịnh (Admin)', action: 'Xác nhận thu đủ tiền chuyển khoản đơn hàng DH001 số tiền 82.250.000 đ', module: 'Tài chính' }
 ];
 
 export const initialUsers: UserProfile[] = [
@@ -562,7 +556,6 @@ export const getInitialERPData = (): ERPData => {
     employees: initialEmployees,
     customers: initialCustomers,
     transactions: initialTransactions,
-    activities: initialActivities,
     notifications: initialNotifications,
     users: initialUsers
   };

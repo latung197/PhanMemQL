@@ -11,7 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Core.Modules.Inventory.Documents.GoodsIssues;
 
 [Route("api/inventory/goods-issues")]
-public sealed class GoodsIssuesController(IGoodsIssueService issues, IIssueRequestService requests) : ApiControllerBase
+public sealed class GoodsIssuesController(IGoodsIssueService issues, IIssueRequestService requests,
+    Core.Application.Modules.Sales.Documents.SalesOrders.ISalesOrderService salesOrders) : ApiControllerBase
 {
     private const string Function = "inv_issue";
 
@@ -35,6 +36,11 @@ public sealed class GoodsIssuesController(IGoodsIssueService issues, IIssueReque
     [HttpGet("open-requests"), RequirePermission(Function, PermissionAction.View)]
     public Task<IReadOnlyList<OpenIssueRequestDto>> OpenRequests([FromQuery] long? issueId, CancellationToken ct) =>
         requests.GetOpenAsync(CurrentUserId, CurrentUnitCode, issueId, ct);
+
+    /// <summary>Approved sales orders with something left to deliver: what "Lấy từ đơn bán hàng" lists (needs the goods issue View right).</summary>
+    [HttpGet("open-sales-orders"), RequirePermission(Function, PermissionAction.View)]
+    public Task<IReadOnlyList<Core.Application.Modules.Sales.Documents.SalesOrders.OpenSalesOrderDto>> OpenSalesOrders([FromQuery] long? issueId, CancellationToken ct) =>
+        salesOrders.GetOpenAsync(CurrentUserId, CurrentUnitCode, issueId, ct);
 
     [HttpGet("{id:long}"), RequirePermission(Function, PermissionAction.View)]
     public Task<GoodsIssueDto> Get(long id, CancellationToken ct) =>

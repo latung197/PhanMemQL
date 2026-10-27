@@ -16,6 +16,7 @@ using Core.Application.Modules.VoucherNumbering;
 using Core.Domain.Modules.Inventory.Documents.IssueRequests;
 using Core.Domain.Modules.Inventory.Documents.GoodsIssues;
 using Core.Infrastructure.Modules.Inventory.Documents.IssueRequests;
+using Core.Infrastructure.Modules.Sales.Documents.SalesOrders;
 using Core.Infrastructure.Common.Paging;
 using Core.Infrastructure.Common.Persistence;
 using Core.Application.Modules.Inventory.Stock;
@@ -336,6 +337,21 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
     /// </summary>
     private async Task EnsureLinksStillFitAsync(GoodsIssue row, CancellationToken ct)
     {
+        var salesLines = row.Lines.Where(l => l.SalesOrderLineId != null).ToList();
+        if (salesLines.Count > 0)
+        {
+            var salesIds = salesLines.Select(l => l.SalesOrderLineId!.Value).Distinct().ToList();
+            var salesSources = await (from l in db.SalesOrderLines.AsNoTracking() join o in db.SalesOrders.AsNoTracking() on l.OrderId equals o.Id
+                                      where salesIds.Contains(l.Id) select new { l.Id, l.Quantity, o.Code, o.Status }).ToListAsync(ct);
+            var salesDone = await SalesOrderProgress.IssuedByLineAsync(db, salesIds, row.Id, ct);
+            foreach (var src in salesSources)
+            {
+                if (src.Status != "Approved") throw new BusinessRuleException("reopen.sourceNotReady", src.Code);
+                var taken = salesLines.Where(l => l.SalesOrderLineId == src.Id).Sum(l => l.Quantity);
+                var remaining = src.Quantity - salesDone.GetValueOrDefault(src.Id);
+                if (taken > remaining) throw new BusinessRuleException("reopen.exceedsSource", src.Code, remaining.ToString("0.####"));
+            }
+        }
         var lines = row.Lines.Where(l => l.IssueRequestLineId != null).ToList();
         if (lines.Count == 0) return;
         var ids = lines.Select(l => l.IssueRequestLineId!.Value).Distinct().ToList();
@@ -415,7 +431,8 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
     }
 
     /// <summary>What a save found out while checking the request: the exchange rate, the material names and the chosen supplier name.</summary>
-    private sealed record Checked(decimal Rate, IReadOnlyDictionary<string, string> Names, string? PartnerName, string? RequestCodes);
+    private sealed record Checked(decimal Rate, IReadOnlyDictionary<string, string> Names, string? PartnerName, string? RequestCodes,
+        string? SalesCodes, string? CustomerCode);
 
     private async Task<Checked> ValidateAsync(string unitCode, SaveGoodsIssueRequest request, long? issueId, CancellationToken ct)
     {
@@ -469,8 +486,10 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
         }
         await ValidateRequestLinkAsync(unitCode, warehouseCode, request, issueId, ct);
         var names = materials.ToDictionary(x => x.Key, x => x.Value.Name);
-        string? partnerName = Guard.Optional(request.CustomerName, 200, "field.customerName");
-        return new Checked(rate, names, partnerName, await RequestCodesAsync(request, ct));
+        var sales = await ValidateSalesLinkAsync(unitCode, warehouseCode, currencyCode, request, issueId, ct);
+        // A customer of the catalog (chosen, or the one of the sales orders) gives its name to the issue; otherwise the typed name stays.
+        string? partnerName = sales.CustomerCode is not null ? sales.CustomerName : Guard.Optional(request.CustomerName, 200, "field.customerName");
+        return new Checked(rate, names, partnerName, await RequestCodesAsync(request, ct), sales.OrderCodes, sales.CustomerCode);
     }
 
     /// <summary>
@@ -508,6 +527,55 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
         }
     }
 
+    private sealed record SalesLinks(string? OrderCodes, string? CustomerCode, string? CustomerName);
+
+    /// <summary>
+    /// An issue that delivers sales orders: every order must be approved, of this unit, warehouse and currency, and all of one customer
+    /// (the customer typed on the issue, if any, must be that one); every item line then names a line of those orders with the same
+    /// material and unit, and the quantities taken from an order line (by this issue and by the others that are not cancelled) never
+    /// pass what was ordered. Without such lines the issue is free; a customer chosen from the catalog must exist and be in use.
+    /// </summary>
+    private async Task<SalesLinks> ValidateSalesLinkAsync(string unitCode, string warehouseCode, string currencyCode, SaveGoodsIssueRequest request, long? issueId, CancellationToken ct)
+    {
+        Core.Domain.Modules.Sales.Categories.Customers.Customer? chosen = null;
+        if (!string.IsNullOrWhiteSpace(request.CustomerCode))
+        {
+            var code = Guard.Code(request.CustomerCode, 20, "field.customerCode");
+            chosen = await db.Customers.AsNoTracking().FirstOrDefaultAsync(x => x.Code == code, ct);
+            if (chosen is null || !chosen.IsActive) throw new BusinessRuleException("issue.customerInvalid", code);
+        }
+        var lineIds = request.Items.Where(x => x.SalesOrderLineId is not null).Select(x => x.SalesOrderLineId!.Value).Distinct().ToList();
+        if (lineIds.Count == 0) return new SalesLinks(null, chosen?.Code, chosen?.Name);
+        var orders = await db.SalesOrders.AsNoTracking().Include(x => x.Lines)
+            .Where(x => x.UnitCode == unitCode && x.Lines.Any(l => lineIds.Contains(l.Id))).ToListAsync(ct);
+        var owner = new Dictionary<long, (Core.Domain.Modules.Sales.Documents.SalesOrders.SalesOrder Order, Core.Domain.Modules.Sales.Documents.SalesOrders.SalesOrderLine Line)>();
+        foreach (var o in orders)
+        {
+            if (o.Status != "Approved") throw new BusinessRuleException("issue.salesOrderNotApproved", o.Code);
+            if (o.WarehouseCode != warehouseCode) throw new BusinessRuleException("issue.salesOrderWarehouse", o.Code, o.WarehouseCode);
+            if (o.CurrencyCode != currencyCode) throw new BusinessRuleException("issue.salesOrderCurrency", o.Code, o.CurrencyCode);
+            foreach (var l in o.Lines) owner[l.Id] = (o, l);
+        }
+        var customers = orders.Select(x => x.CustomerCode).Distinct().ToList();
+        if (customers.Count > 1) throw new BusinessRuleException("issue.salesOrderCustomers");
+        if (chosen is not null && customers.Count == 1 && chosen.Code != customers[0]) throw new BusinessRuleException("issue.salesOrderCustomerMismatch", chosen.Code, customers[0]);
+        var issued = await SalesOrderProgress.IssuedByLineAsync(db, owner.Keys.ToList(), issueId, ct);
+        var taken = new Dictionary<long, decimal>();
+        foreach (var item in request.Items)
+        {
+            var material = item.MaterialCode.Trim().ToUpperInvariant();
+            if (item.SalesOrderLineId is not long lineId || !owner.TryGetValue(lineId, out var found))
+                throw new BusinessRuleException("issue.lineNotInSalesOrder", material, string.Join(", ", orders.Select(x => x.Code)));
+            var (order, line) = found;
+            if (line.MaterialCode != material || line.UomCode != item.UomCode.Trim().ToUpperInvariant())
+                throw new BusinessRuleException("issue.salesOrderLineMismatch", material, order.Code);
+            taken[lineId] = taken.GetValueOrDefault(lineId) + item.Quantity;
+            var remaining = line.Quantity - issued.GetValueOrDefault(lineId);
+            if (taken[lineId] > remaining) throw new BusinessRuleException("issue.exceedsSalesOrder", material, remaining.ToString("0.####"), order.Code);
+        }
+        return new SalesLinks(string.Join(",", orders.Select(x => x.Code).Order(StringComparer.Ordinal)), customers.Count == 1 ? customers[0] : null, orders[0].CustomerName);
+    }
+
     /// <summary>The codes of the requests the item lines follow (the header keeps them as a list; the lines are the truth).</summary>
     private async Task<string?> RequestCodesAsync(SaveGoodsIssueRequest request, CancellationToken ct)
     {
@@ -521,6 +589,8 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
     private static void Apply(GoodsIssue row, SaveGoodsIssueRequest request, Checked check)
     {
         row.IssueRequestCode = check.RequestCodes;
+        row.SalesOrderCode = check.SalesCodes;
+        row.CustomerCode = check.CustomerCode;
         row.DocumentDate = request.Date;
         row.WarehouseCode = request.WarehouseCode.Trim().ToUpperInvariant();
         row.VoucherType = request.VoucherType.Trim();
@@ -548,7 +618,8 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
                     UomCode = item.UomCode.Trim().ToUpperInvariant(), Quantity = item.Quantity, UnitPrice = item.UnitPrice,
                     Amount = decimal.Round(item.Quantity * item.UnitPrice, 2),
                     LotNumber = item.LotNumber?.Trim(), Position = item.Position?.Trim(),
-                    IssueRequestLineId = kind == "ITEM" ? item.IssueRequestLineId : null
+                    IssueRequestLineId = kind == "ITEM" ? item.IssueRequestLineId : null,
+                    SalesOrderLineId = kind == "ITEM" ? item.SalesOrderLineId : null
                 });
         }
         Add(request.Items, "ITEM");
@@ -574,12 +645,18 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
         var requestCodes = requestLineIds.Count == 0 ? new Dictionary<long, string>()
             : await (from rl in db.IssueRequestLines.AsNoTracking() join r in db.IssueRequests.AsNoTracking() on rl.RequestId equals r.Id
                      where requestLineIds.Contains(rl.Id) select new { rl.Id, r.Code }).ToDictionaryAsync(x => x.Id, x => x.Code, ct);
+        // The number of the sales order each line delivers, shown on the line.
+        var salesLineIds = rows.SelectMany(x => x.Lines).Where(l => l.SalesOrderLineId != null).Select(l => l.SalesOrderLineId!.Value).Distinct().ToList();
+        var salesCodes = salesLineIds.Count == 0 ? new Dictionary<long, string>()
+            : await (from sl in db.SalesOrderLines.AsNoTracking() join o in db.SalesOrders.AsNoTracking() on sl.OrderId equals o.Id
+                     where salesLineIds.Contains(sl.Id) select new { sl.Id, o.Code }).ToDictionaryAsync(x => x.Id, x => x.Code, ct);
         return rows.Select(row =>
         {
             GoodsIssueLineDto Line(GoodsIssueLine line) => new(line.Id, line.Kind, line.MaterialCode, line.MaterialName,
                 line.UomCode, line.Quantity, canSeePrice ? line.UnitPrice : 0,
                 canSeePrice ? line.Amount : 0, line.LotNumber, line.Position, line.IssueRequestLineId,
-                line.IssueRequestLineId is long requestLineId ? requestCodes.GetValueOrDefault(requestLineId) : null);
+                line.IssueRequestLineId is long requestLineId ? requestCodes.GetValueOrDefault(requestLineId) : null,
+                line.SalesOrderLineId, line.SalesOrderLineId is long salesLineId ? salesCodes.GetValueOrDefault(salesLineId) : null);
             return new GoodsIssueDto(row.Id, row.Code, row.DocumentDate, row.CreatedDate,
                 row.UnitCode, units.GetValueOrDefault(row.UnitCode, row.UnitCode),
                 row.WarehouseCode, warehouses.GetValueOrDefault(row.WarehouseCode, row.WarehouseCode),
@@ -588,7 +665,8 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
                 users.GetValueOrDefault(row.CreatedBy ?? 0, ""),
                 row.ApprovedByUserId is int approved ? users.GetValueOrDefault(approved) : null,
                 row.Lines.Where(x => x.Kind == "ITEM").OrderBy(x => x.LineNo).Select(Line).ToList(),
-                row.Lines.Where(x => x.Kind == "MATERIAL").OrderBy(x => x.LineNo).Select(Line).ToList(), row.Version, ProjectCode: row.ProjectCode);
+                row.Lines.Where(x => x.Kind == "MATERIAL").OrderBy(x => x.LineNo).Select(Line).ToList(), row.Version, ProjectCode: row.ProjectCode,
+                CustomerCode: row.CustomerCode, SalesOrderCode: row.SalesOrderCode);
         }).ToList();
     }
 }

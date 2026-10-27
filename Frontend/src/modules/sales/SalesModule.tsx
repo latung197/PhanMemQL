@@ -1,11 +1,14 @@
 import React from 'react';
-import { SubMenuKey, Customer, SalesOrder, Product, UserProfile } from '../../types';
-import { CustomerCategoryView } from './CustomerCategoryView';
-import { SalesOrderView } from './SalesOrderView';
+import { SubMenuKey, Customer, SalesOrder, Product, UserProfile, CompanyUnit } from '../../types';
+import { CustomerCategoryView } from './categories/customers';
+import { CustomerGroupCategoryView } from './categories/customer-groups';
+import { PriceListCategoryView } from './categories/price-lists';
+import { SalesOrderView } from './documents/sales-orders';
+import { SalesOrderApprovalView } from './documents/approval-sales-order/SalesOrderApprovalView';
 import { DeliveryNoteView } from './DeliveryNoteView';
 import { SalesReportView } from './SalesReportView';
 import { ModuleHeader, ModuleNavGroup } from '../../components/layout/ModuleHeader';
-import { FolderTree, FileText, PieChart, ShoppingBag, UserCheck, Truck } from 'lucide-react';
+import { FolderTree, FileText, PieChart, ShoppingBag, UserCheck, Truck, Users, Tags, CheckCircle2 } from 'lucide-react';
 
 interface SalesModuleProps {
   subKey: SubMenuKey;
@@ -17,6 +20,8 @@ interface SalesModuleProps {
   onAddOrder: (ord: SalesOrder) => void;
   onUpdateOrderStatus: (orderId: string, status: SalesOrder['status']) => void;
   currentUser?: UserProfile;
+  companyUnits?: CompanyUnit[];
+  activeCompanyUnitCode?: string;
 }
 
 export const SalesModule: React.FC<SalesModuleProps> = ({
@@ -28,7 +33,9 @@ export const SalesModule: React.FC<SalesModuleProps> = ({
   onAddCustomer,
   onAddOrder,
   onUpdateOrderStatus,
-  currentUser
+  currentUser,
+  companyUnits,
+  activeCompanyUnitCode
 }) => {
   const salesGroups: ModuleNavGroup[] = [
     {
@@ -37,7 +44,9 @@ export const SalesModule: React.FC<SalesModuleProps> = ({
       badgeText: 'Khai báo CRM Khách hàng',
       icon: <FolderTree className="h-4 w-4 text-indigo-500" />,
       items: [
-        { subKey: 'sales_customers', label: 'Danh mục Khách Hàng & Phân nhóm CRM', icon: <UserCheck className="h-3.5 w-3.5" /> }
+        { subKey: 'sales_customers', label: 'Danh mục Khách Hàng', icon: <UserCheck className="h-3.5 w-3.5" /> },
+        { subKey: 'sales_customer_group_cat', label: 'Danh mục Nhóm Khách Hàng', icon: <Users className="h-3.5 w-3.5" /> },
+        { subKey: 'sales_price_list_cat', label: 'Danh mục Bảng Giá Bán', icon: <Tags className="h-3.5 w-3.5" /> }
       ]
     },
     {
@@ -46,8 +55,9 @@ export const SalesModule: React.FC<SalesModuleProps> = ({
       badgeText: 'Lập đơn hàng & Phiếu giao',
       icon: <FileText className="h-4 w-4 text-brand-500" />,
       items: [
-        { subKey: 'sales_orders', label: 'Hóa đơn & Đơn bán hàng (Sales Orders)', icon: <ShoppingBag className="h-3.5 w-3.5" /> },
-        { subKey: 'sales_delivery', label: 'Phiếu Giao Hàng & Vận Chuyển', icon: <Truck className="h-3.5 w-3.5" /> }
+        { subKey: 'sales_orders', label: 'Đơn bán hàng (Sales Orders)', icon: <ShoppingBag className="h-3.5 w-3.5" /> },
+        { subKey: 'sales_delivery', label: 'Phiếu Giao Hàng & Vận Chuyển', icon: <Truck className="h-3.5 w-3.5" /> },
+        { subKey: 'sales_approve_order', label: 'Phê duyệt đơn bán hàng', icon: <CheckCircle2 className="h-3.5 w-3.5" /> }
       ]
     },
     {
@@ -64,22 +74,20 @@ export const SalesModule: React.FC<SalesModuleProps> = ({
   const renderActiveView = () => {
     switch (subKey) {
       case 'sales_customers':
-        return <CustomerCategoryView customers={customers} onAddCustomer={onAddCustomer} currentUser={currentUser} />;
+        return <CustomerCategoryView currentUser={currentUser} />;
+      case 'sales_customer_group_cat':
+        return <CustomerGroupCategoryView currentUser={currentUser} />;
+      case 'sales_price_list_cat':
+        return <PriceListCategoryView currentUser={currentUser} />;
       case 'sales_delivery':
         return <DeliveryNoteView orders={orders} />;
       case 'sales_report':
         return <SalesReportView orders={orders} customers={customers} />;
+      case 'sales_approve_order':
+        return <SalesOrderApprovalView currentUser={currentUser} />;
       case 'sales_orders':
       default:
-        return (
-          <SalesOrderView
-            orders={orders}
-            customers={customers}
-            products={products}
-            onAddOrder={onAddOrder}
-            onUpdateOrderStatus={onUpdateOrderStatus}
-          />
-        );
+        return <SalesOrderView companyUnits={companyUnits} activeUnitCode={activeCompanyUnitCode ?? ''} currentUser={currentUser} />;
     }
   };
 

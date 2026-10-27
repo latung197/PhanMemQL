@@ -317,6 +317,7 @@ export const EditUserModal: React.FC<{
         <form onSubmit={handleSubmit} noValidate className="space-y-3">
           <FormSection icon={<UserRound />} title={t('users.form.employeeSection')}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <TextInput label={t('users.form.username')} readOnly disabled className="font-mono" value={user.username} />
               <TextInput label={t('users.form.fullName')} required wrapperClassName="md:col-span-2" value={form.fullName} error={errors.fullName}
                 onChange={(e) => set('fullName', e.target.value)} />
               <TextInput label={t('users.form.employeeCode')} className="font-mono" value={form.employeeCode} error={errors.employeeCode}

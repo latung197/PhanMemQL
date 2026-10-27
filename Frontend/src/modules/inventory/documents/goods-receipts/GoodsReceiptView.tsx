@@ -33,7 +33,8 @@ import {
   Save,
   Undo2,
   RotateCcw,
-  XCircle
+  XCircle,
+  QrCode
 } from 'lucide-react';
 import { Button } from '../../../../components/common/Button';
 import { RowActionSlot } from '../../../../components/common/RowActionSlot';
@@ -49,6 +50,7 @@ import { goodsReceiptItemsGridConfig, goodsReceiptMaterialsGridConfig } from '..
 import { useNumberFormat } from '../../../../context/NumberFormatContext';
 import { systemSettingsService } from '../../../../services/systemSettingsService';
 import { PrintMenuButton } from '../PrintMenuButton';
+import { StockLabelDialog } from '../StockLabelDialog';
 import { printVoucher } from '../voucherPrint';
 import { GoodsVoucher, VoucherItem, Product, Warehouse as WarehouseType, CompanyUnit, UserProfile } from '../../../../types';
 import { SAVE_STATUS_LABELS, saveStatusChoices, saveStatusName, type SaveStatus } from '../SaveStatusSelect';
@@ -1112,6 +1114,8 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   };
 
   /** Two print forms: with prices and amounts (needs VIEW_PRICE) and without. */
+  // Stock labels (tem sản phẩm) of the goods of a saved receipt.
+  const [labelVoucher, setLabelVoucher] = useState<GoodsVoucher | null>(null);
   const handlePrint = (code: string, withPrice: boolean) => {
     if (!perm.print) {
       showToast.error('Tài khoản của bạn không có quyền In chứng từ!');
@@ -1321,6 +1325,12 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
               {perm.print && <PrintMenuButton canPrintPrice={canViewPrice} onPrint={withPrice => handlePrint(v.code, withPrice)} />}
           </RowActionSlot>
           <RowActionSlot>
+              {perm.print && (
+                <button type="button" onClick={() => setLabelVoucher(v)} title="In tem sản phẩm (mã vạch vật tư, lô, vị trí)"
+                  className="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"><QrCode className="h-4 w-4" /></button>
+              )}
+          </RowActionSlot>
+          <RowActionSlot>
               {perm.delete && (v.status !== 'Chuyển sổ kho' || canEditPosted) && (
                 <button
                   type="button"
@@ -1485,6 +1495,11 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
         headerActions={
           <div className="flex items-center gap-2 shrink-0">
             {editingVoucherId && perm.print && <PrintMenuButton variant="button" canPrintPrice={canViewPrice} onPrint={withPrice => handlePrint(formCode, withPrice)} />}
+            {editingVoucherId && perm.print && (
+              <Button type="button" variant="outline" size="sm" icon={<QrCode className="h-3.5 w-3.5" />}
+                onClick={() => setLabelVoucher(localVouchers.find(v => v.id === editingVoucherId) ?? null)} title="In tem sản phẩm của phiếu này"
+                className="py-1 px-3 text-xs font-medium cursor-pointer">In tem</Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -1929,6 +1944,8 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
           </div>
         </form>
       </Modal>
+
+      <StockLabelDialog isOpen={labelVoucher !== null} onClose={() => setLabelVoucher(null)} voucher={labelVoucher} />
 
       {/* Delete Confirmation Modals */}
       <DeleteConfirmModal

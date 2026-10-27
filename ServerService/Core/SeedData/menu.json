@@ -156,6 +156,15 @@
             "icon": "CheckSquare",
             "orderNo": 30,
             "isActive": true
+          },
+          {
+            "id": "MNU_INV_APPROVE_AUDIT",
+            "subKey": "inv_approve_audit",
+            "titleVi": "Phê duyệt kiểm kê",
+            "titleEn": "Approve Stock Counts",
+            "icon": "CheckSquare",
+            "orderNo": 40,
+            "isActive": true
           }
         ]
       },
@@ -360,7 +369,7 @@
     "titleVi": "Phân Hệ Mua Hàng",
     "titleEn": "Purchasing Module",
     "icon": "ShoppingBag",
-    "orderNo": 25,
+    "orderNo": 15,
     "isActive": true,
     "subGroups": [
       {
@@ -389,6 +398,15 @@
             "titleEn": "Purchase Orders",
             "icon": "FileSignature",
             "orderNo": 20,
+            "isActive": true
+          },
+          {
+            "id": "MNU_PUR_INVOICE",
+            "subKey": "pur_invoice",
+            "titleVi": "Hóa đơn Mua hàng",
+            "titleEn": "Purchase Invoices",
+            "icon": "Receipt",
+            "orderNo": 30,
             "isActive": true
           }
         ]
@@ -419,6 +437,15 @@
             "titleEn": "Approve Purchase Orders",
             "icon": "CheckSquare",
             "orderNo": 20,
+            "isActive": true
+          },
+          {
+            "id": "MNU_PUR_APPROVE_INVOICE",
+            "subKey": "pur_approve_invoice",
+            "titleVi": "Phê duyệt hóa đơn mua hàng",
+            "titleEn": "Approve Purchase Invoices",
+            "icon": "CheckSquare",
+            "orderNo": 30,
             "isActive": true
           }
         ]
@@ -480,6 +507,15 @@
             "icon": "Briefcase",
             "orderNo": 10,
             "isActive": true
+          },
+          {
+            "id": "MNU_PUR_REPORT_PAYABLE",
+            "subKey": "pur_report_payable",
+            "titleVi": "Báo cáo công nợ phải trả",
+            "titleEn": "Payables Report",
+            "icon": "Wallet",
+            "orderNo": 20,
+            "isActive": true
           }
         ]
       }
@@ -491,7 +527,7 @@
     "titleVi": "Bán Hàng & CRM",
     "titleEn": "Sales & CRM",
     "icon": "ShoppingBag",
-    "orderNo": 30,
+    "orderNo": 12,
     "isActive": true,
     "subGroups": [
       {
@@ -507,10 +543,28 @@
           {
             "id": "MNU_SALES_CUSTOMER",
             "subKey": "sales_customers",
-            "titleVi": "Danh mục Khách hàng & Phân nhóm",
-            "titleEn": "Customers & Partners",
+            "titleVi": "Danh mục Khách hàng",
+            "titleEn": "Customers",
             "icon": "UserCheck",
             "orderNo": 10,
+            "isActive": true
+          },
+          {
+            "id": "MNU_SALES_CUSTOMER_GROUP",
+            "subKey": "sales_customer_group_cat",
+            "titleVi": "Danh mục Nhóm khách hàng",
+            "titleEn": "Customer Groups",
+            "icon": "Users",
+            "orderNo": 20,
+            "isActive": true
+          },
+          {
+            "id": "MNU_SALES_PRICE_LIST",
+            "subKey": "sales_price_list_cat",
+            "titleVi": "Danh mục Bảng giá bán",
+            "titleEn": "Price Lists",
+            "icon": "Tags",
+            "orderNo": 30,
             "isActive": true
           }
         ]
@@ -528,11 +582,10 @@
           {
             "id": "MNU_SALES_ORDER",
             "subKey": "sales_orders",
-            "titleVi": "Hóa đơn & Đơn bán hàng",
-            "titleEn": "Sales Orders & Invoices",
-            "icon": "FileText",
+            "titleVi": "Đơn bán hàng",
+            "titleEn": "Sales Orders",
+            "icon": "ShoppingBag",
             "orderNo": 10,
-            "badgeType": "pendingOrder",
             "isActive": true
           },
           {
@@ -542,6 +595,27 @@
             "titleEn": "Delivery Notes",
             "icon": "FileText",
             "orderNo": 20,
+            "isActive": true
+          }
+        ]
+      },
+      {
+        "id": "GRP_SALES_APPROVALS",
+        "groupCode": "approvals",
+        "titleVi": "Phê Duyệt Bán Hàng",
+        "titleEn": "Sales Approvals",
+        "icon": "CheckCircle2",
+        "iconColor": "text-indigo-400",
+        "orderNo": 25,
+        "isActive": true,
+        "items": [
+          {
+            "id": "MNU_SALES_APPROVE_ORDER",
+            "subKey": "sales_approve_order",
+            "titleVi": "Phê duyệt đơn bán hàng",
+            "titleEn": "Approve Sales Orders",
+            "icon": "CheckSquare",
+            "orderNo": 10,
             "isActive": true
           }
         ]
@@ -588,6 +662,15 @@
         "orderNo": 10,
         "isActive": true,
         "items": [
+          {
+            "id": "MNU_FIN_ACCOUNT",
+            "subKey": "fin_account_cat",
+            "titleVi": "Hệ thống tài khoản kế toán",
+            "titleEn": "Chart of Accounts",
+            "icon": "ListTree",
+            "orderNo": 5,
+            "isActive": true
+          },
           {
             "id": "MNU_FIN_CAT",
             "subKey": "fin_categories",

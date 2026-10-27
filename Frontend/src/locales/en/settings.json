@@ -414,7 +414,10 @@
     "active": "In use",
     "inactive": "Not in use",
     "isActive": "In use",
-    "exemptBadge": "Tax-exempt"
+    "exemptBadge": "Tax-exempt",
+    "inputAccount": "Input tax account",
+    "outputAccount": "Output tax account",
+    "accountHint": "The account the tax of purchases / sales is posted to (detail accounts only). E.g. VAT: 1331 and 33311."
   },
   "loginNotices": {
     "title": "Login screen notices",

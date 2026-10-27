@@ -20,13 +20,14 @@ import { StockReportView, NXTReportView } from './reports';
 import { TransferOrderView } from './documents/transfer-order/TransferOrderView';
 import { TransferIssueView } from './documents/transfer-issue/TransferIssueView';
 import { TransferReceiptView } from './documents/transfer-receipt/TransferReceiptView';
-import { StockAuditView } from './documents/audits/StockAuditView';
+import { StockCountView } from './documents/stock-counts';
 import { MonthlyCostCalcView } from './documents/monthly-cost/MonthlyCostCalcView';
 import { InstantStockCalcView } from './documents/instant-stock/InstantStockCalcView';
 import { ReceiptApprovalView } from './documents/approval-receipt/ReceiptApprovalView';
 import { IssueApprovalView } from './documents/approval-issue/IssueApprovalView';
 import { IssueRequestApprovalView } from './documents/approval-issue-request/IssueRequestApprovalView';
 import { TransferApprovalView } from './documents/approval-transfer/TransferApprovalView';
+import { StockCountApprovalView } from './documents/approval-stock-count/StockCountApprovalView';
 import { InwardReportView } from './reports/inward/InwardReportView';
 import { OutwardReportView } from './reports/outward/OutwardReportView';
 import { InventoryAgingReportView } from './reports/aging/InventoryAgingReportView';
@@ -113,7 +114,7 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
       case 'inv_transfer_receipt':
         return <TransferReceiptView companyUnits={companyUnits} activeUnitCode={activeCompanyUnitCode ?? ''} currentUser={currentUser} />;
       case 'inv_audit_count':
-        return <StockAuditView />;
+        return <StockCountView companyUnits={companyUnits} activeUnitCode={activeCompanyUnitCode ?? ''} currentUser={currentUser} />;
       case 'inv_calc_monthly_cost':
         return <MonthlyCostCalcView />;
       case 'inv_calc_instant_stock':
@@ -128,6 +129,8 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
         return <IssueRequestApprovalView currentUser={currentUser} />;
       case 'inv_approve_transfer':
         return <TransferApprovalView currentUser={currentUser} />;
+      case 'inv_approve_audit':
+        return <StockCountApprovalView currentUser={currentUser} />;
 
       // 3. Danh mục
       case 'inv_company_unit_cat':

@@ -4,7 +4,7 @@
 import type { GoodsVoucher, VoucherItem } from '../../../types';
 import type { CompanyProfileConfig } from '../../../services/systemSettingsService';
 
-export type VoucherPrintKind = 'receipt' | 'issue' | 'request' | 'purchaseRequest' | 'purchaseOrder' | 'transferOrder' | 'transferIssue' | 'transferReceipt';
+export type VoucherPrintKind = 'receipt' | 'issue' | 'request' | 'purchaseRequest' | 'purchaseOrder' | 'purchaseInvoice' | 'salesOrder' | 'transferOrder' | 'transferIssue' | 'transferReceipt';
 
 export interface VoucherPrintFormat {
   quantity: (value: number) => string;
@@ -43,7 +43,13 @@ const KINDS: Record<VoucherPrintKind, { title: string; form: string; warehouse: 
   transferReceipt: { title: 'PHIẾU NHẬP ĐIỀU CHUYỂN KHO', form: 'Mẫu số 03 - VT', warehouse: 'Kho đến', type: 'Lý do điều chuyển', partner: 'Kho đi',
     person: 'Người giao hàng', signatures: ['Người lập phiếu', 'Người giao hàng', 'Thủ kho nhập', 'Kế toán trưởng'], typeFallback: 'Điều chuyển nội bộ' },
   purchaseOrder: { title: 'ĐƠN MUA HÀNG', form: 'Đơn mua hàng', warehouse: 'Giao về kho', type: 'Loại mua', partner: 'Nhà cung cấp',
-    person: 'Người liên hệ', signatures: ['Người lập đơn', 'Nhà cung cấp', 'Phụ trách mua hàng', 'Giám đốc'], typeFallback: 'Nhập mua mới' }
+    person: 'Người liên hệ', signatures: ['Người lập đơn', 'Nhà cung cấp', 'Phụ trách mua hàng', 'Giám đốc'], typeFallback: 'Nhập mua mới' },
+  // The purchase invoice keeps the supplier in supplierName; the number, series and date of the supplier's invoice are in the note line.
+  purchaseInvoice: { title: 'HÓA ĐƠN MUA HÀNG', form: 'Hóa đơn mua hàng', warehouse: 'Hạn thanh toán', type: 'Loại hóa đơn', partner: 'Nhà cung cấp',
+    person: 'Người liên hệ', signatures: ['Người lập phiếu', 'Nhà cung cấp', 'Kế toán công nợ', 'Kế toán trưởng'], typeFallback: 'Hóa đơn hàng hóa' },
+  // The sales order keeps the customer in supplierName and the delivery address in delivererName.
+  salesOrder: { title: 'ĐƠN BÁN HÀNG', form: 'Đơn bán hàng', warehouse: 'Xuất tại kho', type: 'Loại bán hàng', partner: 'Khách hàng',
+    person: 'Địa chỉ giao hàng', signatures: ['Người lập đơn', 'Khách hàng', 'Phụ trách bán hàng', 'Giám đốc'], typeFallback: 'Bán hàng trong nước' }
 };
 
 const escapeHtml = (value: unknown): string => String(value ?? '').replace(/[&<>"']/g, ch =>
@@ -210,6 +216,78 @@ export function printVoucher(options: VoucherPrintOptions): boolean {
   printable.document.close();
   printable.focus();
   // Let the page lay out first, or some browsers print it blank.
+  window.setTimeout(() => printable.print(), 250);
+  return true;
+}
+
+export interface StockCountPrintOptions {
+  /** true = the template with the cost of the stock and the value of the differences (needs VIEW_COST). */
+  withPrice: boolean;
+  voucher: GoodsVoucher;
+  company: CompanyProfileConfig;
+  format: VoucherPrintFormat;
+  printedBy?: string;
+}
+
+/**
+ * The count record (biên bản kiểm kê): book stock, counted stock and difference of every line, in two templates: with the value of the
+ * differences (for accounting) and without. The counted quantity is `quantity` of a line, the book stock `bookQuantity`.
+ */
+export function buildStockCountPrintHtml(options: StockCountPrintOptions): string {
+  const { withPrice, voucher, company, format, printedBy } = options;
+  const lines = voucher.items ?? [];
+  const showLot = lines.some(x => x.lotNumber);
+  const showPosition = lines.some(x => x.position);
+  const signed = (value: number) => `${value > 0 ? '+' : ''}${format.quantity(value)}`;
+  const rows = lines.map((item, index) => `<tr>
+    <td class="c">${index + 1}</td><td>${escapeHtml(item.sku ?? item.productId)}</td><td>${escapeHtml(item.productName)}</td><td class="c">${escapeHtml(item.unit)}</td>
+    ${showLot ? `<td>${escapeHtml(item.lotNumber)}</td>` : ''}${showPosition ? `<td>${escapeHtml(item.position)}</td>` : ''}
+    <td class="n">${escapeHtml(format.quantity(item.bookQuantity ?? 0))}</td><td class="n">${escapeHtml(format.quantity(item.quantity))}</td>
+    <td class="n">${escapeHtml(signed(item.diffQuantity ?? 0))}</td>
+    ${withPrice ? `<td class="n">${escapeHtml(format.unitPrice(item.unitPrice))}</td><td class="n">${escapeHtml(format.amount(item.amount ?? 0))}</td>` : ''}</tr>`).join('');
+  const head = `<tr><th style="width:30px">STT</th><th style="width:92px">Mã vật tư</th><th>Tên vật tư</th><th style="width:44px">ĐVT</th>
+    ${showLot ? '<th style="width:70px">Số lô</th>' : ''}${showPosition ? '<th style="width:70px">Vị trí</th>' : ''}
+    <th style="width:62px">Tồn sổ sách</th><th style="width:62px">Tồn thực tế</th><th style="width:62px">Chênh lệch</th>
+    ${withPrice ? '<th style="width:72px">Giá vốn</th><th style="width:86px">Giá trị chênh lệch</th>' : ''}</tr>`;
+  const span = 4 + (showLot ? 1 : 0) + (showPosition ? 1 : 0) + 3;
+  const totals = withPrice ? `<tfoot>
+    <tr><td colspan="${span}" style="text-align:right">Giá trị thừa</td><td></td><td class="n">${escapeHtml(format.amount(voucher.surplusValue ?? 0))}</td></tr>
+    <tr><td colspan="${span}" style="text-align:right">Giá trị thiếu</td><td></td><td class="n">${escapeHtml(format.amount(voucher.shortageValue ?? 0))}</td></tr>
+    <tr><td colspan="${span}" style="text-align:right">Chênh lệch (thừa trừ thiếu)</td><td></td><td class="n">${escapeHtml(format.amount((voucher.surplusValue ?? 0) - (voucher.shortageValue ?? 0)))}</td></tr></tfoot>` : '';
+  const differing = lines.filter(x => (x.diffQuantity ?? 0) !== 0).length;
+  const approved = voucher.approvedBy ? `<div><b>Người duyệt:</b> ${escapeHtml(voucher.approvedBy)}</div>` : '';
+  const signatures = ['Người lập phiếu', 'Ban kiểm kê', 'Thủ kho', 'Kế toán trưởng'].map((caption, index) => {
+    const name = index === 0 ? voucher.createdBy : index === 1 ? voucher.counterName : index === 3 ? company.chiefAccountant : '';
+    return `<div><b>${escapeHtml(caption)}</b><span>(Ký, họ tên)</span><div class="space"></div>${name ? escapeHtml(name) : ''}</div>`;
+  }).join('');
+  return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>BIÊN BẢN KIỂM KÊ ${escapeHtml(voucher.code)}</title><style>${STYLE}</style></head><body><div class="sheet">
+  <div class="top">
+    <div class="company"><strong>${escapeHtml(company.companyName)}</strong>${company.address ? `${escapeHtml(company.address)}<br>` : ''}${company.taxCode ? `MST: ${escapeHtml(company.taxCode)}` : ''}</div>
+    <div class="form"><em>Mẫu số 05 - VT</em>${withPrice ? '' : '(Bản không giá)'}</div>
+  </div>
+  <div class="title"><h1>BIÊN BẢN KIỂM KÊ HÀNG TỒN KHO</h1><div class="date">Tồn kho tại ${escapeHtml(longDate(voucher.date).toLowerCase())}</div><div class="no">Số: <b>${escapeHtml(voucher.code)}</b></div></div>
+  <div class="info">
+    <div><b>Đơn vị:</b> ${escapeHtml(voucher.companyUnitName)}</div>
+    <div><b>Kho kiểm kê:</b> ${escapeHtml(voucher.warehouseName)}</div>
+    <div><b>Ban kiểm kê:</b> ${escapeHtml(voucher.counterName)}</div>
+    <div><b>Lý do kiểm kê:</b> ${escapeHtml(voucher.countReason)}</div>
+    ${approved}
+    <div><b>Kết quả:</b> ${lines.length} dòng, ${differing} dòng lệch</div>
+    ${voucher.note ? `<div class="wide"><b>Ghi chú:</b> ${escapeHtml(voucher.note)}</div>` : ''}
+  </div>
+  <table><thead>${head}</thead>${totals}<tbody>${rows}</tbody></table>
+  <div class="sign">${signatures}</div>
+  <div class="foot"><span>In ngày ${escapeHtml(shortDate(new Date().toISOString().slice(0, 10)))}${printedBy ? ` · ${escapeHtml(printedBy)}` : ''}</span><span>${escapeHtml(voucher.code)}${withPrice ? '' : ' · bản không giá'}</span></div>
+  </div></body></html>`;
+}
+
+/** Opens the print window of a stock count; false when the browser blocked it. */
+export function printStockCount(options: StockCountPrintOptions): boolean {
+  const printable = window.open('', '_blank');
+  if (!printable) return false;
+  printable.document.write(buildStockCountPrintHtml(options));
+  printable.document.close();
+  printable.focus();
   window.setTimeout(() => printable.print(), 250);
   return true;
 }

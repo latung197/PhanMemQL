@@ -124,7 +124,10 @@ Chứng từ (phiếu) khác danh mục: có **trạng thái**, **phê duyệt n
 - **Số chứng từ:** `sys_voucher_numbering` (mẫu, ví dụ `{PREFIX}-{DVCS}-{YYYY}{MM}-{SEQ}`) và `sys_voucher_sequence`; `NextAsync` cấp số nguyên tử trong transaction lưu phiếu; mẫu **bắt buộc có `{DVCS}`** để số duy nhất giữa các đơn vị.
 - **Khóa sổ:** `sys_fiscal_period` theo đơn vị và tháng; ngày chứng từ trong tháng đã khóa thì không lập, sửa, ghi sổ.
 - **Sổ kho:** mọi chứng từ làm đổi tồn ghi qua `IStockLedger`, **không** có SQL riêng. `erp_stock_movement` là sổ chỉ ghi thêm (bỏ ghi sổ ghi dòng đảo, không xóa dòng cũ); ba bảng tồn (`erp_stock_balance` theo kho, `erp_stock_lot_balance` theo lô, `erp_stock_location_balance` theo vị trí) được cộng trừ **cùng transaction** và luôn bằng tổng của sổ (`GET /api/inventory/stock/verify` kiểm, `POST .../rebuild` dựng lại). Xuất kho tính giá **bình quân di động theo kho**, khóa dòng tồn `FOR UPDATE` trước khi đọc, từ chối khi không đủ tồn (trừ khi đơn vị bật tồn âm). Xóa phiếu: trigger ở script `41` xóa dòng chi tiết và dọn dòng sổ đã triệt tiêu, chặn xóa phiếu còn ghi sổ.
-- **Mẫu chạy thật:** phiếu nhập kho và phiếu xuất kho.
+- **Chứng từ nối tiếp:** các chứng từ lấy dòng của nhau thành chuỗi: yêu cầu mua → đơn mua → phiếu nhập kho → hóa đơn mua; yêu cầu xuất kho → phiếu xuất kho; đơn bán hàng → phiếu xuất kho; lệnh điều chuyển → phiếu xuất điều chuyển → phiếu nhập điều chuyển. Dòng sau trỏ dòng trước bằng cột id (nguồn sự thật), tiến độ (đã nhận, đã xuất, đã lập hóa đơn) **tính từ các chứng từ sau, không lưu**, và chứng từ trước không hủy được khi còn chứng từ sau sống. Chi tiết: `them-chung-tu.md` mục 10.
+- **Chứng từ không ghi sổ:** yêu cầu, đơn, lệnh và hóa đơn mua dừng ở `Đã duyệt`; chỉ phiếu nhập / xuất kho và hai phiếu điều chuyển ghi sổ kho.
+- **Khôi phục và sửa phiếu đã ghi sổ:** phiếu đã hủy khôi phục về nháp (kiểm lại liên kết); phiếu đã ghi sổ chỉ sửa hoặc xóa được với quyền riêng từng đơn vị `ST_EDIT_POSTED` (đảo bút toán rồi ghi lại trong một transaction).
+- **Mẫu chạy thật:** phiếu nhập kho và phiếu xuất kho; đủ bộ mua hàng (yêu cầu, đơn, hóa đơn, báo cáo công nợ phải trả), bán hàng (đơn bán, phiếu xuất theo đơn) và điều chuyển kho.
 
 Tài liệu: `docs/phat-trien/them-chung-tu.md` (cách thêm một chứng từ), `docs/kho/so-kho-va-phieu-nhap-kho.md`, `docs/kho/phieu-xuat-kho.md`.
 
@@ -172,9 +175,9 @@ Tài liệu: `docs/phat-trien/them-chung-tu.md` (cách thêm một chứng từ)
 
 ## 11. Phần nào đã chạy thật, phần nào còn dữ liệu mẫu
 
-**Chạy thật trên backend:** đăng nhập, người dùng, vai trò, ma trận quyền, quyền đặc biệt, đơn vị cơ sở, phòng ban, ngoại tệ và tỷ giá, khóa sổ, dải số chứng từ, cài đặt (có sao lưu), thông báo, quy tắc phê duyệt, nhật ký thay đổi, thông báo trang đăng nhập và thanh thông báo hệ thống, mã thuế, danh mục kho (đơn vị tính, quy đổi, nhóm và loại vật tư, vật tư, loại kho, kho, vị trí, lô, nhà cung cấp), **phiếu nhập kho, phiếu xuất kho, sổ kho và ba bảng tồn**.
+**Chạy thật trên backend:** đăng nhập, người dùng, vai trò, ma trận quyền, quyền đặc biệt, đơn vị cơ sở, phòng ban, ngoại tệ và tỷ giá, khóa sổ, dải số chứng từ, cài đặt (có sao lưu), thông báo, quy tắc phê duyệt, nhật ký thay đổi, thông báo trang đăng nhập và thanh thông báo hệ thống, mã thuế, danh mục kho (đơn vị tính, quy đổi, nhóm và loại vật tư, vật tư, loại kho, kho, vị trí, lô, nhà cung cấp), **phiếu nhập kho, phiếu xuất kho, phiếu yêu cầu xuất kho, điều chuyển kho (lệnh, phiếu xuất, phiếu nhập), **phiếu kiểm kê** (tồn sổ sách do máy chủ tính, ghi sổ phần thừa và phần thiếu), sổ kho và ba bảng tồn**; **mua hàng** (yêu cầu mua, đơn mua, hóa đơn mua, dự án, điều khoản thanh toán, nhóm nhà cung cấp, báo cáo chi phí theo dự án, báo cáo công nợ phải trả); **bán hàng** (nhóm khách hàng, khách hàng, bảng giá bán, đơn bán hàng); **hệ thống tài khoản kế toán** (Thông tư 200).
 
-**Vẫn là dữ liệu mẫu trong trình duyệt** (`Frontend/src/mock/`, lưu ở `localStorage['s_erp_database_state']`): các phiếu điều chuyển và kiểm kê, bán hàng, tài chính, nhân sự, báo cáo, danh mục khách hàng và nhân viên.
+**Vẫn là dữ liệu mẫu trong trình duyệt** (`Frontend/src/mock/`, lưu ở `localStorage['s_erp_database_state']`): tính giá trung bình tháng, tính tồn kho tức thời, định mức tồn kho và năm báo cáo tồn nhập xuất của kho, phiếu giao hàng và báo cáo doanh số, phiếu thu chi và báo cáo quỹ, nhân sự, các báo cáo tổng hợp, danh mục nhân viên. Hóa đơn bán, công nợ phải thu, thanh toán và hạch toán vào sổ cái chưa làm.
 
 Chuyển một tính năng từ mẫu lên thật: thêm module backend, thêm `api.ts` gọi `apiRequest`, bỏ dữ liệu mẫu của màn đó.
 
@@ -191,6 +194,11 @@ Chuyển một tính năng từ mẫu lên thật: thêm module backend, thêm `
 | `docs/phat-trien/tham-chieu-danh-muc.md` | `[References]`, chặn xóa, `sys_table_ref` |
 | `docs/phat-trien/chong-ghi-de.md` | Chống ghi đè (`Version`, `xmin`, 409) |
 | `docs/kho/so-kho-va-phieu-nhap-kho.md`, `phieu-xuat-kho.md` | Hai chứng từ mẫu, sổ kho |
+| `docs/kho/phieu-yeu-cau-xuat-kho.md`, `dieu-chuyen-kho.md`, `phieu-kiem-ke.md`, `don-vi-tinh-vat-tu.md`, `sua-xoa-phieu-da-ghi-so.md` | Yêu cầu xuất, điều chuyển kho, đơn vị quy đổi của vật tư, sửa / xóa phiếu đã ghi sổ |
+| `docs/mua-hang/mua-hang-va-du-an.md`, `hoa-don-mua-hang.md`, `danh-muc-mua-hang.md` | Yêu cầu mua → đơn mua → phiếu nhập, hóa đơn mua và công nợ phải trả, dự án |
+| `docs/ban-hang/danh-muc-ban-hang.md`, `don-ban-hang.md` | Khách hàng, bảng giá bán, đơn bán hàng và phiếu xuất theo đơn |
+| `docs/tai-chinh/he-thong-tai-khoan-ke-toan.md` | Hệ thống tài khoản, tài khoản thuế |
+| `docs/phat-trien/mo-ta-co-so-du-lieu.md` | Mô tả từng bảng, cột, chỉ mục, tham chiếu (sinh tự động từ database) |
 | `docs/kho/cau-truc-module-kho.md`, `huong-dan-danh-muc-kho.md` | Cấu trúc thư mục module Kho, danh mục kho |
 | `docs/he-thong/phan-quyen.md`, `quan-ly-menu.md`, `thong-bao-dang-nhap-va-thanh-thong-bao.md` | Cài đặt hệ thống |
 | `CLAUDE.md` | Bản đầy đủ dành cho trợ lý lập trình, luôn cập nhật theo mã |

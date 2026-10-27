@@ -426,6 +426,84 @@ export const purchaseOrderItemsGridConfig: VoucherGridInfo = {
   ]
 };
 
+// Hóa đơn mua hàng (HDM): "Phiếu nhập" / "Đơn mua" là số phiếu nhập kho và đơn mua hàng mà dòng lập hóa đơn (chỉ đọc, máy chủ suy ra);
+// đơn giá là giá ghi trên hóa đơn của nhà cung cấp (có thể khác giá trên đơn mua).
+export const purchaseInvoiceItemsGridConfig: VoucherGridInfo = {
+  voucherType: 'HDM',
+  voucherName: 'Hóa Đơn Mua Hàng',
+  gridId: 'HDM_ITEMS',
+  allowAddRow: true,
+  allowDeleteRow: true,
+  defaultNewRow: { sku: '', productName: '', unit: '', quantity: 1, unitPrice: 0, amount: 0, note: '' },
+  columns: [
+    {
+      field: 'sku', headerName: 'Mã VT / Code', headerNameEn: 'Item Code', type: 'lookup', width: 140, minWidth: 120, align: 'left',
+      required: true, placeholder: 'Mã SKU...',
+      lookupConfig: { lookupCode: 'MATERIAL', displayField: 'productName', codeField: 'sku', unitField: 'unit', priceField: 'unitPrice' }
+    },
+    { field: 'productName', headerName: 'Tên Vật Tư / Hàng Hóa', headerNameEn: 'Item Name', type: 'text', width: 240, minWidth: 180, align: 'left', required: true, placeholder: 'Tên vật tư...' },
+    { field: 'goodsReceiptCode', headerName: 'Phiếu Nhập Kho', headerNameEn: 'Receipt No.', type: 'text', width: 170, minWidth: 130, align: 'left', readOnly: true, placeholder: '' },
+    { field: 'purchaseOrderCode', headerName: 'Đơn Mua Hàng', headerNameEn: 'Order No.', type: 'text', width: 170, minWidth: 130, align: 'left', readOnly: true, placeholder: '' },
+    { field: 'unit', headerName: 'ĐVT', headerNameEn: 'UOM', type: 'uom', width: 80, align: 'center', required: false, placeholder: 'Cái' },
+    { field: 'quantity', headerName: 'Số Lượng', headerNameEn: 'Quantity', type: 'quantity', width: 110, align: 'right', required: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'unitPrice', headerName: 'Đơn Giá', headerNameEn: 'Unit Price', type: 'currency', width: 110, align: 'right', required: true, decimals: 0 },
+    { field: 'amount', headerName: 'Thành Tiền', headerNameEn: 'Amount', type: 'currency', width: 130, align: 'right', readOnly: true, decimals: 0, summary: 'sum', summaryFormat: 'currency' },
+    { field: 'note', headerName: 'Ghi Chú', headerNameEn: 'Note', type: 'text', width: 170, minWidth: 120, align: 'left', placeholder: 'Ghi chú dòng...' }
+  ]
+};
+
+// Đơn bán hàng (SO): "Đã xuất" là số các phiếu xuất kho đã giao theo dòng (chỉ đọc, máy chủ tính). Đơn giá điền theo bảng giá bán khi chọn vật tư.
+export const salesOrderItemsGridConfig: VoucherGridInfo = {
+  voucherType: 'SO',
+  voucherName: 'Đơn Bán Hàng',
+  gridId: 'SO_ITEMS',
+  allowAddRow: true,
+  allowDeleteRow: true,
+  defaultNewRow: { sku: '', productName: '', unit: '', quantity: 1, unitPrice: 0, amount: 0, note: '' },
+  columns: [
+    {
+      field: 'sku', headerName: 'Mã VT / Code', headerNameEn: 'Item Code', type: 'lookup', width: 140, minWidth: 120, align: 'left',
+      required: true, placeholder: 'Mã SKU...',
+      lookupConfig: { lookupCode: 'MATERIAL', displayField: 'productName', codeField: 'sku', unitField: 'unit', priceField: 'unitPrice' }
+    },
+    { field: 'productName', headerName: 'Tên Vật Tư / Hàng Hóa', headerNameEn: 'Item Name', type: 'text', width: 240, minWidth: 180, align: 'left', required: true, placeholder: 'Tên vật tư...' },
+    { field: 'unit', headerName: 'ĐVT', headerNameEn: 'UOM', type: 'uom', width: 80, align: 'center', required: false, placeholder: 'Cái' },
+    { field: 'quantity', headerName: 'Số Lượng Bán', headerNameEn: 'Quantity', type: 'quantity', width: 110, align: 'right', required: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'issuedQuantity', headerName: 'Đã Xuất', headerNameEn: 'Issued', type: 'quantity', width: 90, align: 'right', readOnly: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'unitPrice', headerName: 'Đơn Giá', headerNameEn: 'Unit Price', type: 'currency', width: 110, align: 'right', required: true, decimals: 0 },
+    { field: 'amount', headerName: 'Thành Tiền', headerNameEn: 'Amount', type: 'currency', width: 130, align: 'right', readOnly: true, decimals: 0, summary: 'sum', summaryFormat: 'currency' },
+    { field: 'note', headerName: 'Ghi Chú', headerNameEn: 'Note', type: 'text', width: 170, minWidth: 120, align: 'left', placeholder: 'Ghi chú dòng...' }
+  ]
+};
+
+// Phiếu kiểm kê (PKK): người dùng chỉ nhập số lượng kiểm kê; tồn sổ sách và chênh lệch do máy chủ tính (chỉ đọc). ĐVT luôn là đơn vị gốc của vật tư.
+// "Giá vốn" là giá bình quân của kho tại ngày kiểm kê (chỉ nhập tay khi vật tư chưa có tồn, để định giá phần thừa); "Giá trị chênh lệch" âm khi thiếu.
+export const stockCountItemsGridConfig: VoucherGridInfo = {
+  voucherType: 'PKK',
+  voucherName: 'Phiếu Kiểm Kê',
+  gridId: 'PKK_ITEMS',
+  allowAddRow: true,
+  allowDeleteRow: true,
+  defaultNewRow: { sku: '', productName: '', unit: '', lotNumber: '', position: '', bookQuantity: 0, quantity: 0, diffQuantity: 0, unitPrice: 0, amount: 0, note: '' },
+  columns: [
+    {
+      field: 'sku', headerName: 'Mã VT / Code', headerNameEn: 'Item Code', type: 'lookup', width: 140, minWidth: 120, align: 'left',
+      required: true, placeholder: 'Mã SKU...',
+      lookupConfig: { lookupCode: 'MATERIAL', displayField: 'productName', codeField: 'sku', unitField: 'unit', priceField: 'unitPrice' }
+    },
+    { field: 'productName', headerName: 'Tên Vật Tư / Hàng Hóa', headerNameEn: 'Item Name', type: 'text', width: 230, minWidth: 170, align: 'left', required: true, placeholder: 'Tên vật tư...' },
+    { field: 'unit', headerName: 'ĐVT', headerNameEn: 'UOM', type: 'uom', width: 80, align: 'center', readOnly: true },
+    { field: 'lotNumber', headerName: 'Số Lô', headerNameEn: 'Lot', type: 'text', width: 100, minWidth: 80, align: 'left', placeholder: 'Số lô' },
+    { field: 'position', headerName: 'Vị Trí Kho', headerNameEn: 'Location', type: 'text', width: 100, minWidth: 80, align: 'left', placeholder: 'Vị trí' },
+    { field: 'bookQuantity', headerName: 'Tồn Sổ Sách', headerNameEn: 'Book Qty', type: 'quantity', width: 110, align: 'right', readOnly: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'quantity', headerName: 'Tồn Thực Tế', headerNameEn: 'Counted Qty', type: 'quantity', width: 110, align: 'right', required: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'diffQuantity', headerName: 'Chênh Lệch', headerNameEn: 'Difference', type: 'quantity', width: 100, align: 'right', readOnly: true, decimals: 2, summary: 'sum', summaryFormat: 'quantity' },
+    { field: 'unitPrice', headerName: 'Giá Vốn', headerNameEn: 'Cost', type: 'currency', width: 100, align: 'right', decimals: 0 },
+    { field: 'amount', headerName: 'Giá Trị Chênh Lệch', headerNameEn: 'Difference Value', type: 'currency', width: 130, align: 'right', readOnly: true, decimals: 0, summary: 'sum', summaryFormat: 'currency' },
+    { field: 'note', headerName: 'Ghi Chú', headerNameEn: 'Note', type: 'text', width: 160, minWidth: 110, align: 'left', placeholder: 'Ghi chú dòng...' }
+  ]
+};
+
 // Điều chuyển kho. Lệnh (LDC) không ghi sổ; phiếu xuất (PXDC) và phiếu nhập (PNDC) ghi sổ kho. "Đơn giá" / "Thành tiền" là giá trị của
 // hàng (tiền hạch toán) do sổ kho tính, chỉ đọc; "Số hiệu nguồn" là số lệnh / phiếu xuất mà dòng theo; "Đã xuất" / "Đã nhận" do máy chủ tính.
 const transferMaterialColumns = [
@@ -609,6 +687,9 @@ export const systemVoucherGridRegistry: Record<string, VoucherGridInfo> = {
   'PNDC_ITEMS': transferReceiptItemsGridConfig,
   'YCM_ITEMS': purchaseRequestItemsGridConfig,
   'DMH_ITEMS': purchaseOrderItemsGridConfig,
+  'HDM_ITEMS': purchaseInvoiceItemsGridConfig,
+  'SO_ITEMS': salesOrderItemsGridConfig,
+  'PKK_ITEMS': stockCountItemsGridConfig,
 };
 
 export const getVoucherGridConfig = (gridId: string): VoucherGridInfo => {

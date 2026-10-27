@@ -1,0 +1,1 @@
+export { CustomerCategoryView } from './CustomerCategoryView';

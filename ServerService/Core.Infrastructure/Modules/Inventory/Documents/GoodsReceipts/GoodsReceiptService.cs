@@ -18,6 +18,7 @@ using Core.Domain.Modules.Inventory.Documents.GoodsReceipts;
 using Core.Infrastructure.Common.Paging;
 using Core.Infrastructure.Common.Persistence;
 using Core.Application.Modules.Inventory.Stock;
+using Core.Infrastructure.Modules.Purchasing.Documents.PurchaseInvoices;
 using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Modules.Inventory.Documents.GoodsReceipts;
@@ -158,6 +159,7 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
         {
             await EnsureActionAsync(userId, row, DocumentAction.View, ct);
             await PostedEdit.EnsureAsync(permissions, userId, Function, row.UnitCode, forDelete: false, ct);
+            if (await PurchaseInvoiceProgress.HasInvoicesForReceiptAsync(db, row.Id, ct)) throw new BusinessRuleException("receipt.hasInvoices");
         }
         else
         {
@@ -220,6 +222,9 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
         await EnsureActionAsync(userId, row, policyAction, ct);
         if (normalized == "reopen") await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         if (normalized is "post" or "unpost") await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
+        // A receipt that an invoice bills keeps its quantities: it cannot be cancelled or unposted until those invoices are cancelled.
+        if (normalized is "cancel" or "unpost" && await PurchaseInvoiceProgress.HasInvoicesForReceiptAsync(db, row.Id, ct))
+            throw new BusinessRuleException("receipt.hasInvoices");
         await unitOfWork.ExecuteAsync(async token =>
         {
             if (normalized == "submit")
@@ -357,6 +362,7 @@ public sealed class GoodsReceiptService(CoreContext db, IUnitOfWork unitOfWork, 
         {
             await EnsureActionAsync(userId, row, DocumentAction.View, ct);
             await PostedEdit.EnsureAsync(permissions, userId, Function, row.UnitCode, forDelete: true, ct);
+            if (await PurchaseInvoiceProgress.HasInvoicesForReceiptAsync(db, row.Id, ct)) throw new BusinessRuleException("receipt.hasInvoices");
         }
         else
         {

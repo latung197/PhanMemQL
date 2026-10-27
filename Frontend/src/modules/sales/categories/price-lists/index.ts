@@ -1,0 +1,1 @@
+export { PriceListCategoryView } from './PriceListCategoryView';

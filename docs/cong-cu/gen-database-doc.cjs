@@ -36,7 +36,7 @@ const viewDef = query(`select pg_get_viewdef('sys_v_columns'::regclass)`).map(r 
 // ---------------------------------------------------------------------------------------------------- mô tả viết tay
 const G = {
   sys_access: 'Người dùng và phân quyền', sys_config: 'Cài đặt hệ thống', sys_catalog: 'Danh mục hệ thống', sys_flow: 'Phê duyệt, thông báo, nhật ký',
-  inv_catalog: 'Danh mục Kho', inv_doc: 'Chứng từ Kho', inv_ledger: 'Sổ kho và tồn kho', pur_catalog: 'Danh mục Mua hàng', pur_doc: 'Chứng từ Mua hàng', tech: 'Kỹ thuật (hạ tầng của khung)'
+  inv_catalog: 'Danh mục Kho', inv_doc: 'Chứng từ Kho', inv_ledger: 'Sổ kho và tồn kho', pur_catalog: 'Danh mục Mua hàng', pur_doc: 'Chứng từ Mua hàng', sales_catalog: 'Danh mục Bán hàng', sales_doc: 'Chứng từ Bán hàng', fin_catalog: 'Danh mục Tài chính', tech: 'Kỹ thuật (hạ tầng của khung)'
 };
 const T = {
   sys_users: [G.sys_access, 'Tài khoản người dùng. Khóa là `user_id`; `user_name` đăng nhập; `password_hash` là băm mật khẩu; `security_version` tăng khi khóa tài khoản hoặc đổi mật khẩu để vô hiệu hóa token cũ; `ma_dvcs` là đơn vị cơ sở mặc định. Nhiều cột `createtime/createid/...` là kiểu cũ (legacy).'],
@@ -92,6 +92,8 @@ const T = {
   erp_goods_receipt_line: [G.inv_doc, 'Dòng phiếu nhập kho: `kind` = ITEM (hàng nhập) hoặc MATERIAL (nguyên vật liệu); số lượng, giá, lô, vị trí, dòng đơn mua đã nhận.'],
   erp_goods_issue: [G.inv_doc, 'Đầu **phiếu xuất kho** (ghi sổ giảm tồn, tính giá bình quân): khách hàng, người nhận, dự án, các số phiếu yêu cầu đã lấy.'],
   erp_goods_issue_line: [G.inv_doc, 'Dòng phiếu xuất kho (ITEM / MATERIAL), dòng yêu cầu xuất kho đã thực hiện.'],
+  erp_stock_count: [G.inv_doc, 'Đầu **phiếu kiểm kê** (ghi sổ kho): kho, ngày kiểm kê (chốt tồn), người / ban kiểm kê, lý do, giá trị thừa / thiếu. Tồn sổ sách và chênh lệch do máy chủ tính từ sổ kho, không do người dùng nhập; ghi sổ nhập phần thừa và xuất phần thiếu theo giá bình quân.'],
+  erp_stock_count_line: [G.inv_doc, 'Dòng phiếu kiểm kê: vật tư (đơn vị tính gốc), lô, vị trí, tồn sổ sách tại ngày kiểm kê, tồn thực tế, chênh lệch, giá vốn bình quân và giá trị chênh lệch.'],
   erp_issue_request: [G.inv_doc, 'Đầu **phiếu yêu cầu xuất kho** (duyệt, không ghi sổ).'],
   erp_issue_request_line: [G.inv_doc, 'Dòng phiếu yêu cầu xuất kho.'],
   erp_stock_movement: [G.inv_ledger, '**Sổ kho**: nhật ký chỉ-thêm các lần nhập xuất (số lượng có dấu theo đơn vị tính gốc, giá trị theo tiền hạch toán). Bỏ ghi sổ ghi dòng đảo qua `reversal_of_id`; ghi sổ lại tăng `posting_seq`.'],
@@ -104,6 +106,21 @@ const T = {
   erp_purchase_request: [G.pur_doc, 'Đầu **phiếu yêu cầu mua hàng** (duyệt, không ghi sổ).'],
   erp_purchase_request_line: [G.pur_doc, 'Dòng phiếu yêu cầu mua hàng.'],
   erp_purchase_order: [G.pur_doc, 'Đầu **đơn mua hàng** (duyệt, không ghi sổ): nhà cung cấp, điều khoản, thuế, ngày giao dự kiến, dự án.'],
+  erp_purchase_invoice: [G.pur_doc, 'Đầu **hóa đơn mua hàng** (duyệt, không ghi sổ): hóa đơn của nhà cung cấp, căn cứ để theo dõi công nợ phải trả. Số hóa đơn, ký hiệu, ngày hóa đơn và hạn thanh toán là của nhà cung cấp; nhà cung cấp + số + ký hiệu duy nhất giữa các hóa đơn chưa hủy.'],
+  erp_purchase_invoice_line: [G.pur_doc, 'Dòng hóa đơn mua hàng: lập hóa đơn cho dòng phiếu nhập kho (`goods_receipt_line_id`) và / hoặc dòng đơn mua (`purchase_order_line_id`); số lượng đã lập hóa đơn của một dòng nguồn được tính từ các hóa đơn chưa hủy, không lưu.'],
+  erp_transfer_order: [G.inv_doc, 'Đầu **lệnh điều chuyển kho** (duyệt, không ghi sổ): kho xuất, kho nhận (cùng đơn vị cơ sở), lý do, ngày cần.'],
+  erp_transfer_order_line: [G.inv_doc, 'Dòng lệnh điều chuyển kho (vật tư, đơn vị tính, số lượng; không có đơn giá).'],
+  erp_transfer_issue: [G.inv_doc, 'Đầu **phiếu xuất điều chuyển kho** (ghi sổ giảm tồn kho xuất, giá trị do sổ kho tính): lệnh điều chuyển đã thực hiện.'],
+  erp_transfer_issue_line: [G.inv_doc, 'Dòng phiếu xuất điều chuyển: dòng lệnh điều chuyển (`transfer_order_line_id`), đơn giá ghi ngược từ sổ kho.'],
+  erp_transfer_receipt: [G.inv_doc, 'Đầu **phiếu nhập điều chuyển kho** (ghi sổ tăng tồn kho nhận theo đúng giá trị của phiếu xuất, nên giá vốn đi theo hàng).'],
+  erp_transfer_receipt_line: [G.inv_doc, 'Dòng phiếu nhập điều chuyển: dòng phiếu xuất đã nhận (`transfer_issue_line_id`).'],
+  erp_customer_group: [G.sales_catalog, 'Danh mục **nhóm khách hàng**; một bảng giá bán có thể áp dụng cho một nhóm.'],
+  erp_customer: [G.sales_catalog, 'Danh mục **khách hàng**: mã số thuế (duy nhất khi có), liên hệ, nhóm, điều khoản thanh toán mặc định, hạn mức công nợ (0 = không giới hạn).'],
+  erp_price_list: [G.sales_catalog, 'Đầu **bảng giá bán**: một loại tiền, hiệu lực từ ngày - đến ngày, áp dụng cho một nhóm khách hoặc mọi khách.'],
+  erp_price_list_line: [G.sales_catalog, 'Dòng bảng giá: vật tư, đơn vị tính, số lượng từ (bậc giá), đơn giá. Khi lấy giá: bảng của nhóm khách trước bảng chung, ngày bắt đầu muộn hơn trước, bậc số lượng cao nhất không vượt số lượng bán.'],
+  erp_sales_order: [G.sales_doc, 'Đầu **đơn bán hàng** (duyệt, không ghi sổ): khách hàng, kho xuất, địa chỉ và ngày giao, điều khoản, một mã thuế, dự án; tiền hàng / thuế / tổng cộng.'],
+  erp_sales_order_line: [G.sales_doc, 'Dòng đơn bán hàng; số lượng đã xuất của một dòng được tính từ các phiếu xuất kho chưa hủy lấy theo dòng này, không lưu.'],
+  erp_account: [G.fin_catalog, 'Danh mục **hệ thống tài khoản kế toán** (Thông tư 200) nhiều cấp, dùng chung toàn hệ thống: mã con bắt đầu bằng mã cha, chỉ tài khoản lá mới được hạch toán; mã thuế trỏ tới tài khoản lá thuế GTGT đầu vào / đầu ra.'],
   erp_purchase_order_line: [G.pur_doc, 'Dòng đơn mua hàng: dòng yêu cầu mua đã đặt, ngày dự kiến nhận của từng dòng.']
 };
 const COMMON = {
@@ -118,7 +135,7 @@ const COMMON = {
   voucher_type: 'Loại nghiệp vụ của chứng từ', required_date: 'Ngày cần hàng', delivery_date: 'Ngày giao / nhận dự kiến', lot_number: 'Số lô', position: 'Vị trí lưu kho', language: 'Mã ngôn ngữ',
   user_id: 'Mã người dùng (trỏ `sys_users`)', role_id: 'Mã vai trò (trỏ `sys_role`)', menuid0: 'Mã chức năng', description: 'Mô tả', email: 'Email', phone: 'Điện thoại', address: 'Địa chỉ', tax_code: 'Mã số thuế (khác `tax_rate_code`)'
 };
-const GROUP_ORDER = [G.sys_access, G.sys_config, G.sys_catalog, G.sys_flow, G.inv_catalog, G.inv_doc, G.inv_ledger, G.pur_catalog, G.pur_doc, G.tech];
+const GROUP_ORDER = [G.sys_access, G.sys_config, G.sys_catalog, G.sys_flow, G.inv_catalog, G.inv_doc, G.inv_ledger, G.pur_catalog, G.pur_doc, G.sales_catalog, G.sales_doc, G.fin_catalog, G.tech];
 
 // ---------------------------------------------------------------------------------------------------- dựng tài liệu
 const esc = s => String(s ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
@@ -184,6 +201,10 @@ L.push('## 3. Quan hệ giữa các nhóm bảng', '',
   '',
   'erp_purchase_request ─line─> erp_purchase_order ─line─> erp_goods_receipt ──ghi sổ──> erp_stock_movement ──> erp_stock_balance / lot_balance / location_balance',
   'erp_issue_request   ─line─> erp_goods_issue   ──ghi sổ──> erp_stock_movement',
+  'erp_transfer_order ─line─> erp_transfer_issue ──ghi sổ xuất──> erp_transfer_receipt ──ghi sổ nhập──> erp_stock_movement',
+  'erp_purchase_order / erp_goods_receipt ─line─> erp_purchase_invoice (không ghi sổ; công nợ phải trả)',
+  'erp_customer_group ──< erp_customer, erp_price_list ──< erp_price_list_line;  erp_customer ──< erp_sales_order ─line─> erp_goods_issue',
+  'erp_account ──< erp_account (cha - con), sys_tax_rate (tài khoản thuế)',
   '```', '',
   '(Mũi tên `──<` là "một – nhiều"; `─line─>` là dòng chứng từ sau trỏ về dòng chứng từ trước bằng `*_line_id`.) Danh sách cột tham chiếu **đầy đủ** nằm ở mục 4.', '');
 

@@ -47,5 +47,12 @@ module.exports = {
   '44': 'Phiếu yêu cầu mua hàng, đơn mua hàng, cột nối sang phiếu nhập kho',
   '45': 'Danh mục dự án, điều khoản thanh toán, nhóm nhà cung cấp; cột dự án trên các chứng từ',
   '46': 'Ngày dự kiến nhận hàng theo từng dòng đơn mua hàng',
-  '49': 'Cấu hình lưới chi tiết chứng từ dùng chung toàn hệ thống (lưới, cột, số cột gim)'
+  '47': 'Quy đổi đơn vị tính khai ngay trên vật tư (mã dòng dạng `VATTU@DONVI`, cột mã dài 80)',
+  '48': 'Điều chuyển kho: lệnh điều chuyển, phiếu xuất và phiếu nhập điều chuyển (đầu phiếu và dòng)',
+  '49': 'Cấu hình lưới chi tiết chứng từ dùng chung toàn hệ thống (lưới, cột, số cột gim)',
+  '50': 'Hệ thống tài khoản kế toán (Thông tư 200, gồm tài khoản thuế con) và tài khoản hạch toán của mã thuế',
+  '51': 'Hóa đơn mua hàng (đầu phiếu, dòng) và chặn sửa / hủy phiếu nhập, đơn mua còn hóa đơn',
+  '52': 'Danh mục bán hàng: nhóm khách hàng, khách hàng, bảng giá bán và dòng bảng giá',
+  '54': 'Phiếu kiểm kê (đầu phiếu, dòng): tồn sổ sách tính từ sổ kho, ghi sổ phần thừa và phần thiếu',
+  '53': 'Đơn bán hàng (đầu phiếu, dòng) và cột nối sang phiếu xuất kho: khách hàng, số đơn, dòng đơn'
 };

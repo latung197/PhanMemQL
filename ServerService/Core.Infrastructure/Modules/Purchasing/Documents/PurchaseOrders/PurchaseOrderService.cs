@@ -280,6 +280,8 @@ public sealed class PurchaseOrderService(CoreContext db, IUnitOfWork unitOfWork,
         if (normalized == "reopen") await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         if (normalized == "cancel" && await PurchaseOrderProgress.HasReceiptsAsync(db, row.Id, ct))
             throw new BusinessRuleException("purchaseOrder.cancelHasReceipts");
+        if (normalized == "cancel" && await Core.Infrastructure.Modules.Purchasing.Documents.PurchaseInvoices.PurchaseInvoiceProgress.HasInvoicesForOrderAsync(db, row.Id, ct))
+            throw new BusinessRuleException("purchaseOrder.cancelHasInvoices");
         await unitOfWork.ExecuteAsync(async token =>
         {
             if (normalized == "submit")

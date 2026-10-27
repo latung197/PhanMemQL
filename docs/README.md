@@ -5,7 +5,9 @@ Tài liệu chia thư mục theo **chức năng**. Mỗi tài liệu có bản M
 ```
 docs/
   kho/          Nghiệp vụ Kho: cấu trúc module, danh mục kho, phiếu nhập kho và sổ kho, phiếu xuất kho, quy đổi đơn vị tính
-  mua-hang/     Nghiệp vụ Mua hàng: luồng yêu cầu → đơn → nhập kho, danh mục dự án, báo cáo chi phí theo dự án
+  tai-chinh/    Nghiệp vụ Tài chính - kế toán: hệ thống tài khoản kế toán (Thông tư 200), tài khoản thuế của mã thuế
+  mua-hang/     Nghiệp vụ Mua hàng: luồng yêu cầu → đơn → nhập kho → hóa đơn, danh mục dự án, báo cáo chi phí theo dự án, công nợ phải trả
+  ban-hang/     Nghiệp vụ Bán hàng: danh mục nhóm khách hàng, khách hàng, bảng giá bán, đơn bán hàng và phiếu xuất kho lấy từ đơn (hóa đơn bán ở giai đoạn sau)
   he-thong/     Cài đặt hệ thống: phân quyền, quản lý menu, thông báo đăng nhập và thanh thông báo
   phat-trien/   Khung kỹ thuật cho người viết code: kiến trúc dự án, thêm danh mục, thêm chứng từ, tham chiếu danh mục, chống ghi đè
   cong-cu/      Script sinh file Word từ Markdown
@@ -24,6 +26,8 @@ docs/
 | [phieu-yeu-cau-xuat-kho.md](kho/phieu-yeu-cau-xuat-kho.md) | Phiếu yêu cầu xuất kho (YCX, không ghi sổ) và chức năng "Lấy từ phiếu yêu cầu" của phiếu xuất kho: luồng, số đã xuất, quy tắc kiểm, bảng, quyền, API, giới hạn | `Phieu-yeu-cau-xuat-kho.docx` |
 | [sua-xoa-phieu-da-ghi-so.md](kho/sua-xoa-phieu-da-ghi-so.md) | Sửa và xóa phiếu đã ghi sổ (nhập / xuất kho, xuất / nhập điều chuyển): quyền `ST_EDIT_POSTED` theo đơn vị, đảo và ghi sổ lại trong một giao dịch, chỉ kiểm âm kho trên kết quả cuối, các trường hợp bị chặn, giá vốn | `Sua-xoa-phieu-da-ghi-so.docx` |
 | [dieu-chuyen-kho.md](kho/dieu-chuyen-kho.md) | Điều chuyển kho giữa hai kho của một đơn vị: lệnh điều chuyển → phiếu xuất (ghi sổ xuất) → phiếu nhập (ghi sổ nhập đúng giá trị), nhận từng phần, số đã xuất / đã nhận, quyền, API | `Dieu-chuyen-kho.docx` |
+| [phieu-kiem-ke.md](kho/phieu-kiem-ke.md) | Phiếu kiểm kê: lấy tồn sổ sách của kho tại ngày kiểm kê, nhập số thực tế, máy chủ tính chênh lệch; ghi sổ nhập phần thừa và xuất phần thiếu theo giá bình quân; quyền, API, in biên bản | [Phieu-kiem-ke.docx](kho/Phieu-kiem-ke.docx) |
+| [tem-san-pham-va-quet-ma.md](kho/tem-san-pham-va-quet-ma.md) | In tem sản phẩm (Code 128 hoặc QR, khổ 50×30 / 70×40 / 100×50) từ phiếu nhập kho và quét tem ở phiếu kiểm kê: quy ước mã `MÃ#LÔ#VỊ TRÍ`, quét lần đầu đặt số, các lần sau cộng dồn, đặt 0 cho dòng chưa quét | [Tem-san-pham-va-quet-ma.docx](kho/Tem-san-pham-va-quet-ma.docx) |
 | [don-vi-tinh-vat-tu.md](kho/don-vi-tinh-vat-tu.md) | Đơn vị gốc cố định của vật tư, bảng đơn vị quy đổi trên form vật tư, cách tồn kho và các phiếu dùng đơn vị (đổi đơn vị tự quy đổi giá), quy đổi chung | `Don-vi-tinh-vat-tu.docx` |
 | [them-quy-doi-don-vi-tinh.md](kho/them-quy-doi-don-vi-tinh.md) | Ghi lại các bước đưa Quy đổi đơn vị tính từ dữ liệu mẫu lên backend (ví dụ làm theo) | `Them-quy-doi-don-vi-tinh.docx` |
 
@@ -34,6 +38,20 @@ docs/
 | [mua-hang-va-du-an.md](mua-hang/mua-hang-va-du-an.md) | Luồng phiếu yêu cầu mua hàng → đơn mua hàng → phiếu nhập kho (lấy từ chứng từ trước), ba danh mục mới (dự án, điều khoản thanh toán, nhóm nhà cung cấp), gắn dự án vào chứng từ, báo cáo chi phí theo dự án, quyền, cài đặt, giới hạn | `Mua-hang-va-du-an.docx` |
 | [phieu-mua-hang-tu-database-den-giao-dien.md](mua-hang/phieu-mua-hang-tu-database-den-giao-dien.md) | Phiếu yêu cầu mua hàng và đơn mua hàng từ đầu đến cuối: bảng và cột, backend từng hàm, kiểm dữ liệu, trạng thái và quyền, API kèm mẫu JSON, frontend từng khối, các bước làm một chứng từ mua hàng mới (database, backend, frontend, kiểm tra), lỗi hay gặp | `Phieu-mua-hang-tu-database-den-giao-dien.docx` |
 | [danh-muc-mua-hang.md](mua-hang/danh-muc-mua-hang.md) | Ba danh mục mua hàng: Dự án, Điều khoản thanh toán, Nhóm nhà cung cấp (và cột Nhóm của danh mục nhà cung cấp): các trường, quy tắc, cơ sở dữ liệu, backend, API, giao diện, nhập / xuất Excel, quyền, kiểm tra, các bước thêm một danh mục mua hàng mới, lỗi hay gặp, giới hạn | `Danh-muc-mua-hang.docx` |
+| [hoa-don-mua-hang.md](mua-hang/hoa-don-mua-hang.md) | Hóa đơn mua hàng (nối sau phiếu nhập kho): số / ký hiệu / ngày hóa đơn của nhà cung cấp, hạn thanh toán, lấy từ phiếu nhập kho và đơn mua hàng, chặn lập quá số đã nhập / đã đặt, chặn trùng số hóa đơn, bảo vệ chứng từ nguồn; báo cáo công nợ phải trả theo nhà cung cấp (chưa đến hạn, quá hạn theo tuổi nợ) | [Hoa-don-mua-hang.docx](mua-hang/Hoa-don-mua-hang.docx) |
+
+## Bán hàng (`ban-hang/`)
+
+| Tài liệu | Nội dung | Word |
+|---|---|---|
+| [danh-muc-ban-hang.md](ban-hang/danh-muc-ban-hang.md) | Ba danh mục bán hàng: nhóm khách hàng, khách hàng (mã số thuế không trùng, nhóm, điều khoản thanh toán, hạn mức công nợ), bảng giá bán (loại tiền, hiệu lực từ ngày đến ngày, nhóm khách áp dụng, dòng giá bậc thang) và cách lấy giá cho khách hàng | [Danh-muc-ban-hang.docx](ban-hang/Danh-muc-ban-hang.docx) |
+| [don-ban-hang.md](ban-hang/don-ban-hang.md) | Đơn bán hàng (khách hàng, kho xuất, thuế, lấy giá theo bảng giá bán, cột Đã xuất) và phiếu xuất kho lấy hàng từ đơn đã duyệt (cùng khách, kho, loại tiền; chặn xuất quá số bán; chặn hủy đơn còn phiếu xuất) | [Don-ban-hang.docx](ban-hang/Don-ban-hang.docx) |
+
+## Tài chính (`tai-chinh/`)
+
+| Tài liệu | Nội dung | Word |
+|---|---|---|
+| [he-thong-tai-khoan-ke-toan.md](tai-chinh/he-thong-tai-khoan-ke-toan.md) | Hệ thống tài khoản kế toán theo Thông tư 200 nhiều cấp (cha - con), quy tắc tài khoản lá / tổng hợp, tài khoản con của tài khoản thuế (133, 3331, 3333...), tài khoản thuế đầu vào / đầu ra của mã thuế, API | `He-thong-tai-khoan-ke-toan.docx` |
 
 ## Hệ thống (`he-thong/`)
 
@@ -49,9 +67,9 @@ docs/
 |---|---|---|
 | [them-danh-muc.md](phat-trien/them-danh-muc.md) | Quy trình và mã mẫu đầy đủ để thêm một danh mục (SQL, backend, frontend, kiểm tra). Đi cùng skill `/them-danh-muc` | `Them-danh-muc-S-ERP.docx` |
 | [tham-chieu-danh-muc.md](phat-trien/tham-chieu-danh-muc.md) | `[References]`, chặn xóa bản ghi đang dùng, bảng `sys_table_ref` | `Tham-chieu-danh-muc-S-ERP.docx` |
-| [mo-ta-co-so-du-lieu.md](phat-trien/mo-ta-co-so-du-lieu.md) | **Từ điển dữ liệu** toàn bộ cơ sở dữ liệu: quy ước, danh sách 63 bảng, bản đồ tham chiếu, từng bảng (cột, kiểu, null, mặc định, khóa, mô tả, chỉ mục, ràng buộc, trigger), view, hàm, các script SQL. **Sinh tự động từ database thật** | `Mo-ta-co-so-du-lieu.docx` |
+| [mo-ta-co-so-du-lieu.md](phat-trien/mo-ta-co-so-du-lieu.md) | **Từ điển dữ liệu** toàn bộ cơ sở dữ liệu: quy ước, danh sách 82 bảng (kể cả hóa đơn mua, bán hàng, điều chuyển kho, tài khoản kế toán), bản đồ tham chiếu, từng bảng (cột, kiểu, null, mặc định, khóa, mô tả, chỉ mục, ràng buộc, trigger), view, hàm, các script SQL. **Sinh tự động từ database thật** | `Mo-ta-co-so-du-lieu.docx` |
 | [kien-truc-du-an.md](phat-trien/kien-truc-du-an.md) | Kiến trúc và thiết kế dự án cho người mới: các lớp, quy ước cơ sở dữ liệu, khung danh mục, chứng từ và sổ kho, phân quyền, frontend, đa ngôn ngữ, phần nào đã chạy thật | `Kien-truc-du-an.docx` |
-| [them-chung-tu.md](phat-trien/them-chung-tu.md) | Thêm một chứng từ mới từng bước (SQL, thực thể, dịch vụ, duyệt, ghi sổ, lưu thẳng trạng thái, frontend, in, kiểm tra, lỗi hay gặp, danh sách việc) | `Them-chung-tu.docx` |
+| [them-chung-tu.md](phat-trien/them-chung-tu.md) | Thêm một chứng từ mới từng bước (SQL, thực thể, dịch vụ, duyệt, ghi sổ, lưu thẳng trạng thái, chứng từ nối tiếp / không ghi sổ, frontend, in, kiểm tra, lỗi hay gặp, danh sách việc) | `Them-chung-tu.docx` |
 | [chong-ghi-de.md](phat-trien/chong-ghi-de.md) | Chống ghi đè khi nhiều người cùng sửa (`Version`, `xmin`, lỗi 409) | `Chong-ghi-de.docx` |
 
 ## Công cụ (`cong-cu/`)

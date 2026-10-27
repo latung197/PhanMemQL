@@ -140,6 +140,8 @@ Quy tắc đặt khóa thông báo: dùng tiền tố riêng của chứng từ 
 
 `ToPostingAsync` dựng `StockPosting` từ các dòng `ITEM` (mã vật tư, số lượng, mã đơn vị tính, lô và vị trí của vật tư có theo dõi). **Nhập:** gửi giá trị = thành tiền × tỷ giá. **Xuất:** không gửi giá trị, sổ tính giá bình quân. Thiếu tồn thì sổ từ chối và cả phiếu không ghi. Chi tiết: `docs/kho/so-kho-va-phieu-nhap-kho.md` mục 4.
 
+**Chứng từ ghi cả hai chiều (phiếu kiểm kê).** `StockPosting` chỉ có một chiều, và sổ kho nhận biết một lần ghi bằng cặp (mã nguồn, id chứng từ). Chứng từ vừa nhập vừa xuất ghi **hai lần trong cùng một giao dịch** với hai mã nguồn khác nhau (`inv_audit_count` cho phần nhập, `inv_audit_count_out` cho phần xuất); bỏ ghi sổ gọi `UnpostAsync` cho từng mã nguồn có dòng. Dịch vụ phải suy ra được mã nguồn nào đã ghi từ chính dữ liệu của phiếu (ở phiếu kiểm kê: dấu của chênh lệch trên các dòng, vì phiếu đã ghi sổ không sửa được). Ghi chi tiết: `docs/kho/phieu-kiem-ke.md`.
+
 Chứng từ ghi vào sổ cái khác (phiếu thu, phiếu chi) cần dịch vụ ghi sổ tương tự `IStockLedger`: một giao diện trong `Core.Application`, cài đặt trong `Core.Infrastructure` chạy SQL qua `ISqlExecutor` **cùng transaction** với việc đổi trạng thái phiếu.
 
 ### 5.3. Lưu thẳng ở một trạng thái (`TargetStatus`)
@@ -223,7 +225,87 @@ cd ../Frontend && npm run lint && npm run check-i18n && npm run check-menu && np
 
 ---
 
-## 10. Những lỗi hay gặp
+## 10. Chứng từ nối tiếp và chứng từ không ghi sổ
+
+Phần lớn chứng từ của S-ERP không đứng một mình mà **nối tiếp** nhau: chứng từ sau lấy dòng của chứng từ trước. Các chuỗi hiện có:
+
+| Chuỗi | Bước 1 (không ghi sổ) | Bước 2 | Bước 3 |
+|---|---|---|---|
+| Mua hàng | Yêu cầu mua `YCM` | Đơn mua `DMH` | Phiếu nhập kho `PNK` (ghi sổ) → Hóa đơn mua `HDM` (không ghi sổ) |
+| Xuất kho nội bộ | Yêu cầu xuất kho `YCX` | Phiếu xuất kho `PXK` (ghi sổ) | |
+| Bán hàng | Đơn bán hàng `SO` | Phiếu xuất kho `PXK` (ghi sổ) | (hóa đơn bán: giai đoạn sau) |
+| Điều chuyển kho | Lệnh điều chuyển `LDC` | Phiếu xuất điều chuyển `PXDC` (ghi sổ xuất) | Phiếu nhập điều chuyển `PNDC` (ghi sổ nhập) |
+| Kiểm kê | (không có chứng từ trước) | Phiếu kiểm kê `PKK`: tồn sổ sách do máy chủ tính, ghi sổ nhập phần thừa và xuất phần thiếu | |
+
+### 10.1. Chứng từ không ghi sổ
+
+Yêu cầu, đơn, lệnh và hóa đơn mua **không bao giờ tới `Posted`**: trạng thái dừng ở `Approved`. Khai báo như sau:
+
+- `VoucherStatusCatalog.NonPosting` liệt kê mã chức năng đó; từ đó chứng từ không có quyền `ST_POSTED` / `ST_UNPOST` và màn hình không có nút ghi sổ.
+- `DocumentStatusPolicy` đã biết nhóm này, nên **không** viết thêm điều kiện riêng; `TargetStatus` chỉ nhận Draft, Pending, Approved.
+- Dịch vụ không gọi `IStockLedger`. Ý nghĩa nghiệp vụ của chứng từ nằm ở việc **chứng từ sau lấy nó làm căn cứ** (mục dưới), không ở sổ.
+
+### 10.2. Cột nối giữa hai chứng từ
+
+Dòng chứng từ sau trỏ về **dòng** chứng từ trước bằng một cột id, không bằng số phiếu:
+
+| Chứng từ sau | Cột trên dòng | Trỏ tới |
+|---|---|---|
+| Đơn mua | `purchase_request_line_id` | dòng yêu cầu mua |
+| Phiếu nhập kho | `purchase_order_line_id` | dòng đơn mua |
+| Hóa đơn mua | `goods_receipt_line_id`, `purchase_order_line_id` | dòng phiếu nhập và / hoặc dòng đơn mua |
+| Phiếu xuất kho | `issue_request_line_id`, `sales_order_line_id` | dòng yêu cầu xuất / dòng đơn bán |
+| Phiếu xuất điều chuyển | `transfer_order_line_id` | dòng lệnh điều chuyển |
+| Phiếu nhập điều chuyển | `transfer_issue_line_id` | dòng phiếu xuất điều chuyển |
+
+Quy ước:
+
+- **Cột id trên dòng là nguồn sự thật.** Cột số chứng từ trên đầu phiếu (`purchase_order_code`, `sales_order_code`, `issue_request_code`, `transfer_order_code`...) là **danh sách số phiếu cách nhau dấu phẩy, do dịch vụ suy ra** từ các dòng mỗi lần lưu; không ai nhập tay, không dùng để kiểm tra.
+- Cột id không nằm trong bản đồ `sys_table_ref` (là id, không phải mã danh mục) nhưng **vẫn phải có chỉ mục** để tính tiến độ nhanh.
+- Một phiếu được lấy từ **nhiều** chứng từ trước, miễn cùng các điều kiện chung (cùng đơn vị cơ sở, cùng kho, cùng loại tiền, cùng một khách hàng hoặc nhà cung cấp tùy chứng từ). Đã lấy theo chứng từ trước thì **mọi** dòng hàng của phiếu phải theo một dòng của chứng từ trước; chỉ dòng `MATERIAL` (không vào sổ) là tự do.
+
+### 10.3. Tiến độ: tính, không lưu
+
+Số lượng đã đặt, đã nhận, đã xuất, đã lập hóa đơn của một dòng **không có cột lưu**. Mỗi chuỗi có một lớp tĩnh tính từ các chứng từ sau chưa hủy:
+
+| Lớp | Hàm | Tính cho |
+|---|---|---|
+| `PurchaseRequestProgress` | `OrderedByLineAsync` | số đã đặt của dòng yêu cầu mua ← đơn mua |
+| `PurchaseOrderProgress` | `ReceivedByLineAsync` | số đã nhận của dòng đơn mua ← phiếu nhập |
+| `PurchaseInvoiceProgress` | `InvoicedByReceiptLineAsync` (và theo dòng đơn) | số đã lập hóa đơn của dòng phiếu nhập / dòng đơn mua ← hóa đơn mua |
+| `IssueRequestProgress` | `IssuedByLineAsync` | số đã xuất của dòng yêu cầu xuất ← phiếu xuất |
+| `SalesOrderProgress` | `IssuedByLineAsync` | số đã xuất của dòng đơn bán ← phiếu xuất |
+| `TransferProgress` | `IssuedByOrderLineAsync`, `ReceivedByIssueLineAsync`, `HasIssuesAsync`, `HasReceiptsAsync` | số đã xuất của dòng lệnh, số đã nhận của dòng phiếu xuất điều chuyển |
+
+Các hàm nhận `(db, danh sách id dòng, id phiếu đang sửa hoặc null, ct)` và trả tổng theo dòng; id phiếu đang sửa được **loại trừ** để sửa phiếu không tự chặn mình. Phiếu **nháp cũng tính** (giữ chỗ), phiếu **đã hủy thì không**: hủy hay xóa phiếu sau thì số lượng trả lại chứng từ trước.
+
+Hàm kiểm tra liên kết của dịch vụ (`ValidateRequestLinkAsync`, `ValidateSalesLinkAsync`, `ValidateOrderLinkAsync`...) luôn kiểm: chứng từ trước **đã duyệt**, cùng đơn vị / kho / loại tiền, dòng cùng vật tư và đơn vị tính, và `đã lấy + số lượng mới ≤ số lượng của chứng từ trước`. Báo lỗi bằng khóa `<chứng từ>.exceeds...` kèm số còn lại.
+
+### 10.4. Chặn hai chiều
+
+- **Chứng từ trước không bị phá khi còn chứng từ sau sống**: không hủy được (`salesOrder.cancelHasIssues`, `receipt.hasInvoices`...), phiếu nhập còn hóa đơn không bỏ ghi sổ / sửa / xóa. Muốn hủy phải hủy hoặc xóa chứng từ sau trước.
+- **Chứng từ sau không đứng khi chứng từ trước đổi**: khi **khôi phục** (Reopen) một phiếu đã hủy, `EnsureLinksStillFitAsync` kiểm lại mọi dòng nguồn: chứng từ trước còn đã duyệt không, số lượng còn đủ chỗ không (khóa `reopen.*`). Chứng từ không có chứng từ trước (yêu cầu mua, đơn bán) để hàm này rỗng.
+
+### 10.5. Giao diện: nút "Lấy từ ..."
+
+- Backend có danh sách chứng từ trước còn hàng: `GET .../open-requests`, `.../open-orders`, `.../open-sales-orders`, `.../open-issues`, tham số `issueId` / `receiptId` để phiếu đang sửa vẫn thấy phần nó đã giữ. Mỗi dòng trả `remainingQuantity`.
+- Frontend dùng chung `modules/purchasing/documents/OpenDocumentPicker.tsx` (chọn chứng từ ở phần trên, tích dòng ở phần dưới, đổi số lượng nếu lấy một phần). Phiếu lấy theo chứng từ trước **khóa** kho, khách hàng / nhà cung cấp, loại tiền theo chứng từ đó.
+- Cột "Đã nhận / Đã xuất / Đã lập HĐ" trên màn chứng từ trước là cột chỉ đọc do máy chủ tính.
+
+### 10.6. Việc thêm khi làm chứng từ nối tiếp
+
+- [ ] Cột id nối trên dòng (có chỉ mục) và cột số chứng từ suy ra trên đầu phiếu, cùng script SQL.
+- [ ] Lớp `...Progress` cho chứng từ trước; dùng nó ở chặn hủy và ở cột hiển thị.
+- [ ] `Validate...LinkAsync` trong dịch vụ chứng từ sau, gọi ở tạo, sửa và khôi phục.
+- [ ] Chặn hủy / xóa / bỏ ghi sổ chứng từ trước khi còn chứng từ sau sống.
+- [ ] Endpoint `open-*`, nút "Lấy từ ..." và bộ chọn ở màn chứng từ sau.
+- [ ] Ca thử: lấy vượt số lượng, sai kho / loại tiền / khách, đơn chưa duyệt, hủy phiếu trả lại số lượng, hủy chứng từ trước bị chặn, khôi phục khi chứng từ trước đã đổi.
+
+Tài liệu mẫu cho từng chuỗi: `docs/mua-hang/mua-hang-va-du-an.md`, `docs/mua-hang/hoa-don-mua-hang.md`, `docs/ban-hang/don-ban-hang.md`, `docs/kho/phieu-yeu-cau-xuat-kho.md`, `docs/kho/dieu-chuyen-kho.md`.
+
+---
+
+## 11. Những lỗi hay gặp
 
 | Lỗi | Nguyên nhân | Cách tránh |
 |---|---|---|
@@ -235,12 +317,14 @@ cd ../Frontend && npm run lint && npm run check-i18n && npm run check-menu && np
 | Số phiếu trùng giữa các đơn vị | mẫu số thiếu `{DVCS}` | mẫu mặc định đã có; số phiếu phải duy nhất toàn hệ thống vì vòng duyệt khóa theo số phiếu |
 | Người không có quyền xem giá vô tình ghi đè giá về 0 khi sửa | backend trả giá 0 rồi tính lại tổng từ request | giữ đơn giá cũ khi người sửa không có `VIEW_PRICE` (chưa làm ở hai phiếu mẫu) |
 | `id` dòng đổi sau khi sửa | sửa phiếu xóa dòng cũ và thêm lại | chỉ dòng của phiếu **đã ghi sổ** gắn với sổ, và phiếu đã ghi sổ không sửa được |
+| Phiếu lấy theo chứng từ trước vẫn lưu được khi lấy quá số lượng | tiến độ không loại trừ phiếu đang sửa, hoặc không tính phiếu nháp | dùng hàm tiến độ với id phiếu đang sửa và tính cả phiếu nháp (mục 10.3) |
+| Chứng từ trước hủy được dù còn chứng từ sau | quên chặn hủy | mục 10.4 |
 | Test ghi sổ lỗi vì kỳ khóa | ngày thử thuộc 2026 | dùng ngày 2027 |
 | Sổ kho lệch sau khi xóa bằng SQL | xóa dòng sổ tay | `rebuild` rồi `verify` |
 
 ---
 
-## 11. Danh sách việc phải làm (tóm tắt)
+## 12. Danh sách việc phải làm (tóm tắt)
 
 - [ ] Chốt tên, mã chức năng, loại số, bảng, API, chiều ghi sổ (mục 1)
 - [ ] Script SQL: đầu phiếu, dòng, chỉ mục cho mọi `*_code`, trigger xóa phiếu nếu ghi sổ kho; chạy hai lần trên `erp_dev`
@@ -251,4 +335,5 @@ cd ../Frontend && npm run lint && npm run check-i18n && npm run check-menu && np
 - [ ] `DocumentApprovalService`: ba chỗ; controller; đăng ký DI
 - [ ] Frontend: mã chức năng, menu, module, `api.ts`, màn phiếu, màn duyệt, lưu thẳng trạng thái, in phiếu, `APPROVAL_SCREENS`
 - [ ] Build, test, lint, `check-i18n`, `check-menu`, `check-policy`; thử đủ kịch bản mục 8; dọn dữ liệu thử
+- [ ] Nếu chứng từ nối tiếp chứng từ khác: làm thêm danh sách ở mục 10.6
 - [ ] Tài liệu (md và Word), `docs/README.md`, CLAUDE.md, README

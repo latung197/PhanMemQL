@@ -9,6 +9,11 @@ using Core.Domain.Modules.Banners;
 using Core.Domain.Modules.Purchasing.Categories.PaymentTerms;
 using Core.Domain.Modules.Purchasing.Categories.Projects;
 using Core.Domain.Modules.Purchasing.Categories.SupplierGroups;
+using Core.Domain.Modules.Sales.Categories.CustomerGroups;
+using Core.Domain.Modules.Sales.Categories.Customers;
+using Core.Domain.Modules.Sales.Categories.PriceLists;
+using Core.Domain.Modules.Sales.Documents.SalesOrders;
+using Core.Domain.Modules.Purchasing.Documents.PurchaseInvoices;
 using Core.Domain.Modules.Purchasing.Documents.PurchaseOrders;
 using Core.Domain.Modules.Purchasing.Documents.PurchaseRequests;
 using Core.Domain.Modules.VoucherGrids;
@@ -20,7 +25,9 @@ using Core.Domain.Modules.Inventory;
 using Core.Domain.Modules.Inventory.Categories.suppliers;
 using Core.Domain.Modules.Inventory.Documents.GoodsIssues;
 using Core.Domain.Modules.Inventory.Documents.GoodsReceipts;
+using Core.Domain.Modules.Accounts;
 using Core.Domain.Modules.Inventory.Documents.IssueRequests;
+using Core.Domain.Modules.Inventory.Documents.StockCounts;
 using Core.Domain.Modules.Inventory.Documents.Transfers;
 using Core.Domain.Modules.Languages;
 using Core.Domain.Modules.Notifications;
@@ -103,6 +110,7 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<StockBalance> StockBalances => Set<StockBalance>();
     public DbSet<StockLotBalance> StockLotBalances => Set<StockLotBalance>();
     public DbSet<StockLocationBalance> StockLocationBalances => Set<StockLocationBalance>();
+    public DbSet<Account> Accounts => Set<Account>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<WarehouseType> WarehouseTypes => Set<WarehouseType>();
     public DbSet<WarehouseTypeTranslation> WarehouseTypeTranslations => Set<WarehouseTypeTranslation>();
@@ -113,6 +121,8 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<GoodsIssueLine> GoodsIssueLines => Set<GoodsIssueLine>();
     public DbSet<IssueRequest> IssueRequests => Set<IssueRequest>();
     public DbSet<IssueRequestLine> IssueRequestLines => Set<IssueRequestLine>();
+    public DbSet<StockCount> StockCounts => Set<StockCount>();
+    public DbSet<StockCountLine> StockCountLines => Set<StockCountLine>();
     public DbSet<TransferOrder> TransferOrders => Set<TransferOrder>();
     public DbSet<TransferOrderLine> TransferOrderLines => Set<TransferOrderLine>();
     public DbSet<TransferIssue> TransferIssues => Set<TransferIssue>();
@@ -122,10 +132,18 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<PurchaseRequest> PurchaseRequests => Set<PurchaseRequest>();
     public DbSet<PurchaseRequestLine> PurchaseRequestLines => Set<PurchaseRequestLine>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
+    public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<PaymentTerm> PaymentTerms => Set<PaymentTerm>();
     public DbSet<SupplierGroup> SupplierGroups => Set<SupplierGroup>();
+    public DbSet<CustomerGroup> CustomerGroups => Set<CustomerGroup>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<PriceList> PriceLists => Set<PriceList>();
+    public DbSet<PriceListLine> PriceListLines => Set<PriceListLine>();
+    public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
+    public DbSet<SalesOrderLine> SalesOrderLines => Set<SalesOrderLine>();
     public DbSet<PurchaseOrderLine> PurchaseOrderLines => Set<PurchaseOrderLine>();
+    public DbSet<PurchaseInvoiceLine> PurchaseInvoiceLines => Set<PurchaseInvoiceLine>();
 
     // Change log (all functions)
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
@@ -176,11 +194,14 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<GoodsReceipt>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.ReceiptId);
         model.Entity<GoodsIssue>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.IssueId);
         model.Entity<IssueRequest>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.RequestId);
+        model.Entity<StockCount>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.CountId);
         model.Entity<TransferOrder>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.OrderId);
         model.Entity<TransferIssue>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.IssueId);
         model.Entity<TransferReceipt>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.ReceiptId);
         model.Entity<PurchaseRequest>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.RequestId);
         model.Entity<PurchaseOrder>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.OrderId);
+        model.Entity<PurchaseInvoice>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.InvoiceId);
+        model.Entity<SalesOrder>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.OrderId);
 
         // Row version of records edited in forms (IVersioned): PostgreSQL's xmin system column, changed by every update
         // and checked by every UPDATE / DELETE of the row (RowVersions.ExpectVersion sets the version a screen loaded).

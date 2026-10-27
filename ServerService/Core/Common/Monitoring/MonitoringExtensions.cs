@@ -55,6 +55,15 @@ public static class MonitoringExtensions
                 }
             };
         });
+        // A browser that leaves the page aborts its requests: that is not a server error, so answer 499 instead of a logged 500.
+        app.Use(async (context, next) =>
+        {
+            try { await next(context); }
+            catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+            {
+                if (!context.Response.HasStarted) context.Response.StatusCode = 499;
+            }
+        });
         return app;
     }
 

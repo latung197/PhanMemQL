@@ -250,10 +250,13 @@ export interface TaxRate {
   note?: string | null;
   isActive: boolean;
   version?: number;
+  /** Leaf accounts the tax of purchases / sales is posted to (e.g. 1331 / 33311). */
+  inputAccountCode?: string | null;
+  outputAccountCode?: string | null;
 }
 
 export type TaxRateRow = TaxRate & { stamp: RecordStamp };
-export type SaveTaxRateInput = Omit<TaxRate, 'note'> & { note: string };
+export type SaveTaxRateInput = Omit<TaxRate, 'note' | 'inputAccountCode' | 'outputAccountCode'> & { note: string; inputAccountCode: string; outputAccountCode: string };
 
 export const taxRatesApi = createCatalogApi<TaxRateRow, SaveTaxRateInput>({
   url: '/api/settings/tax-rates', fileName: 'DanhMucMaThue'

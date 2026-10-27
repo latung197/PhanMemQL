@@ -64,7 +64,7 @@ public static class SpecialRightCatalog
     private static readonly string[] PricedCatalogsAndReports =
     [
         "inv_material_cat", "inv_report_stock", "inv_report_nxt", "inv_report_inward", "inv_report_outward",
-        "inv_report_aging", "sales_report", "pur_report_project"
+        "inv_report_aging", "sales_report", "pur_report_project", "pur_report_payable"
     ];
 
     /// <summary>
@@ -74,7 +74,8 @@ public static class SpecialRightCatalog
     public static readonly string[] CodeChangeCatalogs =
     [
         "inv_supplier_cat", "pur_supplier_group_cat", "pur_project_cat", "pur_payment_term_cat",
-        "inv_warehouse_type_cat", "inv_material_group_cat", "inv_material_type_cat"
+        "inv_warehouse_type_cat", "inv_material_group_cat", "inv_material_type_cat",
+        "sales_customers", "sales_customer_group_cat"
     ];
 
     public static IReadOnlyList<SpecialRightDefinition> All { get; } = Build();
@@ -85,7 +86,7 @@ public static class SpecialRightCatalog
         foreach (var fn in Vouchers)
         {
             list.Add(new(fn, ViewPrice, "voucherViewPrice", SpecialRightGroups.Data));
-            if (fn is "inv_issue" or "inv_transfer_issue" or "inv_transfer_receipt" or "sales_orders" or "sales_delivery")
+            if (fn is "inv_issue" or "inv_audit_count" or "inv_transfer_issue" or "inv_transfer_receipt" or "sales_orders" or "sales_delivery")
                 list.Add(new(fn, ViewCost, "voucherViewCost", SpecialRightGroups.Data));
             list.Add(new(fn, ViewAll, "viewAll", SpecialRightGroups.Scope));
             list.Add(new(fn, StatusPending, "statusPending", SpecialRightGroups.Status, PerUnit: true));
@@ -94,7 +95,9 @@ public static class SpecialRightCatalog
             {
                 list.Add(new(fn, StatusPosted, "statusPosted", SpecialRightGroups.Status, PerUnit: true));
                 list.Add(new(fn, StatusUnpost, "statusUnpost", SpecialRightGroups.Status, PerUnit: true));
-                list.Add(new(fn, StatusEditPosted, "statusEditPosted", SpecialRightGroups.Status, PerUnit: true));
+                // Only the vouchers whose service can change a posted voucher (PostedEdit) have this right; a count is unposted, changed, posted again.
+                if (fn is "inv_receipt" or "inv_issue" or "inv_transfer_issue" or "inv_transfer_receipt")
+                    list.Add(new(fn, StatusEditPosted, "statusEditPosted", SpecialRightGroups.Status, PerUnit: true));
             }
             list.Add(new(fn, StatusCancelled, "statusCancelled", SpecialRightGroups.Status, PerUnit: true));
         }

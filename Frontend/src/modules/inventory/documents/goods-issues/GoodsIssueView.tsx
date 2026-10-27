@@ -62,10 +62,12 @@ import { canApproveVoucher, hasRight, hasStatusRight, RIGHTS } from '../../../..
 import { useOpenDocumentRequest } from '../../../../utils/documentLinks';
 import { showToast } from '../../../../utils/toast';
 import { getErrorMessage } from '../../../../services/apiClient';
-import { loadMaterialOptions } from '../../../../services/lookupOptions';
+import { loadMaterialOptions, loadCustomerOptions, type CustomerOption } from '../../../../services/lookupOptions';
+import { OpenDocumentPicker, type PickedLine, type PickerDocument } from '../../../purchasing/documents/OpenDocumentPicker';
 import { voucherNumberingApi, exchangeRatesApi } from '../../../../services/settingsApi';
 import { goodsIssuesApi } from './api';
 import type { OpenIssueRequest } from '../issue-requests/api';
+import type { OpenSalesOrder } from './api';
 import { IssueRequestPicker, type PickedRequestLine } from './IssueRequestPicker';
 import { useDebounced } from '../../../../hooks/useDebounced';
 import { usePagedList } from '../../../../hooks/usePagedList';
@@ -82,16 +84,6 @@ interface GoodsIssueViewProps {
   currentUser?: UserProfile;
 }
 
-export const MOCK_CUSTOMERS = [
-  { id: 'KH001', code: 'KH-VINFAST', name: 'Công ty Cổ phần Sản xuất và Kinh doanh VinFast', group: 'Ô tô & Xe điện', taxCode: '0108926224', phone: '1900 23 23 89', address: 'KĐT Vinhomes Riverside, Long Biên, Hà Nội' },
-  { id: 'KH002', code: 'KH-MASAN', name: 'Tập đoàn Masan (Masan Group)', group: 'FMCG & Hàng tiêu dùng', taxCode: '0303595925', phone: '028 3822 5555', address: 'Tòa nhà Empress Tower, Q.1, TP.HCM' },
-  { id: 'KH003', code: 'KH-THACO', name: 'Tập đoàn Trường Hải (THACO)', group: 'Cơ khí & Ô tô', taxCode: '4000326848', phone: '0235 3856 777', address: 'KCN Chu Lai, Núi Thành, Quảng Nam' },
-  { id: 'KH004', code: 'KH-FPT', name: 'Công ty Cổ phần Bán lẻ Kỹ thuật số FPT', group: 'Bán lẻ & Công nghệ', taxCode: '0311609355', phone: '1800 6601', address: '261-263 Khánh Hội, Q.4, TP.HCM' },
-  { id: 'KH005', code: 'KH-PETROLIMEX', name: 'Tập đoàn Xăng dầu Việt Nam (Petrolimex)', group: 'Năng lượng & Hóa chất', taxCode: '0100107321', phone: '024 3851 2603', address: 'Số 1 Khâm Thiên, Đống Đa, Hà Nội' },
-  { id: 'KH006', code: 'KH-VIETTEL', name: 'Tập đoàn Công nghiệp - Viễn thông Quân đội (Viettel)', group: 'Viễn thông & Thiết bị', taxCode: '0100109106', phone: '1800 8098', address: 'Lô D26 KĐT mới Cầu Giấy, Yên Hòa, Hà Nội' },
-  { id: 'KH007', code: 'KH-SAMSUNG-VN', name: 'Công ty TNHH Samsung Electronics Việt Nam Thái Nguyên', group: 'Điện tử xuất khẩu', taxCode: '4601118128', phone: '0208 3765 000', address: 'KCN Yên Bình, P. Đồng Tiến, Thái Nguyên' },
-  { id: 'KH008', code: 'KH-GELEX', name: 'Tập đoàn GELEX - Thiết bị điện', group: 'Công nghiệp điện', taxCode: '0100100742', phone: '024 3826 6200', address: '52 Lê Đại Hành, Q. Hai Bà Trưng, Hà Nội' }
-];
 
 /** The status filter of the form holds the labels the screens keep; the server filters by the status name. */
 const STATUS_OF_LABEL: Record<string, string> = {
@@ -119,9 +111,10 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
 
   const loadData = async () => {
     try {
-      const [options, materials] = await Promise.all([goodsIssuesApi.getOptions(), loadMaterialOptions()]);
+      const [options, materials, customerList] = await Promise.all([goodsIssuesApi.getOptions(), loadMaterialOptions(), loadCustomerOptions()]);
       reloadListRef.current();
       setProducts(materials);
+      setCustomers(customerList);
       setCurrencies(options.currencies);
       setWarehouses(options.warehouses.map(w => ({
         id: w.code, code: w.code, name: w.name, address: '',
@@ -171,6 +164,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const [formWarehouseName, setFormWarehouseName] = useState('');
   // The approved issue request this issue carries out (empty = a free issue); its lines are the lines of the issue.
   const [formCustomerName, setFormCustomerName] = useState('');
+  // The customer of the catalog (empty = a customer typed by hand); an issue that delivers sales orders is for the customer of those orders.
+  const [formCustomerCode, setFormCustomerCode] = useState('');
   const [formReceiverName, setFormReceiverName] = useState('');
   const [formCurrencyCode, setFormCurrencyCode] = useState('VND');
   const [formExchangeRate, setFormExchangeRate] = useState<number>(1);
@@ -188,6 +183,13 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     return acc;
   }, {}), [formItems]);
 
+  // The sales orders the lines deliver (each line carries the number of its order) and what each order line is taken for by this form.
+  const formSalesCode = useMemo(() => [...new Set(formItems.map(item => item.salesOrderCode).filter(Boolean) as string[])].join(','), [formItems]);
+  const takenBySalesLine = useMemo(() => formItems.reduce<Record<number, number>>((acc, item) => {
+    if (item.salesOrderLineId) acc[item.salesOrderLineId] = (acc[item.salesOrderLineId] ?? 0) + (Number(item.quantity) || 0);
+    return acc;
+  }, {}), [formItems]);
+
   // Form Fields - Material Items List (Tab 2: Nguyên Vật Liệu / Cấu Trúc SP)
   const [formMaterialItems, setFormMaterialItems] = useState<VoucherItem[]>([]);
 
@@ -197,6 +199,9 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   const [isCustomerLookupOpen, setIsCustomerLookupOpen] = useState(false);
   const [openRequests, setOpenRequests] = useState<OpenIssueRequest[]>([]);
   const [isRequestPickerOpen, setIsRequestPickerOpen] = useState(false);
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
+  const [openSalesOrders, setOpenSalesOrders] = useState<OpenSalesOrder[]>([]);
+  const [isSalesPickerOpen, setIsSalesPickerOpen] = useState(false);
   const [lookupTargetRowIndex, setLookupTargetRowIndex] = useState<number | null>(null);
   const [activeRowSearchIdx, setActiveRowSearchIdx] = useState<number | null>(null);
 
@@ -338,6 +343,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     setFormWarehouseId(defaultWh.id);
     setFormWarehouseName(defaultWh.name);
     setFormCustomerName('');
+    setFormCustomerCode('');
     setFormReceiverName('');
     setFormCurrencyCode('VND');
     setFormExchangeRate(1);
@@ -397,6 +403,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     setFormWarehouseId(voucher.warehouseId);
     setFormWarehouseName(voucher.warehouseName);
     setFormCustomerName(voucher.supplierName || '');
+    setFormCustomerCode(voucher.customerCode || '');
     setFormReceiverName(voucher.delivererName || '');
     setFormCurrencyCode(voucher.currencyCode || 'VND');
     setFormExchangeRate(voucher.exchangeRate || 1);
@@ -430,7 +437,9 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
           totalPrice: (it.quantity || 1) * (it.unitPrice || 0),
           lotNumber: it.lotNumber || '',
           position: it.position || prod?.position || '',
-          issueRequestLineId: it.issueRequestLineId
+          issueRequestLineId: it.issueRequestLineId,
+          salesOrderLineId: it.salesOrderLineId,
+          salesOrderCode: it.salesOrderCode
         };
       });
       mapped.push({ ...emptyItem });
@@ -718,6 +727,76 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     setFormItems(prev => prev.map(item => ({ ...item, issueRequestLineId: undefined, issueRequestCode: undefined })));
   };
 
+  // "Lấy từ đơn bán hàng": the approved orders with something left to deliver, read fresh every time. Editing a saved issue, what it
+  // already delivers is not counted as issued (the picker takes off what the form holds).
+  const handleOpenSalesPicker = async () => {
+    try {
+      setOpenSalesOrders(await goodsIssuesApi.getOpenSalesOrders(editingVoucherId ?? undefined));
+      setIsSalesPickerOpen(true);
+    } catch (error) { showToast.error(getErrorMessage(error)); }
+  };
+
+  const salesDocuments = useMemo(() => openSalesOrders.map(order => ({
+    source: order,
+    doc: {
+      code: order.code, date: order.date, dueDate: order.deliveryDate ? `Giao: ${order.deliveryDate}` : null,
+      info: [[order.customerName || order.customerCode, order.customerCode], [order.warehouseName, order.voucherType],
+        [order.deliveryAddress || '', order.currencyCode]],
+      lockKey: `${order.warehouseCode}|${order.currencyCode}|${order.customerCode}`,
+      searchText: [order.code, order.customerName, order.customerCode, order.warehouseName, order.deliveryAddress, order.voucherType,
+        ...order.lines.flatMap(line => [line.materialCode, line.materialName])].join(' '),
+      lines: order.lines.map(line => ({
+        lineId: line.lineId, materialCode: line.materialCode, materialName: line.materialName, uomCode: line.uomCode,
+        totalQuantity: line.orderedQuantity, remainingQuantity: line.remainingQuantity, unitPrice: line.unitPrice, note: line.note
+      }))
+    } as PickerDocument
+  })), [openSalesOrders]);
+
+  /**
+   * Carries the ticked materials (with the quantity chosen) into the lines: every line keeps the order line it delivers and the number
+   * of its order. The header comes from the first order pulled; later ones must share its warehouse, currency and customer (the picker
+   * only lets those be ticked). An order line already in the form gets the quantity added to its line.
+   */
+  const handleConfirmSalesOrders = (picked: PickedLine<OpenSalesOrder>[]) => {
+    setIsSalesPickerOpen(false);
+    if (picked.length === 0) return;
+    const first = formSalesCode ? undefined : picked[0].source;
+    const items = formItems.filter(item => (item.sku || item.productId || '').trim() !== '').map(item => ({ ...item }));
+    picked.forEach(({ source, line, quantity }) => {
+      const existing = items.find(item => item.salesOrderLineId === line.lineId);
+      if (existing) {
+        existing.quantity = (Number(existing.quantity) || 0) + quantity;
+        existing.totalPrice = existing.quantity * (existing.unitPrice || 0);
+        existing.amount = existing.totalPrice;
+        return;
+      }
+      items.push({
+        productId: line.materialCode, sku: line.materialCode, productName: line.materialName, unit: line.uomCode,
+        quantity, unitPrice: line.unitPrice, totalPrice: quantity * line.unitPrice, amount: quantity * line.unitPrice, lotNumber: '', position: '',
+        salesOrderLineId: line.lineId, salesOrderCode: source.code
+      } as VoucherItem);
+    });
+    const codes = [...new Set(items.map(item => item.salesOrderCode).filter(Boolean) as string[])];
+    if (first) {
+      setFormVoucherType('Xuất bán hàng');
+      setFormWarehouseId(first.warehouseCode);
+      setFormWarehouseName(first.warehouseName);
+      setFormCustomerCode(first.customerCode);
+      setFormCustomerName(first.customerName || first.customerCode);
+      if (first.projectCode && !formProjectCode) setFormProjectCode(first.projectCode);
+      if (first.currencyCode !== formCurrencyCode) void handleCurrencyChange(first.currencyCode);
+    }
+    setFormNote(prev => prev.trim() && !formSalesCode && !prev.startsWith('Xuất theo đơn bán hàng') ? prev : `Xuất theo đơn bán hàng ${codes.join(', ')}`);
+    setFormItems([...items, { ...emptyBlankItem }]);
+    setActiveTab('items');
+    showToast.success(`Đã lấy ${picked.length} vật tư từ ${new Set(picked.map(p => p.source.code)).size} đơn bán hàng. Có thể sửa số lượng ở bảng chi tiết.`);
+  };
+
+  /** Unlinks the issue from its sales orders: the lines stay but no longer follow an order line. */
+  const handleClearSales = () => {
+    setFormItems(prev => prev.map(item => ({ ...item, salesOrderLineId: undefined, salesOrderCode: undefined })));
+  };
+
   // Confirm Warehouse Lookup
   const handleConfirmWarehouseLookup = (selectedItems: WarehouseType[]) => {
     if (selectedItems.length > 0) {
@@ -732,11 +811,12 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   };
 
   // Confirm Customer Lookup
-  const handleConfirmCustomerLookup = (selectedItems: typeof MOCK_CUSTOMERS) => {
+  const handleConfirmCustomerLookup = (selectedItems: CustomerOption[]) => {
     if (selectedItems.length > 0) {
       const selected = selectedItems[0];
       if (selected) {
         setFormCustomerName(selected.name);
+        setFormCustomerCode(selected.code);
         showToast.success(`Đã chọn khách hàng: ${selected.name}`);
       }
     }
@@ -781,10 +861,10 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   ];
 
   // Customer Lookup Columns
-  const customerLookupColumns: ColumnDef<typeof MOCK_CUSTOMERS[0]>[] = [
+  const customerLookupColumns: ColumnDef<CustomerOption>[] = [
     {
       key: 'code',
-      label: 'Mã Đối Tác',
+      label: 'Mã Khách Hàng',
       render: (s) => (
         <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-xs">
           {s.code}
@@ -793,23 +873,18 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
     },
     {
       key: 'name',
-      label: 'Tên Khách Hàng / Đối Tác',
+      label: 'Tên Khách Hàng',
       render: (s) => <span className="font-extrabold text-slate-800 dark:text-slate-100 text-xs">{s.name}</span>
     },
     {
-      key: 'group',
-      label: 'Nhóm Ngành',
-      render: (s) => <span className="text-indigo-600 dark:text-indigo-300 font-medium text-xs">{s.group}</span>
+      key: 'groupCode',
+      label: 'Nhóm Khách Hàng',
+      render: (s) => <span className="text-indigo-600 dark:text-indigo-300 font-medium text-xs">{s.groupCode}</span>
     },
     {
       key: 'taxCode',
       label: 'Mã Số Thuế',
       render: (s) => <span className="font-mono text-slate-600 dark:text-slate-400 text-xs">{s.taxCode}</span>
-    },
-    {
-      key: 'address',
-      label: 'Địa Chỉ Headquarters',
-      render: (s) => <span className="text-slate-500 text-xs">{s.address}</span>
     }
   ];
 
@@ -1010,6 +1085,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
       currencyCode: formCurrencyCode,
       exchangeRate: formExchangeRate,
       issueRequestCode: formRequestCode || undefined,
+      salesOrderCode: formSalesCode || undefined,
+      customerCode: formCustomerCode || undefined,
       supplierName: formCustomerName.trim(),
       delivererName: formReceiverName.trim(),
       warehouseId: formWarehouseId,
@@ -1549,8 +1626,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                     <select
                       required
                       value={formWarehouseId}
-                      disabled={Boolean(formRequestCode)}
-                      title={formRequestCode ? 'Phiếu xuất theo yêu cầu phải xuất từ kho của phiếu yêu cầu' : undefined}
+                      disabled={Boolean(formRequestCode || formSalesCode)}
+                      title={formRequestCode ? 'Phiếu xuất theo yêu cầu phải xuất từ kho của phiếu yêu cầu' : formSalesCode ? 'Phiếu xuất theo đơn bán hàng phải xuất từ kho của đơn' : undefined}
                       onChange={(e) => {
                         setFormWarehouseId(e.target.value);
                         const wh = warehouses.find(w => w.id === e.target.value);
@@ -1564,7 +1641,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                     </select>
                     <button
                       type="button"
-                      disabled={Boolean(formRequestCode)}
+                      disabled={Boolean(formRequestCode || formSalesCode)}
                       onClick={() => setIsWarehouseLookupOpen(true)}
                       className="px-1.5 h-[26px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-2xs"
                       title="Tra cứu danh mục Kho (F4)"
@@ -1584,11 +1661,14 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                       type="text"
                       placeholder="VinFast, Masan, FPT..."
                       value={formCustomerName}
-                      onChange={(e) => setFormCustomerName(e.target.value)}
+                      readOnly={Boolean(formSalesCode)}
+                      title={formCustomerCode ? `Khách hàng ${formCustomerCode} trong danh mục` : undefined}
+                      onChange={(e) => { setFormCustomerName(e.target.value); setFormCustomerCode(''); }}
                       className="w-full bg-slate-50/50 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 font-medium text-[11px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all h-[26px]"
                     />
                     <button
                       type="button"
+                      disabled={Boolean(formSalesCode)}
                       onClick={() => setIsCustomerLookupOpen(true)}
                       className="px-1.5 h-[26px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950 dark:hover:bg-indigo-900 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-2xs"
                       title="Tra cứu danh mục Khách Hàng / Đối Tác (F4)"
@@ -1620,6 +1700,18 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                     </span>
                     {canSaveForm && (
                       <button type="button" onClick={handleClearRequest} className="shrink-0 text-[10.5px] font-bold text-rose-600 hover:underline cursor-pointer">Bỏ liên kết</button>
+                    )}
+                  </div>
+                )}
+
+                {formSalesCode && (
+                  <div className="sm:col-span-2 xl:col-span-3 flex items-center justify-between gap-2 rounded-lg border border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/40 px-2 py-1">
+                    <span className="flex items-center gap-1.5 text-[11px] text-sky-800 dark:text-sky-300 min-w-0">
+                      <ClipboardCheck className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">Giao theo đơn bán hàng <strong className="font-mono">{formSalesCode.split(',').join(', ')}</strong> (mỗi dòng gắn với một dòng đơn, không xuất quá số còn lại)</span>
+                    </span>
+                    {canSaveForm && (
+                      <button type="button" onClick={handleClearSales} className="shrink-0 text-[10.5px] font-bold text-rose-600 hover:underline cursor-pointer">Bỏ liên kết</button>
                     )}
                   </div>
                 )}
@@ -1838,6 +1930,19 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   Lấy từ phiếu yêu cầu
                 </Button>
               )}
+              {canSaveForm && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void handleOpenSalesPicker()}
+                  icon={<ClipboardCheck className="h-3.5 w-3.5" />}
+                  title="Lấy dữ liệu từ đơn bán hàng đã duyệt"
+                  className="text-[10.5px] py-1 px-2.5 h-[26px] shadow-2xs font-semibold border-sky-400 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/40"
+                >
+                  Lấy từ đơn bán hàng
+                </Button>
+              )}
               <Button
                 type="button"
                 size="sm"
@@ -1963,6 +2068,25 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
         onConfirm={handleConfirmRequest}
       />
 
+      {/* Approved sales orders with something left to deliver: orders on top, their materials below */}
+      <OpenDocumentPicker<OpenSalesOrder>
+        isOpen={isSalesPickerOpen}
+        onClose={() => setIsSalesPickerOpen(false)}
+        documents={salesDocuments}
+        taken={takenBySalesLine}
+        lockedKey={formSalesCode ? `${formWarehouseId}|${formCurrencyCode}|${formCustomerCode}` : undefined}
+        texts={{
+          title: 'Lấy Vật Tư Từ Đơn Bán Hàng',
+          help: 'Chọn một đơn bán hàng ở danh sách phía trên, rồi tích các vật tư cần xuất ở bảng phía dưới (đổi số lượng nếu chỉ giao một phần). Có thể lấy từ nhiều đơn, miễn là cùng khách hàng, cùng kho xuất và cùng loại tiền. Vật tư đã xuất đủ không hiện; vật tư còn thì hiện số lượng còn lại.',
+          searchPlaceholder: 'Tìm số đơn, khách hàng, kho, địa chỉ giao, vật tư...',
+          empty: 'Không có đơn bán hàng đã duyệt nào còn hàng chưa xuất.',
+          codeHeader: 'Số đơn bán hàng', infoHeaders: ['Khách hàng', 'Kho xuất / loại bán', 'Địa chỉ giao / loại tiền'],
+          totalHeader: 'SL bán', doneHeader: 'Đã xuất', confirm: 'Lấy {n} vật tư sang phiếu xuất',
+          lockedHint: 'khác khách hàng, kho xuất hoặc loại tiền với các vật tư đã chọn, không giao chung một phiếu xuất được', sourceName: 'đơn bán hàng'
+        }}
+        onConfirm={handleConfirmSalesOrders}
+      />
+
       {/* Master Lookup Modal for Warehouses */}
       <MasterLookupModal
         isOpen={isWarehouseLookupOpen}
@@ -1987,12 +2111,12 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
         onClose={() => setIsCustomerLookupOpen(false)}
         title="Tra Cứu & Chọn Khách Hàng / Đối Tác"
         subtitle="Chọn 1 khách hàng hoặc đối tác từ danh mục danh bạ"
-        data={MOCK_CUSTOMERS}
+        data={customers}
         columns={customerLookupColumns}
         idField="id"
         displayField="name"
-        searchFields={['id', 'code', 'name', 'taxCode', 'group', 'address']}
-        searchPlaceholder="Nhập mã KH, tên đối tác, MST hoặc nhóm ngành để tìm kiếm..."
+        searchFields={['id', 'code', 'name', 'taxCode', 'groupCode']}
+        searchPlaceholder="Nhập mã khách hàng, tên, mã số thuế hoặc nhóm để tìm kiếm..."
         selectionMode="single"
         selectedIds={[]}
         onConfirm={handleConfirmCustomerLookup}

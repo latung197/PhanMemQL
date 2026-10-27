@@ -5,6 +5,7 @@ import { Badge } from '../../components/common/Badge';
 import { Checkbox } from '../../components/common/Checkbox';
 import { SelectInput, TextArea, TextInput } from '../../components/common/FormField';
 import { recordStampColumns } from '../../components/common/recordStampColumns';
+import { CatalogLookup } from '../../components/catalog/CatalogLookup';
 import { CatalogScreen } from '../../components/catalog/CatalogScreen';
 import type { CatalogDefinition } from '../../components/catalog/catalogTypes';
 import { useLanguage } from '../../context/LanguageContext';
@@ -19,7 +20,7 @@ export const TaxRateCategoryView: React.FC<{ currentUser?: UserProfile }> = ({ c
   const typeOptions = useMemo(() => TAX_TYPES.map(value => ({ value, label: t(`taxRates.type.${value}`) })), [t]);
   const toInput = (row: TaxRateRow): SaveTaxRateInput => ({
     code: row.code, name: row.name, taxType: row.taxType, rate: row.rate, isExempt: row.isExempt,
-    note: row.note ?? '', isActive: row.isActive
+    note: row.note ?? '', isActive: row.isActive, inputAccountCode: row.inputAccountCode ?? '', outputAccountCode: row.outputAccountCode ?? ''
   });
 
   const definition = useMemo((): CatalogDefinition<TaxRateRow, SaveTaxRateInput> => ({
@@ -41,6 +42,8 @@ export const TaxRateCategoryView: React.FC<{ currentUser?: UserProfile }> = ({ c
         render: row => row.isExempt
           ? <Badge variant="slate" size="sm">{t('taxRates.exemptBadge')}</Badge>
           : <span className="font-mono">{percent(row.rate)}</span> },
+      { key: 'inputAccountCode', header: t('taxRates.inputAccount'), width: '120px', render: row => row.inputAccountCode ? <span className="font-mono">{row.inputAccountCode}</span> : '—' },
+      { key: 'outputAccountCode', header: t('taxRates.outputAccount'), width: '120px', render: row => row.outputAccountCode ? <span className="font-mono">{row.outputAccountCode}</span> : '—' },
       { key: 'note', header: t('taxRates.note'), render: row => row.note || '—' },
       { key: 'isActive', header: t('taxRates.status'), align: 'center', width: '140px', sortable: true,
         render: row => row.isActive
@@ -58,12 +61,14 @@ export const TaxRateCategoryView: React.FC<{ currentUser?: UserProfile }> = ({ c
         { key: 'taxType', header: t('taxRates.taxType'), required: true, width: 18, example: 'VAT' },
         { key: 'rate', header: t('taxRates.rate'), type: 'number', width: 14, example: 10 },
         { key: 'isExempt', header: t('taxRates.isExempt'), type: 'boolean', width: 16, example: false },
+        { key: 'inputAccountCode', header: t('taxRates.inputAccount'), width: 18, example: '1331' },
+        { key: 'outputAccountCode', header: t('taxRates.outputAccount'), width: 18, example: '33311' },
         { key: 'note', header: t('taxRates.note'), width: 36, example: '' },
         { key: 'isActive', header: t('taxRates.isActive'), type: 'boolean', width: 14, example: true }
       ],
       toRow: toInput
     },
-    emptyInput: { code: '', name: '', taxType: 'VAT', rate: 0, isExempt: false, note: '', isActive: true },
+    emptyInput: { code: '', name: '', taxType: 'VAT', rate: 0, isExempt: false, note: '', isActive: true, inputAccountCode: '', outputAccountCode: '' },
     toInput,
     normalize: input => ({ ...input, code: input.code.trim().toUpperCase(), name: input.name.trim(),
       taxType: input.taxType.trim().toUpperCase(), note: input.note.trim(), rate: input.isExempt ? 0 : input.rate }),
@@ -83,6 +88,13 @@ export const TaxRateCategoryView: React.FC<{ currentUser?: UserProfile }> = ({ c
           onChange={e => setForm({ ...form, rate: Number(e.target.value) })} />
         <Checkbox label={t('taxRates.isExempt')} subLabel={t('taxRates.isExemptHint')} checked={form.isExempt}
           onChange={isExempt => setForm({ ...form, isExempt, rate: isExempt ? 0 : form.rate })} />
+        <div className="grid grid-cols-2 gap-3">
+          <CatalogLookup lookup="accounts" params={{ postable: 'true' }} label={t('taxRates.inputAccount')} value={form.inputAccountCode}
+            onChange={code => setForm({ ...form, inputAccountCode: code })} />
+          <CatalogLookup lookup="accounts" params={{ postable: 'true' }} label={t('taxRates.outputAccount')} value={form.outputAccountCode}
+            onChange={code => setForm({ ...form, outputAccountCode: code })} />
+        </div>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400">{t('taxRates.accountHint')}</p>
         <TextArea label={t('taxRates.note')} rows={2} maxLength={300} value={form.note}
           onChange={e => setForm({ ...form, note: e.target.value })} />
         <Checkbox label={t('taxRates.isActive')} checked={form.isActive}

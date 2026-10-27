@@ -3,6 +3,7 @@
 //   settings.json – Settings screens
 //   inventory.json – inventory screens (not translated yet beyond the existing keys)
 //   purchasing.json – purchasing catalogs
+//   sales.json – sales catalogs (customers, customer groups, price lists)
 // Keys keep their full path ("common.save", "companyUnits.title"); the files of a language are merged.
 // A new language: add its folder with the same files and list it in FILES below; `npm run check-i18n` reports
 // missing keys. Missing texts fall back to Vietnamese.
@@ -10,10 +11,12 @@ import viCommon from '../locales/vi/common.json';
 import viSettings from '../locales/vi/settings.json';
 import viInventory from '../locales/vi/inventory.json';
 import viPurchasing from '../locales/vi/purchasing.json';
+import viSales from '../locales/vi/sales.json';
 import enCommon from '../locales/en/common.json';
 import enSettings from '../locales/en/settings.json';
 import enInventory from '../locales/en/inventory.json';
 import enPurchasing from '../locales/en/purchasing.json';
+import enSales from '../locales/en/sales.json';
 
 /**
  * A language code of the backend catalog (Settings › Ngôn ngữ, sys_language): "vi", "en", "ja"...
@@ -29,8 +32,8 @@ export const LANGUAGE_STORAGE_KEY = 'serp_language';
 type Texts = Record<string, any>;
 
 const FILES: Record<Language, Texts[]> = {
-  vi: [viCommon, viSettings, viInventory, viPurchasing],
-  en: [enCommon, enSettings, enInventory, enPurchasing],
+  vi: [viCommon, viSettings, viInventory, viPurchasing, viSales],
+  en: [enCommon, enSettings, enInventory, enPurchasing, enSales],
 };
 
 export const translations: Record<Language, Texts> = Object.fromEntries(

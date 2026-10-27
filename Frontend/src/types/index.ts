@@ -274,6 +274,9 @@ export interface VoucherItem {
   amount?: number;
   lotNumber?: string;
   position?: string;
+  /** Phiếu kiểm kê: tồn sổ sách tại ngày kiểm kê (máy chủ tính, chỉ đọc) và chênh lệch = quantity (số kiểm) - tồn sổ sách. */
+  bookQuantity?: number;
+  diffQuantity?: number;
   /** Phiếu yêu cầu xuất kho: ghi chú của dòng, số đã xuất theo các phiếu xuất (chỉ đọc). */
   note?: string;
   issuedQuantity?: number;
@@ -294,6 +297,12 @@ export interface VoucherItem {
   /** Phiếu nhập lấy từ đơn mua: ngày dự kiến nhận của dòng đơn (chỉ đọc). */
   purchaseOrderDeliveryDate?: string;
   purchaseOrderCode?: string;
+  /** Hóa đơn mua hàng lấy từ phiếu nhập kho: dòng phiếu nhập mà dòng này lập hóa đơn và số phiếu nhập. */
+  goodsReceiptLineId?: number;
+  goodsReceiptCode?: string;
+  /** Phiếu xuất lấy từ đơn bán hàng: dòng đơn mà dòng này giao và số đơn. */
+  salesOrderLineId?: number;
+  salesOrderCode?: string;
   /** Điều chuyển kho: số đã xuất (trên lệnh) hoặc đã nhận (trên phiếu xuất) theo các phiếu sau (chỉ đọc). */
   doneQuantity?: number;
   /** Phiếu xuất lấy từ lệnh điều chuyển, phiếu nhập lấy từ phiếu xuất: dòng nguồn và số chứng từ nguồn. */
@@ -305,8 +314,8 @@ export interface GoodsVoucher {
   id: string;
   /** Backend row version used when editing a receipt. */
   version?: number;
-  type: 'Nhập kho' | 'Xuất kho' | 'Yêu cầu xuất kho' | 'Yêu cầu mua hàng' | 'Đơn mua hàng'
-    | 'Lệnh điều chuyển kho' | 'Xuất điều chuyển kho' | 'Nhập điều chuyển kho';
+  type: 'Nhập kho' | 'Xuất kho' | 'Yêu cầu xuất kho' | 'Yêu cầu mua hàng' | 'Đơn mua hàng' | 'Hóa đơn mua hàng' | 'Đơn bán hàng'
+    | 'Lệnh điều chuyển kho' | 'Xuất điều chuyển kho' | 'Nhập điều chuyển kho' | 'Phiếu kiểm kê';
   code: string;
   date: string;                      // Ngày chứng từ (Document Date)
   createdDate?: string;               // Ngày lập chứng từ
@@ -339,12 +348,27 @@ export interface GoodsVoucher {
   /** Đơn mua hàng: số các phiếu yêu cầu mua hàng mà đơn thực hiện; phiếu nhập: số các đơn mua hàng mà phiếu nhận (chỉ đọc, suy từ các dòng). */
   purchaseRequestCode?: string;
   purchaseOrderCode?: string;
+  /** Hóa đơn mua hàng: số / ký hiệu / ngày ghi trên hóa đơn của nhà cung cấp, hạn thanh toán và số các phiếu nhập kho mà hóa đơn theo (chỉ đọc). */
+  invoiceNo?: string;
+  invoiceSeries?: string;
+  invoiceDate?: string;
+  dueDate?: string;
+  goodsReceiptCode?: string;
+  /** Đơn bán hàng: khách hàng (danh mục), địa chỉ giao hàng; phiếu xuất: khách hàng của danh mục và số các đơn bán hàng mà phiếu giao (chỉ đọc, suy từ các dòng). */
+  customerCode?: string;
+  deliveryAddress?: string;
+  salesOrderCode?: string;
   warehouseId: string;
   warehouseName: string;
   /** Điều chuyển kho: kho đến (warehouseId / warehouseName là kho đi) và số lệnh / phiếu xuất mà phiếu này theo (chỉ đọc, suy từ các dòng). */
   toWarehouseId?: string;
   toWarehouseName?: string;
   transferSourceCode?: string;
+  /** Phiếu kiểm kê: người / ban kiểm kê, lý do, giá trị thừa và giá trị thiếu (giá vốn, cần quyền xem giá vốn). */
+  counterName?: string;
+  countReason?: string;
+  surplusValue?: number;
+  shortageValue?: number;
   items: VoucherItem[];
   materialItems?: VoucherItem[];       // Tab Nguyên vật liệu (Định mức / Cấu trúc SP - BOM)
   totalValue: number;
@@ -352,14 +376,6 @@ export interface GoodsVoucher {
   approvedBy?: string;
   status?: 'Lập chứng từ' | 'Chờ duyệt' | 'Đã phê duyệt' | 'Chuyển sổ kho' | 'Hủy' | string;
   note: string;
-}
-
-export interface ActivityLog {
-  id: string;
-  timestamp: string;
-  user: string;
-  action: string;
-  module: 'Tổng quan' | 'Kho hàng' | 'Bán hàng' | 'Nhân sự' | 'Tài chính' | 'Trợ lý AI' | 'Cài đặt';
 }
 
 export interface SystemNotification {
@@ -454,7 +470,6 @@ export interface ERPData {
   customers: Customer[];
   transactions: Transaction[];
   vouchers: GoodsVoucher[];
-  activities: ActivityLog[];
   notifications: SystemNotification[];
   /** Mock users only; real accounts come from the backend. */
   users?: UserProfile[];
@@ -488,6 +503,7 @@ export type SubMenuKey =
   | 'inv_approve_issue'         // Phê duyệt xuất
   | 'inv_approve_issue_request' // Phê duyệt yêu cầu xuất kho
   | 'inv_approve_transfer'      // Phê duyệt điều chuyển
+  | 'inv_approve_audit'         // Phê duyệt kiểm kê
 
   // Purchasing
   | 'pur_request'               // Phiếu yêu cầu mua hàng
@@ -495,9 +511,12 @@ export type SubMenuKey =
   | 'pur_payment_term_cat'      // Danh mục điều khoản thanh toán
   | 'pur_supplier_group_cat'    // Danh mục nhóm nhà cung cấp
   | 'pur_report_project'        // Báo cáo chi phí theo dự án
+  | 'pur_report_payable'        // Báo cáo công nợ phải trả
   | 'pur_order'                 // Đơn mua hàng
+  | 'pur_invoice'               // Hóa đơn mua hàng
   | 'pur_approve_request'       // Phê duyệt yêu cầu mua hàng
   | 'pur_approve_order'         // Phê duyệt đơn mua hàng
+  | 'pur_approve_invoice'       // Phê duyệt hóa đơn mua hàng
 
   // Inventory submenus - 3. Danh mục
   | 'inv_material_cat'          // Khai báo vật tư & SP
@@ -541,12 +560,16 @@ export type SubMenuKey =
   | 'sys_menu'                  // Quản lý ẩn/hiện menu
 
   // Sales submenus
+  | 'sales_customer_group_cat'   // Danh mục nhóm khách hàng
+  | 'sales_price_list_cat'       // Danh mục bảng giá bán
   | 'sales_customers'           // Danh mục khách hàng
-  | 'sales_orders'              // Chứng từ đơn hàng
+  | 'sales_orders'              // Đơn bán hàng
+  | 'sales_approve_order'       // Phê duyệt đơn bán hàng
   | 'sales_delivery'            // Chứng từ giao hàng
   | 'sales_report'              // Báo cáo doanh số
 
   // Finance submenus
+  | 'fin_account_cat'           // Hệ thống tài khoản kế toán
   | 'fin_categories'            // Danh mục khoản mục Thu Chi
   | 'fin_receipt_voucher'       // Phiếu Thu
   | 'fin_payment_voucher'       // Phiếu Chi

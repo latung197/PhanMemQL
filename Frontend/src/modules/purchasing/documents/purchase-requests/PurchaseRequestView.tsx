@@ -272,7 +272,7 @@ export const PurchaseRequestView: React.FC<PurchaseRequestViewProps> = ({ compan
     setFormProjectCode(voucher.projectCode || '');
     const mapped: VoucherItem[] = (voucher.items ?? []).map(it => ({
       productId: it.productId || '', productName: it.productName, sku: it.sku || '', unit: it.unit || '',
-      quantity: it.quantity || 1, unitPrice: it.unitPrice || 0, totalPrice: (it.quantity || 1) * (it.unitPrice || 0),
+      quantity: it.quantity || 1, unitPrice: it.unitPrice || 0, totalPrice: (it.quantity || 1) * (it.unitPrice || 0), amount: (it.quantity || 1) * (it.unitPrice || 0),
       note: it.note || '', orderedQuantity: it.orderedQuantity ?? 0
     }));
     setFormItems([...mapped, emptyItem()]);

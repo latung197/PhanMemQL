@@ -4,17 +4,17 @@ namespace Core.Application.Modules.Inventory.Documents.GoodsIssues;
 
 public sealed record GoodsIssueLineDto(long Id, string Kind, string MaterialCode, string MaterialName,
     string UomCode, decimal Quantity, decimal UnitPrice, decimal Amount, string? LotNumber, string? Position, long? IssueRequestLineId = null,
-    string? IssueRequestCode = null);
+    string? IssueRequestCode = null, long? SalesOrderLineId = null, string? SalesOrderCode = null);
 
 /// <summary>A line: the material and unit are codes of the catalogs; the name is taken from the material when saved.</summary>
 public sealed record SaveGoodsIssueLine(string Kind, string MaterialCode,
-    string UomCode, decimal Quantity, decimal UnitPrice, string? LotNumber, string? Position, long? IssueRequestLineId = null);
+    string UomCode, decimal Quantity, decimal UnitPrice, string? LotNumber, string? Position, long? IssueRequestLineId = null, long? SalesOrderLineId = null);
 
 public sealed record GoodsIssueDto(long Id, string Code, DateOnly Date, DateOnly CreatedDate,
     string UnitCode, string UnitName, string WarehouseCode, string WarehouseName, string VoucherType,
     string CurrencyCode, decimal ExchangeRate, string? CustomerName, string? ReceiverName, string? IssueRequestCode,
     string? Note, string Status, decimal TotalValue, string CreatedBy, string? ApprovedBy,
-    IReadOnlyList<GoodsIssueLineDto> Items, IReadOnlyList<GoodsIssueLineDto> MaterialItems, uint Version, string? ProjectCode = null);
+    IReadOnlyList<GoodsIssueLineDto> Items, IReadOnlyList<GoodsIssueLineDto> MaterialItems, uint Version, string? ProjectCode = null, string? CustomerCode = null, string? SalesOrderCode = null);
 
 public sealed record SaveGoodsIssueRequest(DateOnly Date, string WarehouseCode, string VoucherType,
     string CurrencyCode, decimal ExchangeRate, string? CustomerName, string? ReceiverName,
@@ -25,7 +25,9 @@ public sealed record SaveGoodsIssueRequest(DateOnly Date, string WarehouseCode, 
     /// <summary>The approved issue request (phiếu yêu cầu xuất kho) this issue carries out; every item line then names the request line it carries out.</summary>
     string? IssueRequestCode = null,
     /// <summary>The project (dự án) of the voucher, optional; only a project that is in use and still takes vouchers.</summary>
-    string? ProjectCode = null);
+    string? ProjectCode = null,
+    /// <summary>The customer of the catalog (optional); lines that follow sales orders take the customer of those orders.</summary>
+    string? CustomerCode = null);
 
 public sealed record GoodsIssueOption(string Code, string Name);
 public sealed record GoodsIssueOptionsDto(IReadOnlyList<GoodsIssueOption> Warehouses,

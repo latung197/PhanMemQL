@@ -345,7 +345,9 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
     private async Task SeedDemoDataAsync(CancellationToken ct)
     {
         var password = configuration["Seed:DefaultPassword"];
-        PasswordPolicy.Validate(password);
+        // Development may use a short demo password (like Seed:AdminPassword); elsewhere the policy applies.
+        if (!environment.IsDevelopment()) PasswordPolicy.Validate(password);
+        else if (string.IsNullOrEmpty(password)) throw new InvalidOperationException("Seed:DefaultPassword is empty.");
         var path = Path.Combine(environment.ContentRootPath, configuration["Seed:File"] ?? "SeedData/seed.json");
         await using var stream = File.OpenRead(path);
         var seed = await JsonSerializer.DeserializeAsync<SeedDataFile>(stream, JsonOptions, ct)
