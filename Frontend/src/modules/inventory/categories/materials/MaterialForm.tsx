@@ -36,7 +36,7 @@ export const MaterialForm: React.FC<{
   );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <Tabs<TabKey> value={tab} onChange={setTab} items={[
         { key: 'basic', label: t('materials.tabBasic') },
         { key: 'tracking', label: t('materials.tabTracking') },
@@ -46,17 +46,17 @@ export const MaterialForm: React.FC<{
       ]} />
 
       {/* The panels share a minimum height so the window does not jump between tabs. */}
-      <div className="min-h-[19rem] space-y-3">
+      <div className="min-h-[24rem] space-y-4">
         {tab === 'basic' && (
           <>
-            <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+            <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,3fr)]">
               <TextInput label={t('materials.code')} required autoFocus={!editing} disabled={!!editing} maxLength={50}
                 value={form.code} hint={t('materials.codeHint')}
                 onChange={e => set({ code: e.target.value.toUpperCase().replace(/\s/g, '') })} />
               <TextInput label={t('materials.name')} required autoFocus={!!editing} maxLength={200}
                 value={form.name} onChange={e => set({ name: e.target.value })} />
             </div>
-            <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <TextInput label={t('materials.customerCode')} maxLength={50} value={form.customerMaterialCode}
                 onChange={e => set({ customerMaterialCode: e.target.value })} />
               <TextInput label={t('materials.partNo')} maxLength={50} value={form.partNo}
@@ -66,7 +66,7 @@ export const MaterialForm: React.FC<{
               <CatalogLookup lookup="materialGroups" label={t('materials.group')} value={form.materialGroupCode}
                 onChange={code => set({ materialGroupCode: code })} />
             </div>
-            <TextArea label={t('materials.note')} rows={2} maxLength={500} value={form.note}
+            <TextArea label={t('materials.note')} rows={4} maxLength={500} value={form.note}
               onChange={e => set({ note: e.target.value })} />
             <Checkbox label={t('materials.isActive')} checked={form.isActive} onChange={isActive => set({ isActive })} />
           </>
@@ -74,7 +74,7 @@ export const MaterialForm: React.FC<{
 
         {tab === 'tracking' && (
           <>
-            <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
               <div className="space-y-1">
                 <CatalogLookup lookup="uoms" label={t('materials.uom')} required value={form.uomCode}
                   onChange={code => set({ uomCode: code })} />
@@ -84,7 +84,7 @@ export const MaterialForm: React.FC<{
                 options={[{ value: 'AVERAGE', label: t('materials.costingAverage') }, { value: 'FIFO', label: t('materials.costingFifo') }]}
                 onChange={e => set({ costingMethod: e.target.value as SaveMaterialInput['costingMethod'] })} />
             </div>
-            <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-x-8 gap-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/30 md:grid-cols-2">
               <Checkbox label={t('materials.isStockItem')} subLabel={t('materials.isStockItemHint')} checked={form.isStockItem}
                 onChange={setStock} />
               <Checkbox label={t('materials.isCycleCounted')} checked={form.isCycleCounted} disabled={!form.isStockItem}
@@ -104,13 +104,11 @@ export const MaterialForm: React.FC<{
 
         {tab === 'norms' && (
           <>
-            <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <CatalogLookup lookup="taxRates" label={t('materials.vatTax')} value={form.vatTaxRateCode}
                 onChange={code => set({ vatTaxRateCode: code })} />
               <CatalogLookup lookup="taxRates" label={t('materials.importTax')} value={form.importTaxRateCode}
                 onChange={code => set({ importTaxRateCode: code })} />
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {number('minStock', t('materials.minStock'))}
               {number('maxStock', t('materials.maxStock'))}
             </div>
@@ -162,7 +160,7 @@ export const MaterialForm: React.FC<{
         )}
 
         {tab === 'dims' && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {number('length', t('materials.length'))}
             {number('width', t('materials.width'))}
             {number('height', t('materials.height'))}

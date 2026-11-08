@@ -57,6 +57,7 @@
     "overview": "Bàn Tổng Quan",
     "inventory": "Phân Hệ Kho Hàng",
     "purchasing": "Phân Hệ Mua Hàng",
+    "production": "Phân Hệ Sản Xuất",
     "sales": "Bán Hàng & CRM",
     "finance": "Phân Hệ Tài Chính",
     "hr": "Nhân Sự & Quỹ Lương",
@@ -485,6 +486,7 @@
     "overview": "Tổng quan",
     "inventory": "Kho hàng",
     "purchasing": "Mua hàng",
+    "production": "Sản xuất",
     "sales": "Bán hàng",
     "finance": "Tài chính",
     "hr": "Nhân sự",
@@ -705,6 +707,8 @@
       "department": "Phòng ban",
       "defaultUnit": "Đơn vị mặc định",
       "units": "Được vào đơn vị",
+      "operations": "Công đoạn",
+      "components": "Vật tư thành phần",
       "isActive": "Đang hoạt động",
       "role": "Vai trò",
       "code": "Mã",
@@ -828,6 +832,10 @@
       "project": "Dự án",
       "paymentTerm": "Điều khoản thanh toán",
       "supplierGroup": "Nhóm nhà cung cấp",
+      "productionTeam": "Tổ sản xuất",
+      "productionOperation": "Công đoạn sản xuất",
+      "productionProcess": "Quy trình sản xuất",
+      "productStructure": "Cấu trúc sản phẩm",
       "auditLog": "Nhật ký thay đổi",
       "menu": "Mục menu",
       "customer": "Khách hàng",
@@ -901,5 +909,87 @@
     "createdLine": "Tạo: {name} · {time}",
     "updatedLine": "Sửa: {name} · {time}",
     "system": "Hệ thống"
+  },
+  "dashboard": {
+    "billion": "tỷ",
+    "million": "tr",
+    "title": "Bàn điều hành",
+    "subtitle": "Số liệu thật của đơn vị đang làm việc: chứng từ, tồn kho, dự án và việc cần xử lý. Mỗi phần chỉ hiện khi bạn có quyền xem, giá trị tiền cần quyền xem giá vốn.",
+    "unit": "Đơn vị",
+    "period": "Kỳ {from} – {to}",
+    "updatedAt": "Cập nhật lúc {time}",
+    "refresh": "Làm mới",
+    "loading": "Đang tải số liệu...",
+    "range": {
+      "week": "Tuần này",
+      "month": "Tháng này",
+      "quarter": "Quý này",
+      "year": "Năm nay"
+    },
+    "kpi": {
+      "stockValue": "Giá trị tồn kho",
+      "stockItems": "{n} mặt hàng có tồn",
+      "lowStock": "Dưới định mức",
+      "lowStockHint": "mặt hàng chạm mức tối thiểu",
+      "lowStockOk": "Không có mặt hàng nào dưới định mức",
+      "toApprove": "Chờ tôi duyệt",
+      "toApproveHint": "chứng từ cần bạn duyệt",
+      "drafts": "Phiếu nháp của tôi",
+      "draftsHint": "phiếu chưa trình, chưa ghi sổ",
+      "projects": "Dự án đang chạy",
+      "projectsUsed": "Đã dùng {spent} / {budget}",
+      "projectsNoCost": "Cần quyền xem giá vốn để xem ngân sách"
+    },
+    "shortcuts": "Lập chứng từ nhanh",
+    "vouchers": {
+      "title": "Chứng từ trong kỳ",
+      "hint": "Số chứng từ của đơn vị theo trạng thái, tính theo ngày chứng từ",
+      "function": "Chứng từ",
+      "draft": "Nháp",
+      "pending": "Chờ duyệt",
+      "approved": "Đã duyệt",
+      "posted": "Đã ghi sổ",
+      "cancelled": "Đã hủy",
+      "empty": "Không có chứng từ nào trong kỳ"
+    },
+    "trend": {
+      "title": "Nhập – xuất kho 6 tháng gần nhất",
+      "hint": "Phiếu đã ghi sổ theo tháng",
+      "receipt": "Nhập kho",
+      "issue": "Xuất kho",
+      "countHint": "Số phiếu (cần quyền xem giá vốn để xem giá trị)",
+      "valueHint": "Giá trị (triệu đồng)"
+    },
+    "warehouses": {
+      "title": "Tồn kho theo kho",
+      "items": "{n} mặt hàng",
+      "empty": "Chưa có tồn kho"
+    },
+    "lowStock": {
+      "title": "Mặt hàng dưới định mức",
+      "more": "và {n} mặt hàng khác",
+      "empty": "Không có mặt hàng nào dưới định mức"
+    },
+    "projects": {
+      "title": "Dự án đang chạy",
+      "empty": "Không có dự án đang chạy",
+      "budget": "Ngân sách",
+      "spent": "Đã dùng"
+    },
+    "todo": {
+      "title": "Việc cần xử lý",
+      "approvals": "Chờ tôi duyệt",
+      "empty": "Không có việc nào cần xử lý",
+      "moreApprovals": "và {n} chứng từ khác",
+      "open": "Mở"
+    },
+    "activity": {
+      "title": "Hoạt động gần đây",
+      "hint": "Nhật ký thay đổi của đơn vị",
+      "empty": "Chưa có hoạt động nào",
+      "system": "Hệ thống"
+    },
+    "error": "Không tải được số liệu",
+    "noRights": "Tài khoản chưa được cấp quyền xem phần nào của bàn điều hành"
   }
 }

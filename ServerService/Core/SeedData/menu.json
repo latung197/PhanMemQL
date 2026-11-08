@@ -522,6 +522,65 @@
     ]
   },
   {
+    "id": "MOD_PRODUCTION",
+    "key": "production",
+    "titleVi": "Phân Hệ Sản Xuất",
+    "titleEn": "Production Module",
+    "icon": "Factory",
+    "orderNo": 27,
+    "isActive": true,
+    "subGroups": [
+      {
+        "id": "GRP_PROD_CATALOGS",
+        "groupCode": "catalogs",
+        "titleVi": "Danh Mục Sản Xuất",
+        "titleEn": "Production Catalogs",
+        "icon": "Layers",
+        "iconColor": "text-sky-400",
+        "orderNo": 10,
+        "isActive": true,
+        "items": [
+          {
+            "id": "MNU_PROD_OPERATION_CAT",
+            "subKey": "prod_operation_cat",
+            "titleVi": "Danh mục công đoạn sản xuất",
+            "titleEn": "Production operations",
+            "icon": "Wrench",
+            "orderNo": 10,
+            "isActive": true
+          },
+          {
+            "id": "MNU_PROD_TEAM_CAT",
+            "subKey": "prod_team_cat",
+            "titleVi": "Danh mục tổ sản xuất",
+            "titleEn": "Production teams",
+            "icon": "Users",
+            "orderNo": 20,
+            "isActive": true
+          },
+          {
+            "id": "MNU_PROD_PROCESS_CAT",
+            "subKey": "prod_process_cat",
+            "titleVi": "Danh mục quy trình sản xuất",
+            "titleEn": "Production processes",
+            "icon": "Workflow",
+            "orderNo": 30,
+            "isActive": true
+          },
+          {
+            "id": "MNU_PROD_STRUCTURE_CAT",
+            "subKey": "prod_structure_cat",
+            "titleVi": "Danh mục cấu trúc sản phẩm",
+            "titleEn": "Product structures",
+            "icon": "Network",
+            "orderNo": 40,
+            "isActive": true
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "MOD_SALES",
     "key": "sales",
     "titleVi": "Bán Hàng & CRM",

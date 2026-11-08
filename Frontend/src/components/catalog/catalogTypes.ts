@@ -109,5 +109,5 @@ export interface CatalogDefinition<T, TInput> {
   /** Allows renaming and merging codes of this catalog (backend CatalogSpec.CodeChange): the lookup name to pick the merge target. */
   codeChange?: { lookup: string };
   /** Modal width of the form. */
-  formWidth?: 'md' | 'lg' | 'xl' | '2xl' | '3xl';
+  formWidth?: 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
 }

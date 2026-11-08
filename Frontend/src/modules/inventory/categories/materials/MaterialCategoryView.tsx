@@ -129,7 +129,7 @@ export const MaterialCategoryView: React.FC<{ currentUser?: UserProfile }> = ({ 
         note: (input.note ?? '').trim()
       }),
       renderForm: props => <MaterialForm {...props} />,
-      formWidth: '2xl'
+      formWidth: '5xl'
     };
   }, [t, typeOptions, groupOptions]);
   return <CatalogScreen definition={definition} currentUser={currentUser} />;

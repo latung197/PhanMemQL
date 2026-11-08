@@ -8,6 +8,7 @@ using Core.Domain.Modules.Departments;
 using Core.Domain.Modules.Banners;
 using Core.Domain.Modules.Purchasing.Categories.PaymentTerms;
 using Core.Domain.Modules.Purchasing.Categories.Projects;
+using Core.Domain.Modules.Production;
 using Core.Domain.Modules.Purchasing.Categories.SupplierGroups;
 using Core.Domain.Modules.Sales.Categories.CustomerGroups;
 using Core.Domain.Modules.Sales.Categories.Customers;
@@ -142,6 +143,13 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<PriceListLine> PriceListLines => Set<PriceListLine>();
     public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
     public DbSet<SalesOrderLine> SalesOrderLines => Set<SalesOrderLine>();
+    public DbSet<ProductionTeam> ProductionTeams => Set<ProductionTeam>();
+    public DbSet<ProductionOperation> ProductionOperations => Set<ProductionOperation>();
+    public DbSet<ProductionProcess> ProductionProcesses => Set<ProductionProcess>();
+    public DbSet<ProductionProcessUnit> ProductionProcessUnits => Set<ProductionProcessUnit>();
+    public DbSet<ProductionProcessLine> ProductionProcessLines => Set<ProductionProcessLine>();
+    public DbSet<ProductStructure> ProductStructures => Set<ProductStructure>();
+    public DbSet<ProductStructureLine> ProductStructureLines => Set<ProductStructureLine>();
     public DbSet<PurchaseOrderLine> PurchaseOrderLines => Set<PurchaseOrderLine>();
     public DbSet<PurchaseInvoiceLine> PurchaseInvoiceLines => Set<PurchaseInvoiceLine>();
 
@@ -188,6 +196,9 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<UomTranslation>().HasKey(x => new { x.UomCode, x.LanguageCode });
         model.Entity<WarehouseTypeTranslation>().HasKey(x => new { x.WarehouseTypeCode, x.LanguageCode });
         model.Entity<WarehouseUnit>().HasKey(x => new { x.WarehouseCode, x.UnitCode });
+        model.Entity<ProductionProcessUnit>().HasKey(x => new { x.ProcessCode, x.UnitCode });
+        model.Entity<ProductionProcessLine>().HasKey(x => new { x.ProcessCode, x.LineNo });
+        model.Entity<ProductStructureLine>().HasKey(x => new { x.ProductStructureCode, x.LineNo });
         model.Entity<StockBalance>().HasKey(x => new { x.UnitCode, x.WarehouseCode, x.MaterialCode });
         model.Entity<StockLotBalance>().HasKey(x => new { x.UnitCode, x.WarehouseCode, x.MaterialCode, x.LotCode });
         model.Entity<StockLocationBalance>().HasKey(x => new { x.UnitCode, x.WarehouseCode, x.MaterialCode, x.LotCode, x.LocationCode });

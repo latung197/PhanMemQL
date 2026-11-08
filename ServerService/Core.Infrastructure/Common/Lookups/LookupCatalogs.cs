@@ -52,6 +52,15 @@ public static class LookupCatalogs
         new LookupDefinition("priceLists", db => db.PriceLists.Select(x =>
             new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.CurrencyCode, Extra2 = x.CustomerGroupCode }),
         ["erp_price_list"], "currencyCode", "customerGroupCode"),
+        new LookupDefinition("productionTeams", db => db.ProductionTeams.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive }), ["erp_production_team"]),
+
+        new LookupDefinition("productionOperations", db => db.ProductionOperations.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.ProductionTeamCode }),
+        ["erp_production_operation"], "teamCode"),
+
+        new LookupDefinition("productionProcesses", db => db.ProductionProcesses.Select(x =>
+            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive }), ["erp_production_process"]),
 
         new LookupDefinition("uomConversions", db => db.UomConversions.Select(x =>
             new LookupRow { Code = x.Code, Name = x.FromUomCode + " → " + x.ToUomCode, IsActive = x.IsActive,

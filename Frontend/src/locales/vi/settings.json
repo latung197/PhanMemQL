@@ -212,6 +212,7 @@
     "module": {
       "inventory": "Kho Hàng",
       "purchasing": "Mua Hàng",
+      "production": "Sản Xuất",
       "sales": "Bán Hàng",
       "finance": "Tài Chính",
       "hr": "Nhân Sự",

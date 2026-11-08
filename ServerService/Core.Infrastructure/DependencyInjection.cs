@@ -155,6 +155,7 @@ public static class DependencyInjection
         services.AddScoped<IVoucherNumberService, VoucherNumberService>();
         services.AddScoped<IVoucherStatusService, VoucherStatusService>();
         services.AddScoped<IVoucherGridService, VoucherGridService>();
+        services.AddScoped<Core.Application.Modules.Dashboard.IDashboardService, Core.Infrastructure.Modules.Dashboard.DashboardService>();
         services.AddScoped<ISettingsBackupService, SettingsBackupService>();
         services.AddScoped<ISystemParameters, SystemParametersService>();
         services.AddScoped<ILanguageService, LanguageService>();
@@ -189,6 +190,10 @@ public static class DependencyInjection
         services.AddScoped<Core.Application.Modules.Sales.Categories.ICustomerGroupService, Core.Infrastructure.Modules.Sales.Categories.CustomerGroupService>();
         services.AddScoped<Core.Application.Modules.Sales.Categories.ICustomerService, Core.Infrastructure.Modules.Sales.Categories.CustomerService>();
         services.AddScoped<Core.Application.Modules.Sales.Categories.IPriceListService, Core.Infrastructure.Modules.Sales.Categories.PriceListService>();
+        services.AddScoped<Core.Application.Modules.Production.IProductionTeamService, Core.Infrastructure.Modules.Production.ProductionTeamService>();
+        services.AddScoped<Core.Application.Modules.Production.IProductionOperationService, Core.Infrastructure.Modules.Production.ProductionOperationService>();
+        services.AddScoped<Core.Application.Modules.Production.IProductionProcessService, Core.Infrastructure.Modules.Production.ProductionProcessService>();
+        services.AddScoped<Core.Application.Modules.Production.IProductStructureService, Core.Infrastructure.Modules.Production.ProductStructureService>();
         return services;
     }
 }

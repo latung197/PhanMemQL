@@ -6,7 +6,7 @@ import { FUNCTION_KEYS, FUNCTION_REGISTRY, FunctionKind } from '../../../config/
 import { translate } from '../../../utils/i18n';
 
 /** Module of the matrix; its name is permissions.module.<key>. */
-export type ModuleName = 'inventory' | 'purchasing' | 'sales' | 'finance' | 'hr' | 'system';
+export type ModuleName = 'inventory' | 'purchasing' | 'production' | 'sales' | 'finance' | 'hr' | 'system';
 export type FunctionGroup = 'danh_muc' | 'chung_tu' | 'bao_cao' | 'he_thong';
 
 export interface FunctionItem {
@@ -28,11 +28,11 @@ export const actionShortLabel = (key: keyof ActionPermissions) => translate(`per
 const GROUP_ORDER: FunctionGroup[] = ['danh_muc', 'chung_tu', 'bao_cao', 'he_thong'];
 export const groupLabel = (group: FunctionGroup) => translate(`permissions.group.${group}`);
 
-export const MODULE_NAMES: ModuleName[] = ['inventory', 'purchasing', 'sales', 'finance', 'hr', 'system'];
+export const MODULE_NAMES: ModuleName[] = ['inventory', 'purchasing', 'production', 'sales', 'finance', 'hr', 'system'];
 export const moduleLabel = (module: ModuleName) => translate(`permissions.module.${module}`);
 
 const MODULE_OF: Record<ModuleCategoryKey, ModuleName> = {
-  inventory: 'inventory', purchasing: 'purchasing', sales: 'sales', finance: 'finance', hr: 'hr',
+  inventory: 'inventory', purchasing: 'purchasing', production: 'production', sales: 'sales', finance: 'finance', hr: 'hr',
   overview: 'system', reports: 'system', ai: 'system', settings: 'system'
 };
 

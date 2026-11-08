@@ -24,6 +24,10 @@ public static class FunctionCatalog
             ["pur_supplier_group_cat"] = "Danh mục nhóm nhà cung cấp",
             ["pur_report_project"] = "Báo cáo chi phí theo dự án",
             ["pur_report_payable"] = "Báo cáo công nợ phải trả",
+            ["prod_operation_cat"] = "Danh mục công đoạn sản xuất",
+            ["prod_team_cat"] = "Danh mục tổ sản xuất",
+            ["prod_process_cat"] = "Danh mục quy trình sản xuất",
+            ["prod_structure_cat"] = "Danh mục cấu trúc sản phẩm",
             ["inv_issue"] = "Phiếu xuất kho",
             ["inv_transfer_order"] = "Lệnh điều chuyển kho",
             ["inv_transfer_issue"] = "Phiếu xuất điều chuyển kho",
@@ -92,7 +96,7 @@ public static class FunctionCatalog
 
     public static IReadOnlySet<string> ModuleKeys { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
-        "overview", "inventory", "purchasing", "sales", "finance", "hr", "reports", "ai", "settings"
+        "overview", "inventory", "purchasing", "production", "sales", "finance", "hr", "reports", "ai", "settings"
     };
 
     public static bool IsFunction(string code) => Functions.ContainsKey(code);

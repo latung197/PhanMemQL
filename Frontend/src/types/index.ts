@@ -479,6 +479,7 @@ export type ModuleCategoryKey =
   | 'overview'
   | 'inventory'
   | 'purchasing'
+  | 'production'
   | 'sales'
   | 'finance'
   | 'hr'
@@ -512,6 +513,10 @@ export type SubMenuKey =
   | 'pur_supplier_group_cat'    // Danh mục nhóm nhà cung cấp
   | 'pur_report_project'        // Báo cáo chi phí theo dự án
   | 'pur_report_payable'        // Báo cáo công nợ phải trả
+  | 'prod_operation_cat'        // Danh mục công đoạn sản xuất
+  | 'prod_team_cat'             // Danh mục tổ sản xuất
+  | 'prod_process_cat'          // Danh mục quy trình sản xuất
+  | 'prod_structure_cat'        // Danh mục cấu trúc sản phẩm
   | 'pur_order'                 // Đơn mua hàng
   | 'pur_invoice'               // Hóa đơn mua hàng
   | 'pur_approve_request'       // Phê duyệt yêu cầu mua hàng

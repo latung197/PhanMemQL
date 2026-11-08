@@ -11,6 +11,7 @@ import { LoginView } from './modules/auth/LoginView';
 import { OverviewModule } from './modules/overview/OverviewModule';
 import { InventoryModule } from './modules/inventory/InventoryModule';
 import { PurchasingModule } from './modules/purchasing/PurchasingModule';
+import { ProductionModule } from './modules/production/ProductionModule';
 import { SalesModule } from './modules/sales/SalesModule';
 import { FinanceModule } from './modules/finance/FinanceModule';
 import { HRModule } from './modules/hr/HRModule';
@@ -436,7 +437,7 @@ const ERPAppContent: React.FC = () => {
 
   const openModule = (mod: string) => {
     const firstScreen: Partial<Record<ModuleCategoryKey, SubMenuKey>> = {
-      overview: 'overview_main', inventory: 'inv_material_cat', purchasing: 'pur_request', sales: 'sales_orders', finance: 'fin_report',
+      overview: 'overview_main', inventory: 'inv_material_cat', purchasing: 'pur_request', production: 'prod_operation_cat', sales: 'sales_orders', finance: 'fin_report',
       hr: 'hr_list', reports: 'reports_main', settings: 'settings_main'
     };
     const subKey = firstScreen[mod as ModuleCategoryKey];
@@ -520,7 +521,7 @@ const ERPAppContent: React.FC = () => {
 
   // Module title and subtitle in the user's language (texts: app.headers.<module>).
   const getSubTitleText = (): { title: string; subtitle: string } => {
-    const withHeader = ['inventory', 'purchasing', 'sales', 'finance', 'hr', 'reports', 'ai', 'settings'];
+    const withHeader = ['inventory', 'purchasing', 'production', 'sales', 'finance', 'hr', 'reports', 'ai', 'settings'];
     const key = withHeader.includes(activeCategory) ? activeCategory : 'overview';
     return { title: t(`app.headers.${key}.title`), subtitle: t(`app.headers.${key}.subtitle`) };
   };
@@ -643,7 +644,7 @@ const ERPAppContent: React.FC = () => {
                   <OverviewModule
                     currentUser={currentUser}
                     activeCompanyUnitCode={activeCompanyUnitCode}
-                    onSelectCompanyUnit={handleSelectCompanyUnit}
+                    companyUnits={companyUnits}
                     onNavigate={navigateTo}
                   />
                 )}
@@ -655,6 +656,10 @@ const ERPAppContent: React.FC = () => {
                     companyUnits={companyUnits}
                     activeCompanyUnitCode={activeCompanyUnitCode}
                   />
+                )}
+
+                {activeCategory === 'production' && (
+                  <ProductionModule subKey={activeSubMenu} currentUser={currentUser} />
                 )}
 
                 {activeCategory === 'inventory' && (

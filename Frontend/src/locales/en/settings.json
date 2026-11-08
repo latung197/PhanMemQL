@@ -212,6 +212,7 @@
     "module": {
       "inventory": "Inventory",
       "purchasing": "Purchasing",
+      "production": "Production",
       "sales": "Sales",
       "finance": "Finance",
       "hr": "Human resources",

@@ -57,6 +57,7 @@
     "overview": "Overview Dashboard",
     "inventory": "Inventory Module",
     "purchasing": "Purchasing Module",
+    "production": "Production Module",
     "sales": "Sales & CRM",
     "finance": "Finance Module",
     "hr": "HR & Payroll",
@@ -485,6 +486,7 @@
     "overview": "Overview",
     "inventory": "Inventory",
     "purchasing": "Purchasing",
+    "production": "Production",
     "sales": "Sales",
     "finance": "Finance",
     "hr": "Human resources",
@@ -659,6 +661,10 @@
     "pur_project_cat": "Projects",
     "pur_payment_term_cat": "Payment terms",
     "pur_supplier_group_cat": "Supplier groups",
+    "prod_operation_cat": "Production operations",
+    "prod_team_cat": "Production teams",
+    "prod_process_cat": "Production processes",
+    "prod_structure_cat": "Product structures",
     "pur_report_project": "Project cost report",
     "pur_report_payable": "Payables report",
     "sys_voucher_status": "Voucher statuses",
@@ -781,6 +787,8 @@
       "department": "Department",
       "defaultUnit": "Default unit",
       "units": "Allowed units",
+      "operations": "Operations",
+      "components": "Components",
       "isActive": "Active",
       "role": "Role",
       "code": "Code",
@@ -904,6 +912,10 @@
       "project": "Project",
       "paymentTerm": "Payment term",
       "supplierGroup": "Supplier group",
+      "productionTeam": "Production team",
+      "productionOperation": "Production operation",
+      "productionProcess": "Production process",
+      "productStructure": "Product structure",
       "auditLog": "Change log",
       "menu": "Menu item",
       "customer": "Customer",
@@ -974,5 +986,87 @@
     "createdLine": "Created: {name} · {time}",
     "updatedLine": "Changed: {name} · {time}",
     "system": "System"
+  },
+  "dashboard": {
+    "billion": "bn",
+    "million": "m",
+    "title": "Dashboard",
+    "subtitle": "Real figures of the working unit: vouchers, stock, projects and what needs your attention. Each part shows only when you may view it; money needs the cost right.",
+    "unit": "Unit",
+    "period": "Period {from} – {to}",
+    "updatedAt": "Updated at {time}",
+    "refresh": "Refresh",
+    "loading": "Loading figures...",
+    "range": {
+      "week": "This week",
+      "month": "This month",
+      "quarter": "This quarter",
+      "year": "This year"
+    },
+    "kpi": {
+      "stockValue": "Stock value",
+      "stockItems": "{n} items in stock",
+      "lowStock": "Under minimum",
+      "lowStockHint": "items at their minimum stock",
+      "lowStockOk": "No item is under its minimum",
+      "toApprove": "Waiting for my approval",
+      "toApproveHint": "vouchers need your approval",
+      "drafts": "My drafts",
+      "draftsHint": "vouchers not submitted or posted yet",
+      "projects": "Active projects",
+      "projectsUsed": "Used {spent} / {budget}",
+      "projectsNoCost": "The cost right is needed to see the budget"
+    },
+    "shortcuts": "Quick vouchers",
+    "vouchers": {
+      "title": "Vouchers in the period",
+      "hint": "Vouchers of the unit by status, by voucher date",
+      "function": "Voucher",
+      "draft": "Draft",
+      "pending": "Pending",
+      "approved": "Approved",
+      "posted": "Posted",
+      "cancelled": "Cancelled",
+      "empty": "No voucher in the period"
+    },
+    "trend": {
+      "title": "Stock in and out, last 6 months",
+      "hint": "Posted vouchers per month",
+      "receipt": "Receipts",
+      "issue": "Issues",
+      "countHint": "Number of vouchers (the cost right is needed for values)",
+      "valueHint": "Value (million)"
+    },
+    "warehouses": {
+      "title": "Stock by warehouse",
+      "items": "{n} items",
+      "empty": "No stock yet"
+    },
+    "lowStock": {
+      "title": "Items under minimum stock",
+      "more": "and {n} more items",
+      "empty": "No item is under its minimum"
+    },
+    "projects": {
+      "title": "Active projects",
+      "empty": "No active project",
+      "budget": "Budget",
+      "spent": "Used"
+    },
+    "todo": {
+      "title": "To do",
+      "approvals": "Waiting for my approval",
+      "empty": "Nothing needs your attention",
+      "moreApprovals": "and {n} more vouchers",
+      "open": "Open"
+    },
+    "activity": {
+      "title": "Recent activity",
+      "hint": "Change log of the unit",
+      "empty": "No activity yet",
+      "system": "System"
+    },
+    "error": "Could not load the figures",
+    "noRights": "This account has no right to view any part of the dashboard"
   }
 }

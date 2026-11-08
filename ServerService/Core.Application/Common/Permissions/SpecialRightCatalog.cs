@@ -75,7 +75,8 @@ public static class SpecialRightCatalog
     [
         "inv_supplier_cat", "pur_supplier_group_cat", "pur_project_cat", "pur_payment_term_cat",
         "inv_warehouse_type_cat", "inv_material_group_cat", "inv_material_type_cat",
-        "sales_customers", "sales_customer_group_cat"
+        "sales_customers", "sales_customer_group_cat",
+        "prod_operation_cat", "prod_team_cat", "prod_process_cat"
     ];
 
     public static IReadOnlyList<SpecialRightDefinition> All { get; } = Build();
