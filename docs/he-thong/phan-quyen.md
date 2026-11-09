@@ -88,7 +88,7 @@ Một hành động thường cần **Xem** đi kèm. Có Sửa mà không có X
 - **ma trận quyền**: 7 hành động × mọi chức năng;
 - **quyền đặc biệt** (A5).
 
-Mỗi người dùng được gán **một vai trò** (hoặc không có vai trò nào).
+Mỗi người dùng được gán **một vai trò mặc định** (hoặc không có vai trò nào), và có thể gán thêm **vai trò riêng cho từng đơn vị cơ sở** (A6): ở đơn vị đó, vai trò riêng **thay** vai trò mặc định.
 
 **Quản trị viên** là vai trò có mã `ADMIN`. Quản trị viên có **toàn quyền** trên mọi chức năng và mọi quyền đặc biệt, không phụ thuộc ma trận. Tài khoản cũ có cờ quản trị kiểu cũ (`auth_fl` chứa `0`) cũng được coi là quản trị viên.
 
@@ -168,10 +168,28 @@ Công ty có nhiều **đơn vị cơ sở** (chi nhánh, nhà máy, công ty co
 - Lúc đăng nhập chọn một đơn vị; trong phiên đổi đơn vị ở thanh đầu trang. Mọi thao tác chỉ làm trên đơn vị đang chọn.
 - Đơn vị bị ngừng hoạt động thì không ai vào được, kể cả người có quyền.
 - Quản trị viên vào được mọi đơn vị đang hoạt động.
-- **Quyền chức năng (7 hành động) giống nhau ở mọi đơn vị.** Không có kiểu "ở Hà Nội được sửa, ở Hồ Chí Minh chỉ được xem".
+- **Vai trò theo từng đơn vị.** Mỗi đơn vị người dùng được vào có thể gắn một vai trò riêng; để trống thì dùng vai trò mặc định. Nhờ vậy một người được "ở Hà Nội lập và sửa phiếu, ở Hồ Chí Minh chỉ xem": vai trò mặc định Thủ kho, đơn vị Hồ Chí Minh gắn vai trò Chỉ xem.
+  - **Quyền thực tế ở một đơn vị** = vai trò của đơn vị đó (hoặc vai trò mặc định) + **ngoại lệ riêng của người dùng** (các ô tô màu trên ma trận). Ngoại lệ áp dụng ở **mọi** đơn vị.
+  - Quyền được tính theo **đơn vị đang làm việc** (đơn vị trong phiên): menu, nút trên màn, mọi API. Đổi đơn vị ở thanh trên cùng thì quyền đổi theo ngay.
+  - Không gắn vai trò quản trị theo đơn vị: quản trị viên là vai trò mặc định và có quyền ở mọi đơn vị.
+  - Người duyệt được tìm theo vai trò của họ **ở đơn vị của phiếu**: quy tắc "vai trò Trưởng kho duyệt" ở Hà Nội lấy những người giữ vai trò Trưởng kho tại Hà Nội (vai trò riêng của đơn vị, hoặc vai trò mặc định nếu ở đó không gắn vai trò riêng). Quy tắc "người lập thuộc vai trò X" cũng xét vai trò của người lập ở đơn vị của phiếu.
 - **Ngoại lệ: quyền theo trạng thái** (`ST_PENDING`, `ST_APPROVED`, `ST_POSTED`, `ST_UNPOST`, `ST_CANCELLED`, `ST_EDIT_POSTED`) **cấp riêng từng đơn vị**: có thể cho một người ghi sổ ở Hà Nội mà không ghi sổ ở Hồ Chí Minh (luồng C5). Quản trị viên có các quyền này ở mọi đơn vị đang hoạt động.
 
 Gắn với đơn vị: khóa sổ theo tháng, quy tắc duyệt riêng, cài đặt riêng (kho mặc định, cho phép xuất âm).
+
+**Dữ liệu và màn quản trị cắt theo đơn vị** (người không phải quản trị viên):
+
+| Nội dung | Thấy / làm được gì |
+| --- | --- |
+| Chứng từ, báo cáo, Tổng quan | Chỉ của đơn vị đang làm việc; mở phiếu đơn vị khác theo id trả 404 |
+| Danh sách người dùng | Chỉ những tài khoản có **ít nhất một đơn vị chung** với mình |
+| Quản lý một tài khoản (sửa, khóa, phân quyền, đặt lại mật khẩu, xóa) | Chỉ khi **mọi đơn vị** của tài khoản đó mình đều được vào **và** mọi quyền của tài khoản đó mình đều có (A9) |
+| Quy tắc duyệt | Thấy quy tắc của đơn vị mình và quy tắc cho mọi đơn vị; chỉ thêm / sửa / xóa quy tắc **của đơn vị mình**; quy tắc cho mọi đơn vị chỉ quản trị viên đặt |
+| Nhật ký thay đổi | Chỉ dòng của đơn vị mình (và dòng không gắn đơn vị) |
+| Cài đặt | Sửa được cài đặt **riêng** của đơn vị mình; cài đặt **chung toàn hệ thống** (tham số chung, mẫu in, định dạng số, năm làm việc, hồ sơ doanh nghiệp, thời hạn lưu nhật ký) chỉ quản trị viên sửa |
+| Ô chọn kho | Chỉ kho đơn vị đang làm việc được dùng (kho của đơn vị và kho dùng chung) |
+
+Danh mục (vật tư, khách hàng, nhà cung cấp, dự án...) **dùng chung toàn hệ thống**.
 
 ## A7. Trạng thái phiếu
 
@@ -259,6 +277,7 @@ Người có quyền ở chức năng **Người dùng và phân quyền** quả
 | Giới hạn | Mục đích |
 | --- | --- |
 | **Không cấp quá quyền mình có.** Người không phải quản trị viên chỉ thêm được hành động, quyền đặc biệt, đơn vị mà chính họ có. Những gì người kia đã có từ trước thì được giữ | Không ai tự "đẻ" ra quyền lớn hơn mình |
+| **Không quản lý tài khoản rộng hơn mình.** Người không phải quản trị viên chỉ sửa, khóa, phân quyền, đặt lại mật khẩu, xóa được tài khoản mà mọi đơn vị của tài khoản đó mình đều được vào, và **ở từng đơn vị**, mọi quyền của tài khoản đó mình đều có (so quyền hai bên ở cùng đơn vị). Gắn vai trò riêng cho một đơn vị cũng chỉ được khi chính mình có đủ quyền của vai trò đó ở đơn vị đó. Ví dụ người quản lý tài khoản ở Hà Nội không đặt lại được mật khẩu của nhân viên Hồ Chí Minh, cũng không của một thủ kho Hà Nội có quyền Sửa phiếu xuất mà mình không có | Không ai chiếm được tài khoản có quyền cao hơn hoặc ở đơn vị khác (đặt mật khẩu rồi đăng nhập thay) |
 | **Không tự sửa quyền của mình** (trừ quản trị viên) | Không tự nâng quyền |
 | **Chỉ quản trị viên** gán vai trò quản trị, hoặc sửa / khóa / đặt mật khẩu tài khoản quản trị viên | Bảo vệ tài khoản cao nhất |
 | **Không khóa / xóa quản trị viên cuối cùng** | Luôn còn người vào được hệ thống |
@@ -289,7 +308,8 @@ Mọi thay đổi về quyền được ghi ở Cài đặt › Nhật ký thay 
 | Sửa / xóa phiếu đã ghi sổ | **Đã làm** cho phiếu nhập, xuất, điều chuyển: quyền `ST_EDIT_POSTED` |
 | Phiếu, màn phê duyệt trên giao diện | Các phiếu kho, mua hàng, bán hàng đã chạy thật dùng API duyệt; phiếu giao hàng, thu, chi còn là dữ liệu mẫu |
 | Chính sách mật khẩu (độ phức tạp, hết hạn), khóa tài khoản sau N lần sai theo tài khoản, tự đăng xuất khi không dùng, lịch sử đăng nhập | Chưa có |
-| Quyền chức năng (7 hành động) khác nhau theo đơn vị cơ sở | Chưa có; chỉ quyền theo trạng thái là theo đơn vị |
+| Cắt dữ liệu quản trị theo đơn vị (người dùng, quy tắc duyệt, nhật ký, cài đặt chung, ô chọn kho) và chặn quản lý tài khoản rộng hơn mình | **Đã làm** (A6, A9) |
+| Quyền chức năng (7 hành động) khác nhau theo đơn vị cơ sở | **Đã làm** bằng vai trò theo từng đơn vị (A6, C4b) |
 | Phạm vi dữ liệu chi tiết hơn "của mình / tất cả" (theo kho, theo phòng ban) | Chưa có |
 | Nhiều vai trò cho một người | Bảng dữ liệu cho phép, màn hình và API hiện chỉ gán một vai trò |
 | Danh sách đầy đủ của các danh mục hệ thống cần quyền Xem | Đã làm; ô chọn ở màn khác đọc qua tra cứu, **tra cứu cũng được phân quyền theo danh mục** (mục C10). Còn **tỷ giá** (`GET /api/settings/exchange-rates`) đang mở cho mọi người đăng nhập vì phiếu cần tỷ giá của ngày chứng từ |
@@ -310,7 +330,7 @@ Mọi thay đổi về quyền được ghi ở Cài đặt › Nhật ký thay 
 | `sys_user_command` | **Ngoại lệ** ma trận của người, một dòng thay hẳn chức năng đó | (`user_id`, `menuid0`) |
 | `sys_role_right` | Quyền đặc biệt của vai trò (có dòng = có quyền) | (`role_id`, `menuid0`, `right_code`) |
 | `sys_user_right` | **Ngoại lệ** quyền đặc biệt của người: `is_granted` true = thêm, false = bỏ | (`user_id`, `menuid0`, `right_code`) |
-| `sys_user_company_unit` | Đơn vị được làm việc của người | (`user_id`, `unit_code`) |
+| `sys_user_company_unit` | Đơn vị được làm việc của người, kèm **vai trò ở đơn vị đó** (`role_id`, trống = vai trò mặc định; script `58-user-unit-roles.sql`) | (`user_id`, `unit_code`) |
 | `sys_approval_rule` | Quy tắc duyệt | `id` |
 | `sys_document_approval` | Các bước duyệt của từng lượt gửi của từng phiếu | `id` |
 | `sys_audit_log` | Nhật ký thay đổi (dùng chung) | `id` |
@@ -369,7 +389,11 @@ Khi lưu quyền một người, màn hình gửi **ma trận mong muốn đầy
 - `PermissionMatrix.Overrides(roleMatrix, wanted)`: các dòng chức năng khác vai trò;
 - `PermissionMatrix.RightOverrides(roleRights, wanted)`: quyền được thêm / bỏ.
 
-`PermissionService` (`Core.Infrastructure/Modules/Users/`) đọc dữ liệu và gọi các hàm trên.
+`PermissionService` (`Core.Infrastructure/Modules/Users/`) đọc dữ liệu và gọi các hàm trên, **theo đơn vị**:
+- `fromRoles` là vai trò của đơn vị (`sys_user_company_unit.role_id`) nếu có, không thì vai trò mặc định (`sys_user_role`); `own`, `granted`, `denied` là ngoại lệ của người dùng, dùng chung mọi đơn vị.
+- `GetEffectiveAsync(userId)` / `GetRightsAsync(userId)` (mọi `[RequirePermission]` và mọi chỗ kiểm quyền người đang đăng nhập): với chính người đang đăng nhập thì lấy **đơn vị trong phiên** (`ICurrentUser.UnitCode`); với người khác thì lấy vai trò mặc định.
+- `GetEffectiveInUnitAsync(userId, unit)` / `GetRightsInUnitAsync`: quyền của một người ở một đơn vị cho trước (quản lý tài khoản, cấp quyền theo đơn vị); `GetEffectiveManyAsync(ids, unit)`: quyền của nhiều người ở đơn vị của phiếu (tìm người duyệt).
+- Ảnh quyền mỗi người giữ đủ dữ liệu cho mọi đơn vị (vai trò mặc định, vai trò từng đơn vị, ngoại lệ) và tính sẵn từng đơn vị một lần; `UserProfileBuilder` dùng cùng quy tắc cho hồ sơ gửi màn hình (`permissions` là quyền ở đơn vị đang làm việc, `unitRoles` là vai trò từng đơn vị).
 
 ## B4. Kiểm tra ở API
 
@@ -442,8 +466,15 @@ Khi lưu quyền một người, màn hình gửi **ma trận mong muốn đầy
 | `EnsureCanGrantAsync(actor, before, after, rightsBefore, rightsAfter)` | Người không phải quản trị viên: mỗi hành động / quyền đặc biệt **mới** phải là thứ actor đang có |
 | `EnsureCanAssignUnitsAsync(actor, before, after)` | Đơn vị mới phải là đơn vị actor được làm việc |
 | `EnsureNotSelfAsync(actor, target)` | Không tự sửa quyền mình (trừ quản trị viên) |
+| `EnsureCanManageAccountAsync(actor, target)` | Người không phải quản trị viên chỉ quản lý (sửa, khóa, phân quyền, đặt lại mật khẩu, xóa) tài khoản mà mọi đơn vị, mọi hành động và mọi quyền đặc biệt của nó actor đều có. Quy tắc thuần ở `Core.Application/Common/Permissions/AccountCoverage.cs` (test `AccountCoverageTests`); lỗi `grant.manageUnit`, `grant.manageHigher` |
 
-`UserService` còn có: chỉ quản trị viên động vào tài khoản / vai trò quản trị (`EnsureActorMayManageAsync`), không khóa / xóa quản trị viên cuối (`EnsureNotLastAdminAsync`), không tự khóa / tự xóa.
+`UserService` còn có: chỉ quản trị viên động vào tài khoản / vai trò quản trị (`EnsureActorMayManageAsync`, gọi thêm `EnsureCanManageAccountAsync` cho tài khoản đã có), không khóa / xóa quản trị viên cuối (`EnsureNotLastAdminAsync`), không tự khóa / tự xóa. `GetAllAsync(actor)` chỉ trả tài khoản có đơn vị chung với actor (quản trị viên thấy hết).
+
+Cắt theo đơn vị ở các màn quản trị khác:
+- `ApprovalRuleService`: danh sách lọc theo đơn vị của actor (cộng quy tắc mọi đơn vị); thêm / sửa / xóa cần quy tắc có đơn vị và đơn vị đó actor được vào (`approval.ruleUnitNotAllowed`); quy tắc mọi đơn vị chỉ quản trị viên (`approval.ruleAllUnitsAdminOnly`).
+- `AuditLogsController`: truyền `IPermissionService.VisibleUnitsAsync` (null = quản trị viên) cho `IAuditLog.QueryAsync`; sửa thời hạn lưu chỉ quản trị viên.
+- `SystemConfigController`: lưu mục cài đặt không có `unitCode` (cài đặt chung) cần quản trị viên; có `unitCode` thì cần được vào đơn vị đó. Frontend tắt các khối chung và hiện ghi chú (`GlobalSettingNote`) cho người không phải quản trị viên.
+- Tra cứu `warehouses` là `WarehouseLookup` (`LookupProvider`): chỉ kho đơn vị đang làm việc dùng được, lưu đệm theo đơn vị.
 
 `RoleService.SyncUsersAsync`: kiểm tra `EnsureCanGrantAsync` cho từng người trước khi xóa ngoại lệ.
 
@@ -454,11 +485,13 @@ Khi lưu quyền một người, màn hình gửi **ma trận mong muốn đầy
 | `GET /api/settings/permission-catalog` (chức năng, quyền đặc biệt) | Đã đăng nhập |
 | `GET /api/menu` | Đã đăng nhập; chỉ trả chức năng được Xem |
 | `GET /api/voucher-statuses/current` | Đã đăng nhập (màn phiếu đọc tên trạng thái của đơn vị) |
-| `GET/POST /api/settings/users`, `PUT /{id}`, `DELETE /{id}` | `sys_users` Xem / Thêm / Sửa / Xóa |
-| `PUT /api/settings/users/{id}/permissions` `{ roleId, permissions, specialRights, version }` | `sys_users` Sửa |
-| `PUT /api/settings/users/{id}/password` | `sys_users` Sửa |
+| `GET/POST /api/settings/users`, `PUT /{id}`, `DELETE /{id}` | `sys_users` Xem / Thêm / Sửa / Xóa; danh sách chỉ tài khoản có đơn vị chung, sửa / xóa chỉ tài khoản mình "phủ" được (B6) |
+| `PUT /api/settings/users/{id}/permissions` `{ roleId, permissions, specialRights, version, unitRoles }` (`unitRoles`: mã đơn vị → id vai trò, `null` = vai trò mặc định; bỏ trường = giữ nguyên) | `sys_users` Sửa |
+| `PUT /api/settings/users/{id}/password` | `sys_users` Sửa, và tài khoản đó mình "phủ" được (B6) |
 | `GET/POST /api/settings/roles`, `PUT /{id}`, `DELETE /{id}`, `POST /{id}/sync-users` | `sys_users` |
-| `GET/POST/PUT/DELETE /api/settings/approval-rules`, `POST .../preview` | `sys_users` |
+| `GET/POST/PUT/DELETE /api/settings/approval-rules`, `POST .../preview` | `sys_users`; chỉ quy tắc của đơn vị mình (quy tắc mọi đơn vị: quản trị viên) |
+| `PUT /api/settings/system-config/{mục}` | Sửa của chức năng giữ mục đó; không có `?unitCode=` (cài đặt chung) thì cần quản trị viên |
+| `GET /api/audit-logs`, `PUT /api/audit-logs/settings` | `sys_audit_log` Xem (chỉ dòng đơn vị mình) / quản trị viên |
 | `GET /api/approvals/pending`, `GET /{fn}/{id}`, `POST /submit`, `POST /{fn}/{id}/approve \| reject \| withdraw` | Đăng nhập; kiểm tra trong `DocumentApprovalService` |
 
 Lưu quyền và vai trò có **chống ghi đè**: gửi `version` lúc mở. Người khác đã sửa trong lúc đó thì nhận 409 và màn tải lại.
@@ -594,6 +627,25 @@ Quy tắc đáng nhớ:
 - Quản trị viên không bị giới hạn. Người khác **không cấp quá quyền mình có**, và **không sửa quyền của chính mình** (màn báo "Bạn không thể tự thay đổi quyền của chính mình").
 - Người khác sửa quyền cùng người này trong lúc bạn mở màn thì lúc lưu sẽ báo xung đột (409) và tự tải lại; mở lại và làm lại.
 - Đổi quyền có hiệu lực từ thao tác kế tiếp của người kia. Nếu nút trên màn hình họ chưa đổi, nhờ họ nạp lại trang hoặc đăng nhập lại; máy chủ vẫn kiểm tra theo quyền mới ngay.
+
+## C4b. Luồng 3b: cho một người quyền khác nhau ở từng đơn vị
+
+Ví dụ: An là thủ kho Hà Nội (lập, sửa phiếu nhập), nhưng ở Hồ Chí Minh chỉ được xem.
+
+1. Tạo (hoặc dùng) hai vai trò: **Thủ kho** và **Chỉ xem kho**.
+2. Tab **Người dùng**, chọn An. Ô **Vai trò** (vai trò mặc định) chọn **Thủ kho**.
+3. Khối **Vai trò theo đơn vị cơ sở** liệt kê các đơn vị An được vào. Dòng Hồ Chí Minh chọn **Chỉ xem kho**; dòng Hà Nội để "Theo vai trò mặc định".
+4. Bấm **Lưu phân quyền**.
+5. An đăng nhập Hà Nội: thấy nút Thêm, Sửa phiếu nhập. Đổi sang Hồ Chí Minh ở thanh trên cùng: chỉ xem; gọi thẳng API thêm phiếu cũng bị từ chối (403).
+
+Quy tắc đáng nhớ:
+- Ma trận trên màn là **vai trò mặc định + ngoại lệ**. Ô tô màu (ngoại lệ) áp dụng ở **mọi** đơn vị, kể cả đơn vị có vai trò riêng.
+- Đơn vị nào phải muốn khác thì gắn vai trò riêng; thêm đơn vị mới cho người dùng thì đơn vị đó dùng vai trò mặc định.
+- Không gắn vai trò quản trị cho một đơn vị (quản trị viên là quản trị ở mọi nơi).
+- Quy tắc duyệt theo vai trò tự lấy đúng người giữ vai trò đó **ở đơn vị của phiếu**.
+- Quyền theo trạng thái (gửi duyệt, ghi sổ...) vẫn cấp riêng từng đơn vị như C5; vai trò riêng của đơn vị mang theo các quyền trạng thái mà vai trò đó có.
+- Người không phải quản trị viên chỉ gắn được vai trò riêng mà chính mình có đủ quyền ở đơn vị đó.
+- Không xóa được vai trò đang được gắn cho người dùng ở một đơn vị nào đó.
 
 ## C5. Luồng 4: cấp quyền theo trạng thái cho từng đơn vị
 
@@ -750,7 +802,8 @@ Không khóa hoặc xóa được tài khoản của chính mình hoặc quản 
 | Người dùng báo | Nguyên nhân thường gặp | Cách kiểm tra / sửa |
 | --- | --- | --- |
 | Ô chọn mã (vật tư, nhà cung cấp, kho...) trống hoặc báo 403 | Người dùng chưa có quyền Xem danh mục đó **và** chưa có quyền Xem màn nào dùng danh mục đó | Cấp quyền Xem màn dùng nó (ví dụ phiếu), hoặc thêm chức năng vào `Consumers` của tra cứu ở `LookupAccessCatalog` |
-| Không thấy chức năng trên menu | Thiếu **Xem**; hoặc đang ở đơn vị không được vào | Mở người dùng, xem ô Xem của chức năng; xem "Được vào" các đơn vị |
+| Không thấy chức năng trên menu | Thiếu **Xem**; hoặc đang ở đơn vị không được vào; hoặc ở đơn vị này người đó có **vai trò riêng** không có quyền Xem | Mở người dùng, xem ô Xem của chức năng, xem "Được vào" các đơn vị và khối **Vai trò theo đơn vị cơ sở** |
+| Ở đơn vị này làm được, đổi sang đơn vị khác thì mất nút / bị 403 | Đơn vị kia có vai trò riêng ít quyền hơn | Xem khối **Vai trò theo đơn vị cơ sở** của người đó (C4b) |
 | Thấy màn nhưng không có nút Thêm / Sửa / Xóa / Xuất / In | Thiếu hành động tương ứng | Bật ô đó trong ma trận |
 | Bấm được nhưng báo 403 / "không có quyền" | Thiếu hành động hoặc quyền đặc biệt (màn có thể chưa ẩn nút) | Xem thông báo; bật quyền cần |
 | Thấy phiếu nhưng cột đơn giá / thành tiền trống | Thiếu **Xem giá** (`VIEW_PRICE`) | Tick quyền đặc biệt của chứng từ |
@@ -767,6 +820,11 @@ Không khóa hoặc xóa được tài khoản của chính mình hoặc quản 
 | Lưu quyền báo xung đột (409) | Người khác vừa sửa cùng bản ghi | Màn tải lại, làm lại |
 | Không đăng nhập được, báo thử quá nhiều | Giới hạn 10 lần mỗi phút mỗi địa chỉ IP | Chờ một phút |
 | Không đăng nhập được | Tài khoản bị khóa; sai mật khẩu; đơn vị chọn không được vào | Xem trạng thái tài khoản, đặt lại mật khẩu |
+| Người quản lý tài khoản không thấy một nhân viên trong danh sách | Nhân viên đó không có đơn vị nào chung với người quản lý | Quản trị viên quản lý tài khoản đó, hoặc giao cho người có đơn vị chung |
+| Sửa / khóa / đặt lại mật khẩu một tài khoản báo "không quản lý được tài khoản này" | Tài khoản được vào đơn vị mình không vào được, hoặc có một quyền mình không có (thông báo nêu đúng đơn vị / quyền đó) | Nhờ quản trị viên; đây là chặn có chủ đích để không ai chiếm được tài khoản rộng hơn mình |
+| Lưu quy tắc duyệt báo chỉ quản trị viên / không được vào đơn vị | Quy tắc để trống đơn vị (mọi đơn vị) hoặc đơn vị mình không vào được | Chọn đơn vị của mình; quy tắc mọi đơn vị nhờ quản trị viên |
+| Ô tham số chung, mẫu in, định dạng số, năm làm việc bị mờ, có dòng "chỉ quản trị viên sửa được" | Đó là cài đặt chung toàn hệ thống | Quản trị viên sửa; cài đặt riêng của đơn vị (tab Theo đơn vị) vẫn sửa được |
+| Ô chọn kho không có kho của chi nhánh khác | Ô chọn kho chỉ liệt kê kho đơn vị đang làm việc dùng được | Đổi sang đơn vị đó ở thanh trên cùng |
 
 ## C13. Danh sách kiểm tra sau khi cấp quyền
 

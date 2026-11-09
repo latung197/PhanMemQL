@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Core.Application.Common.Auditing;
 using Core.Application.Modules.SystemConfig;
+using Core.Application.Modules.Users;
 using Core.Common.Authorization;
 using Core.Common.Controllers;
 using Core.Domain.Modules.Users;
@@ -13,12 +14,14 @@ namespace Core.Modules.AuditLogs;
 /// first, e.g. ?functionCode=sys_users&amp;objectType=user&amp;actor=admin&amp;from=2026-10-01&amp;to=2026-10-31.
 /// </summary>
 [Route("api/audit-logs")]
-public sealed class AuditLogsController(IAuditLog auditLog, ISystemConfigService config) : ApiControllerBase
+public sealed class AuditLogsController(IAuditLog auditLog, ISystemConfigService config, IPermissionService permissions) : ApiControllerBase
 {
     private const string Function = "sys_audit_log";
 
     [HttpGet, RequirePermission(Function, PermissionAction.View)]
-    public Task<AuditPage> Get([FromQuery] AuditQuery query, CancellationToken ct) => auditLog.QueryAsync(query, ct);
+    /// <summary>A non-administrator sees the rows of the company units they work in (and the rows written without a unit).</summary>
+    public async Task<AuditPage> Get([FromQuery] AuditQuery query, CancellationToken ct) =>
+        await auditLog.QueryAsync(query, await permissions.VisibleUnitsAsync(CurrentUserId, ct), ct);
 
     /// <summary>Functions, object types and actions present in the log, for the filters of the screen.</summary>
     [HttpGet("filters"), RequirePermission(Function, PermissionAction.View)]
@@ -33,9 +36,11 @@ public sealed class AuditLogsController(IAuditLog auditLog, ISystemConfigService
             ? AuditLogRetention.MonthsOf(value.GetRawText()) : 0);
     }
 
+    /// <summary>The retention is one setting for the whole system, so only an administrator changes it.</summary>
     [HttpPut("settings"), RequirePermission(Function, PermissionAction.Edit)]
     public async Task<AuditLogSettings> SaveSettings([FromBody] AuditLogSettings settings, CancellationToken ct)
     {
+        await permissions.EnsureAdminAsync(CurrentUserId, ct);
         await config.SaveAsync(CurrentUserId, AuditLogRetention.Section, JsonSerializer.SerializeToElement(settings,
             new JsonSerializerOptions(JsonSerializerDefaults.Web)), null, ct);
         return settings;

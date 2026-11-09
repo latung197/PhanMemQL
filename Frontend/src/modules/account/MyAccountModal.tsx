@@ -12,6 +12,7 @@ import { authService } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
 import { saveWithFeedback, showToast } from '../../utils/toast';
 import { useLanguage } from '../../context/LanguageContext';
+import { PasswordRulesHint, usePasswordRules } from './PasswordRulesHint';
 
 export type MyAccountTab = 'profile' | 'password';
 
@@ -118,8 +119,11 @@ const ProfileForm: React.FC<{ user: UserProfile; onSaved: (user: UserProfile) =>
   );
 };
 
-const PasswordForm: React.FC<{ onChanged: (user: UserProfile) => void }> = ({ onChanged }) => {
+/** Change of the own password (also the screen shown while the password must be changed); the hints follow the security policy. */
+export const PasswordForm: React.FC<{ onChanged: (user: UserProfile) => void }> = ({ onChanged }) => {
   const { t } = useLanguage();
+  const rules = usePasswordRules();
+  const minLength = rules?.minLength ?? 8;
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -139,9 +143,10 @@ const PasswordForm: React.FC<{ onChanged: (user: UserProfile) => void }> = ({ on
     <form onSubmit={handleSubmit} className="space-y-3 max-w-md">
       <TextInput label={t('account.currentPassword')} type="password" required autoComplete="current-password"
         value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-      <TextInput label={t('account.newPassword')} type="password" required minLength={8} autoComplete="new-password"
-        hint={t('account.newPasswordHint')} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-      <TextInput label={t('account.confirmPassword')} type="password" required minLength={8} autoComplete="new-password"
+      <TextInput label={t('account.newPassword')} type="password" required minLength={minLength} autoComplete="new-password"
+        value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+      <PasswordRulesHint rules={rules} />
+      <TextInput label={t('account.confirmPassword')} type="password" required minLength={minLength} autoComplete="new-password"
         value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
         error={mismatch ? t('account.passwordMismatch') : undefined} />
       <p className="text-[11px] text-slate-500 dark:text-slate-400">

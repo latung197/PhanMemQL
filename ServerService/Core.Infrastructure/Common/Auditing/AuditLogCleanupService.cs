@@ -66,6 +66,9 @@ public sealed class AuditLogCleanupService(IServiceScopeFactory scopes, ILogger<
             removed += batch;
             if (batch < BatchSize) break;
         }
+        // The login history follows the same retention (its time is UTC).
+        var loginCutoff = DateTime.SpecifyKind(cutoff, DateTimeKind.Local).ToUniversalTime();
+        await db.LoginHistories.Where(x => x.LogTime < loginCutoff).ExecuteDeleteAsync(ct);
         if (removed == 0) return 0;
 
         db.AuditLogs.Add(new AuditLog

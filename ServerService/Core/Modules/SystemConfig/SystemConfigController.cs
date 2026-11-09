@@ -32,7 +32,10 @@ public sealed class SystemConfigController(ISystemConfigService config, IPermiss
         if (!SystemConfigSections.Functions.TryGetValue(section, out var function))
             throw new BusinessRuleException("settings.invalidSection");
         await permissions.EnsureAllowedAsync(CurrentUserId, function, PermissionAction.Edit, ct);
-        if (!string.IsNullOrWhiteSpace(unitCode) && !await auth.HasUnitAccessAsync(CurrentUserId, unitCode, ct))
+        // Without a unit the section is the setting of the whole system (every unit reads it), so only an administrator changes it;
+        // anyone with the Edit right may save the override of a unit they work in.
+        if (string.IsNullOrWhiteSpace(unitCode)) await permissions.EnsureAdminAsync(CurrentUserId, ct);
+        else if (!await auth.HasUnitAccessAsync(CurrentUserId, unitCode, ct))
             throw new ForbiddenException("settings.unitNotAllowed");
         await config.SaveAsync(CurrentUserId, section, value, unitCode, ct);
         return NoContent();

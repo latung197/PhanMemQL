@@ -126,6 +126,11 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
         var holders = await db.UserRoles.AsNoTracking()
             .Where(x => x.RoleId == roleId && db.Users.Any(u => u.UserId == x.UserId && u.ValidFlg == 1))
             .Select(x => x.UserId).Distinct().CountAsync(ct);
+        // A role held in one unit only (sys_user_company_unit.role_id) is in use too.
+        holders += await db.UserCompanyUnits.AsNoTracking()
+            .Where(x => x.RoleId == roleId && db.Users.Any(u => u.UserId == x.UserId && u.ValidFlg == 1)
+                && !db.UserRoles.Any(r => r.UserId == x.UserId && r.RoleId == roleId))
+            .Select(x => x.UserId).Distinct().CountAsync(ct);
         if (holders > 0)
             throw new BusinessRuleException(
                 "roles.hasHolders", role.RoleName, holders);

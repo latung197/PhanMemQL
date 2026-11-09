@@ -54,6 +54,8 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
 
     // Users & permissions
     public DbSet<SysUser> Users => Set<SysUser>();
+    public DbSet<LoginHistory> LoginHistories => Set<LoginHistory>();
+    public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
     public DbSet<SysRole> Roles => Set<SysRole>();
     public DbSet<SysUserRole> UserRoles => Set<SysUserRole>();
     public DbSet<SysCommand> Commands => Set<SysCommand>();

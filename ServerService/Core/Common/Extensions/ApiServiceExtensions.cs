@@ -6,7 +6,9 @@ using Core.Application.Common.Security;
 using Core.Application.Modules.Users;
 using Core.Common.Authorization;
 using Core.Common.Errors;
+using Core.Application.Modules.Auth;
 using Core.Infrastructure.Common.Security;
+using Core.Infrastructure.Modules.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +24,7 @@ public static class ApiServiceExtensions
     public static IServiceCollection AddApi(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddProblemDetails();
-        services.AddControllers(o => o.Filters.Add<AppExceptionFilter>())
+        services.AddControllers(o => { o.Filters.Add<AppExceptionFilter>(); o.Filters.Add<PasswordChangeFilter>(); })
             // Enums travel as their names ("Draft", "Pending"...), as the frontend types spell them.
             .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
             .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = _ =>
@@ -56,7 +58,22 @@ public static class ApiServiceExtensions
                     if (!int.TryParse(principal.FindFirstValue(ErpClaimTypes.SecurityVersion), out var version)
                         || !await context.HttpContext.RequestServices.GetRequiredService<IPermissionService>()
                             .IsTokenCurrentAsync(principal.GetUserId(), version, context.HttpContext.RequestAborted))
+                    {
                         context.Fail("Phiên đăng nhập đã hết hiệu lực.");
+                        return;
+                    }
+                    // A session left idle longer than the security policy allows is over (the browser signs out on its own too).
+                    var services = context.HttpContext.RequestServices;
+                    var sessionId = principal.FindFirstValue(ErpClaimTypes.SessionId) ?? string.Empty;
+                    var idle = (await services.GetRequiredService<ISecurityPolicyService>().GetAsync(context.HttpContext.RequestAborted)).IdleTimeoutMinutes;
+                    var sessions = services.GetRequiredService<SessionActivity>();
+                    if (sessions.IsIdle(sessionId, idle))
+                    {
+                        if (sessions.MarkExpired(sessionId))
+                            await services.GetRequiredService<ILoginHistoryService>().RecordAsync(principal.FindFirstValue(ErpClaimTypes.UserName) ?? string.Empty,
+                                principal.GetUserId(), principal.FindFirstValue(ErpClaimTypes.UnitCode), LoginResults.IdleTimeout, context.HttpContext.RequestAborted);
+                        context.Fail("Phiên đăng nhập đã hết hạn do không thao tác.");
+                    }
                 }
             };
         });

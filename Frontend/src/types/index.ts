@@ -453,6 +453,8 @@ export interface UserProfile {
   languagePreference?: string | null;
   /** Row version from the backend; sent back when saving so a change made meanwhile by someone else is not overwritten. */
   version?: number;
+  /** Role of the account in each unit it may work in (roleId empty = its default role). The rights in the session unit are already in permissions. */
+  unitRoles?: { unitCode: string; roleId?: string | null; roleName?: string | null }[];
 }
 
 export interface ERPData {

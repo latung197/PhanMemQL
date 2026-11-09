@@ -11,8 +11,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Modules.Auth;
 
+/// <summary>
+/// Sign-in, unit switch and the user's own account. Every sign-in attempt is written to the login history; a user name with too many wrong
+/// passwords in a short time has to wait (accounts are never locked); a password set by someone else or too old must be changed first
+/// (the token then only allows that); each token is a session whose idle time is watched (SessionActivity).
+/// </summary>
 public sealed class AuthService(CoreContext db, IPasswordService passwords, ITokenService tokens,
-    IPermissionService permissions, UserProfileBuilder profiles, UserAccessAudit audit) : IAuthService
+    IPermissionService permissions, UserProfileBuilder profiles, UserAccessAudit audit, ISecurityPolicyService policies,
+    ILoginHistoryService history, SessionActivity sessions) : IAuthService
 {
     private const string WrongCredentials = "auth.wrongCredentials";
 
@@ -26,25 +32,61 @@ public sealed class AuthService(CoreContext db, IPasswordService passwords, ITok
     public async Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken ct)
     {
         var username = request.Username?.Trim().ToLowerInvariant() ?? string.Empty;
+        var unitCode = request.UnitCode?.Trim() ?? string.Empty;
+        var policy = await policies.GetAsync(ct);
+        // Too many wrong passwords for this name lately: wait, without even checking the password (no guessing meanwhile).
+        if (username.Length > 0)
+        {
+            var failures = await history.FailuresSinceLastSuccessAsync(username, TimeSpan.FromMinutes(policy.LoginFailureWindowMinutes), ct);
+            var wait = policy.BlockedMinutes(failures, DateTime.UtcNow);
+            if (wait > 0)
+            {
+                await history.RecordAsync(username, null, unitCode, LoginResults.Blocked, ct);
+                throw new AuthenticationFailedException("auth.tooManyFailures", wait);
+            }
+        }
         var user = username.Length == 0 ? null
             : await db.Users.ActiveUsers().FirstOrDefaultAsync(x => x.UserName.ToLower() == username, ct);
         if (user is null)
         {
             passwords.Verify(TimingDummy, request.Password ?? string.Empty, out _);
+            if (username.Length > 0) await history.RecordAsync(username, null, unitCode, LoginResults.UnknownUser, ct);
             throw new AuthenticationFailedException(WrongCredentials);
         }
         if (!passwords.Verify(user, request.Password ?? string.Empty, out var needsUpgrade))
+        {
+            await history.RecordAsync(username, user.UserId, unitCode, LoginResults.WrongPassword, ct);
             throw new AuthenticationFailedException(WrongCredentials);
+        }
         if (needsUpgrade)
         {
             user.PasswordHash = passwords.Hash(user, request.Password!);
             await db.SaveChangesAsync(ct);
         }
 
-        var unitCode = request.UnitCode?.Trim() ?? string.Empty;
         if (!await HasUnitAccessAsync(user.UserId, unitCode, ct))
+        {
+            await history.RecordAsync(username, user.UserId, unitCode, LoginResults.UnitDenied, ct);
             throw new AuthenticationFailedException("auth.selectedUnitDenied");
+        }
+        await history.RecordAsync(username, user.UserId, unitCode, LoginResults.Success, ct);
         return await IssueAsync(user, unitCode, ct);
+    }
+
+    public async Task LogoutAsync(int userId, string unitCode, string sessionId, CancellationToken ct)
+    {
+        var name = await db.Users.AsNoTracking().Where(x => x.UserId == userId).Select(x => x.UserName).FirstOrDefaultAsync(ct);
+        if (name is not null) await history.RecordAsync(name, userId, unitCode, LoginResults.Logout, ct);
+        sessions.End(sessionId);
+    }
+
+    public void Touch(string sessionId) => sessions.Touch(sessionId);
+
+    public async Task<PasswordRulesDto> GetPasswordRulesAsync(CancellationToken ct)
+    {
+        var p = await policies.GetAsync(ct);
+        return new PasswordRulesDto(p.PasswordMinLength, p.PasswordRequireLetter, p.PasswordRequireDigit, p.PasswordRequireUpper,
+            p.PasswordRequireSpecial, p.PasswordHistory, p.IdleTimeoutMinutes);
     }
 
     public async Task<AuthResult> SwitchUnitAsync(int userId, string unitCode, CancellationToken ct)
@@ -78,8 +120,8 @@ public sealed class AuthService(CoreContext db, IPasswordService passwords, ITok
         var user = await FindActiveAsync(userId, ct);
         if (!passwords.Verify(user, request.CurrentPassword ?? string.Empty, out _))
             throw new BusinessRuleException("auth.wrongCurrentPassword");
-        PasswordPolicy.Validate(request.NewPassword);
-        user.PasswordHash = passwords.Hash(user, request.NewPassword);
+        await policies.EnsureNewPasswordAsync(user, request.NewPassword, ct);
+        await policies.SetPasswordAsync(user, request.NewPassword, mustChange: false, ct);
         user.SecurityVersion++;
         await audit.RecordActionAsync(user, AuditActions.ChangePassword, ct);
         await db.SaveChangesAsync(ct);
@@ -104,9 +146,14 @@ public sealed class AuthService(CoreContext db, IPasswordService passwords, ITok
         await db.Users.ActiveUsers().FirstOrDefaultAsync(x => x.UserId == userId, ct)
         ?? throw new AuthenticationFailedException("auth.accountUnavailable");
 
+    /// <summary>A token for the unit; while the password must be changed (set by someone else, or too old) the token only allows that.</summary>
     private async Task<AuthResult> IssueAsync(SysUser user, string unitCode, CancellationToken ct)
     {
-        var token = tokens.Issue(user, unitCode);
-        return new AuthResult(token.Token, token.ExpiresAtUtc, await profiles.BuildAsync(user, unitCode, ct));
+        var policy = await policies.GetAsync(ct);
+        var expired = policy.IsPasswordExpired(user.PasswordChangedAt, DateTime.UtcNow);
+        var mustChange = user.MustChangePassword || expired;
+        var token = tokens.Issue(user, unitCode, mustChange);
+        sessions.Touch(token.SessionId);
+        return new AuthResult(token.Token, token.ExpiresAtUtc, await profiles.BuildAsync(user, unitCode, ct), mustChange, expired && !user.MustChangePassword);
     }
 }

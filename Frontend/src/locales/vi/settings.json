@@ -68,6 +68,9 @@
       "noRole": "— Chưa gán vai trò —",
       "adminRoleHint": "Vai trò quản trị có toàn quyền trên mọi chức năng.",
       "roleHint": "Tài khoản dùng quyền của vai trò. Ô nào bật/tắt khác vai trò được lưu thành quyền riêng (tô màu); các ô còn lại tự theo mỗi khi vai trò thay đổi.",
+      "unitRoles": "Vai trò theo đơn vị cơ sở",
+      "unitRolesHint": "Ở đơn vị chọn vai trò riêng, vai trò đó thay vai trò mặc định; quyền riêng (ô tô màu) áp dụng ở mọi đơn vị.",
+      "unitRoleDefault": "Theo vai trò mặc định ({role})",
       "resetToRole": "Đưa về đúng quyền vai trò",
       "selfLocked": "Bạn không thể tự thay đổi quyền của chính mình. Hãy nhờ quản trị viên.",
       "viewOnly": "Bạn chỉ có quyền xem phân quyền.",
@@ -585,5 +588,8 @@
     "saving": "Đang lưu...",
     "saved": "Đã lưu cấu hình lưới của {name}",
     "note": "Cột bắt buộc không ẩn được. Cột mới thêm trong code tự hiện ở cuối lưới, kéo lên vị trí mong muốn ở đây. Cột đang gim được đánh dấu 📌."
+  },
+  "globalSettings": {
+    "adminOnly": "Đây là cài đặt chung của toàn hệ thống (mọi đơn vị cơ sở): chỉ quản trị viên sửa được."
   }
 }

@@ -1,9 +1,12 @@
+using System.Security.Claims;
+using Core.Application.Common.Security;
 using Core.Application.Modules.Auth;
 using Core.Application.Modules.CompanyUnits;
 using Core.Application.Modules.Languages;
 using Core.Application.Modules.LoginNotices;
 using Core.Application.Modules.SystemConfig;
 using Core.Application.Modules.Users;
+using Core.Common.Authorization;
 using Core.Common.Controllers;
 using Core.Common.Extensions;
 using Microsoft.AspNetCore.Authorization;
@@ -50,7 +53,7 @@ public sealed class AuthController(IAuthService auth, IUserService users, ICompa
     [HttpPost("login"), AllowAnonymous,EnableRateLimiting(ApiServiceExtensions.LoginRateLimit)]
     public Task<AuthResult> Login(LoginRequest request, CancellationToken ct) => auth.LoginAsync(request, ct);
 
-    [HttpGet("me")]
+    [HttpGet("me"), AllowWhilePasswordChange]
     public Task<UserProfileDto> Me(CancellationToken ct) => users.GetProfileAsync(CurrentUserId, CurrentUnitCode, ct);
 
     /// <summary>Changes the working company unit; returns a new token for it.</summary>
@@ -67,7 +70,27 @@ public sealed class AuthController(IAuthService auth, IUserService users, ICompa
     public Task<UserProfileDto> SetLanguage(SetMyLanguageRequest request, CancellationToken ct) =>
         auth.SetMyLanguageAsync(CurrentUserId, CurrentUnitCode, request.Language, ct);
 
-    [HttpPut("me/password"), EnableRateLimiting(ApiServiceExtensions.LoginRateLimit)]
+    [HttpPut("me/password"), EnableRateLimiting(ApiServiceExtensions.LoginRateLimit), AllowWhilePasswordChange]
     public Task<AuthResult> ChangePassword(ChangePasswordRequest request, CancellationToken ct) =>
         auth.ChangePasswordAsync(CurrentUserId, CurrentUnitCode, request, ct);
+
+    /// <summary>The password rules (for the hints of the change-password form) and the idle time before the automatic sign-out.</summary>
+    [HttpGet("password-rules"), AllowWhilePasswordChange]
+    public Task<PasswordRulesDto> PasswordRules(CancellationToken ct) => auth.GetPasswordRulesAsync(ct);
+
+    /// <summary>Heartbeat of the browser while the user works: restarts the idle time of the session.</summary>
+    [HttpPost("activity"), AllowWhilePasswordChange]
+    public IActionResult Activity()
+    {
+        auth.Touch(User.FindFirstValue(ErpClaimTypes.SessionId) ?? string.Empty);
+        return NoContent();
+    }
+
+    /// <summary>Signs out: written to the login history; the session ends (the browser drops its token).</summary>
+    [HttpPost("logout"), AllowWhilePasswordChange]
+    public async Task<IActionResult> Logout(CancellationToken ct)
+    {
+        await auth.LogoutAsync(CurrentUserId, CurrentUnitCode, User.FindFirstValue(ErpClaimTypes.SessionId) ?? string.Empty, ct);
+        return NoContent();
+    }
 }

@@ -38,7 +38,7 @@ export const CompanySettingsView: React.FC<CompanySettingsViewProps> = ({ canEdi
           { key: 'i18n', label: 'Đa ngôn ngữ (mô phỏng)', icon: <Languages />, tone: 'blue' }
         ]} />
       )}
-      {section === 'profile' && <CompanyProfileForm canEdit={canEdit} />}
+      {section === 'profile' && <CompanyProfileForm canEdit={canEdit && isAdmin} />}
       {isAdmin && section === 'backup' && <BackupPanel onResetData={onResetData} />}
       {isAdmin && section === 'schema' && <SystemSchemaViewer />}
       {isAdmin && section === 'i18n' && <I18nDbManager />}

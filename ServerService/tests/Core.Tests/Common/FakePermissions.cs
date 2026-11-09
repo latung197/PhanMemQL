@@ -11,13 +11,22 @@ public sealed class FakePermissions(bool admin = false, IEnumerable<string>? vie
 
     public Task<bool> IsAdminAsync(int userId, CancellationToken ct = default) => Task.FromResult(admin);
     public Task<bool> IsTokenCurrentAsync(int userId, int securityVersion, CancellationToken ct = default) => Task.FromResult(true);
+    public Task<IReadOnlyDictionary<string, ActionPermissions>> GetEffectiveInUnitAsync(int userId, string? unitCode, CancellationToken ct = default) =>
+        GetEffectiveAsync(userId, ct);
+
+    public Task<IReadOnlySet<string>> GetRightsInUnitAsync(int userId, string? unitCode, CancellationToken ct = default) =>
+        GetRightsAsync(userId, ct);
+
+    public Task<IReadOnlySet<string>?> VisibleUnitsAsync(int userId, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlySet<string>?>(admin ? null : _units.ToHashSet());
+
     public Task<bool> HasUnitAccessAsync(int userId, string unitCode, CancellationToken ct = default) => Task.FromResult(admin || _units.Contains(unitCode));
 
     public Task<IReadOnlyDictionary<string, ActionPermissions>> GetEffectiveAsync(int userId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyDictionary<string, ActionPermissions>>(
             _views.ToDictionary(x => x, _ => new ActionPermissions(true, false, false, false, false, false, false)));
 
-    public Task<IReadOnlyDictionary<int, IReadOnlyDictionary<string, ActionPermissions>>> GetEffectiveManyAsync(IReadOnlyCollection<int> userIds, CancellationToken ct = default) =>
+    public Task<IReadOnlyDictionary<int, IReadOnlyDictionary<string, ActionPermissions>>> GetEffectiveManyAsync(IReadOnlyCollection<int> userIds, string? unitCode, CancellationToken ct = default) =>
         throw new NotSupportedException();
 
     public Task<IReadOnlySet<string>> GetRightsAsync(int userId, CancellationToken ct = default) => Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());

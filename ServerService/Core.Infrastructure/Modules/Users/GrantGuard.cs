@@ -24,12 +24,14 @@ public sealed class GrantGuard(CoreContext db, IPermissionService permissions)
         ("action.export", a => a.Export)
     ];
 
+    /// <param name="actorUnit">The company unit whose rights of the actor count (the rights given apply in that unit); null = the unit of
+    /// the session.</param>
     public async Task EnsureCanGrantAsync(int actorUserId,
         IReadOnlyDictionary<string, ActionPermissions>? before, IReadOnlyDictionary<string, ActionPermissions>? after,
-        IEnumerable<string>? rightsBefore, IEnumerable<string>? rightsAfter, CancellationToken ct)
+        IEnumerable<string>? rightsBefore, IEnumerable<string>? rightsAfter, CancellationToken ct, string? actorUnit = null)
     {
         if (await permissions.IsAdminAsync(actorUserId, ct)) return;
-        var own = await permissions.GetEffectiveAsync(actorUserId, ct);
+        var own = await permissions.GetEffectiveInUnitAsync(actorUserId, actorUnit, ct);
         foreach (var (function, wanted) in after ?? new Dictionary<string, ActionPermissions>())
         {
             var had = before?.GetValueOrDefault(function);
@@ -39,7 +41,7 @@ public sealed class GrantGuard(CoreContext db, IPermissionService permissions)
                     throw new ForbiddenException("grant.action", new Text(name), FunctionCatalog.Name(function));
         }
 
-        var ownRights = await permissions.GetRightsAsync(actorUserId, ct);
+        var ownRights = await permissions.GetRightsInUnitAsync(actorUserId, actorUnit, ct);
         var oldRights = (rightsBefore ?? []).ToHashSet(StringComparer.Ordinal);
         var extra = (rightsAfter ?? []).FirstOrDefault(key => !oldRights.Contains(key) && !ownRights.Contains(key));
         if (extra is not null)
@@ -74,6 +76,46 @@ public sealed class GrantGuard(CoreContext db, IPermissionService permissions)
         if (extra is not null)
             throw new ForbiddenException("grant.unit", extra);
     }
+
+    /// <summary>
+    /// A non-administrator may only manage (edit, lock, set permissions, reset the password, delete) an account that stays inside what the
+    /// manager holds: every company unit of the account is one of the manager's units, and every action and special right of the account is
+    /// one the manager has too. Otherwise a branch user manager could reset the password of a wider account (another unit, more rights) and
+    /// sign in as it.
+    /// </summary>
+    public async Task EnsureCanManageAccountAsync(int actorUserId, int targetUserId, CancellationToken ct)
+    {
+        if (await permissions.IsAdminAsync(actorUserId, ct)) return;
+        var mine = await UnitsOfAsync(actorUserId, ct);
+        var theirs = await UnitsOfAsync(targetUserId, ct);
+        // Rights may differ per unit (a role per unit), so the account is compared unit by unit with the manager's rights there.
+        var outside = theirs.Order(StringComparer.Ordinal).FirstOrDefault(code => !mine.Contains(code));
+        UncoveredAccess? missing = outside is null ? null : new UncoveredAccess(UncoveredAccess.Unit, outside);
+        foreach (var unit in theirs.Order(StringComparer.Ordinal))
+        {
+            if (missing is not null) break;
+            missing = AccountCoverage.FirstUncovered(mine,
+                await permissions.GetEffectiveInUnitAsync(actorUserId, unit, ct), await permissions.GetRightsInUnitAsync(actorUserId, unit, ct),
+                [unit], await permissions.GetEffectiveInUnitAsync(targetUserId, unit, ct), await permissions.GetRightsInUnitAsync(targetUserId, unit, ct));
+        }
+        switch (missing?.Kind)
+        {
+            case UncoveredAccess.Unit:
+                throw new ForbiddenException("grant.manageUnit", missing.Code);
+            case UncoveredAccess.Action:
+                throw new ForbiddenException("grant.manageHigher", new Text(missing.Code), FunctionCatalog.Name(missing.Function!));
+            case UncoveredAccess.Right:
+                var (function, fullCode) = SpecialRightCatalog.Split(missing.Code);
+                var code = SpecialRightCatalog.SplitUnit(fullCode).Code;
+                var name = SpecialRightCatalog.All.FirstOrDefault(r => r.Function == function && r.Code == code)?.Name ?? code;
+                throw new ForbiddenException("grant.manageHigher", name, FunctionCatalog.Name(function));
+        }
+    }
+
+    /// <summary>The company units a user may work in.</summary>
+    public async Task<HashSet<string>> UnitsOfAsync(int userId, CancellationToken ct) =>
+        (await db.UserCompanyUnits.AsNoTracking().Where(x => x.UserId == userId).Select(x => x.UnitCode).ToListAsync(ct))
+        .ToHashSet(StringComparer.Ordinal);
 
     /// <summary>Only administrators may change their own permissions.</summary>
     public async Task EnsureNotSelfAsync(int actorUserId, int targetUserId, CancellationToken ct)

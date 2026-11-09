@@ -44,7 +44,9 @@ const useDebounced = <T,>(value: T, delay = 400): T => {
   return debounced;
 };
 
-export const AuditLogView: React.FC<Partial<SettingsViewProps>> = ({ canEdit = false }) => {
+export const AuditLogView: React.FC<Partial<SettingsViewProps> & { canEditGlobal?: boolean }> = ({ canEditGlobal = false }) => {
+  // The retention applies to the whole log, so only an administrator changes it (the server refuses anyone else).
+  const canEdit = canEditGlobal;
   const { t } = useLanguage();
   // Months the log is kept (0 = forever; null while loading); the dialog edits it.
   const [retention, setRetention] = useState<number | null>(null);

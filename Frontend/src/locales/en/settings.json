@@ -68,6 +68,9 @@
       "noRole": "— No role assigned —",
       "adminRoleHint": "The administrator role has every permission on every function.",
       "roleHint": "The account uses its role's permissions. Cells switched differently from the role are saved as the account's own permissions (highlighted); the other cells follow the role whenever it changes.",
+      "unitRoles": "Role per company unit",
+      "unitRolesHint": "In a unit with a role of its own, that role replaces the default role; the account's own permissions (highlighted cells) apply in every unit.",
+      "unitRoleDefault": "Default role ({role})",
       "resetToRole": "Reset to the role's permissions",
       "selfLocked": "You cannot change your own permissions. Ask an administrator.",
       "viewOnly": "You can only view permissions.",
@@ -585,5 +588,8 @@
     "saving": "Saving...",
     "saved": "Saved the grid settings of {name}",
     "note": "A required column cannot be hidden. A column added in the code appears at the end of the grid; move it here. Pinned columns are marked 📌."
+  },
+  "globalSettings": {
+    "adminOnly": "This setting applies to the whole system (every company unit): only an administrator can change it."
   }
 }

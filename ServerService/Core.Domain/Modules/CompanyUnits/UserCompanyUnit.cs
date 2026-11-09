@@ -12,5 +12,7 @@ public class UserCompanyUnit
     [Column("user_id")] public int UserId { get; set; }
     [References<CompanyUnit>]
     [Required, Column("unit_code"), MaxLength(20)] public string UnitCode { get; set; } = string.Empty;
+    /// <summary>The role of the user in this unit; null = the user's default role (sys_user_role). Never the ADMIN role.</summary>
+    [Column("role_id")] public int? RoleId { get; set; }
     public CompanyUnit Unit { get; set; } = null!;
 }

@@ -24,9 +24,14 @@ public sealed class AuditLogService(CoreContext db, AuditTrail trail) : IAuditLo
         if (changes.Count > 0) trail.Attach(entity, changes);
     }
 
-    public async Task<AuditPage> QueryAsync(AuditQuery query, CancellationToken ct = default)
+    public async Task<AuditPage> QueryAsync(AuditQuery query, IReadOnlySet<string>? units, CancellationToken ct = default)
     {
         var rows = db.AuditLogs.AsNoTracking();
+        if (units is not null)
+        {
+            var allowed = units.ToList();
+            rows = rows.Where(x => x.UnitCode == null || allowed.Contains(x.UnitCode));
+        }
         if (!string.IsNullOrWhiteSpace(query.FunctionCode)) rows = rows.Where(x => x.FunctionCode == query.FunctionCode);
         if (!string.IsNullOrWhiteSpace(query.ObjectType)) rows = rows.Where(x => x.ObjectType == query.ObjectType);
         if (!string.IsNullOrWhiteSpace(query.ObjectId)) rows = rows.Where(x => x.ObjectId == query.ObjectId);

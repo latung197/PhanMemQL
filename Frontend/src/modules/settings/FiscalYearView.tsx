@@ -12,6 +12,7 @@ import { FiscalMonth, fiscalPeriodsApi } from '../../services/settingsApi';
 import { getErrorMessage } from '../../services/apiClient';
 import { saveWithFeedback, showToast } from '../../utils/toast';
 import { formatDateTime } from '../../utils/format';
+import { GlobalSettingNote } from './GlobalSettingNote';
 import { SettingsViewProps } from './settingsTypes';
 
 interface FiscalYearViewProps extends SettingsViewProps {
@@ -19,7 +20,7 @@ interface FiscalYearViewProps extends SettingsViewProps {
   unitCode: string;
 }
 
-export const FiscalYearView: React.FC<FiscalYearViewProps> = ({ canEdit, unitCode }) => {
+export const FiscalYearView: React.FC<FiscalYearViewProps & { canEditGlobal?: boolean }> = ({ canEdit, canEditGlobal = false, unitCode }) => {
   const confirm = useConfirm();
   const [config, setConfig] = useState<FiscalYearConfig>(() => systemSettingsService.getFiscalConfig());
   const [year, setYear] = useState(config.fiscalYear);
@@ -70,8 +71,9 @@ export const FiscalYearView: React.FC<FiscalYearViewProps> = ({ canEdit, unitCod
   return (
     <div className="space-y-4">
       <Card className="p-4 border border-slate-200 dark:border-slate-800 rounded-[5px]" title="Năm làm việc">
+        <GlobalSettingNote show={canEdit && !canEditGlobal} />
         <form onSubmit={saveConfig} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          <fieldset disabled={!canEdit} className="contents">
+          <fieldset disabled={!canEditGlobal} className="contents">
             <TextInput label="Năm tài chính" type="number" min={2000} max={2100} required value={config.fiscalYear}
               hint="Năm dùng cho báo cáo và tính giá xuất kho"
               onChange={e => setConfig({ ...config, fiscalYear: Number(e.target.value) })} />
@@ -79,7 +81,7 @@ export const FiscalYearView: React.FC<FiscalYearViewProps> = ({ canEdit, unitCod
               hint="Không lập được chứng từ trước ngày này"
               onChange={e => setConfig({ ...config, startDate: e.target.value })} />
           </fieldset>
-          {canEdit && (
+          {canEditGlobal && (
             <div className="pb-5">
               <Button type="submit" size="sm" icon={<Save className="h-3.5 w-3.5" />}>Lưu</Button>
             </div>

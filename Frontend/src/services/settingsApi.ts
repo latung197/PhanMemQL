@@ -99,10 +99,11 @@ export const usersApi = {
   getAll: () => apiRequest<UserProfile[]>('GET', '/api/settings/users'),
   create: (input: CreateUserInput) => apiRequest<UserProfile>('POST', '/api/settings/users', input),
   update: (id: string, input: UpdateUserInput) => apiRequest<UserProfile>('PUT', `/api/settings/users/${id}`, input),
-  /** Assigns the role (null = none) and replaces the user's permission matrix and special rights. */
+  /** Assigns the role (null = none), the role of each unit (unit code → role id, null = the default role; undefined = keep) and replaces
+   *  the user's permission matrix and special rights. */
   setPermissions: (id: string, roleId: string | null | undefined, permissions: PermissionMatrix, specialRights?: string[],
-    version?: number) =>
-    apiRequest<UserProfile>('PUT', `/api/settings/users/${id}/permissions`, { roleId: roleId ?? null, permissions, specialRights, version }),
+    version?: number, unitRoles?: Record<string, string | null>) =>
+    apiRequest<UserProfile>('PUT', `/api/settings/users/${id}/permissions`, { roleId: roleId ?? null, permissions, specialRights, version, unitRoles }),
   resetPassword: (id: string, newPassword: string) =>
     apiRequest<void>('PUT', `/api/settings/users/${id}/password`, { newPassword }),
   remove: (id: string) => apiRequest<void>('DELETE', `/api/settings/users/${id}`)

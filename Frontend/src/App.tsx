@@ -8,6 +8,8 @@ import { Sidebar } from './components/layout/Sidebar';
 import { NavigationHistoryBar } from './components/layout/NavigationHistoryBar';
 import { getSubMenuMeta, NavHistoryItem } from './utils/navigationHelper';
 import { LoginView } from './modules/auth/LoginView';
+import { ForcedPasswordChange } from './modules/account/ForcedPasswordChange';
+import { IdleSignOut } from './components/layout/IdleSignOut';
 import { OverviewModule } from './modules/overview/OverviewModule';
 import { InventoryModule } from './modules/inventory/InventoryModule';
 import { PurchasingModule } from './modules/purchasing/PurchasingModule';
@@ -82,6 +84,8 @@ const ERPAppContent: React.FC = () => {
   // Signed-in user from the backend; null shows the login screen.
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isRestoringSession, setIsRestoringSession] = useState(authService.hasSession);
+  // The token only allows changing the password (set by someone else, or too old): the app waits until it is changed.
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [companyUnits, setCompanyUnits] = useState<CompanyUnit[]>([]);
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [menuVisibility, setMenuVisibility] = useState<MenuVisibilityConfig>(EMPTY_MENU_VISIBILITY);
@@ -227,6 +231,7 @@ const ERPAppContent: React.FC = () => {
     setMenuVisibility(EMPTY_MENU_VISIBILITY);
     setMenuTree([]);
     setCurrentUser(null);
+    setMustChangePassword(false);
     setNotifications([]);
     seenNotificationIds.current = null;
     setCompanyUnits([]);
@@ -237,7 +242,11 @@ const ERPAppContent: React.FC = () => {
     localStorage.removeItem('s_erp_user_profile'); // profile cache of the old demo login
     if (!authService.hasSession()) return;
     authService.getMe()
-      .then(startSession)
+      .then(user => {
+        if (!authService.mustChangePassword()) return startSession(user);
+        setCurrentUser(user);
+        setMustChangePassword(true);
+      })
       .catch(() => handleLogout())
       .finally(() => setIsRestoringSession(false));
   }, [startSession, handleLogout]);
@@ -252,7 +261,7 @@ const ERPAppContent: React.FC = () => {
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
   }, [handleLogout]);
 
-  const signedIn = !!currentUser;
+  const signedIn = !!currentUser && !mustChangePassword;
   // Realtime: the stream says "something changed", the inbox is then reloaded. Reopened per company
   // unit, because the token (and so what the user may see) changes with it.
   useEffect(() => {
@@ -291,6 +300,11 @@ const ERPAppContent: React.FC = () => {
   };
 
   const handleLoginSuccess = (user: UserProfile) => {
+    if (authService.mustChangePassword()) {
+      setCurrentUser(user);
+      setMustChangePassword(true);
+      return;
+    }
     // Keep the screen of the address bar (e.g. a shared link) when the user may open it.
     if (!canView(user, activeSubMenu)) openFunction('overview_main');
     void startSession(user);
@@ -507,6 +521,11 @@ const ERPAppContent: React.FC = () => {
   // If not logged in -> render Login Screen
   if (!currentUser) {
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  if (mustChangePassword) {
+    return <ForcedPasswordChange user={currentUser} onLogout={handleLogout}
+      onChanged={user => { setMustChangePassword(false); if (!canView(user, activeSubMenu)) openFunction('overview_main'); void startSession(user); }} />;
   }
 
   // Check access permission for activeSubMenu

@@ -95,8 +95,7 @@ public static class LookupCatalogs
                 IsActive = x.IsActive, Extra1 = x.ShortName, Extra2 = x.IsDefault ? "1" : "0" });
         }, ["sys_company_unit", "sys_company_unit_translation"], "shortName", "isDefault"),
 
-        new LookupDefinition("warehouses", db => db.Warehouses.Select(x =>
-            new LookupRow { Code = x.Code, Name = x.Name, IsActive = x.IsActive, Extra1 = x.Address }), ["erp_warehouse"], "address"),
+        // "warehouses" is a LookupProvider (WarehouseLookup): it lists only the warehouses of the working unit.
 
         new LookupDefinition("warehouseTypes", db =>
         {

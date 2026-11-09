@@ -11,16 +11,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Modules.Users;
 
-public sealed class UserService(CoreContext db, IPasswordService passwords, IPermissionService permissions,
-    UserProfileBuilder profiles, UserAccessWriter access, IUnitOfWork unitOfWork, GrantGuard grants, UserAccessAudit audit)
+public sealed class UserService(CoreContext db, IPermissionService permissions,
+    UserProfileBuilder profiles, UserAccessWriter access, IUnitOfWork unitOfWork, GrantGuard grants, UserAccessAudit audit,
+    ISecurityPolicyService policies)
     : IUserService
 {
     /// <summary>Same rule as the frontend form (UserAccountModals).</summary>
     private static readonly System.Text.RegularExpressions.Regex UsernamePattern = new("^[a-z0-9._-]{3,50}$");
 
-    public async Task<IReadOnlyList<UserProfileDto>> GetAllAsync(CancellationToken ct)
+    /// <summary>Every account for an administrator; for anyone else only the accounts that share at least one company unit with them.</summary>
+    public async Task<IReadOnlyList<UserProfileDto>> GetAllAsync(int actorUserId, CancellationToken ct)
     {
-        var users = await db.Users.AsNoTracking().NotDeleted().OrderBy(x => x.UserName).ToListAsync(ct);
+        var rows = db.Users.AsNoTracking().NotDeleted();
+        if (!await permissions.IsAdminAsync(actorUserId, ct))
+        {
+            var mine = (await grants.UnitsOfAsync(actorUserId, ct)).ToList();
+            rows = rows.Where(u => db.UserCompanyUnits.Any(c => c.UserId == u.UserId && mine.Contains(c.UnitCode)));
+        }
+        var users = await rows.OrderBy(x => x.UserName).ToListAsync(ct);
         return await profiles.BuildAsync(users, null, ct);
     }
 
@@ -32,7 +40,8 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
         var username = Guard.Required(request.Username, 50, "field.username").ToLowerInvariant();
         if (!UsernamePattern.IsMatch(username))
             throw new BusinessRuleException("users.usernameFormat");
-        PasswordPolicy.Validate(request.Password);
+        var policy = await policies.GetAsync(ct);
+        policy.EnsurePassword(request.Password);
         var user = new SysUser { UserName = username };
         ApplyContact(user, request.FullName, request.Email, request.Phone, request.Avatar);
         await ApplyDepartmentAsync(user, request.DepartmentCode, ct);
@@ -47,10 +56,13 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
         var roleMatrix = await access.RoleMatrixAsync(role, ct);
         var overrides = role?.IsAdmin == true || request.Permissions is null ? []
             : PermissionMatrix.Overrides(roleMatrix, request.Permissions);
-        await grants.EnsureCanGrantAsync(actorUserId, null, Apply(roleMatrix, overrides), null,
-            await access.RoleRightsAsync(role, ct), ct);
         await grants.EnsureCanAssignUnitsAsync(actorUserId, [], units, ct);
-        user.PasswordHash = passwords.Hash(user, request.Password);
+        // The new account works in each of its units with the default role: the manager must hold those rights in each unit.
+        var createdMatrix = Apply(roleMatrix, overrides);
+        var createdRights = await access.RoleRightsAsync(role, ct);
+        foreach (var unit in units) await grants.EnsureCanGrantAsync(actorUserId, null, createdMatrix, null, createdRights, ct, unit);
+        // A password chosen by the manager: the user changes it at the first sign-in when the policy asks so.
+        await policies.SetPasswordAsync(user, request.Password, policy.MustChangeAfterReset, ct);
 
         audit.AttachRole(user, role?.RoleName);
         await unitOfWork.ExecuteAsync(async token =>
@@ -87,6 +99,14 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
         var currentUnits = await db.UserCompanyUnits.AsNoTracking().Where(x => x.UserId == userId)
             .Select(x => x.UnitCode).ToListAsync(ct);
         await grants.EnsureCanAssignUnitsAsync(actorUserId, currentUnits, units, ct);
+        // In a unit added now the account works with its default role and exceptions: the manager must hold those rights there.
+        var added = units.Where(code => !currentUnits.Contains(code)).ToList();
+        if (added.Count > 0)
+        {
+            var defaultMatrix = await permissions.GetEffectiveInUnitAsync(userId, null, ct);
+            var defaultRights = await permissions.GetRightsInUnitAsync(userId, null, ct);
+            foreach (var unit in added) await grants.EnsureCanGrantAsync(actorUserId, null, defaultMatrix, null, defaultRights, ct, unit);
+        }
         user.MaDvcs = units[0];
         if (user.IsActive != request.IsActive) user.SecurityVersion++;
         user.IsActive = request.IsActive;
@@ -122,16 +142,28 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
             : PermissionMatrix.RightOverrides(PermissionMatrix.VisibleRights(roleRights, matrixAfter),
                 PermissionMatrix.VisibleRights(request.SpecialRights, matrixAfter));
 
-        // Check what the user will actually have (new role + exceptions), not only what the request lists:
-        // functions and rights missing from the request come from the role.
-        await grants.EnsureCanGrantAsync(actorUserId, await permissions.GetEffectiveAsync(userId, ct), matrixAfter,
-            await permissions.GetRightsAsync(userId, ct),
-            await RightsAfterAsync(userId, roleRights, rightOverrides, matrixAfter, ct), ct);
+        // The role of the user in each unit (null in the request = keep the stored ones); an administrator is one in every unit.
+        var unitCodes = await db.UserCompanyUnits.AsNoTracking().Where(x => x.UserId == userId).Select(x => x.UnitCode).ToListAsync(ct);
+        var unitRoles = role?.IsAdmin == true ? new Dictionary<string, SysRole>()
+            : request.UnitRoles is null ? await StoredUnitRolesAsync(userId, ct) : await ResolveUnitRolesAsync(request.UnitRoles, unitCodes, ct);
+
+        // Check what the user will actually have in each unit (the unit role or the new default role, with the exceptions), not only
+        // what the request lists: functions and rights missing from the request come from the role. The rights of the manager in that
+        // unit are the limit.
+        foreach (var unit in unitCodes.Count == 0 ? [null] : unitCodes.Cast<string?>())
+        {
+            var held = unit is not null && unitRoles.TryGetValue(unit, out var unitRole) ? unitRole : role;
+            var unitMatrix = held == role ? matrixAfter : Apply(await access.RoleMatrixAsync(held, ct), overrides);
+            var unitRights = await RightsAfterAsync(userId, held == role ? roleRights : await access.RoleRightsAsync(held, ct), rightOverrides, unitMatrix, ct);
+            await grants.EnsureCanGrantAsync(actorUserId, await permissions.GetEffectiveInUnitAsync(userId, unit, ct), unitMatrix,
+                await permissions.GetRightsInUnitAsync(userId, unit, ct), unitRights, ct, unit);
+        }
         if (role?.IsAdmin != true && !UserQueries.IsLegacyAdmin(user.AuthFl))
             await EnsureNotLastAdminAsync(userId, ct);
 
         var accessBefore = await audit.SnapshotAsync(userId, ct);
         await access.ReplaceRoleAsync(userId, role, ct);
+        await access.ReplaceUnitRolesAsync(userId, unitRoles.ToDictionary(x => x.Key, x => x.Value.RoleId), ct);
         if (role?.IsAdmin == true)
             await access.ClearOverridesAsync(userId, ct);
         else
@@ -186,10 +218,11 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
     {
         if (userId == actorUserId)
             throw new BusinessRuleException("users.useChangePassword");
-        PasswordPolicy.Validate(request.NewPassword);
         var user = await FindAsync(userId, ct);
         await EnsureActorMayManageAsync(actorUserId, userId, null, ct);
-        user.PasswordHash = passwords.Hash(user, request.NewPassword);
+        await policies.EnsureNewPasswordAsync(user, request.NewPassword, ct);
+        // Set by someone else: the user changes it at the next sign-in when the policy asks so.
+        await policies.SetPasswordAsync(user, request.NewPassword, (await policies.GetAsync(ct)).MustChangeAfterReset, ct);
         user.SecurityVersion++;
         await audit.RecordActionAsync(user, AuditActions.ResetPassword, ct);
         await db.SaveChangesAsync(ct);
@@ -209,8 +242,8 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
     }
 
     /// <summary>
-    /// Holders of "sys_users" rights may manage ordinary accounts; administrator accounts and the
-    /// ADMIN role are reserved to administrators, so nobody can raise their own rights.
+    /// Holders of "sys_users" rights may manage ordinary accounts that their own units and rights cover; administrator accounts and
+    /// the ADMIN role are reserved to administrators, so nobody can raise their own rights or take over a wider account.
     /// </summary>
     private async Task EnsureActorMayManageAsync(int actorUserId, int? targetUserId, SysRole? newRole,
         CancellationToken ct)
@@ -218,6 +251,8 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
         var touchesAdmin = newRole?.IsAdmin == true
             || (targetUserId is int id && await IsAdminAccountAsync(id, ct));
         if (touchesAdmin) await permissions.EnsureAdminAsync(actorUserId, ct);
+        // An existing account may only be managed by someone whose units and rights cover it (GrantGuard).
+        if (targetUserId is int target && target != actorUserId) await grants.EnsureCanManageAccountAsync(actorUserId, target, ct);
     }
 
     /// <summary>Admin by role or legacy flag, whether or not the account is currently active.</summary>
@@ -232,6 +267,36 @@ public sealed class UserService(CoreContext db, IPasswordService passwords, IPer
     private async Task<SysUser> FindAsync(int userId, CancellationToken ct) =>
         await db.Users.NotDeleted().FirstOrDefaultAsync(x => x.UserId == userId, ct)
         ?? throw new NotFoundException("users.notFound");
+
+    /// <summary>The unit roles stored for the user (unit → role).</summary>
+    private async Task<Dictionary<string, SysRole>> StoredUnitRolesAsync(int userId, CancellationToken ct)
+    {
+        var rows = await db.UserCompanyUnits.AsNoTracking().Where(x => x.UserId == userId && x.RoleId != null)
+            .Select(x => new { x.UnitCode, RoleId = x.RoleId!.Value }).ToListAsync(ct);
+        var ids = rows.Select(x => x.RoleId).Distinct().ToList();
+        var roles = await db.Roles.AsNoTracking().Where(x => ids.Contains(x.RoleId)).ToDictionaryAsync(x => x.RoleId, ct);
+        return rows.Where(x => roles.ContainsKey(x.RoleId)).ToDictionary(x => x.UnitCode, x => roles[x.RoleId], StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Checks the requested unit roles: each unit is one the user may work in, each role exists and is not the ADMIN role (an administrator
+    /// is one in every unit, through the default role). An empty role = the default role in that unit.
+    /// </summary>
+    private async Task<Dictionary<string, SysRole>> ResolveUnitRolesAsync(IReadOnlyDictionary<string, string?> requested,
+        IReadOnlyCollection<string> unitCodes, CancellationToken ct)
+    {
+        var result = new Dictionary<string, SysRole>(StringComparer.Ordinal);
+        foreach (var (unitCode, roleId) in requested)
+        {
+            var unit = (unitCode ?? string.Empty).Trim().ToUpperInvariant();
+            if (!unitCodes.Contains(unit)) throw new BusinessRuleException("users.unitRoleUnit", unit);
+            if (string.IsNullOrWhiteSpace(roleId)) continue;
+            var role = await FindRoleAsync(roleId, ct);
+            if (role!.IsAdmin) throw new BusinessRuleException("users.unitRoleAdmin");
+            result[unit] = role;
+        }
+        return result;
+    }
 
     private async Task<SysRole?> FindRoleAsync(string? roleId, CancellationToken ct)
     {

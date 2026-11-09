@@ -27,7 +27,7 @@ public sealed class ApprovalResolver(CoreContext db, IPermissionService permissi
     public async Task<ApprovalResolution> ResolveAsync(string function, string unitCode, int requesterUserId,
         decimal? amount, CancellationToken ct, bool includeRequester = false)
     {
-        var requester = await RequesterAsync(requesterUserId, ct);
+        var requester = await RequesterAsync(requesterUserId, unitCode, ct);
         var rules = await db.ApprovalRules.AsNoTracking().Where(x => x.MenuId0 == function && x.IsActive).ToListAsync(ct);
         var levels = ApprovalRuleEngine.Resolve(rules, function, unitCode, requester, amount);
         var roleNames = await db.Roles.AsNoTracking().ToDictionaryAsync(x => x.RoleId.ToString(), x => x.RoleName, ct);
@@ -48,7 +48,13 @@ public sealed class ApprovalResolver(CoreContext db, IPermissionService permissi
             {
                 if (approver.Type == ApproverTypes.User && int.TryParse(approver.Value, out var userId)) candidates.Add(userId);
                 else if (approver.Type == ApproverTypes.Role && int.TryParse(approver.Value, out var roleId))
-                    candidates.AddRange(await db.UserRoles.ActiveRoles().Where(x => x.RoleId == roleId).Select(x => x.UserId).ToListAsync(ct));
+                {
+                    // Holders of the role in this unit: its unit role there, or their default role when they have no unit role there.
+                    candidates.AddRange(await db.UserRoles.ActiveRoles().Where(x => x.RoleId == roleId
+                        && !db.UserCompanyUnits.Any(u => u.UserId == x.UserId && u.UnitCode == unitCode && u.RoleId != null)).Select(x => x.UserId).ToListAsync(ct));
+                    candidates.AddRange(await db.UserCompanyUnits.AsNoTracking().Where(x => x.UnitCode == unitCode && x.RoleId == roleId)
+                        .Select(x => x.UserId).ToListAsync(ct));
+                }
             }
             var label = string.Join(", ", level.Approvers.Select(a => a.Type == ApproverTypes.Role
                 ? Messages.T("approval.roleLabel", roleNames.GetValueOrDefault(a.Value, a.Value))
@@ -58,10 +64,14 @@ public sealed class ApprovalResolver(CoreContext db, IPermissionService permissi
         return new ApprovalResolution(false, result);
     }
 
-    public async Task<ApprovalRequester> RequesterAsync(int userId, CancellationToken ct)
+    /// <summary>The requester of a voucher of the unit: their department and the role they hold in that unit (unit role, else default role).</summary>
+    public async Task<ApprovalRequester> RequesterAsync(int userId, string unitCode, CancellationToken ct)
     {
         var department = await db.Users.AsNoTracking().Where(x => x.UserId == userId).Select(x => x.DepartmentCode).FirstOrDefaultAsync(ct);
-        var roleIds = await db.UserRoles.AsNoTracking().ActiveRoles().Where(x => x.UserId == userId).Select(x => x.RoleId).ToListAsync(ct);
+        var unitRole = await db.UserCompanyUnits.AsNoTracking().Where(x => x.UserId == userId && x.UnitCode == unitCode && x.RoleId != null)
+            .Select(x => x.RoleId).FirstOrDefaultAsync(ct);
+        var roleIds = unitRole is int role ? [role]
+            : await db.UserRoles.AsNoTracking().ActiveRoles().Where(x => x.UserId == userId).Select(x => x.RoleId).ToListAsync(ct);
         return new ApprovalRequester(userId, roleIds, department);
     }
 
@@ -70,7 +80,8 @@ public sealed class ApprovalResolver(CoreContext db, IPermissionService permissi
     {
         var ids = candidates.Where(id => includeRequester || id != requesterUserId).Distinct().ToList();
         // Rights of every candidate at once (only active users come back), not a few queries per candidate.
-        var matrices = await permissions.GetEffectiveManyAsync(ids, ct);
+        // Rights in the unit of the voucher (a user may hold another role there).
+        var matrices = await permissions.GetEffectiveManyAsync(ids, unitCode, ct);
         var inUnit = (await db.UserCompanyUnits.AsNoTracking().Where(x => ids.Contains(x.UserId) && x.UnitCode == unitCode)
             .Select(x => x.UserId).ToListAsync(ct)).ToHashSet();
         var result = new List<int>();

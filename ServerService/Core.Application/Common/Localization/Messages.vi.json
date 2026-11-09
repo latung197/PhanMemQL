@@ -172,6 +172,10 @@
   "grant.action": "Bạn không thể cấp quyền \"{0}\" trên \"{1}\" vì chính bạn không có quyền này.",
   "grant.unit": "Bạn không thể cấp quyền vào đơn vị cơ sở {0} vì chính bạn không được vào đơn vị này.",
   "grant.self": "Bạn không thể tự thay đổi quyền của chính mình. Hãy nhờ quản trị viên.",
+  "grant.manageUnit": "Bạn không quản lý được tài khoản này vì tài khoản được vào đơn vị cơ sở {0} mà bạn không được vào. Hãy nhờ quản trị viên.",
+  "grant.manageHigher": "Bạn không quản lý được tài khoản này vì tài khoản có quyền \"{0}\" trên \"{1}\" mà bạn không có. Hãy nhờ quản trị viên.",
+  "approval.ruleAllUnitsAdminOnly": "Quy tắc duyệt áp dụng cho mọi đơn vị cơ sở chỉ quản trị viên thêm, sửa hoặc xóa được. Hãy chọn đơn vị cơ sở của quy tắc.",
+  "approval.ruleUnitNotAllowed": "Bạn không được đặt quy tắc duyệt cho đơn vị cơ sở {0} vì bạn không được vào đơn vị này.",
   "companyUnit.notFound": "Đơn vị cơ sở không tồn tại.",
   "companyUnit.codeExists": "Mã đơn vị cơ sở {0} đã tồn tại.",
   "companyUnit.inUse": "Đơn vị cơ sở đang được sử dụng. Hãy chuyển sang trạng thái Tạm dừng thay vì xóa.",
@@ -1308,5 +1312,15 @@
   "export.report.onHand": "Tồn hiện có",
   "export.report.reservedRequest": "Giữ chỗ theo yêu cầu xuất",
   "export.report.reservedOrder": "Giữ chỗ theo đơn bán",
-  "export.report.available": "Khả dụng"
+  "export.report.available": "Khả dụng",
+  "users.unitRoleUnit": "Người dùng không được vào đơn vị cơ sở {0} nên không gắn vai trò cho đơn vị này được.",
+  "users.unitRoleAdmin": "Không gắn vai trò quản trị theo từng đơn vị. Quản trị viên là vai trò mặc định và có quyền ở mọi đơn vị.",
+  "security.invalid": "Giá trị {0} phải từ {1} đến {2}.",
+  "security.passwordLetter": "Mật khẩu phải có ít nhất một chữ cái.",
+  "security.passwordDigit": "Mật khẩu phải có ít nhất một chữ số.",
+  "security.passwordUpper": "Mật khẩu phải có cả chữ hoa và chữ thường.",
+  "security.passwordSpecial": "Mật khẩu phải có ít nhất một ký tự đặc biệt (ví dụ ! @ # $).",
+  "security.passwordReused": "Không dùng lại {0} mật khẩu gần nhất. Hãy chọn mật khẩu khác.",
+  "auth.tooManyFailures": "Đăng nhập sai quá nhiều lần. Hãy thử lại sau {0} phút.",
+  "auth.passwordChangeRequired": "Bạn cần đổi mật khẩu trước khi làm việc tiếp."
 }

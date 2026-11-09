@@ -153,7 +153,8 @@ public interface IAuditLog
     /// </summary>
     void Attach(object entity, IReadOnlyList<AuditChange> changes);
 
-    Task<AuditPage> QueryAsync(AuditQuery query, CancellationToken ct = default);
+    /// <param name="units">The company units the reader may see (null = every unit); rows written without a unit are always shown.</param>
+    Task<AuditPage> QueryAsync(AuditQuery query, IReadOnlySet<string>? units, CancellationToken ct = default);
 
     /// <summary>Functions, object types and actions present in the log (choices of the screen's filters).</summary>
     Task<AuditFilters> GetFiltersAsync(CancellationToken ct = default);

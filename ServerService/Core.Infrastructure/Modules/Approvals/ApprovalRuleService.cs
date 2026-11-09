@@ -3,6 +3,7 @@ using Core.Application.Common.Exceptions;
 using Core.Application.Common.Permissions;
 using Core.Application.Common.Validation;
 using Core.Application.Modules.Approvals;
+using Core.Application.Modules.Users;
 using Core.Domain.Modules.Approvals;
 using Core.Infrastructure.Common.Persistence;
 using Core.Infrastructure.Modules.Users;
@@ -10,14 +11,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Core.Infrastructure.Modules.Approvals;
 
-public sealed class ApprovalRuleService(CoreContext db, ApprovalResolver resolver, IAuditLog auditLog) : IApprovalRuleService
+/// <summary>
+/// Approval rules. A non-administrator sees the rules of their own company units and the rules for every unit, and may only add, change or
+/// delete rules of a unit they work in; a rule for every unit (no unit) is for administrators only, as it changes the approvals of all units.
+/// </summary>
+public sealed class ApprovalRuleService(CoreContext db, ApprovalResolver resolver, IAuditLog auditLog, IPermissionService permissions, GrantGuard grants)
+    : IApprovalRuleService
 {
     private static readonly string[] RequesterTypeList = [RequesterTypes.Any, RequesterTypes.User, RequesterTypes.Role, RequesterTypes.Department];
     private static readonly string[] ApproverTypeList = [ApproverTypes.User, ApproverTypes.Role];
 
-    public async Task<IReadOnlyList<ApprovalRuleDto>> GetAllAsync(string? function, CancellationToken ct)
+    public async Task<IReadOnlyList<ApprovalRuleDto>> GetAllAsync(int actorUserId, string? function, CancellationToken ct)
     {
         var query = db.ApprovalRules.AsNoTracking();
+        if (!await permissions.IsAdminAsync(actorUserId, ct))
+        {
+            var mine = (await grants.UnitsOfAsync(actorUserId, ct)).ToList();
+            query = query.Where(x => x.UnitCode == null || mine.Contains(x.UnitCode));
+        }
         if (!string.IsNullOrWhiteSpace(function)) query = query.Where(x => x.MenuId0 == function);
         var rules = await query.OrderBy(x => x.MenuId0).ThenBy(x => x.Level).ThenBy(x => x.Id).ToListAsync(ct);
         return rules.Select(ToDto).ToList();
@@ -38,6 +49,7 @@ public sealed class ApprovalRuleService(CoreContext db, ApprovalResolver resolve
         var rule = await db.ApprovalRules.FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException("approval.ruleNotFound");
         db.ExpectVersion(rule, request.Version);
+        await EnsureMayChangeAsync(actorUserId, rule.UnitCode, ct);
         var before = await NamesOfAsync(rule, ct);
         await ApplyAsync(rule, actorUserId, request, ct);
         await AttachNamesAsync(rule, before, ct);
@@ -45,13 +57,22 @@ public sealed class ApprovalRuleService(CoreContext db, ApprovalResolver resolve
         return ToDto(rule);
     }
 
-    public async Task DeleteAsync(long id, CancellationToken ct)
+    public async Task DeleteAsync(int actorUserId, long id, CancellationToken ct)
     {
         var rule = await db.ApprovalRules.FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException("approval.ruleNotFound");
+        await EnsureMayChangeAsync(actorUserId, rule.UnitCode, ct);
         auditLog.Attach(rule, new AuditDiff().Fields(await NamesOfAsync(rule, ct), null).Changes);
         db.ApprovalRules.Remove(rule);
         await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>A non-administrator may only touch a rule of a company unit they work in (not a rule for every unit).</summary>
+    private async Task EnsureMayChangeAsync(int actorUserId, string? unitCode, CancellationToken ct)
+    {
+        if (await permissions.IsAdminAsync(actorUserId, ct)) return;
+        if (unitCode is null) throw new ForbiddenException("approval.ruleAllUnitsAdminOnly");
+        if (!(await grants.UnitsOfAsync(actorUserId, ct)).Contains(unitCode)) throw new ForbiddenException("approval.ruleUnitNotAllowed", unitCode);
     }
 
     public async Task<ApprovalPreview> PreviewAsync(PreviewApprovalRequest request, string defaultUnitCode, CancellationToken ct)
@@ -77,6 +98,7 @@ public sealed class ApprovalRuleService(CoreContext db, ApprovalResolver resolve
         var unit = Guard.Optional(request.UnitCode, 20, "field.unit");
         if (unit is not null && !await db.CompanyUnits.AnyAsync(x => x.Code == unit, ct))
             throw new BusinessRuleException("companyUnit.notFound");
+        await EnsureMayChangeAsync(actorUserId, unit, ct);
 
         var requesterValue = request.RequesterType == RequesterTypes.Any ? null
             : Guard.Required(request.RequesterValue, 100, "field.requesterValue");

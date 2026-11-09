@@ -16,8 +16,9 @@ public sealed class UserAccessAudit(CoreContext db, IPermissionService permissio
     public const string Function = "sys_users";
     public const string ObjectType = "user";
 
+    /// <param name="UnitRoles">"DVCS01: Thủ kho; DVCS02: ..." (only the units with a role of their own), null when there is none.</param>
     public sealed record Snapshot(string? Role, IReadOnlyDictionary<string, ActionPermissions> Matrix,
-        IReadOnlySet<string> Rights);
+        IReadOnlySet<string> Rights, string? UnitRoles = null);
 
     /// <summary>Reads the user's access from the database (call again after SaveChanges for the new state).</summary>
     public async Task<Snapshot> SnapshotAsync(int userId, CancellationToken ct)
@@ -25,8 +26,13 @@ public sealed class UserAccessAudit(CoreContext db, IPermissionService permissio
         permissions.Forget(userId);
         var roles = await db.UserRoles.AsNoTracking().ActiveRoles().Where(x => x.UserId == userId)
             .Select(x => x.Role.RoleName).OrderBy(x => x).ToListAsync(ct);
+        var unitRoles = await db.UserCompanyUnits.AsNoTracking().Where(x => x.UserId == userId && x.RoleId != null)
+            .Join(db.Roles.AsNoTracking(), u => u.RoleId, r => r.RoleId, (u, r) => new { u.UnitCode, r.RoleName })
+            .OrderBy(x => x.UnitCode).ToListAsync(ct);
+        // The default rights (the matrix of the screen); the roles of the units are logged as a field of their own.
         return new Snapshot(roles.Count == 0 ? null : string.Join(", ", roles),
-            await permissions.GetEffectiveAsync(userId, ct), await permissions.GetRightsAsync(userId, ct));
+            await permissions.GetEffectiveInUnitAsync(userId, null, ct), await permissions.GetRightsInUnitAsync(userId, null, ct),
+            unitRoles.Count == 0 ? null : string.Join("; ", unitRoles.Select(x => $"{x.UnitCode}: {x.RoleName}")));
     }
 
     /// <summary>
@@ -35,7 +41,7 @@ public sealed class UserAccessAudit(CoreContext db, IPermissionService permissio
     /// </summary>
     public Task RecordAsync(SysUser user, Snapshot before, Snapshot after, string action, string? note, CancellationToken ct)
     {
-        var diff = new AuditDiff().Field("role", before.Role, after.Role)
+        var diff = new AuditDiff().Field("role", before.Role, after.Role).Field("unitRoles", before.UnitRoles, after.UnitRoles)
             .Matrix(before.Matrix, after.Matrix).Rights(before.Rights, after.Rights);
         return diff.IsEmpty ? Task.CompletedTask : auditLog.RecordAsync(
             new AuditEntry(Function, ObjectType, user.UserId.ToString(), Label(user), action, diff.Changes, note), ct);

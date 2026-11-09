@@ -21,7 +21,12 @@ public sealed class UserProfileBuilder(CoreContext db)
         var ids = users.Select(x => x.UserId).ToList();
         var roles = await db.UserRoles.AsNoTracking().ActiveRoles().Where(x => ids.Contains(x.UserId))
             .Select(x => new { x.UserId, x.RoleId, x.Role.RoleCode, x.Role.RoleName }).ToListAsync(ct);
-        var roleIds = roles.Select(x => x.RoleId).Distinct().ToList();
+        // The role of each user in each unit (null = default role); in the session unit it replaces the default role.
+        var unitRoleRows = await db.UserCompanyUnits.AsNoTracking().Where(x => ids.Contains(x.UserId))
+            .Select(x => new { x.UserId, x.UnitCode, x.RoleId }).ToListAsync(ct);
+        var unitRoleIds = unitRoleRows.Where(x => x.RoleId != null).Select(x => x.RoleId!.Value).Distinct().ToList();
+        var unitRoleNames = await db.Roles.AsNoTracking().Where(x => unitRoleIds.Contains(x.RoleId)).ToDictionaryAsync(x => x.RoleId, x => x.RoleName, ct);
+        var roleIds = roles.Select(x => x.RoleId).Concat(unitRoleIds).Distinct().ToList();
         var roleGrants = await db.RoleCommands.AsNoTracking()
             .Where(x => roleIds.Contains(x.RoleId) && x.Status == "1").ToListAsync(ct);
         var ownGrants = await db.UserCommands.AsNoTracking()
@@ -45,13 +50,17 @@ public sealed class UserProfileBuilder(CoreContext db)
                 .OrderBy(x => x.RoleCode == SysRole.AdminCode ? 0 : 1).ThenBy(x => x.RoleName).ToList();
             var isAdmin = UserQueries.IsLegacyAdmin(user.AuthFl)
                 || assigned.Any(x => x.RoleCode == SysRole.AdminCode);
+            // Same rule as PermissionService: in the session unit a unit role replaces the default role.
+            var sessionRole = signedInUnit is null ? null
+                : unitRoleRows.FirstOrDefault(x => x.UserId == user.UserId && x.UnitCode == signedInUnit && x.RoleId != null)?.RoleId;
+            var held = sessionRole is int unitRole ? [unitRole] : assigned.Select(x => x.RoleId).ToList();
             var permissions = PermissionMatrix.Resolve(isAdmin,
                 ownGrants.Where(x => x.UserId == user.UserId).Select(x => (x.MenuId0, x.ToActions())).ToList(),
-                roleGrants.Where(x => assigned.Any(r => r.RoleId == x.RoleId)).Select(x => (x.MenuId0, x.ToActions())));
+                roleGrants.Where(x => held.Contains(x.RoleId)).Select(x => (x.MenuId0, x.ToActions())));
             var own = ownRights.Where(x => x.UserId == user.UserId).ToList();
             // Same rule as PermissionService, so the screen never offers what the API refuses.
             var rights = PermissionMatrix.VisibleRights(PermissionMatrix.ResolveRights(isAdmin,
-                roleRights.Where(x => assigned.Any(r => r.RoleId == x.RoleId)).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)),
+                roleRights.Where(x => held.Contains(x.RoleId)).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)),
                 own.Where(x => x.IsGranted).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)),
                 own.Where(x => !x.IsGranted).Select(x => SpecialRightCatalog.Key(x.MenuId0, x.RightCode)), activeUnits), permissions);
             var primaryRole = assigned.FirstOrDefault();
@@ -65,7 +74,9 @@ public sealed class UserProfileBuilder(CoreContext db)
                 signedInUnit ?? user.MaDvcs, units, user.EmployeeCode, user.IsActive,
                 rights.OrderBy(x => x, StringComparer.Ordinal).ToList(),
                 // A language set inactive later falls back to the default one.
-                languages.Any(x => x.Code == user.Language) ? user.Language! : defaultLanguage, user.Language, user.Version);
+                languages.Any(x => x.Code == user.Language) ? user.Language! : defaultLanguage, user.Language, user.Version,
+                unitRoleRows.Where(x => x.UserId == user.UserId).OrderBy(x => x.UnitCode, StringComparer.Ordinal)
+                    .Select(x => new UserUnitRoleDto(x.UnitCode, x.RoleId?.ToString(), x.RoleId is int id ? unitRoleNames.GetValueOrDefault(id) : null)).ToList());
         }).ToList();
     }
 }

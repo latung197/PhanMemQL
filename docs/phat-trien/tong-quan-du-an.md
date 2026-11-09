@@ -55,7 +55,7 @@ Quy tắc chủ đạo: **giao diện là nguồn sự thật về hình dạng 
 | Đăng nhập | Mật khẩu băm; JWT sống 480 phút, mang theo đơn vị đang làm việc (`POST /api/auth/switch-unit` cấp token mới). Đổi mật khẩu hoặc khóa tài khoản tăng `security_version` làm mọi token cũ hết hiệu lực |
 | Chống đoán mật khẩu | Giới hạn 10 lần đăng nhập mỗi phút mỗi địa chỉ IP (HTTP 429) |
 | Phân quyền | Vai trò + ngoại lệ theo người dùng; 7 thao tác (xem, thêm, sửa, xóa, duyệt, in, xuất) cho từng chức năng; quyền đặc biệt (xem giá vốn, đổi mã, quyền theo trạng thái chứng từ từng đơn vị...). Không ai cấp được quyền mình không có (`GrantGuard`). Kiểm tra ở frontend chỉ để hiển thị, quyết định thật ở backend |
-| Phạm vi dữ liệu | Mọi truy vấn theo đơn vị trong token; người dùng không thấy chứng từ đơn vị khác |
+| Phạm vi dữ liệu | Mọi truy vấn chứng từ, báo cáo theo đơn vị trong token; người dùng không thấy chứng từ đơn vị khác. Ở màn quản trị, người không phải quản trị viên chỉ thấy người dùng, quy tắc duyệt, nhật ký của đơn vị mình, không quản lý được tài khoản rộng hơn mình, không sửa cài đặt chung toàn hệ thống |
 | Nhật ký | Mọi thêm / sửa / xóa dữ liệu quan trọng ghi tự động vào `sys_audit_log` (trường, giá trị trước và sau, người làm) |
 | Bí mật | Chuỗi kết nối, khóa JWT, mật khẩu demo chỉ ở `appsettings.Local.json` hoặc `.env.local`, không commit |
 | CORS | Chỉ các nguồn khai trong `Cors:AllowedOrigins` |

@@ -173,6 +173,10 @@
   "grant.action": "You cannot grant \"{0}\" on \"{1}\" because you do not have it yourself.",
   "grant.unit": "You cannot give access to company unit {0} because you cannot access it yourself.",
   "grant.self": "You cannot change your own rights. Ask an administrator.",
+  "grant.manageUnit": "You cannot manage this account because it may access company unit {0}, which you cannot access. Ask an administrator.",
+  "grant.manageHigher": "You cannot manage this account because it has the right \"{0}\" on \"{1}\", which you do not have. Ask an administrator.",
+  "approval.ruleAllUnitsAdminOnly": "Only an administrator can add, change or delete an approval rule for every company unit. Choose the company unit of the rule.",
+  "approval.ruleUnitNotAllowed": "You cannot set approval rules for company unit {0} because you cannot access it.",
   "companyUnit.notFound": "The company unit does not exist.",
   "companyUnit.codeExists": "Company unit code {0} already exists.",
   "companyUnit.inUse": "The company unit is in use. Set it to Paused instead of deleting it.",
@@ -1402,5 +1406,15 @@
   "export.report.onHand": "On hand",
   "export.report.reservedRequest": "Reserved by issue requests",
   "export.report.reservedOrder": "Reserved by sales orders",
-  "export.report.available": "Available"
+  "export.report.available": "Available",
+  "users.unitRoleUnit": "The user cannot access company unit {0}, so no role can be set for it.",
+  "users.unitRoleAdmin": "The administrator role cannot be set per unit. An administrator is the default role and holds every unit.",
+  "security.invalid": "The value of {0} must be from {1} to {2}.",
+  "security.passwordLetter": "The password must contain at least one letter.",
+  "security.passwordDigit": "The password must contain at least one digit.",
+  "security.passwordUpper": "The password must contain both upper and lower case letters.",
+  "security.passwordSpecial": "The password must contain at least one special character (e.g. ! @ # $).",
+  "security.passwordReused": "The last {0} passwords cannot be reused. Choose another one.",
+  "auth.tooManyFailures": "Too many failed sign-ins. Try again in {0} minutes.",
+  "auth.passwordChangeRequired": "You must change your password before going on."
 }

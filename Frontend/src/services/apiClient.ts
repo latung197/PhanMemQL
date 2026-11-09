@@ -54,7 +54,8 @@ export async function apiRequest<T>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   path: string,
   body?: unknown,
-  options: { anonymous?: boolean } = {}
+  /** quiet: a 401 does not sign the user out (calls made while signing out). */
+  options: { anonymous?: boolean; quiet?: boolean } = {}
 ): Promise<T> {
   // The backend answers (messages, translated names) in the user's language.
   const headers: Record<string, string> = { Accept: 'application/json', 'Accept-Language': storedLanguage() };
@@ -73,7 +74,7 @@ export async function apiRequest<T>(
     throw new ApiError(0, translate('api.connectionFailed'));
   }
 
-  if (!response.ok) throw await failure(response, options.anonymous);
+  if (!response.ok) throw await failure(response, options.anonymous || options.quiet);
 
   if (response.status === 204) return undefined as T;
   const text = await response.text();

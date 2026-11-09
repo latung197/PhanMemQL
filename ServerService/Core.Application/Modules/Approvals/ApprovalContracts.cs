@@ -19,10 +19,10 @@ public sealed record PreviewApprovalRequest(string Function, int RequesterUserId
 
 public interface IApprovalRuleService
 {
-    Task<IReadOnlyList<ApprovalRuleDto>> GetAllAsync(string? function, CancellationToken ct);
+    Task<IReadOnlyList<ApprovalRuleDto>> GetAllAsync(int actorUserId, string? function, CancellationToken ct);
     Task<ApprovalRuleDto> CreateAsync(int actorUserId, SaveApprovalRuleRequest request, CancellationToken ct);
     Task<ApprovalRuleDto> UpdateAsync(int actorUserId, long id, SaveApprovalRuleRequest request, CancellationToken ct);
-    Task DeleteAsync(long id, CancellationToken ct);
+    Task DeleteAsync(int actorUserId, long id, CancellationToken ct);
     Task<ApprovalPreview> PreviewAsync(PreviewApprovalRequest request, string defaultUnitCode, CancellationToken ct);
 }
 

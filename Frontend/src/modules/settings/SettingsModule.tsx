@@ -55,11 +55,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   // App only renders this module when the user may view subKey.
   const perms = getActionPermission(user, subKey);
   const rights = { canCreate: perms.create, canEdit: perms.edit, canDelete: perms.delete };
+  // Settings of the whole system (not of one unit) are saved by administrators only; the server refuses anyone else.
+  const canEditGlobal = perms.edit && !!user.isSystemAdmin;
 
   const renderScreen = () => {
     switch (subKey) {
-      case 'sys_default_config': return <DefaultConfigView {...rights} warehouses={warehouses} unitCode={user.ma_dvcs ?? ''} />;
-      case 'sys_fiscal_year': return <FiscalYearView {...rights} unitCode={user.ma_dvcs ?? ''} />;
+      case 'sys_default_config': return <DefaultConfigView {...rights} canEditGlobal={canEditGlobal} warehouses={warehouses} unitCode={user.ma_dvcs ?? ''} />;
+      case 'sys_fiscal_year': return <FiscalYearView {...rights} canEditGlobal={canEditGlobal} unitCode={user.ma_dvcs ?? ''} />;
       case 'sys_currencies': return <CurrencyCategoryView currentUser={user} />;
       case 'sys_exchange_rates': return <ExchangeRateCategoryView currentUser={user} />;
       case 'sys_departments': return <DepartmentCategoryView currentUser={user} />;
@@ -69,7 +71,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       case 'sys_tax_rates': return <TaxRateCategoryView currentUser={user} />;
       case 'sys_voucher_status': return <VoucherStatusView canEdit={perms.edit} unitCode={user.ma_dvcs ?? ''} companyUnits={companyUnits} />;
       case 'sys_voucher_grid': return <VoucherGridSettingsView canEdit={perms.edit} />;
-      case 'sys_audit_log': return <AuditLogView {...rights} />;
+      case 'sys_audit_log': return <AuditLogView {...rights} canEditGlobal={canEditGlobal} />;
       case 'sys_menu': return <MenuManagementView canEdit={perms.edit} visibility={menuVisibility} menuTree={menuTree} onSaved={onMenuVisibilityChanged} onStructureChanged={onMenuStructureChanged} />;
       case 'sys_users': return <UserPermissionManager currentUser={user} companyUnits={companyUnits} />;
       case 'inv_company_unit_cat':

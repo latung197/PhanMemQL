@@ -85,6 +85,16 @@ public sealed class UserAccessWriter(CoreContext db)
             .Where(x => x.RoleId == role.RoleId && x.Status == "1")
             .Select(x => x.MenuId0 + ":" + x.RightCode).ToListAsync(ct);
 
+    /// <summary>Sets the role of the user in each of their units (absent = the default role).</summary>
+    public async Task ReplaceUnitRolesAsync(int userId, IReadOnlyDictionary<string, int> roles, CancellationToken ct)
+    {
+        foreach (var row in await db.UserCompanyUnits.Where(x => x.UserId == userId).ToListAsync(ct))
+        {
+            int? wanted = roles.TryGetValue(row.UnitCode, out var roleId) ? roleId : null;
+            if (row.RoleId != wanted) row.RoleId = wanted;
+        }
+    }
+
     public async Task ReplaceUnitsAsync(int userId, IReadOnlyCollection<string> unitCodes, CancellationToken ct)
     {
         var current = await db.UserCompanyUnits.Where(x => x.UserId == userId).ToListAsync(ct);

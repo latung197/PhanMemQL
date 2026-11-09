@@ -14,7 +14,7 @@ public sealed class ApprovalRulesController(IApprovalRuleService rules) : ApiCon
 
     [HttpGet, RequirePermission(Function, PermissionAction.View)]
     public Task<IReadOnlyList<ApprovalRuleDto>> GetAll([FromQuery] string? function, CancellationToken ct) =>
-        rules.GetAllAsync(function, ct);
+        rules.GetAllAsync(CurrentUserId, function, ct);
 
     [HttpPost, RequirePermission(Function, PermissionAction.Create)]
     public Task<ApprovalRuleDto> Create(SaveApprovalRuleRequest request, CancellationToken ct) =>
@@ -27,7 +27,7 @@ public sealed class ApprovalRulesController(IApprovalRuleService rules) : ApiCon
     [HttpDelete("{id:long}"), RequirePermission(Function, PermissionAction.Delete)]
     public async Task<IActionResult> Delete(long id, CancellationToken ct)
     {
-        await rules.DeleteAsync(id, ct);
+        await rules.DeleteAsync(CurrentUserId, id, ct);
         return NoContent();
     }
 

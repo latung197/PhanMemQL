@@ -120,6 +120,7 @@ public static class DependencyInjection
         foreach (var lookup in LookupCatalogs.All) services.AddLookup(lookup);
         // Custom lookups (typed columns, parameters, rights): one class each, see LookupProvider.
         services.AddLookupProvider<UomFullLookup>();
+        services.AddLookupProvider<WarehouseLookup>();
         services.AddLookupProvider<MaterialUomLookup>();
         services.AddLookupProvider<AccountLookup>();
         services.AddScoped<IAccountService, AccountService>();
@@ -138,6 +139,9 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<Core.Application.Common.Security.ISecurityPolicyService, SecurityPolicyService>();
+        services.AddScoped<ILoginHistoryService, LoginHistoryService>();
+        services.AddSingleton<SessionActivity>();
         services.AddScoped<ICompanyUnitService, CompanyUnitService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<INotificationStream, NotificationStream>();

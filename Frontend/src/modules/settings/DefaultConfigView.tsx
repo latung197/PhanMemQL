@@ -19,6 +19,7 @@ import { loadCurrencyOptions } from '../../services/lookupOptions';
 import { Warehouse } from '../../types';
 import { VoucherNumberingPanel } from './VoucherNumberingPanel';
 import { NumberFormatSettings } from './NumberFormatSettings';
+import { GlobalSettingNote } from './GlobalSettingNote';
 import { SettingsViewProps } from './settingsTypes';
 
 type DefaultsTab = 'parameters' | 'numbering' | 'print' | 'number_format';
@@ -40,7 +41,7 @@ const SIGNATURES: { key: keyof PrintSignatureLabels; label: string }[] = [
 /** Select value for a unit field: '' = follow the company value. */
 const inherit = (value: boolean | null) => (value === null ? '' : value ? 'yes' : 'no');
 
-export const DefaultConfigView: React.FC<DefaultConfigViewProps> = ({ canEdit, warehouses, unitCode }) => {
+export const DefaultConfigView: React.FC<DefaultConfigViewProps & { canEditGlobal?: boolean }> = ({ canEdit, canEditGlobal = false, warehouses, unitCode }) => {
   const [tab, setTab] = useState<DefaultsTab>('parameters');
   const [config, setConfig] = useState<SystemDefaultConfig>(() => systemSettingsService.getSystemDefaults());
   const [unit, setUnit] = useState<UnitDefaultsConfig>(() => systemSettingsService.getUnitDefaults());
@@ -105,8 +106,9 @@ export const DefaultConfigView: React.FC<DefaultConfigViewProps> = ({ canEdit, w
       {tab === 'parameters' && (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <Card className="xl:col-span-2 p-5 border border-slate-200 dark:border-slate-800 rounded-[5px]" title="Tham số chung toàn công ty">
+            <GlobalSettingNote show={canEdit && !canEditGlobal} />
             <form className="space-y-4" onSubmit={e => { e.preventDefault(); saveParameters(config, 'Đã lưu tham số chung'); }}>
-              <fieldset disabled={!canEdit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <fieldset disabled={!canEditGlobal} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <SelectInput label="Phương pháp tính giá xuất kho" required value={config.costingMethod}
                   hint="Dùng khi tính giá vốn hàng xuất"
                   onChange={e => setConfig({ ...config, costingMethod: e.target.value as CostingMethod })}
@@ -131,7 +133,7 @@ export const DefaultConfigView: React.FC<DefaultConfigViewProps> = ({ canEdit, w
                     onChange={requireApprovalBeforePosting => setConfig({ ...config, requireApprovalBeforePosting })} />
                 </div>
               </fieldset>
-              {canEdit && (
+              {canEditGlobal && (
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" size="sm" icon={<RotateCcw className="h-3.5 w-3.5" />}
                     onClick={() => void resetParameters()}>
@@ -186,7 +188,7 @@ export const DefaultConfigView: React.FC<DefaultConfigViewProps> = ({ canEdit, w
               <p className="text-slate-600 dark:text-slate-400">{company.address}{company.phone ? ` · ĐT ${company.phone}` : ''}</p>
               <p className="text-[11px] text-slate-500">Sửa tại Cài đặt › Hồ sơ doanh nghiệp & sao lưu.</p>
             </div>
-            <fieldset disabled={!canEdit} className="space-y-4">
+            <fieldset disabled={!canEditGlobal} className="space-y-4">
               <TextInput label="Ghi chú chân trang" maxLength={300} value={config.printTemplate.footerNote}
                 onChange={e => setConfig({ ...config, printTemplate: { ...config.printTemplate, footerNote: e.target.value } })} />
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -196,7 +198,7 @@ export const DefaultConfigView: React.FC<DefaultConfigViewProps> = ({ canEdit, w
                 ))}
               </div>
             </fieldset>
-            {canEdit && (
+            {canEditGlobal && (
               <div className="flex justify-end">
                 <Button type="submit" size="sm" icon={<Save className="h-3.5 w-3.5" />}>Lưu mẫu in</Button>
               </div>
@@ -205,7 +207,7 @@ export const DefaultConfigView: React.FC<DefaultConfigViewProps> = ({ canEdit, w
         </Card>
       )}
 
-      {tab === 'number_format' && <NumberFormatSettings canEdit={canEdit} />}
+      {tab === 'number_format' && <NumberFormatSettings canEdit={canEditGlobal} />}
     </div>
   );
 };

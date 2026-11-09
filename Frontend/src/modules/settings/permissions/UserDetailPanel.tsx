@@ -39,7 +39,14 @@ interface UserAccessDraft {
   roleId: string;
   matrix: FullMatrix;
   rights: string[];
+  /** Unit code → role id ('' = the default role). */
+  unitRoles: Record<string, string>;
 }
+
+const unitRolesOf = (user: UserProfile): Record<string, string> =>
+  Object.fromEntries((user.ds_ma_dvcs ?? []).map(code => [code, user.unitRoles?.find(x => x.unitCode === code)?.roleId ?? '']));
+const sameUnitRoles = (a: Record<string, string>, b: Record<string, string>) =>
+  Object.keys({ ...a, ...b }).every(code => (a[code] ?? '') === (b[code] ?? ''));
 
 const roleMatrix = (role?: RoleDefinition) =>
   role ? toFullMatrix({ isSystemAdmin: role.isSystemRole, permissions: role.permissions }) : undefined;
@@ -50,10 +57,11 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
 }) => {
   const { t } = useLanguage();
   const saved = useMemo<UserAccessDraft>(() => ({
-    roleId: user.roleId ?? '', matrix: toFullMatrix(user), rights: normalizeRights(user.specialRights)
+    roleId: user.roleId ?? '', matrix: toFullMatrix(user), rights: normalizeRights(user.specialRights), unitRoles: unitRolesOf(user)
   }), [user]);
   const { draft, setDraft, dirty, reset } = useDraft(saved, (a, b) =>
-    a.roleId === b.roleId && matrixEquals(a.matrix, b.matrix) && countRightDifferences(a.rights, b.rights) === 0);
+    a.roleId === b.roleId && matrixEquals(a.matrix, b.matrix) && countRightDifferences(a.rights, b.rights) === 0
+    && sameUnitRoles(a.unitRoles, b.unitRoles));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
@@ -71,14 +79,15 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
   const selfLocked = isSelf && !actorIsAdmin;
   const readOnly = !canEdit || isAdmin || selfLocked;
   const changes = countDifferences(saved.matrix, draft.matrix) + countRightDifferences(saved.rights, draft.rights)
-    + (draft.roleId !== saved.roleId ? 1 : 0);
+    + (draft.roleId !== saved.roleId ? 1 : 0)
+    + Object.keys(draft.unitRoles).filter(code => (draft.unitRoles[code] ?? '') !== (saved.unitRoles[code] ?? '')).length;
   const unitName = (code?: string) => companyUnits.find(u => u.code === code)?.shortName || code || '—';
 
   const handleRoleChange = (roleId: string) => {
     const next = roles.find(r => r.id === roleId);
     // Like a quick assignment by role: the role's rights become the starting point of the user's matrix.
     const matrix = roleMatrix(next) ?? draft.matrix;
-    setDraft({ roleId, matrix, rights: next ? visibleRights(next.specialRights, matrix) : draft.rights });
+    setDraft({ ...draft, roleId, matrix, rights: next ? visibleRights(next.specialRights, matrix) : draft.rights });
     if (next) showToast.info(t('users.detail.roleLoaded', { name: next.name }));
   };
 
@@ -93,9 +102,10 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
     setSaving(true);
     try {
       const matrix = isAdmin ? uniformMatrix('all') : draft.matrix;
+      const unitRoles = isAdmin ? {} : Object.fromEntries(Object.entries(draft.unitRoles).map(([code, roleId]) => [code, roleId || null]));
       const result = await usersApi.setPermissions(user.id, draft.roleId || null, matrix, isAdmin ? [] : draft.rights,
-        user.version);
-      reset({ roleId: result.roleId ?? '', matrix: toFullMatrix(result), rights: normalizeRights(result.specialRights) });
+        user.version, unitRoles);
+      reset({ roleId: result.roleId ?? '', matrix: toFullMatrix(result), rights: normalizeRights(result.specialRights), unitRoles: unitRolesOf(result) });
       onSaved(result);
       showToast.success(t('users.detail.saved', { username: user.username }));
     } catch (error) {
@@ -183,6 +193,31 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
           </Button>
         )}
       </div>
+
+      {/* Role per company unit: in a unit with a role of its own that role replaces the default one; the exceptions below apply everywhere. */}
+      {!isAdmin && (user.ds_ma_dvcs ?? []).length > 0 && (
+        <div className="px-2.5 py-2 rounded-[5px] border border-slate-200 dark:border-slate-700 space-y-1.5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('users.detail.unitRoles')}</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">{t('users.detail.unitRolesHint')}</span>
+          </div>
+          <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 md:grid-cols-2">
+            {(user.ds_ma_dvcs ?? []).map(code => (
+              <div key={code} className="flex items-center gap-2">
+                <span className="w-24 shrink-0 truncate text-xs font-mono text-slate-600 dark:text-slate-300" title={unitName(code)}>{code}</span>
+                <SelectInput
+                  wrapperClassName="flex-1 min-w-0"
+                  value={draft.unitRoles[code] ?? ''}
+                  disabled={readOnly}
+                  onChange={(e) => setDraft({ ...draft, unitRoles: { ...draft.unitRoles, [code]: e.target.value } })}
+                  options={[{ value: '', label: t('users.detail.unitRoleDefault', { role: role ? role.name : t('users.detail.noRole') }) },
+                    ...roles.filter(r => !r.isSystemRole).map(r => ({ value: r.id, label: `${r.name} [${r.code}]` }))]}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {canEdit && selfLocked && (
         <div className="flex items-center gap-2 text-[11px] text-slate-500"><Lock className="h-3.5 w-3.5" /> {t('users.detail.selfLocked')}</div>

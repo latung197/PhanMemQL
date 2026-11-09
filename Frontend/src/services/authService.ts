@@ -32,7 +32,22 @@ interface AuthResult {
   token: string;
   expiresAt: string;
   user: UserProfile;
+  /** The password was set by someone else or is too old: only changing it is allowed until then. */
+  mustChangePassword?: boolean;
+  passwordExpired?: boolean;
 }
+
+/** The claims of the stored token (its middle part); null when there is none or it cannot be read. */
+const tokenClaims = (): Record<string, unknown> | null => {
+  const token = tokenStore.get();
+  if (!token) return null;
+  try {
+    const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(decodeURIComponent(atob(part).split('').map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')));
+  } catch {
+    return null;
+  }
+};
 
 /** Active language for the language picker (backend sys_language). */
 export interface LanguageOption {
@@ -89,7 +104,12 @@ export const authService = {
       { currentPassword, newPassword }));
   },
 
+  /** True while the token only allows changing the password (claim erp_pwd_change, set by the server at sign-in). */
+  mustChangePassword: () => tokenClaims()?.erp_pwd_change === '1',
+
+  /** Signs out: the server writes it to the login history (best effort), then the token is dropped. */
   logout() {
+    if (tokenStore.get()) void apiRequest<void>('POST', '/api/auth/logout', undefined, { quiet: true }).catch(() => undefined);
     tokenStore.clear();
   }
 };

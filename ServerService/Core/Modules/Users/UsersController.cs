@@ -13,7 +13,7 @@ public sealed class UsersController(IUserService users) : ApiControllerBase
     private const string Function = "sys_users";
 
     [HttpGet, RequirePermission(Function, PermissionAction.View)]
-    public Task<IReadOnlyList<UserProfileDto>> GetAll(CancellationToken ct) => users.GetAllAsync(ct);
+    public Task<IReadOnlyList<UserProfileDto>> GetAll(CancellationToken ct) => users.GetAllAsync(CurrentUserId, ct);
 
     [HttpPost, RequirePermission(Function, PermissionAction.Create)]
     public Task<UserProfileDto> Create(CreateUserRequest request, CancellationToken ct) =>

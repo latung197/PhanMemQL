@@ -39,6 +39,10 @@ public class SysUser : AuditableEntity, IVersioned
 
     /// <summary>Incremented to invalidate every issued token of the user.</summary>
     [AuditIgnore, Column("security_version")] public int SecurityVersion { get; set; } = 1;
+    /// <summary>When the password was last set (UTC); null = unknown, never counted as expired.</summary>
+    [AuditIgnore, Column("password_changed_at")] public DateTime? PasswordChangedAt { get; set; }
+    /// <summary>The password was set by someone else (new account, reset): the user must change it at the next sign-in.</summary>
+    [AuditField("mustChangePassword"), Column("must_change_password")] public bool MustChangePassword { get; set; }
 
     [Column("is_active")] public bool IsActive { get; set; } = true;
     [NotReference("mã nhân viên của chính tài khoản")]
