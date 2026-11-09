@@ -69,9 +69,10 @@ public sealed class LookupService(CoreContext db, IAppCache cache, IPermissionSe
     public async Task<LookupPage> SearchAsync(string name, LookupQuery query, LookupCaller caller, CancellationToken ct)
     {
         EnsureNamesAreUnique();
+        var access = await CheckAccessAsync(name, caller, ct);
         if (_providers.TryGetValue(name, out var provider))
         {
-            var (found, count) = LookupSearch.Run(await ProviderItemsAsync(provider, caller, ct), query);
+            var (found, count) = LookupSearch.Run(await access.ApplyAsync(await ProviderItemsAsync(provider, caller, ct), ct), query);
             return new LookupPage(found, count);
         }
 
@@ -79,25 +80,66 @@ public sealed class LookupService(CoreContext db, IAppCache cache, IPermissionSe
         var set = await LoadSetAsync(definition, ct);
         if (set.Items is not null)
         {
-            var (found, count) = LookupSearch.Run(set.Items, query);
+            var (found, count) = LookupSearch.Run(await access.ApplyAsync(set.Items, ct), query);
             return new LookupPage(found, count);
         }
-        return await SearchInDatabaseAsync(definition, query, ct);
+        var page = await SearchInDatabaseAsync(definition, query, ct);
+        return page with { Items = await access.ApplyAsync(page.Items, ct) };
     }
 
     public async Task<IReadOnlyList<LookupItem>> GetAsync(string name, IReadOnlyCollection<string> codes, LookupCaller caller, CancellationToken ct)
     {
         EnsureNamesAreUnique();
+        var access = await CheckAccessAsync(name, caller, ct);
         var list = codes.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct().Take(LookupLimits.MaxCodes).ToList();
         if (_providers.TryGetValue(name, out var provider))
-            return list.Count == 0 ? [] : (await ProviderItemsAsync(provider, caller, ct)).Where(x => list.Contains(x.Code)).ToList();
+            return list.Count == 0 ? [] : (await access.ApplyAsync(await ProviderItemsAsync(provider, caller, ct), ct)).Where(x => list.Contains(x.Code)).ToList();
 
         var definition = Find(name);
         if (list.Count == 0) return [];
         var set = await LoadSetAsync(definition, ct);
-        if (set.Items is not null) return set.Items.Where(x => list.Contains(x.Code)).ToList();
+        if (set.Items is not null) return (await access.ApplyAsync(set.Items, ct)).Where(x => list.Contains(x.Code)).ToList();
         var rows = await definition.Rows(db).AsNoTracking().Where(x => list.Contains(x.Code)).ToListAsync(ct);
-        return rows.Select(x => ToItem(definition, x)).ToList();
+        return await access.ApplyAsync(rows.Select(x => ToItem(definition, x)).ToList(), ct);
+    }
+
+    // ---- Rights ------------------------------------------------------------------------------------------------------
+
+    /// <summary>What a caller may take from a lookup: the sensitive columns and, for company units, the units they may work in.</summary>
+    private sealed class LookupAccess(LookupAccessRule? rule, bool sensitive, bool allUnits, int userId, IPermissionService permissions)
+    {
+        public async Task<IReadOnlyList<LookupItem>> ApplyAsync(IReadOnlyList<LookupItem> items, CancellationToken ct)
+        {
+            if (rule is null) return items;
+            if (rule.UnitScoped && !allUnits)
+            {
+                var kept = new List<LookupItem>();
+                foreach (var item in items)
+                    if (await permissions.HasUnitAccessAsync(userId, item.Code, ct)) kept.Add(item);
+                items = kept;
+            }
+            if (sensitive || rule.SensitiveExtras.Count == 0) return items;
+            return items.Select(item => item.Extra.Keys.Any(rule.SensitiveExtras.Contains)
+                ? item with { Extra = item.Extra.ToDictionary(x => x.Key, x => rule.SensitiveExtras.Contains(x.Key) ? null : x.Value) }
+                : item).ToList();
+        }
+    }
+
+    /// <summary>
+    /// A lookup is not open to every signed-in user: it answers an administrator, a user who may View the catalog behind it, or one
+    /// who may View a function that picks from it (see <see cref="LookupAccessCatalog"/>). Anyone else gets 403, so a user with no
+    /// business with the suppliers cannot read them (tax code, phone) through the picker. A lookup without a rule is refused too.
+    /// </summary>
+    private async Task<LookupAccess> CheckAccessAsync(string name, LookupCaller caller, CancellationToken ct)
+    {
+        if (!_providers.ContainsKey(name) && !_definitions.ContainsKey(name)) throw new NotFoundException("lookup.notFound", name);
+        var rule = LookupAccessCatalog.Find(name);
+        var matrix = await permissions.GetEffectiveAsync(caller.UserId, ct);
+        bool Can(string function) => matrix.TryGetValue(function, out var rights) && rights.View;
+        var admin = await permissions.IsAdminAsync(caller.UserId, ct);
+        var owner = admin || (rule?.Owner is { } own && Can(own));
+        if (!owner && (rule is null || !(rule.Open || rule.Consumers.Any(Can)))) throw new ForbiddenException("permission.denied");
+        return new LookupAccess(rule, owner || (rule?.SensitiveFor.Any(Can) ?? false), owner, caller.UserId, permissions);
     }
 
     // ---- Custom lookups (LookupProvider) ---------------------------------------------------------------------------

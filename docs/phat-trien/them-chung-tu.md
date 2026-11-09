@@ -103,6 +103,8 @@ Trigger xóa dòng chi tiết cùng đầu phiếu, từ chối nếu phiếu c�
 | Mã chức năng | `Core.Application/Common/Permissions/FunctionCatalog.cs`: `["<ma>"] = "Tên"` |
 | **Số chứng từ, quyền đặc biệt, chỗ trong màn quy tắc duyệt** | `Core.Application/Common/Documents/VoucherCatalog.cs`: thêm `new("<ma>", "<LOAI>", "Tên")` vào `All`. Chỉ một dòng này là có ngay: dải số trong `sys_voucher_numbering` (tạo khi khởi động), bộ quyền đặc biệt `VIEW_PRICE`, `VIEW_ALL` và các quyền trạng thái theo đơn vị `ST_PENDING`, `ST_APPROVED`, `ST_POSTED`, `ST_UNPOST`, `ST_CANCELLED` (phiếu không ghi sổ thì thêm vào `NonPosting` của `VoucherStatusCatalog`: không có `ST_POSTED`, `ST_UNPOST`), danh mục trạng thái theo đơn vị ở Cài đặt › Trạng thái chứng từ, và mục trong màn Quy tắc phê duyệt |
 | `VIEW_COST` (xem giá vốn) nếu cần | `SpecialRightCatalog.cs`, danh sách `inv_issue`, `inv_transfer_issue`... |
+| `ST_EDIT_POSTED` (sửa / xóa phiếu đã ghi sổ) nếu phiếu ghi sổ kho và dùng `PostedEdit` | `SpecialRightCatalog.cs`, danh sách `inv_receipt`, `inv_issue`, `inv_transfer_issue`, `inv_transfer_receipt` (phiếu kiểm kê bỏ ghi sổ rồi sửa, không có quyền này) |
+| **Quyền dùng các ô chọn** (vật tư, đơn vị tính, kho, nhà cung cấp, khách hàng, dự án, vị trí, lô, điều khoản...) | `Core.Application/Common/Lookups/LookupAccess.cs`: thêm mã chức năng vào mảng nhóm phù hợp (`StockVouchers`, `PurchaseVouchers`, `SalesVouchers`, `FinanceVouchers`) hoặc vào `Consumers` của từng tra cứu phiếu dùng; nếu phiếu **in** mã số thuế / điện thoại của đối tác thì thêm vào `SensitiveFor` của `suppliers` / `customers`. **Quên bước này thì người chỉ có quyền lập phiếu bị 403 ở mọi ô chọn** (đã kiểm: quyền Xem phiếu mới là cái mở tra cứu, không phải quyền Xem danh mục) |
 | Màn phê duyệt riêng | `VoucherCatalog.ApprovalScreens` (backend) **và** `APPROVAL_SCREENS` trong `Frontend/src/utils/permissions.ts` (bản sao, giữ khớp nhau) |
 | Thông báo lỗi tiếng Việt và Anh | `Messages.vi.json` và `Messages.en.json`: `<loai>.notFound`, `<loai>.itemsRequired`, `<loai>.deleteDraftOnly`, `<loai>.editDraftOnly`..., nhãn `field.*`, `voucher.<LOAI>` (tên chứng từ), `function.<ma>` (bản en) |
 | Menu | `ServerService/Core/SeedData/menu.json`: nút trong nhóm cập nhật số liệu của phân hệ (`subKey` = mã chức năng); backend tự thêm vào `sys_command` khi khởi động |
@@ -192,7 +194,7 @@ Mẫu: `modules/inventory/documents/goods-issues/` (`GoodsIssueView.tsx`, `api.t
 | Trạng thái và quy tắc nút | `utils/documentPolicy.ts` là bản sao của `DocumentStatusPolicy`; đổi một bên thì đổi cả hai, kiểm bằng `npm run check-policy` |
 | Màn phê duyệt | một `case` riêng trong module, dùng API `/api/approvals/{function}/{documentId}/...`; thêm vào `APPROVAL_SCREENS` |
 
-Quy tắc giao diện: không gõ cứng chữ trong màn thuộc phạm vi đã dịch (xem `check-i18n`); dùng control chung (`Modal`, `TextInput`, `Tabs`, `useConfirm`); số tiền và số lượng định dạng bằng `useNumberFormat`; thông báo bằng `showToast`.
+Quy tắc giao diện: chữ mới viết bằng `t()` với khóa ở `locales/{vi,en}/<phân hệ>.json` (các màn phiếu hiện có còn gõ cứng tiếng Việt, đó là nợ cần chuyển, không phải mẫu: xem [da-ngon-ngu.md](da-ngon-ngu.md) mục L2, L3; tên chứng từ ở `voucher.<LOẠI>`); chữ in phiếu ở `voucherPrint.ts` hiện cố định tiếng Việt; dùng control chung (`Modal`, `TextInput`, `Tabs`, `useConfirm`); số tiền và số lượng định dạng bằng `useNumberFormat`; thông báo bằng `showToast`.
 
 ---
 
@@ -206,6 +208,7 @@ cd ../Frontend && npm run lint && npm run check-i18n && npm run check-menu && np
 ```
 
 2. Chạy backend và frontend (`.claude/launch.json`), đăng nhập `admin` / `admin`. Dữ liệu dev đã khóa toàn bộ các tháng 2026 của DVCS01, nên phiếu thử dùng **ngày năm 2027** (hoặc đơn vị khác).
+2b. **Thử bằng tài khoản không phải quản trị viên** (vai trò thủ kho, kế toán, nhân viên kinh doanh): chỉ có quyền Xem + Thêm phiếu thì các ô chọn (vật tư, kho, đối tác, dự án...) phải tải được; không có quyền Xem phiếu thì mọi API của phiếu 403 và tra cứu của riêng phiếu (nếu người đó chẳng có màn nào dùng) 403; quyền theo trạng thái cấp **theo đơn vị**: thử ghi sổ ở đơn vị chưa được cấp (phải bị từ chối). Dùng bảng "ai dùng được tra cứu nào" ở [phan-quyen.md](../he-thong/phan-quyen.md) mục C10 để đối chiếu.
 3. Thử bằng API hoặc màn hình, **mỗi bước kiểm `GET /api/inventory/stock/verify` trống** nếu chứng từ ghi sổ kho:
    - lập, sửa, sửa với `version` cũ (409), kỳ đã khóa (bị chặn), đơn vị / kho / vật tư / đơn vị tính sai (lỗi rõ ràng);
    - gửi duyệt, tự duyệt (bị chặn), người khác duyệt, từ chối kèm lý do, rút lại;
@@ -222,6 +225,7 @@ cd ../Frontend && npm run lint && npm run check-i18n && npm run check-menu && np
 
 - Viết `docs/<phan-he>/<ten>.md` theo mẫu `docs/kho/phieu-xuat-kho.md` (tổng quan, màn hình, trạng thái, luồng, ghi sổ, bảng từng cột, xóa phiếu, quyền, API, lỗi, cài đặt và kiểm tra, giới hạn, tệp mã nguồn) và sinh bản Word: `node docs/cong-cu/build-word.cjs <md> <docx> "<chân trang>" "<tiêu đề>"`.
 - Thêm một dòng vào `docs/README.md`; cập nhật dòng "Backend-backed" và các bảng trong `CLAUDE.md`, `README.md` gốc, `ServerService/README.md` (bảng API).
+- Cập nhật **bảng chứng từ** trong [phan-quyen.md](../he-thong/phan-quyen.md) mục A5 ("Chứng từ hiện khai báo") và danh sách màn phê duyệt ở A8; thêm mô tả bảng vào từ điển cơ sở dữ liệu (`docs/cong-cu/gen-database-doc.cjs`, `database-notes.cjs`, `database-scripts.cjs`; chạy `node docs/cong-cu/gen-database-doc.cjs` rồi dựng Word).
 
 ---
 
@@ -330,10 +334,12 @@ Tài liệu mẫu cho từng chuỗi: `docs/mua-hang/mua-hang-va-du-an.md`, `doc
 - [ ] Script SQL: đầu phiếu, dòng, chỉ mục cho mọi `*_code`, trigger xóa phiếu nếu ghi sổ kho; chạy hai lần trên `erp_dev`
 - [ ] Thực thể (`IApprovableDocument`, `[References]`, `[Audited]`) và `DbSet`
 - [ ] Hợp đồng (`Version`, `TargetStatus`), giao diện dịch vụ
-- [ ] `FunctionCatalog`, `VoucherCatalog` (+ `ApprovalScreens`), `SpecialRightCatalog` nếu cần, menu, thông báo vi / en
+- [ ] `FunctionCatalog`, `VoucherCatalog` (+ `ApprovalScreens`), `SpecialRightCatalog` nếu cần (`VIEW_COST`, `ST_EDIT_POSTED`), menu, thông báo vi / en (`voucher.<LOẠI>`, `function.<mã>`, `table.<bảng>`)
+- [ ] **`LookupAccessCatalog`: thêm phiếu vào nhóm `StockVouchers` / `PurchaseVouchers` / `SalesVouchers` / `FinanceVouchers` (hoặc `Consumers`, `SensitiveFor`)**; `LookupAccessTests` kiểm chức năng có thật
 - [ ] Dịch vụ: kiểm tra, cấp số, khóa sổ, chính sách trạng thái, duyệt, ghi sổ, nhật ký, chống ghi đè, `TargetStatus`
 - [ ] `DocumentApprovalService`: ba chỗ; controller; đăng ký DI
 - [ ] Frontend: mã chức năng, menu, module, `api.ts`, màn phiếu, màn duyệt, lưu thẳng trạng thái, in phiếu, `APPROVAL_SCREENS`
-- [ ] Build, test, lint, `check-i18n`, `check-menu`, `check-policy`; thử đủ kịch bản mục 8; dọn dữ liệu thử
+- [ ] Build, test, lint, `check-i18n`, `check-menu`, `check-policy`; thử đủ kịch bản mục 8, **kể cả bằng tài khoản không phải quản trị viên (các ô chọn, quyền theo đơn vị)**; dọn dữ liệu thử
 - [ ] Nếu chứng từ nối tiếp chứng từ khác: làm thêm danh sách ở mục 10.6
-- [ ] Tài liệu (md và Word), `docs/README.md`, CLAUDE.md, README
+- [ ] Chữ màn hình bằng `t()` (vi + en); tên chứng từ `voucher.<LOẠI>`; phiếu in có bản dịch nếu làm in song ngữ
+- [ ] Tài liệu (md và Word), `docs/README.md`, CLAUDE.md, README, bảng chứng từ ở `phan-quyen.md`, từ điển cơ sở dữ liệu

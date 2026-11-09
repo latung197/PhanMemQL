@@ -840,7 +840,8 @@
       "menu": "Mục menu",
       "customer": "Khách hàng",
       "customerGroup": "Nhóm khách hàng",
-      "priceList": "Bảng giá bán"
+      "priceList": "Bảng giá bán",
+      "stockNorm": "Định mức tồn kho"
     },
     "objectLabel": {
       "auditLog": "Dọn nhật ký cũ"

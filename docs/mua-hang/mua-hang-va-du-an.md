@@ -81,7 +81,7 @@ API: `GET api/purchasing/project-cost?search=&projectStatus=&from=&to=` và `GET
 | `pur_report_project` | Xem báo cáo; `VIEW_COST` để thấy tiền |
 | `inv_receipt` | Nút **Lấy từ đơn mua hàng** chỉ cần quyền xem phiếu nhập (không cần quyền xem đơn mua); giá lấy sang là 0 nếu thiếu `VIEW_PRICE` |
 
-Chọn dự án / điều khoản / nhóm nhà cung cấp ở form khác dùng các **tra cứu** (`/api/lookups/projects`, `paymentTerms`, `supplierGroups`), mở cho mọi người đã đăng nhập, không cần quyền xem danh mục.
+Chọn dự án / điều khoản / nhóm nhà cung cấp ở form khác dùng các **tra cứu** (`/api/lookups/projects`, `paymentTerms`, `supplierGroups`), chỉ trả lời người có quyền Xem danh mục hoặc màn dùng nó (`LookupAccessCatalog`), không cần quyền xem danh mục.
 
 ## 7. Cài đặt và kiểm tra
 

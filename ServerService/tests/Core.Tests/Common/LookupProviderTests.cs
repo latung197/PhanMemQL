@@ -47,7 +47,7 @@ public sealed class LookupProviderTests
         var cache = new MemoryAppCache(new MemoryCache(new MemoryCacheOptions()));
         var context = new CoreContext(new DbContextOptionsBuilder<CoreContext>()
             .UseNpgsql("Host=localhost;Database=model_only;Username=model_only;Password=model_only").Options);
-        return (new LookupService(context, cache, null!, definitions, [provider]), provider, cache);
+        return (new LookupService(context, cache, new FakePermissions(admin: true), definitions, [provider]), provider, cache);
     }
 
     private static LookupCaller Caller(params (string Key, string Value)[] parameters) =>

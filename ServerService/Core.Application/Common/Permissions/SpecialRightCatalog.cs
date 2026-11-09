@@ -64,7 +64,7 @@ public static class SpecialRightCatalog
     private static readonly string[] PricedCatalogsAndReports =
     [
         "inv_material_cat", "inv_report_stock", "inv_report_nxt", "inv_report_inward", "inv_report_outward",
-        "inv_report_aging", "sales_report", "pur_report_project", "pur_report_payable"
+        "inv_report_aging", "inv_calc_monthly_cost", "sales_report", "pur_report_project", "pur_report_payable"
     ];
 
     /// <summary>

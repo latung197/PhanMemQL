@@ -1,6 +1,6 @@
 # Mô tả cơ sở dữ liệu S-ERP
 
-Tài liệu này mô tả toàn bộ cơ sở dữ liệu PostgreSQL của S-ERP: **82 bảng**, 1 view, 1125 cột, 306 chỉ mục. Kiểu dữ liệu, độ dài, ràng buộc, chỉ mục, trigger và tham chiếu được **sinh tự động từ database thật** (`erp_dev`) bằng `docs/cong-cu/gen-database-doc.cjs`; phần mô tả bảng và cột viết tay trong `docs/cong-cu/database-notes.cjs` và công cụ. Nhờ vậy khớp với cấu trúc đang chạy. Khi đổi cấu trúc: chạy script SQL, rồi chạy lại công cụ để sinh lại tài liệu.
+Tài liệu này mô tả toàn bộ cơ sở dữ liệu PostgreSQL của S-ERP: **83 bảng**, 1 view, 1139 cột, 310 chỉ mục. Kiểu dữ liệu, độ dài, ràng buộc, chỉ mục, trigger và tham chiếu được **sinh tự động từ database thật** (`erp_dev`) bằng `docs/cong-cu/gen-database-doc.cjs`; phần mô tả bảng và cột viết tay trong `docs/cong-cu/database-notes.cjs` và công cụ. Nhờ vậy khớp với cấu trúc đang chạy. Khi đổi cấu trúc: chạy script SQL, rồi chạy lại công cụ để sinh lại tài liệu.
 
 ## 1. Quy ước chung
 
@@ -81,6 +81,7 @@ Dự án **không dùng ràng buộc khóa ngoại**. Các bảng liên kết b�
 | Danh mục Kho | `erp_material` | 30 | Danh mục **vật tư / hàng hóa**: đơn vị tính gốc, loại, nhóm, các cờ `track_lot`, `has_expiry`, `track_location`, `is_stock_item`, phương pháp tính giá (AVERAGE / FIFO), tồn tối thiểu.. |
 | Danh mục Kho | `erp_material_group` | 9 | Nhóm vật tư |
 | Danh mục Kho | `erp_material_type` | 10 | Loại vật tư, thuộc một nhóm |
+| Danh mục Kho | `erp_stock_norm` | 14 | Định mức tồn kho của vật tư theo kho; khóa gộp vật tư + kho (VT001@KHO01), tối thiểu, tối đa, an toàn, điểm đặt hàng lại; báo cáo tồn kho đọc từ đây |
 | Danh mục Kho | `erp_supplier` | 13 | Danh mục nhà cung cấp (mã số thuế, điện thoại, địa chỉ, nhóm) |
 | Danh mục Kho | `erp_uom` | 10 | Đơn vị tính (cái, kg, thùng...) |
 | Danh mục Kho | `erp_uom_conversion` | 13 | Quy đổi đơn vị tính (có thể riêng cho một vật tư): hệ số từ đơn vị này sang đơn vị kia |
@@ -249,6 +250,8 @@ Mỗi dòng: cột của một bảng trỏ tới khóa của bảng nào. **Ch�
 | `erp_stock_movement` | `unit_code` | `sys_company_unit.code` | có |  |
 | `erp_stock_movement` | `uom_code` | `erp_uom.code` | có |  |
 | `erp_stock_movement` | `warehouse_code` | `erp_warehouse.code` | có |  |
+| `erp_stock_norm` | `material_code` | `erp_material.code` | có |  |
+| `erp_stock_norm` | `warehouse_code` | `erp_warehouse.code` | có |  |
 | `erp_supplier` | `supplier_group_code` | `erp_supplier_group.code` | có |  |
 | `erp_transfer_issue` | `from_warehouse_code` | `erp_warehouse.code` | có |  |
 | `erp_transfer_issue` | `to_warehouse_code` | `erp_warehouse.code` | có |  |
@@ -293,7 +296,7 @@ Mỗi dòng: cột của một bảng trỏ tới khóa của bảng nào. **Ch�
 | `sys_voucher_sequence` | `unit_code` | `sys_company_unit.code` | có |  |
 | `sys_voucher_status` | `unit_code` | `sys_company_unit.code` | có |  |
 
-(Tổng 137 tham chiếu. Cột chứng từ trỏ dòng nguồn bằng id như `purchase_request_line_id`, `purchase_order_line_id`, `issue_request_line_id` không nằm trong bản đồ vì là id, không phải mã danh mục; chúng được mô tả ở từng bảng.)
+(Tổng 139 tham chiếu. Cột chứng từ trỏ dòng nguồn bằng id như `purchase_request_line_id`, `purchase_order_line_id`, `issue_request_line_id` không nằm trong bản đồ vì là id, không phải mã danh mục; chúng được mô tả ở từng bảng.)
 
 ## 5. Mô tả từng bảng
 
@@ -1267,7 +1270,7 @@ Ràng buộc:
 - `ck_erp_material_stock` (CHECK): CHECK (((min_stock IS NULL) OR (min_stock >= (0)::numeric)))
 - `ck_erp_material_stock_max` (CHECK): CHECK (((max_stock IS NULL) OR (min_stock IS NULL) OR (max_stock >= min_stock)))
 
-Được trỏ tới bởi: `erp_goods_issue_line.material_code`, `erp_goods_receipt_line.material_code`, `erp_issue_request_line.material_code`, `erp_lot.material_code`, `erp_price_list_line.material_code`, `erp_purchase_invoice_line.material_code`, `erp_purchase_order_line.material_code`, `erp_purchase_request_line.material_code`, `erp_sales_order_line.material_code`, `erp_stock_balance.material_code`, `erp_stock_count_line.material_code`, `erp_stock_location_balance.material_code`, `erp_stock_lot_balance.material_code`, `erp_stock_movement.material_code`, `erp_transfer_issue_line.material_code`, `erp_transfer_order_line.material_code`, `erp_transfer_receipt_line.material_code`, `erp_uom_conversion.material_code`.
+Được trỏ tới bởi: `erp_goods_issue_line.material_code`, `erp_goods_receipt_line.material_code`, `erp_issue_request_line.material_code`, `erp_lot.material_code`, `erp_price_list_line.material_code`, `erp_purchase_invoice_line.material_code`, `erp_purchase_order_line.material_code`, `erp_purchase_request_line.material_code`, `erp_sales_order_line.material_code`, `erp_stock_balance.material_code`, `erp_stock_count_line.material_code`, `erp_stock_location_balance.material_code`, `erp_stock_lot_balance.material_code`, `erp_stock_movement.material_code`, `erp_stock_norm.material_code`, `erp_transfer_issue_line.material_code`, `erp_transfer_order_line.material_code`, `erp_transfer_receipt_line.material_code`, `erp_uom_conversion.material_code`.
 
 #### 5.5.4. `erp_material_group`
 
@@ -1316,7 +1319,40 @@ Chỉ mục:
 
 Được trỏ tới bởi: `erp_material.material_type_code`.
 
-#### 5.5.6. `erp_supplier`
+#### 5.5.6. `erp_stock_norm`
+
+Định mức tồn kho của vật tư theo kho; khóa gộp vật tư + kho (VT001@KHO01), tối thiểu, tối đa, an toàn, điểm đặt hàng lại; báo cáo tồn kho đọc từ đây.
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `code` | varchar(71) | không |  |  | Mã định mức dạng VT001@KHO01 (vật tư @ kho) |
+| 2 | `material_code` | varchar(50) | không |  |  | Vật tư (không đổi sau khi lưu). Trỏ `erp_material` |
+| 3 | `warehouse_code` | varchar(20) | không |  |  | Kho (không đổi sau khi lưu). Trỏ `erp_warehouse` |
+| 4 | `min_quantity` | numeric(18,4) | có |  |  | Tồn tối thiểu theo đơn vị tính gốc; trống hoặc 0 = dùng mức khai trên vật tư |
+| 5 | `max_quantity` | numeric(18,4) | có |  |  | Tồn tối đa theo đơn vị tính gốc; trống hoặc 0 = dùng mức khai trên vật tư |
+| 6 | `safety_quantity` | numeric(18,4) | có |  |  | Tồn an toàn (chỉ khai báo) |
+| 7 | `reorder_point` | numeric(18,4) | có |  |  | Điểm đặt hàng lại (chỉ khai báo, không lớn hơn tồn tối đa) |
+| 8 | `note` | varchar(300) | có |  |  | Ghi chú |
+| 9 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
+| 10 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
+| 11 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 12 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 13 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 14 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `erp_stock_norm_pkey`: **duy nhất** (code)
+- `ix_erp_stock_norm_material_code`: (material_code, warehouse_code)
+- `ix_erp_stock_norm_warehouse_code`: (warehouse_code)
+- `ux_erp_stock_norm_pair`: **duy nhất** (material_code, warehouse_code)
+
+Ràng buộc:
+
+- `ck_erp_stock_norm_qty` (CHECK): CHECK (((COALESCE(min_quantity, (0)::numeric) >= (0)::numeric) AND (COALESCE(max_quantity, (0)::numeric) >= (0)::numeric) AND (COALESCE(safety_quantity, (0)::numeric) >= (0)::numeric) AND (COALESCE(reorder_point, (0)::numeric) >= (0)::numeric)))
+- `ck_erp_stock_norm_range` (CHECK): CHECK (((min_quantity IS NULL) OR (max_quantity IS NULL) OR (max_quantity >= min_quantity)))
+
+#### 5.5.7. `erp_supplier`
 
 Danh mục nhà cung cấp (mã số thuế, điện thoại, địa chỉ, nhóm).
 
@@ -1345,7 +1381,7 @@ Chỉ mục:
 
 Được trỏ tới bởi: `erp_goods_receipt.supplier_code`, `erp_lot.supplier_code`, `erp_purchase_invoice.supplier_code`, `erp_purchase_order.supplier_code`, `erp_purchase_request.supplier_code`.
 
-#### 5.5.7. `erp_uom`
+#### 5.5.8. `erp_uom`
 
 Đơn vị tính (cái, kg, thùng...).
 
@@ -1369,7 +1405,7 @@ Chỉ mục:
 
 Được trỏ tới bởi: `erp_goods_issue_line.uom_code`, `erp_goods_receipt_line.uom_code`, `erp_issue_request_line.uom_code`, `erp_material.uom_code`, `erp_price_list_line.uom_code`, `erp_purchase_invoice_line.uom_code`, `erp_purchase_order_line.uom_code`, `erp_purchase_request_line.uom_code`, `erp_sales_order_line.uom_code`, `erp_stock_count_line.uom_code`, `erp_stock_movement.line_uom_code`, `erp_stock_movement.uom_code`, `erp_transfer_issue_line.uom_code`, `erp_transfer_order_line.uom_code`, `erp_transfer_receipt_line.uom_code`, `erp_uom_conversion.from_uom_code`, `erp_uom_conversion.to_uom_code`, `erp_uom_translation.uom_code`.
 
-#### 5.5.8. `erp_uom_conversion`
+#### 5.5.9. `erp_uom_conversion`
 
 Quy đổi đơn vị tính (có thể riêng cho một vật tư): hệ số từ đơn vị này sang đơn vị kia.
 
@@ -1402,7 +1438,7 @@ Ràng buộc:
 - `ck_erp_uom_conversion_units` (CHECK): CHECK (((from_uom_code)::text <> (to_uom_code)::text))
 - `erp_uom_conversion_factor_check` (CHECK): CHECK ((factor > (0)::numeric))
 
-#### 5.5.9. `erp_uom_translation`
+#### 5.5.10. `erp_uom_translation`
 
 Tên đơn vị tính theo ngôn ngữ.
 
@@ -1421,7 +1457,7 @@ Chỉ mục:
 - `erp_uom_translation_pkey`: **duy nhất** (uom_code, language_code)
 - `ix_erp_uom_translation_language`: (language_code)
 
-#### 5.5.10. `erp_warehouse`
+#### 5.5.11. `erp_warehouse`
 
 Danh mục kho.
 
@@ -1448,9 +1484,9 @@ Chỉ mục:
 - `ix_erp_warehouse_unit_code`: (unit_code)
 - `ux_erp_warehouse_name`: **duy nhất** (lower((name)::text))
 
-Được trỏ tới bởi: `erp_goods_issue.warehouse_code`, `erp_goods_receipt.warehouse_code`, `erp_issue_request.warehouse_code`, `erp_location.warehouse_code`, `erp_purchase_order.warehouse_code`, `erp_purchase_request.warehouse_code`, `erp_sales_order.warehouse_code`, `erp_stock_balance.warehouse_code`, `erp_stock_count.warehouse_code`, `erp_stock_location_balance.warehouse_code`, `erp_stock_lot_balance.warehouse_code`, `erp_stock_movement.warehouse_code`, `erp_transfer_issue.from_warehouse_code`, `erp_transfer_issue.to_warehouse_code`, `erp_transfer_order.from_warehouse_code`, `erp_transfer_order.to_warehouse_code`, `erp_transfer_receipt.from_warehouse_code`, `erp_transfer_receipt.to_warehouse_code`, `erp_warehouse_unit.warehouse_code`.
+Được trỏ tới bởi: `erp_goods_issue.warehouse_code`, `erp_goods_receipt.warehouse_code`, `erp_issue_request.warehouse_code`, `erp_location.warehouse_code`, `erp_purchase_order.warehouse_code`, `erp_purchase_request.warehouse_code`, `erp_sales_order.warehouse_code`, `erp_stock_balance.warehouse_code`, `erp_stock_count.warehouse_code`, `erp_stock_location_balance.warehouse_code`, `erp_stock_lot_balance.warehouse_code`, `erp_stock_movement.warehouse_code`, `erp_stock_norm.warehouse_code`, `erp_transfer_issue.from_warehouse_code`, `erp_transfer_issue.to_warehouse_code`, `erp_transfer_order.from_warehouse_code`, `erp_transfer_order.to_warehouse_code`, `erp_transfer_receipt.from_warehouse_code`, `erp_transfer_receipt.to_warehouse_code`, `erp_warehouse_unit.warehouse_code`.
 
-#### 5.5.11. `erp_warehouse_type`
+#### 5.5.12. `erp_warehouse_type`
 
 Loại kho.
 
@@ -1473,7 +1509,7 @@ Chỉ mục:
 
 Được trỏ tới bởi: `erp_warehouse.warehouse_type_code`, `erp_warehouse_type_translation.warehouse_type_code`.
 
-#### 5.5.12. `erp_warehouse_type_translation`
+#### 5.5.13. `erp_warehouse_type_translation`
 
 Tên loại kho theo ngôn ngữ.
 
@@ -1492,7 +1528,7 @@ Chỉ mục:
 - `erp_warehouse_type_translation_pkey`: **duy nhất** (warehouse_type_code, language_code)
 - `ix_erp_warehouse_type_translation_language`: (language_code)
 
-#### 5.5.13. `erp_warehouse_unit`
+#### 5.5.14. `erp_warehouse_unit`
 
 Đơn vị cơ sở được dùng một kho (không có dòng = kho dùng chung mọi đơn vị).
 
@@ -2902,6 +2938,13 @@ SELECT c.table_name,
 | Hàm | Tham số | Trả về |
 |---|---|---|
 | `erp_voucher_delete_cleanup` |  | trigger |
+| `rpt_stock_aging` | p_unit text, p_as_of date, p_warehouse text, p_group text, p_search text | TABLE(warehouse_code text, warehouse_name text, material_code text, material_name text, uom_code text, quantity numeric, qty_0_30 numeric, qty_31_60 numeric, qty_61_90 numeric, qty_91_180 numeric, qty_over_180 numeric, value numeric, value_0_30 numeric, value_31_60 numeric, value_61_90 numeric, value_91_180 numeric, value_over_180 numeric) |
+| `rpt_stock_availability` | p_unit text, p_warehouse text, p_group text, p_search text, p_include_zero boolean | TABLE(warehouse_code text, warehouse_name text, material_code text, material_name text, uom_code text, group_code text, quantity numeric, reserved_request numeric, reserved_order numeric, available numeric) |
+| `rpt_stock_balance` | p_unit text, p_as_of date, p_warehouse text, p_group text, p_search text, p_include_zero boolean | TABLE(warehouse_code text, warehouse_name text, material_code text, material_name text, uom_code text, group_code text, quantity numeric, value numeric, min_stock numeric, max_stock numeric) |
+| `rpt_stock_monthly_cost` | p_unit text, p_from date, p_to date, p_warehouse text, p_group text, p_search text, p_include_zero boolean | TABLE(warehouse_code text, warehouse_name text, material_code text, material_name text, uom_code text, opening_quantity numeric, opening_value numeric, in_quantity numeric, in_value numeric, out_quantity numeric, out_value numeric, closing_quantity numeric, closing_value numeric, month_avg_cost numeric, closing_cost numeric) |
+| `rpt_stock_movement_summary` | p_unit text, p_direction integer, p_from date, p_to date, p_warehouse text, p_group text, p_search text | TABLE(warehouse_code text, warehouse_name text, material_code text, material_name text, uom_code text, voucher_count integer, quantity numeric, value numeric) |
+| `rpt_stock_movements` | p_unit text, p_direction integer, p_from date, p_to date, p_warehouse text, p_group text, p_search text, p_limit integer | TABLE(document_date date, source_function text, voucher_code text, voucher_type text, partner text, warehouse_code text, warehouse_name text, material_code text, material_name text, uom_code text, lot_code text, quantity numeric, value numeric, unit_price numeric) |
+| `rpt_stock_nxt` | p_unit text, p_from date, p_to date, p_warehouse text, p_group text, p_search text, p_include_zero boolean | TABLE(warehouse_code text, warehouse_name text, material_code text, material_name text, uom_code text, opening_quantity numeric, in_quantity numeric, out_quantity numeric, closing_quantity numeric, opening_value numeric, in_value numeric, out_value numeric, closing_value numeric) |
 | `sys_drop_foreign_keys` | VARIADIC table_names text[] | void |
 | `sys_rename_column` | table_name text, old_name text, new_name text | void |
 | `sys_rename_constraint` | table_name text, old_name text, new_name text | void |
@@ -2983,6 +3026,8 @@ Chạy theo thứ tự tên file trong `ServerService/sql/postgresql/`:
 | `52-sales-catalogs.sql` | Danh mục bán hàng: nhóm khách hàng, khách hàng, bảng giá bán và dòng bảng giá |
 | `53-sales-orders.sql` | Đơn bán hàng (đầu phiếu, dòng) và cột nối sang phiếu xuất kho: khách hàng, số đơn, dòng đơn |
 | `54-stock-counts.sql` | Phiếu kiểm kê (đầu phiếu, dòng): tồn sổ sách tính từ sổ kho, ghi sổ phần thừa và phần thiếu |
+| `55-inventory-reports.sql` | Báo cáo kho dưới dạng hàm `rpt_*` (nhập xuất tồn, hàng nhập / xuất chi tiết và tổng hợp, tuổi hàng tồn, tồn tức thời có giữ chỗ, giá trung bình tháng); không có bảng mới |
+| `56-stock-norms.sql` | Định mức tồn kho theo kho (mã VATTU@KHO) và hàm `rpt_stock_balance` đọc định mức (chạy sau 55) |
 
 ## 8. Kiểm tra cấu trúc bằng test tự động
 

@@ -11,7 +11,9 @@ namespace Core.Infrastructure.Common.Persistence;
 /// <list type="bullet">
 /// <item>23505 unique violation → 409 record.duplicate, naming the field(s) and the value ("Tên "Kilogram" đã tồn tại");
 /// field names are dbfield.{column} message keys (dbfield.value when a column has none);</item>
-/// <item>40001 / 40P01 (serialization failure, deadlock: two saves touching the same rows) → 409 record.busy.</item>
+/// <item>40001 / 40P01 (serialization failure, deadlock: two saves touching the same rows) → 409 record.busy;</item>
+/// <item>22003 (a number too large for its column), 22021 / 22P05 (a character the database cannot store, such as NUL in a text or in a
+/// filter of the query string) and 22001 (a text longer than its column) → 400 with a message, because they are the caller's data.</item>
 /// </list>
 /// The value needs Npgsql's IncludeErrorDetail (set by AddInfrastructure); without it only the field is named.
 /// </summary>
@@ -33,6 +35,9 @@ public static partial class DatabaseErrors
             {
                 PostgresErrorCodes.UniqueViolation => Duplicate(pg.Detail, pg.ConstraintName),
                 PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.DeadlockDetected => new ConflictException("record.busy"),
+                PostgresErrorCodes.NumericValueOutOfRange => new BusinessRuleException("db.numberOutOfRange"),
+                PostgresErrorCodes.CharacterNotInRepertoire or PostgresErrorCodes.UntranslatableCharacter => new BusinessRuleException("db.badCharacter"),
+                PostgresErrorCodes.StringDataRightTruncation => new BusinessRuleException("db.textTooLong"),
                 _ => null
             };
         }

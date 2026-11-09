@@ -107,6 +107,7 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<StorageLocation> StorageLocations => Set<StorageLocation>();
     public DbSet<Lot> Lots => Set<Lot>();
+    public DbSet<StockNorm> StockNorms => Set<StockNorm>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<StockBalance> StockBalances => Set<StockBalance>();
     public DbSet<StockLotBalance> StockLotBalances => Set<StockLotBalance>();

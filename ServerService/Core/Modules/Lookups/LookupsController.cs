@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Core.Modules.Lookups;
 
 /// <summary>
-/// Pickers of every screen: code, name and a few extra columns of a catalog, searched on the server and paged, open to every
-/// signed-in user (the full catalog needs the View right of its function). Plain catalogs are listed in <c>LookupCatalogs</c>;
+/// Pickers of every screen: code, name and a few extra columns of a catalog, searched on the server and paged. A lookup answers an administrator, a user who may View the catalog behind it or a function that
+/// picks from it (<c>LookupAccessCatalog</c>); the full catalog needs the View right of its own function. Plain catalogs are listed in <c>LookupCatalogs</c>;
 /// custom ones are <c>LookupProvider</c> classes that may read more query parameters (e.g. <c>?warehouse=KHO1</c>) and check rights.
 /// </summary>
 [Route("api/lookups/{name}")]

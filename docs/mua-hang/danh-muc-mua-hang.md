@@ -106,7 +106,7 @@ Thừa hưởng từ `CatalogControllerBase` (quyền theo `pur_project_cat`: Xe
 | `PUT .../{code}` | Sửa, kèm `version` |
 | `DELETE .../{code}` | Xóa |
 | `POST .../import`, `POST .../delete-many` | Nhập Excel, xóa nhiều |
-| `GET /api/lookups/projects?q=&page=&pageSize=&includeInactive=` | **Tra cứu** cho form chứng từ: mã, tên, `status`, `departmentCode`; mở cho mọi người đã đăng nhập |
+| `GET /api/lookups/projects?q=&page=&pageSize=&includeInactive=` | **Tra cứu** cho form chứng từ: mã, tên, `status`, `departmentCode`; chỉ trả lời người có quyền Xem danh mục hoặc màn dùng nó (`LookupAccessCatalog`) |
 
 Mẫu thêm:
 
@@ -222,7 +222,7 @@ Hệ thống không có khóa ngoại, nên mọi chỗ dùng mã của một da
 | | Thêm | Thêm, **nhập Excel** (nhập dạng cập nhật cần thêm Sửa) |
 | | Sửa | Sửa bản ghi |
 | | Xóa | Xóa, xóa nhiều |
-| *(không cần quyền danh mục)* | | Chọn dự án / điều khoản / nhóm trên form khác qua `/api/lookups/*`, mở cho mọi người đã đăng nhập |
+| *(không cần quyền danh mục)* | | Chọn dự án / điều khoản / nhóm trên form khác qua `/api/lookups/*`, chỉ trả lời người có quyền Xem danh mục hoặc màn dùng nó (`LookupAccessCatalog`) |
 
 Cấp quyền ở Cài đặt › Người dùng & phân quyền. Tài khoản quản trị luôn đủ quyền.
 

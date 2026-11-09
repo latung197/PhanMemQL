@@ -589,6 +589,6 @@ Dữ liệu dev có **toàn bộ các tháng 2026 của DVCS01 đã khóa sổ**
 - Đơn vị tính trên dòng **đi vào sổ**: phiếu gửi `uom_code` của dòng, sổ kho quy đổi về đơn vị gốc của vật tư qua `erp_uom_conversion` (dòng sổ lưu cả số lượng và đơn vị gốc lẫn của dòng phiếu).
 - Danh sách phiếu nhập, phiếu xuất và phiếu yêu cầu đã **phân trang, lọc, tìm và sắp xếp ở máy chủ**, xuất Excel do máy chủ làm (xem mục 2.4.1).
 - Người **không có quyền xem giá** (`VIEW_PRICE`) thấy đơn giá 0 trên phiếu; nếu họ sửa và lưu phiếu nháp thì tổng tiền bị tính lại từ số 0 đó. Cần giữ nguyên đơn giá cũ khi người sửa không có quyền xem giá (chưa làm, áp dụng cho cả hai phiếu).
-- Mới có phiếu nhập và phiếu xuất ghi vào sổ; **điều chuyển và kiểm kê** chưa ghi sổ. Chưa có màn hình xem tồn kho và báo cáo nhập xuất tồn (mới có API). Khách hàng trên phiếu xuất là chữ tự do cho tới khi có danh mục khách hàng.
+- Mới có phiếu nhập và phiếu xuất ghi vào sổ; **điều chuyển và kiểm kê** chưa ghi sổ. Màn hình tồn kho và báo cáo nhập xuất tồn đã có, xem `docs/kho/bao-cao-kho.md`. Khách hàng trên phiếu xuất là chữ tự do cho tới khi có danh mục khách hàng.
 - Giá xuất tính **bình quân di động** theo kho tại thời điểm ghi sổ; tính lại bình quân cuối tháng và FIFO theo lô chưa làm.
 - Loại nhập và loại xuất (nhập mua, xuất bán, điều chuyển…) còn là chữ chọn, sẽ thành danh mục "Loại nhập xuất".

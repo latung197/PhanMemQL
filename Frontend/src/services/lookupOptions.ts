@@ -1,4 +1,4 @@
-// Lists that other screens need from catalogs they have no right to open: read through the lookups (open to every
+// Lists that other screens need from catalogs they have no right to open: read through the lookups (allowed to the screens that pick from them, see LookupAccessCatalog; every
 // signed-in user, cached on the server), never through the catalog's own list (that needs its View right).
 import { lookupApi, type LookupItem } from '../components/catalog/CatalogLookup';
 import type { CompanyUnit, MaterialType, Product } from '../types';

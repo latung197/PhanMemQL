@@ -112,7 +112,9 @@ Trình duyệt ── fetch + Bearer token ──► ServerService (Core, contro
 | Kho — Phiếu yêu cầu xuất kho (`erp_issue_request`, `erp_issue_request_line`) | **Backend**: lập, duyệt (không ghi sổ kho); phiếu xuất kho có nút "Lấy từ phiếu yêu cầu" lấy các dòng còn chưa xuất, kiểm số lượng không vượt yêu cầu. Xem `docs/kho/phieu-yeu-cau-xuat-kho.md`. Chạy script `42`. Cấp quyền cho vai trò với `inv_issue_request`, `inv_approve_issue_request`. |
 | Kho › Vật tư (`erp_material`), Vị trí lưu kho (`erp_location`), Lô và hạn sử dụng (`erp_lot`) | **Backend**: danh mục theo khung `CatalogService`, các cờ theo dõi lô / vị trí / hạn dùng. Chạy `31`, `32`, `33`. |
 | Kho — Sổ kho và tồn kho (`erp_stock_movement`, `erp_stock_balance`, `erp_stock_lot_balance`, `erp_stock_location_balance`) | **Backend**: sổ ghi thêm + ba bảng tồn (theo kho, lô, vị trí), API xem tồn và đối chiếu / dựng lại. Chưa có màn hình xem tồn. Chạy `34`. |
-| Phiếu xuất, báo cáo tồn kho, bán hàng, tài chính, nhân sự | **Dữ liệu mẫu trong trình duyệt** (`Frontend/src/mock`, `localStorage['s_erp_database_state']`) |
+| Kho › định mức tồn kho (theo kho), tính tồn kho tức thời (giữ chỗ, khả dụng, kiểm tra / dựng lại số dư), tính giá trung bình tháng | **Backend** (script `56-stock-norms.sql`, hàm `rpt_stock_availability` / `rpt_stock_monthly_cost` ở script `55`); xem `docs/kho/ton-tuc-thoi-gia-binh-quan-dinh-muc.md` |
+| Kho › 5 báo cáo (tồn kho, nhập xuất tồn, hàng nhập, hàng xuất, tuổi hàng tồn) | **Backend**: mỗi báo cáo là một hàm PostgreSQL `rpt_*` (script `55-inventory-reports.sql`), có Excel và in; xem `docs/kho/bao-cao-kho.md` |
+| Phiếu giao hàng, báo cáo doanh số, tài chính, nhân sự | **Dữ liệu mẫu trong trình duyệt** (`Frontend/src/mock`, `localStorage['s_erp_database_state']`) |
 
 Khi làm một nghiệp vụ thật, làm theo quy trình bên dưới rồi bỏ dữ liệu mẫu của màn đó.
 
@@ -150,6 +152,12 @@ Mỗi chức năng có một **mã** (ví dụ `inv_supplier_cat`) và thuộc m
 5. `modules/<phân hệ>/<Phân hệ>Module.tsx`: thêm `case 'mã'`.
 6. Chạy `npm run lint` và `npm run build`.
 
+**Việc kèm theo mọi chức năng mới** (dễ quên, đã có test hoặc tài liệu nhắc):
+- *Phân quyền*: màn ẩn nút theo quyền, **backend chặn thật**; thử bằng tài khoản không phải quản trị viên. Quyền đặc biệt (xem giá, giá vốn, trạng thái theo đơn vị...) khai ở `SpecialRightCatalog.cs`; xem [docs/he-thong/phan-quyen.md](docs/he-thong/phan-quyen.md).
+- *Ô chọn mã (tra cứu)*: khai quyền trong `LookupAccessCatalog` (`Core.Application/Common/Lookups/LookupAccess.cs`): danh mục mới thêm một dòng; chứng từ và báo cáo mới thêm vào các nhóm `StockVouchers`, `PurchaseVouchers`, `SalesVouchers`, `StockReports`... nếu không, người chỉ có quyền dùng chức năng đó bị 403 ở mọi ô chọn.
+- *Đa ngôn ngữ*: chữ màn bằng `t()` (khóa ở `locales/vi` và `locales/en`), thông báo lỗi bằng khóa `BusinessRuleException("khóa")` ở `Messages.vi.json` và `Messages.en.json`, tên chức năng `function.<mã>` (en) và `navigation.subMenus.<mã>`; xem [docs/phat-trien/da-ngon-ngu.md](docs/phat-trien/da-ngon-ngu.md).
+- *Tài liệu*: dòng trong `docs/README.md`, bản Word, cập nhật `CLAUDE.md`, từ điển cơ sở dữ liệu khi có bảng mới (`node docs/cong-cu/gen-database-doc.cjs`).
+
 ### Danh mục
 
 Hướng dẫn từng bước, từng file (lấy danh mục đơn vị tính làm mẫu): **[docs/phat-trien/them-danh-muc.md](docs/phat-trien/them-danh-muc.md)**.
@@ -161,10 +169,12 @@ Chống ghi đè khi nhiều người cùng sửa (phiên bản bản ghi, lỗi
 
 - Backend: kế thừa `CatalogService` theo mẫu **Đơn vị tính** (`UomService.cs`; có bản dịch) hoặc **Phòng ban** (`DepartmentService.cs`; đơn giản, có đếm người dùng và chép tên mới sang người dùng): chỉ khai báo cột sắp xếp, tìm kiếm, kiểm tra dữ liệu bằng `Guard`, cột xuất Excel. Không xóa bản ghi đang được dùng: khai `[References<T>]` trên các cột `*_code` trỏ tới danh mục (không có khóa ngoại), khung tự chặn. Cho phép "ngừng sử dụng".
 - Frontend: copy **`modules/settings/DepartmentCategoryView.tsx`** (đơn giản nhất): `CatalogScreen` lo tải, phân trang ở máy chủ, tìm, lọc, thêm, sửa, xóa, nhập / xuất Excel; màn hình chỉ khai báo cột, form (`TextInput`, `SelectInput`, `Checkbox`) và cột Excel; `api.ts` là `createCatalogApi({ url, fileName })`.
-- Danh mục mà màn khác cần chọn mã thì khai một mục tra cứu (`LookupCatalogs.cs`, mở cho mọi người đăng nhập), như `departments`, `currencies`, `companyUnits`; danh sách đầy đủ của chính danh mục vẫn cần quyền Xem.
+- Danh mục mà màn khác cần chọn mã thì khai một mục tra cứu (`LookupCatalogs.cs`; chỉ trả lời người có quyền Xem danh mục đó hoặc màn dùng nó, khai ở `LookupAccessCatalog`), như `departments`, `currencies`, `companyUnits`; danh sách đầy đủ của chính danh mục vẫn cần quyền Xem.
 - Nhật ký thay đổi: gắn `[Audited("mã", "loại", Label = "{Code} - {Name}")]` lên entity là thêm / sửa / xóa tự được ghi (ai, lúc nào, trước → sau). Xem tập trung ở **Cài đặt › Nhật ký thay đổi** (`sys_audit_log`), không hiện trên màn chức năng. Chi tiết: [ServerService/README.md](ServerService/README.md#nhật-ký-thay-đổi).
 
 ### Phiếu (chứng từ)
+
+Hướng dẫn từng bước, từng file: **[docs/phat-trien/them-chung-tu.md](docs/phat-trien/them-chung-tu.md)**.
 
 - Backend: thêm một dòng vào **`Core.Application/Common/Documents/VoucherCatalog.cs`** (mã chức năng, loại số, tên). Tự có ngay: dải số chứng từ (sửa được ở Cài đặt › Tham số mặc định › Đánh số chứng từ), các quyền đặc biệt của phiếu (xem giá...) và quyền theo trạng thái theo từng đơn vị cơ sở (gửi duyệt, duyệt, ghi sổ...), và phiếu xuất hiện trong màn quy trình phê duyệt.
 - Service của phiếu dùng các khối dùng chung đã có:
@@ -183,6 +193,7 @@ Chống ghi đè khi nhiều người cùng sửa (phiên bản bản ghi, lỗi
 
 ### Báo cáo
 
+- **Hướng dẫn từng bước, từng file: [docs/phat-trien/them-bao-cao.md](docs/phat-trien/them-bao-cao.md)** (hàm `rpt_*` trong cơ sở dữ liệu, service che tiền theo `VIEW_COST`, xuất Excel có nhật ký, màn dùng `ReportKit`, quyền ô chọn, kiểm tra).
 - Backend: câu SQL đặt trong `Core.Infrastructure/Modules/<Module>/Sql/<TenBaoCao>.sql`, đọc bằng `SqlScripts.Get("<Module>", "<TenBaoCao>")`, chạy bằng `ISqlExecutor.QueryAsync<T>` (luôn truyền tham số `@ten`). Controller chỉ cần quyền `View` (in: `Print`, xuất file: `Export`). Ẩn cột giá / giá vốn theo quyền đặc biệt `VIEW_PRICE` / `VIEW_COST` ngay ở backend.
 - Frontend: loại `'report'` trong `config/functions.ts`.
 

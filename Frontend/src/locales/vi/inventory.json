@@ -299,5 +299,28 @@
     "active": "Đang hoạt động",
     "inactive": "Tạm dừng",
     "isActive": "Đang hoạt động"
+  },
+  "stockNorms": {
+    "noun": "định mức",
+    "title": "Định mức tồn kho",
+    "subtitle": "Tồn tối thiểu, tối đa, an toàn và điểm đặt hàng lại của từng vật tư theo kho. Báo cáo tồn kho dùng các giá trị này.",
+    "search": "Tìm mã hoặc tên vật tư, mã hoặc tên kho...",
+    "add": "Thêm định mức",
+    "addTitle": "Thêm định mức tồn kho",
+    "editTitle": "Sửa định mức {code}",
+    "material": "Vật tư",
+    "warehouse": "Kho",
+    "uom": "ĐVT",
+    "materialHint": "Mỗi vật tư chỉ có một định mức cho mỗi kho. Số lượng tính theo đơn vị tính gốc của vật tư. Kho chưa có định mức thì báo cáo dùng tồn tối thiểu / tối đa khai ở vật tư.",
+    "keyHint": "Không đổi được vật tư hoặc kho của định mức đã lưu; hãy xóa và thêm định mức mới.",
+    "minQuantity": "Tồn tối thiểu",
+    "maxQuantity": "Tồn tối đa",
+    "safetyQuantity": "Tồn an toàn",
+    "reorderPoint": "Điểm đặt hàng lại",
+    "note": "Ghi chú",
+    "status": "Trạng thái",
+    "active": "Đang hoạt động",
+    "inactive": "Tạm dừng",
+    "isActive": "Đang hoạt động"
   }
 }

@@ -19,6 +19,18 @@ public sealed class DatabaseErrorsTests
         Assert.Equal(value, parsed.Value);
     }
 
+    [Theory]
+    [InlineData("22003", "db.numberOutOfRange")]
+    [InlineData("22021", "db.badCharacter")]
+    [InlineData("22P05", "db.badCharacter")]
+    [InlineData("22001", "db.textTooLong")]
+    public void DataTheCallerSentThatTheColumnCannotTakeIsA400(string sqlState, string key)
+    {
+        var error = DatabaseErrors.Translate(new InvalidOperationException("save failed", new PostgresException("detail", "ERROR", "ERROR", sqlState)));
+        var business = Assert.IsType<BusinessRuleException>(error);
+        Assert.Equal(key, business.Key);
+    }
+
     [Fact]
     public void NamesFieldAndValue()
     {

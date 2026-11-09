@@ -16,21 +16,16 @@ import { LocationCategoryView } from './categories/locations';
 import { GoodsReceiptView } from './documents/goods-receipts';
 import { GoodsIssueView } from './documents/goods-issues';
 import { IssueRequestView } from './documents/issue-requests';
-import { StockReportView, NXTReportView } from './reports';
+import { StockReportView, NxtReportView, MovementReportView, AgingReportView, MonthlyCostView, InstantStockView } from './reports';
 import { TransferOrderView } from './documents/transfer-order/TransferOrderView';
 import { TransferIssueView } from './documents/transfer-issue/TransferIssueView';
 import { TransferReceiptView } from './documents/transfer-receipt/TransferReceiptView';
 import { StockCountView } from './documents/stock-counts';
-import { MonthlyCostCalcView } from './documents/monthly-cost/MonthlyCostCalcView';
-import { InstantStockCalcView } from './documents/instant-stock/InstantStockCalcView';
 import { ReceiptApprovalView } from './documents/approval-receipt/ReceiptApprovalView';
 import { IssueApprovalView } from './documents/approval-issue/IssueApprovalView';
 import { IssueRequestApprovalView } from './documents/approval-issue-request/IssueRequestApprovalView';
 import { TransferApprovalView } from './documents/approval-transfer/TransferApprovalView';
 import { StockCountApprovalView } from './documents/approval-stock-count/StockCountApprovalView';
-import { InwardReportView } from './reports/inward/InwardReportView';
-import { OutwardReportView } from './reports/outward/OutwardReportView';
-import { InventoryAgingReportView } from './reports/aging/InventoryAgingReportView';
 
 interface InventoryModuleProps {
   subKey: SubMenuKey;
@@ -116,9 +111,9 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
       case 'inv_audit_count':
         return <StockCountView companyUnits={companyUnits} activeUnitCode={activeCompanyUnitCode ?? ''} currentUser={currentUser} />;
       case 'inv_calc_monthly_cost':
-        return <MonthlyCostCalcView />;
+        return <MonthlyCostView currentUser={currentUser} />;
       case 'inv_calc_instant_stock':
-        return <InstantStockCalcView />;
+        return <InstantStockView currentUser={currentUser} />;
 
       // 2. Phê duyệt
       case 'inv_approve_receipt':
@@ -150,7 +145,7 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
       case 'inv_uom_conversion_cat':
         return <UomConversionCategoryView products={products} currentUser={currentUser} />;
       case 'inv_stock_norm_cat':
-        return <StockNormCategoryView stockNorms={stockNorms} products={products} warehouses={warehouses} currentUser={currentUser} />;
+        return <StockNormCategoryView currentUser={currentUser} />;
       case 'inv_lot_cat':
         return <LotCategoryView currentUser={currentUser} />;
       case 'inv_location_cat':
@@ -158,19 +153,19 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
 
       // 4. Báo cáo hàng nhập
       case 'inv_report_inward':
-        return <InwardReportView />;
+        return <MovementReportView direction="inward" currentUser={currentUser} />;
 
       // 5. Báo cáo hàng xuất
       case 'inv_report_outward':
-        return <OutwardReportView />;
+        return <MovementReportView direction="outward" currentUser={currentUser} />;
 
       // 6. Báo cáo hàng tồn
       case 'inv_report_stock':
-        return <StockReportView products={products} />;
+        return <StockReportView currentUser={currentUser} />;
       case 'inv_report_nxt':
-        return <NXTReportView products={products} vouchers={vouchers} />;
+        return <NxtReportView currentUser={currentUser} />;
       case 'inv_report_aging':
-        return <InventoryAgingReportView />;
+        return <AgingReportView currentUser={currentUser} />;
 
       case 'inv_material_cat':
       default:

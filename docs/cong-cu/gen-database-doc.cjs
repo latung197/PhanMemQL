@@ -86,6 +86,7 @@ const T = {
   erp_warehouse: [G.inv_catalog, 'Danh mục kho.'],
   erp_warehouse_unit: [G.inv_catalog, 'Đơn vị cơ sở được dùng một kho (không có dòng = kho dùng chung mọi đơn vị).'],
   erp_location: [G.inv_catalog, 'Vị trí lưu kho (kệ, ô...) thuộc đúng một kho; mã duy nhất toàn hệ thống.'],
+  erp_stock_norm: [G.inv_catalog, 'Định mức tồn kho của vật tư theo kho; khóa gộp vật tư + kho (VT001@KHO01), tối thiểu, tối đa, an toàn, điểm đặt hàng lại; báo cáo tồn kho đọc từ đây.'],
   erp_lot: [G.inv_catalog, 'Lô hàng của vật tư có theo dõi lô; khóa gộp vật tư + số lô, ngày hết hạn, trạng thái chặn.'],
   erp_supplier: [G.inv_catalog, 'Danh mục nhà cung cấp (mã số thuế, điện thoại, địa chỉ, nhóm).'],
   erp_goods_receipt: [G.inv_doc, 'Đầu **phiếu nhập kho** (ghi sổ tăng tồn): ngày, kho, loại nhập, nhà cung cấp, loại tiền, trạng thái, dự án, các số đơn mua đã lấy.'],

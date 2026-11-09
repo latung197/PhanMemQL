@@ -920,7 +920,8 @@
       "menu": "Menu item",
       "customer": "Customer",
       "customerGroup": "Customer group",
-      "priceList": "Price list"
+      "priceList": "Price list",
+      "stockNorm": "Stock norm"
     },
     "objectLabel": {
       "auditLog": "Old entries removed"

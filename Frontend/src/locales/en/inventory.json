@@ -299,5 +299,28 @@
     "active": "Active",
     "inactive": "Stopped",
     "isActive": "Active"
+  },
+  "stockNorms": {
+    "noun": "norm",
+    "title": "Stock norms",
+    "subtitle": "Minimum, maximum, safety stock and reorder point of each material per warehouse. The stock report uses these values.",
+    "search": "Search material or warehouse code or name...",
+    "add": "Add norm",
+    "addTitle": "Add stock norm",
+    "editTitle": "Edit norm {code}",
+    "material": "Material",
+    "warehouse": "Warehouse",
+    "uom": "UoM",
+    "materialHint": "One norm per material and warehouse, in the base unit of the material. Without a norm the report uses the minimum / maximum of the material.",
+    "keyHint": "The material or warehouse of a saved norm cannot change; delete it and add a new norm.",
+    "minQuantity": "Minimum stock",
+    "maxQuantity": "Maximum stock",
+    "safetyQuantity": "Safety stock",
+    "reorderPoint": "Reorder point",
+    "note": "Note",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "isActive": "Active"
   }
 }

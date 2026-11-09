@@ -96,13 +96,14 @@ Thêm một danh mục là **khai báo**, không phải viết lại chức năn
 | 3 | Entity (`: ErpEntity, ICatalogRecord`, `[Audited]`, `[References]` / `[NotReference]` cho cột `*_code`) và `DbSet` | `Core.Domain/...`, `CoreContext.cs` | 2.2, 2.3 |
 | 4 | DTO, request, interface (kế thừa khung) | `<Ten>Contracts.cs` | 2.4 |
 | 5 | Service **khai báo** (cột sắp xếp, tìm kiếm, bộ lọc, kiểm tra, cột xuất) | `<Ten>Service.cs` | 2.5 |
-| 6 | Đăng ký service và tra cứu | `DependencyInjection.cs`, `LookupCatalogs.cs` | 2.6 |
+| 6 | Đăng ký service, tra cứu **và quyền của tra cứu** (một dòng `LookupAccessCatalog`) | `DependencyInjection.cs`, `LookupCatalogs.cs`, `LookupAccess.cs` | 2.6, 6 |
 | 7 | Controller 5 dòng | `<Ten>sController.cs` | 2.7 |
 | 8 | Thông báo lỗi và tiêu đề Excel (vi + en) | `Messages.vi.json`, `Messages.en.json` | 2.8 |
 | 9 | Mã chức năng, menu, đường dẫn ở frontend | `types/index.ts`, `config/functions.ts`, `locales/*/common.json`; menu: `Core/SeedData/menu.json` | 3.1 - 3.3 |
 | 10 | Thư mục màn hình: `types.ts`, `api.ts` (3 dòng), View (`CatalogDefinition`), `index.ts` | `modules/<phan-he>/categories/<ten>/` | 3.4 |
 | 11 | Chữ hiển thị và gắn màn vào phân hệ | `locales/*/<khu>.json`, `<PhanHe>Module.tsx` | 3.6, 3.7 |
 | 12 | Cấp quyền, build, test, chạy thử, dọn dữ liệu thử | | 6, 7 |
+| 13 | Tài liệu: từ điển cơ sở dữ liệu, `docs/README.md`, `CLAUDE.md`, Word | | 8 |
 
 Việc thêm tùy chọn khi cần: tham chiếu danh mục khác (Phần 5, chi tiết ở `docs/phat-trien/tham-chieu-danh-muc.md`), bộ lọc riêng (§2.5), bản dịch / bảng con (`AfterApplyAsync`), tra cứu riêng nhiều bảng hoặc có tham số (§4.3).
 
@@ -552,7 +553,7 @@ new LookupDefinition("suppliers", db => db.Suppliers.Select(x =>
 - `Extra1..3`: tối đa 3 cột phụ hiện trong hộp tra cứu; các chuỗi cuối (`"taxCode"`, `"phone"`) là tên của chúng trong kết quả (`extra.taxCode`).
 - Phép chiếu `Select` được dịch thành SQL, nên chỉ dùng cột của bảng, không gọi hàm C#.
 
-Cần tra cứu phức tạp hơn (nhiều bảng, cột có kiểu, tham số, kiểm quyền) thì viết `LookupProvider` (§4.3) thay vì mục này. Không phải viết controller cho tra cứu. API chung `Core/Modules/Lookups/LookupsController.cs` có sẵn, mở cho **mọi người đã đăng nhập**:
+**Mọi tra cứu mới phải khai quyền ở `LookupAccessCatalog` (một dòng).** Cần tra cứu phức tạp hơn (nhiều bảng, cột có kiểu, tham số, kiểm quyền) thì viết `LookupProvider` (§4.3) thay vì mục này. Không phải viết controller cho tra cứu. API chung `Core/Modules/Lookups/LookupsController.cs` có sẵn, mở cho **mọi người đã đăng nhập**:
 
 | API | Trả về |
 | --- | --- |
@@ -1138,7 +1139,7 @@ services.AddLookupProvider<UomFullLookup>();
 
 **Quy tắc**
 - Đọc dữ liệu bằng EF hoặc SQL có tham số, **vài truy vấn cho cả danh sách**, không mỗi bản ghi một truy vấn. Không ghép chuỗi SQL.
-- Tra cứu mở cho **mọi người đã đăng nhập**. Dữ liệu nhạy cảm (giá nhập, công nợ) phải kiểm quyền trong `AuthorizeAsync`, hoặc không trả cột đó cho người không có quyền và tách bản đệm bằng `CacheScopeAsync`. Bản đệm dùng chung cho mọi người, nên **không bao giờ để lộ dữ liệu theo quyền mà quên `CacheScopeAsync`**.
+- Tra cứu **không mở cho mọi người**: thêm một dòng vào `LookupAccessCatalog` (`Core.Application/Common/Lookups/LookupAccess.cs`) với chức năng của danh mục (`Owner`), các chức năng được chọn từ nó (`Consumers`), cột nhạy cảm (`SensitiveExtras`, `SensitiveFor`), `UnitScoped` nếu mã là đơn vị cơ sở, `Open` chỉ cho dữ liệu nền ai cũng cần. Thiếu dòng này thì chỉ quản trị viên dùng được và `LookupAccessTests` báo đỏ. Dữ liệu nhạy cảm (giá nhập, công nợ) phải kiểm quyền trong `AuthorizeAsync`, hoặc không trả cột đó cho người không có quyền và tách bản đệm bằng `CacheScopeAsync`. Bản đệm dùng chung cho mọi người, nên **không bao giờ để lộ dữ liệu theo quyền mà quên `CacheScopeAsync`**.
 - Khai đủ **mọi bảng** `LoadAsync` đọc vào `Tables` (kể cả bảng bản dịch). Thiếu bảng thì tra cứu hiện dữ liệu cũ sau khi bảng đó đổi.
 - Dữ liệu đổi từng giây (tồn kho, giá theo ngày) thì để `Tables` rỗng: luôn đọc mới, không đệm. Khi đó nhớ giới hạn số dòng trả về.
 - `ParameterNames`: chỉ chữ cái và số. Mỗi giá trị tham số khác nhau là một bản đệm riêng, nên chỉ khai tham số thật sự đổi kết quả.
@@ -1237,7 +1238,16 @@ Khung chỉ biết một khóa văn bản là `code`. Khi khóa thật là một
 | Xuất | Xuất Excel |
 | Duyệt, In | Danh mục thường không dùng |
 
-Người chỉ cần chọn nhà cung cấp trên phiếu **không cần** quyền Xem danh mục: tra cứu mở cho mọi người đã đăng nhập.
+Người chỉ cần chọn nhà cung cấp trên phiếu **không cần** quyền Xem danh mục: tra cứu trả lời người có quyền Xem **một chức năng dùng nó** (phiếu nhập kho, mua hàng...) khai ở `LookupAccessCatalog`. Người không liên quan bị 403.
+
+**Tra cứu và phân quyền (bước dễ quên).** Danh mục mà màn khác chọn mã thì **phải có một dòng trong `LookupAccessCatalog`** (`Core.Application/Common/Lookups/LookupAccess.cs`):
+- `Owner` = mã chức năng của danh mục (người có Xem danh mục đó dùng được tra cứu);
+- `Consumers` = các chức năng chọn từ danh mục (ví dụ danh mục nhà cung cấp: phiếu nhập kho, ba phiếu mua hàng, danh mục lô). Dùng các mảng dựng sẵn `StockVouchers`, `PurchaseVouchers`, `SalesVouchers`, `FinanceVouchers`, `StockReports` khi cả nhóm đều chọn từ danh mục;
+- `SensitiveExtras` + `SensitiveFor` nếu có cột nhạy cảm (mã số thuế, điện thoại, thời gian tạo): chỉ điền cho chủ danh mục và các chứng từ cần in;
+- `Open` chỉ cho dữ liệu nền mọi màn đều cần (tiền tệ, phòng ban, đơn vị cơ sở); `UnitScoped` nếu mã là đơn vị cơ sở.
+Thiếu dòng này thì tra cứu chỉ quản trị viên dùng được, và `LookupAccessTests` báo đỏ. Chi tiết và các luồng cấp quyền: [phan-quyen.md](../he-thong/phan-quyen.md) (mục C10, C14).
+
+Danh mục có **giá** hoặc **giá vốn** thì thêm mã vào `PricedCatalogsAndReports` (`SpecialRightCatalog.cs`) để có quyền `VIEW_PRICE` / `VIEW_COST`; danh mục cho phép đổi mã / gộp mã thì thêm vào `CodeChangeCatalogs` (Phụ lục cuối tài liệu).
 
 Muốn tài khoản demo có sẵn quyền (dữ liệu mẫu khi database trống): thêm mã vào vai trò trong `mock/initialRoles.ts` rồi chạy `npm run export-seed` để tạo lại `ServerService/Core/SeedData/seed.json`.
 
@@ -1275,6 +1285,7 @@ Test tự bắt các điểm hay quên:
 | `CatalogPermissionFilterTests` | Một API của controller danh mục cho qua khi thiếu đúng quyền của nó (Xem, Thêm, Sửa, Xóa; xuất cần cả Xem và Xuất) |
 | `PagingTests` | Kích thước trang không bị kẹp, sắp xếp theo cột lạ không bị từ chối, tìm kiếm không thoát `%` / `_`, bộ lọc riêng không lấy đúng tham số, xuất Excel sai tiêu đề |
 | `LookupCacheTests` | Tra cứu khai thiếu bảng mà phép chiếu đọc (bản đệm không được xóa khi bảng đó đổi), tìm kiếm / chia trang trong bộ nhớ sai |
+| `LookupAccessTests` | Tra cứu thiếu quy tắc quyền; quy tắc trỏ chức năng không có; người không quyền bị 403, chủ danh mục / màn dùng nó được, cột nhạy cảm bị bỏ trống, đơn vị cơ sở bị cắt theo người dùng |
 | `LookupProviderTests` | Tra cứu viết riêng: bộ nhớ đệm theo tham số, quyền, phạm vi bản đệm, kiểu cột phụ, tên trùng |
 | `EveryEntityDeclaresItsChangeLog` | Entity thiếu `[Audited]` / `[NotAudited]` |
 | `AuditDeclarationsNameExistingProperties` | Mã chức năng trong `[Audited]` chưa có ở `FunctionCatalog`, hoặc `Label` dùng property không tồn tại |
@@ -1360,6 +1371,15 @@ Thử xong thì xóa dữ liệu thử (bản ghi, tài khoản thử, dòng nh�
 - [ ] `npm run lint` sạch, `npm run check-i18n` không thêm lỗi mới
 - [ ] Thử API: phân trang, sắp xếp (cột lạ → 400), tìm, lọc, export (có nhật ký `EXPORT`), 401 / 403, tra cứu cập nhật ngay
 - [ ] Thử trình duyệt (Phần 7.2) rồi xóa dữ liệu thử
+
+**Việc kèm theo (dễ quên)**
+- [ ] `Core.Application/Common/Lookups/LookupAccess.cs`: dòng quyền của tra cứu (`Owner`, `Consumers`, cột nhạy cảm); `LookupAccessTests` kiểm
+- [ ] `SpecialRightCatalog.cs`: `PricedCatalogsAndReports` nếu có giá / giá vốn; `CodeChangeCatalogs` nếu cho đổi mã
+- [ ] Danh mục có tên cần dịch theo ngôn ngữ (đơn vị tính, loại kho...): bảng `*_translation` theo [da-ngon-ngu.md](da-ngon-ngu.md) mục L5
+- [ ] Chữ màn hình bằng `t()`, khóa ở cả `vi` và `en` (`npm run check-i18n` không báo thiếu)
+- [ ] Thử bằng tài khoản **không phải quản trị viên**: không quyền → 403; chỉ Xem → không thấy nút Thêm / Sửa / Xóa / Xuất; ô chọn ở màn dùng danh mục vẫn hoạt động
+- [ ] Từ điển cơ sở dữ liệu: thêm mô tả bảng vào `docs/cong-cu/gen-database-doc.cjs` (nhóm `G.<phân hệ>`), cột vào `database-notes.cjs`, script vào `database-scripts.cjs`; chạy `node docs/cong-cu/gen-database-doc.cjs` rồi dựng Word
+- [ ] Tài liệu của danh mục (md + Word), dòng trong `docs/README.md`, dòng "Backend-backed" của `CLAUDE.md`, bảng API của `ServerService/README.md`
 
 **Không phải làm** (hệ thống tự có): ghi nhật ký thay đổi, điền người tạo / người sửa, chống ghi đè ở màn hình, báo trùng từ database, xóa cache, dòng trong ma trận phân quyền, route và breadcrumb, ẩn nút theo quyền, hộp xác nhận xóa, tìm kiếm / lọc / sắp xếp / phân trang ở máy chủ, xuất Excel ở máy chủ (có quyền và nhật ký), nhập Excel, xóa nhiều, chọn cột và lưu bố cục, API tra cứu có bộ nhớ đệm, 7 API và quyền của controller.
 

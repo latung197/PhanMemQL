@@ -54,5 +54,7 @@ module.exports = {
   '51': 'Hóa đơn mua hàng (đầu phiếu, dòng) và chặn sửa / hủy phiếu nhập, đơn mua còn hóa đơn',
   '52': 'Danh mục bán hàng: nhóm khách hàng, khách hàng, bảng giá bán và dòng bảng giá',
   '54': 'Phiếu kiểm kê (đầu phiếu, dòng): tồn sổ sách tính từ sổ kho, ghi sổ phần thừa và phần thiếu',
+  '55': 'Báo cáo kho dưới dạng hàm `rpt_*` (nhập xuất tồn, hàng nhập / xuất chi tiết và tổng hợp, tuổi hàng tồn, tồn tức thời có giữ chỗ, giá trung bình tháng); không có bảng mới',
+  '56': 'Định mức tồn kho theo kho (mã VATTU@KHO) và hàm `rpt_stock_balance` đọc định mức (chạy sau 55)',
   '53': 'Đơn bán hàng (đầu phiếu, dòng) và cột nối sang phiếu xuất kho: khách hàng, số đơn, dòng đơn'
 };
