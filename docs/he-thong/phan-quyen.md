@@ -706,10 +706,10 @@ Quyền Xem giá vốn của một báo cáo **không** mở giá vốn của b�
 
 | Tra cứu | Chủ (danh mục) | Cũng dùng được bởi |
 | --- | --- | --- |
-| `uoms`, `materialUoms` | Đơn vị tính | Vật tư, quy đổi, bảng giá bán, mọi phiếu kho / mua / bán |
+| `uoms`, `materialUoms` | Đơn vị tính | Vật tư, quy đổi, bảng giá bán, cấu trúc sản phẩm (`materialUoms`), mọi phiếu kho / mua / bán |
 | `uomsFull` | Đơn vị tính | Vật tư (các cột ghi chú, thứ tự, thời gian tạo / sửa chỉ chủ danh mục thấy) |
 | `uomConversions` | Quy đổi đơn vị tính | (chỉ chủ) |
-| `materials` | Vật tư | Lô, định mức tồn kho, quy đổi, bảng giá bán, mọi phiếu kho / mua / bán |
+| `materials` | Vật tư | Lô, định mức tồn kho, quy đổi, bảng giá bán, cấu trúc sản phẩm, mọi phiếu kho / mua / bán |
 | `materialGroups` | Nhóm vật tư | Vật tư, các báo cáo và màn tính toán Kho |
 | `materialTypes` | Loại vật tư | Vật tư |
 | `warehouses` | Danh mục kho | Vị trí, lô, định mức tồn kho, mọi phiếu, các báo cáo và màn tính toán Kho |
@@ -722,6 +722,9 @@ Quyền Xem giá vốn của một báo cáo **không** mở giá vốn của b�
 | `priceLists` | Bảng giá bán | Đơn bán hàng |
 | `projects` | Dự án | Các phiếu kho, mua hàng, đơn bán, báo cáo chi phí dự án |
 | `paymentTerms` | Điều khoản thanh toán | Khách hàng, đơn bán, đơn mua, hóa đơn mua |
+| `productionTeams` | Danh mục tổ sản xuất | Danh mục công đoạn, danh mục quy trình sản xuất |
+| `productionOperations` | Danh mục công đoạn sản xuất | Danh mục quy trình sản xuất, danh mục cấu trúc sản phẩm |
+| `productionProcesses` | Danh mục quy trình sản xuất | (chỉ chủ) |
 | `accounts` | Hệ thống tài khoản | Mã thuế, phiếu thu, phiếu chi |
 | `taxRates` | Mã thuế | Vật tư, các phiếu mua hàng và bán hàng |
 | `currencies`, `departments` | (dữ liệu nền) | **Mở cho mọi người đã đăng nhập** |

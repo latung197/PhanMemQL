@@ -50,13 +50,13 @@ public static class LookupAccessCatalog
     [
         // Units of measure: the unit column of every voucher line and of the price list, the material form, the conversions.
         Rule("uoms", "inv_uom_cat", Join(["inv_material_cat", "inv_uom_conversion_cat", "sales_price_list_cat"], StockVouchers, PurchaseVouchers, SalesVouchers)),
-        Rule("materialUoms", "inv_uom_cat", Join(["inv_material_cat", "sales_price_list_cat"], StockVouchers, PurchaseVouchers, SalesVouchers)),
+        Rule("materialUoms", "inv_uom_cat", Join(["inv_material_cat", "sales_price_list_cat", "prod_structure_cat"], StockVouchers, PurchaseVouchers, SalesVouchers)),
         // The full unit record: note, order and stamps are for the catalog's own screen only.
         Rule("uomsFull", "inv_uom_cat", ["inv_material_cat"], ["baseName", "note", "sortOrder", "createdAt", "updatedAt"]),
         Rule("uomConversions", "inv_uom_conversion_cat"),
 
         // Materials and their classification.
-        Rule("materials", "inv_material_cat", Join(["inv_lot_cat", "inv_stock_norm_cat", "inv_uom_conversion_cat", "sales_price_list_cat"], StockVouchers, PurchaseVouchers, SalesVouchers)),
+        Rule("materials", "inv_material_cat", Join(["inv_lot_cat", "inv_stock_norm_cat", "inv_uom_conversion_cat", "sales_price_list_cat", "prod_structure_cat"], StockVouchers, PurchaseVouchers, SalesVouchers)),
         Rule("materialGroups", "inv_material_group_cat", Join(["inv_material_cat"], StockReports)),
         Rule("materialTypes", "inv_material_type_cat", ["inv_material_cat"]),
 
@@ -77,6 +77,11 @@ public static class LookupAccessCatalog
         // Purchasing and project data.
         Rule("projects", "pur_project_cat", Join(["pur_report_project"], StockVouchers, PurchaseVouchers, ["sales_orders"])),
         Rule("paymentTerms", "pur_payment_term_cat", ["sales_customers", "sales_orders", "pur_order", "pur_invoice"]),
+
+        // Production: teams are picked by the operation and process catalogs, operations by the process and product structure screens.
+        Rule("productionTeams", "prod_team_cat", ["prod_operation_cat", "prod_process_cat"]),
+        Rule("productionOperations", "prod_operation_cat", ["prod_process_cat", "prod_structure_cat"]),
+        Rule("productionProcesses", "prod_process_cat"),
 
         // Finance and tax.
         Rule("accounts", "fin_account_cat", Join(["sys_tax_rates"], FinanceVouchers)),
