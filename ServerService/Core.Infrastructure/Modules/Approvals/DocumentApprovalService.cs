@@ -18,9 +18,10 @@ using Microsoft.EntityFrameworkCore;
 namespace Core.Infrastructure.Modules.Approvals;
 
 /// <summary>
-/// Submit → level 1 … level n → approved, or rejected at any level. Each step notifies the people who
-/// have to act. Voucher services call SubmitAsync when a document is sent for approval and read the
-/// result (GetAsync) to set the document status. Each step and its notifications are saved in one transaction.
+/// Submit → level 1 … level n → approved, or rejected at any level. The levels are the approval statuses the company unit uses for the
+/// voucher (Duyệt cấp 1, Duyệt cấp 2 when switched on, then Đã duyệt): approving a level moves the voucher to its status, and whoever
+/// reaches a later status approves the levels on the way at once. Each step notifies the people who have to act next. Each step and
+/// its notifications are saved in one transaction.
 /// </summary>
 public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver resolver, IPermissionService permissions,
     INotificationService notifications, IUnitOfWork unitOfWork, IAuditLog auditLog, IVoucherStatusService statuses) : IDocumentApprovalService
@@ -53,22 +54,9 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
             throw new BusinessRuleException("approval.alreadyApproved");
 
         var amount = voucher?.TotalValue ?? request.Amount;
-        var resolution = await resolver.ResolveAsync(request.Function, unitCode, userId, amount, ct);
-        var empty = resolution.Levels.FirstOrDefault(x => x.UserIds.Count == 0);
-        if (empty is not null)
-            throw new BusinessRuleException("approval.emptyLevel", empty.Level, empty.Label);
-
-        var round = steps.Count == 0 ? 1 : steps[0].Round + 1;
-        var now = DateTime.UtcNow;
-        var title = Guard.Optional(request.Title, 200, "field.title");
-        var rows = resolution.Levels.Select((level, index) => new DocumentApproval
-        {
-            MenuId0 = request.Function, DocumentId = documentId, DocumentTitle = title, UnitCode = unitCode,
-            Amount = amount, Round = round, Level = level.Level, ApproverLabel = level.Label,
-            ApproverUserIds = string.Join(',', level.UserIds),
-            Status = index == 0 ? ApprovalStepStatus.Pending : ApprovalStepStatus.Waiting,
-            RequestedByUserId = userId, RequestedAtUtc = now
-        }).ToList();
+        var rows = await NewRoundAsync(userId, unitCode, request.Function, documentId, request.Title, amount, steps, ct);
+        var empty = rows.FirstOrDefault(x => x.ApproverIds.Count == 0);
+        if (empty is not null) throw new BusinessRuleException("approval.emptyLevel", empty.Level, empty.ApproverLabel ?? string.Empty);
         await unitOfWork.ExecuteAsync(async token =>
         {
             db.DocumentApprovals.AddRange(rows);
@@ -81,104 +69,167 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
     }
 
     /// <summary>
-    /// Approves a pending document. Approving is a status right: whoever holds "Approved" (or a later status) of the function in the
-    /// document's unit approves, their own document too, whether the rules named them or not; the levels still open are all approved
-    /// by them at once (the rules only said whom to notify). The document is looked up in the session unit only.
+    /// A new round of approval steps for a document, one per approval level the unit uses (ApprovalResolver), not saved yet: level 1
+    /// is Pending, the others Waiting. Each step keeps the voucher status it leads to and the people notified at that level.
     /// </summary>
+    private async Task<List<DocumentApproval>> NewRoundAsync(int userId, string unitCode, string function, string documentId,
+        string? title, decimal? amount, List<DocumentApproval> previous, CancellationToken ct)
+    {
+        var resolution = await resolver.ResolveAsync(function, unitCode, userId, amount, ct);
+        var round = previous.Count == 0 ? 1 : previous[0].Round + 1;
+        var now = DateTime.UtcNow;
+        var cleanTitle = Guard.Optional(title, 200, "field.title");
+        return resolution.Levels.Select((level, index) => new DocumentApproval
+        {
+            MenuId0 = function, DocumentId = documentId, DocumentTitle = cleanTitle, UnitCode = unitCode,
+            Amount = amount, Round = round, Level = level.Level, ApproverLabel = level.Label,
+            ApproverUserIds = string.Join(',', level.UserIds), TargetStatus = level.TargetStatus.ToString(),
+            Status = index == 0 ? ApprovalStepStatus.Pending : ApprovalStepStatus.Waiting,
+            RequestedByUserId = userId, RequestedAtUtc = now
+        }).ToList();
+    }
+
     public async Task<DocumentApprovalDto> ApproveAsync(int userId, string unitCode, string function, string documentId,
         ApprovalActionRequest request, CancellationToken ct)
     {
         var steps = await LatestRoundAsync(function, documentId, ct, tracking: true, unitCode: unitCode);
-        var open = steps.Where(x => x.Status is ApprovalStepStatus.Pending or ApprovalStepStatus.Waiting).OrderBy(x => x.Level).ToList();
+        var open = OpenSteps(steps);
         if (open.Count == 0 || open[0].Status != ApprovalStepStatus.Pending) throw new BusinessRuleException("approval.notPending");
-        await EnsureMayApproveAsync(userId, open[0].UnitCode, function, ct);
         await unitOfWork.ExecuteAsync(async token =>
         {
-            await ApproveOpenStepsAsync(userId, unitCode, function, documentId, steps, open, request.Note, token);
+            await ApproveStepsAsync(userId, unitCode, function, documentId, steps, open, request.Note, upTo: null, token);
         }, ct);
         return await GetAsync(userId, unitCode, function, documentId, ct);
     }
 
-    /// <summary>The open levels approved by the user, the voucher approved, the log written and the requester told (inside the caller's transaction).</summary>
-    private async Task ApproveOpenStepsAsync(int userId, string unitCode, string function, string documentId,
-        List<DocumentApproval> steps, List<DocumentApproval> open, string? note, CancellationToken ct)
+    public async Task ApproveNextAsync(int userId, string unitCode, string function, string documentId, string? title, CancellationToken ct)
     {
-        foreach (var step in open) Act(step, userId, ApprovalStepStatus.Approved, note);
-        if (IsVoucherFunction(function))
+        var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
+        if (voucher.Status == "Draft")
         {
-            var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
-            voucher.Status = "Approved";
-            voucher.ApprovedByUserId = userId;
+            var levels = await statuses.ApprovalLevelsAsync(unitCode, function, ct);
+            var actor = await ActorAsync(userId, unitCode, function, ct);
+            // The highest approval status in use that the user reaches (Approved when the unit has no approval step).
+            if (levels.Count > 0 && !actor.Reaches(levels[0]))
+                throw new ForbiddenException("approval.nothingToApprove", await StatusNameAsync(unitCode, function, levels[0], ct));
+            var target = levels.Count == 0 ? DocumentStatus.Approved : levels.Last(actor.Reaches);
+            await ApproveDraftToAsync(userId, unitCode, function, documentId, title, target, ct);
+            return;
         }
-        await RecordAsync(open[^1], AuditActions.Approve, note, steps.Count, ct);
-        await db.SaveChangesAsync(ct);
-        if (open[0].RequestedByUserId != userId) await NotifyRequesterAsync(userId, open[^1], approved: true, note, ct);
+        if (!DocumentStatuses.InApproval(voucher.Status)) throw new BusinessRuleException("policy.notPending");
+        var steps = await LatestRoundAsync(function, documentId, ct, tracking: true, unitCode: unitCode);
+        var open = OpenSteps(steps);
+        if (open.Count == 0) throw new BusinessRuleException("approval.notPending");
+        await ApproveStepsAsync(userId, unitCode, function, documentId, steps, open, null, upTo: null, ct);
+    }
+
+    public async Task ApproveDraftToAsync(int userId, string unitCode, string function, string documentId, string? title,
+        DocumentStatus target, CancellationToken ct)
+    {
+        var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
+        if (voucher.Status != "Draft") throw new BusinessRuleException("policy.submitDraftOnly");
+        var actor = await ActorAsync(userId, unitCode, function, ct);
+        if (!actor.Reaches(target)) throw new ForbiddenException("approval.noApproveRight");
+        var levels = await statuses.ApprovalLevelsAsync(unitCode, function, ct);
+        if (levels.Count == 0)
+        {
+            // The unit switched the approval step off: only Approved, without a workflow.
+            if (target != DocumentStatus.Approved) await statuses.EnsureEnabledAsync(unitCode, function, target, ct);
+            await ApproveWithoutFlowAsync(userId, unitCode, function, documentId, ct);
+            return;
+        }
+        if (!levels.Contains(target)) await statuses.EnsureEnabledAsync(unitCode, function, target, ct);
+
+        var previous = await LatestRoundAsync(function, documentId, ct);
+        var rows = await NewRoundAsync(userId, unitCode, function, documentId, title, voucher.TotalValue, previous, ct);
+        var upTo = rows.FindLastIndex(x => x.TargetStatus == target.ToString());
+        // The levels after the target still need someone to approve them.
+        var empty = rows.Skip(upTo + 1).FirstOrDefault(x => x.ApproverIds.Count == 0);
+        if (empty is not null) throw new BusinessRuleException("approval.emptyLevel", empty.Level, empty.ApproverLabel ?? string.Empty);
+        db.DocumentApprovals.AddRange(rows);
+        voucher.Status = "Pending";
+        await RecordAsync(rows[0], AuditActions.Submit, null, rows.Count, ct);
+        await ApproveStepsAsync(userId, unitCode, function, documentId, rows, rows, Messages.T("approval.directNote"), upTo: target, ct,
+            notifyRequester: false);
+        // The rest of the round goes on as usual: the next level was notified by ApproveStepsAsync.
     }
 
     public async Task ApproveToEndAsync(int userId, string unitCode, string function, string documentId, string? title, CancellationToken ct)
     {
         var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
-        switch (voucher.Status)
+        if (voucher.Status == "Approved") return;
+        if (voucher.Status == "Draft")
         {
-            case "Approved":
-                return;
-            case "Draft":
-                if (await statuses.IsEnabledAsync(unitCode, function, DocumentStatus.Pending, ct))
-                    await ApproveDirectAsync(userId, unitCode, function, documentId, title, ct);
-                else await ApproveWithoutFlowAsync(userId, unitCode, function, documentId, ct);
-                return;
-            case "Pending":
-                var steps = await LatestRoundAsync(function, documentId, ct, tracking: true, unitCode: unitCode);
-                var open = steps.Where(x => x.Status is ApprovalStepStatus.Pending or ApprovalStepStatus.Waiting).OrderBy(x => x.Level).ToList();
-                if (open.Count == 0) throw new BusinessRuleException("approval.notPending");
-                await ApproveOpenStepsAsync(userId, unitCode, function, documentId, steps, open, null, ct);
-                return;
-            default:
-                throw new BusinessRuleException("policy.notPending");
+            await ApproveDraftToAsync(userId, unitCode, function, documentId, title, DocumentStatus.Approved, ct);
+            return;
         }
+        if (!DocumentStatuses.InApproval(voucher.Status)) throw new BusinessRuleException("policy.notPending");
+        var steps = await LatestRoundAsync(function, documentId, ct, tracking: true, unitCode: unitCode);
+        var open = OpenSteps(steps);
+        if (open.Count == 0) throw new BusinessRuleException("approval.notPending");
+        await ApproveStepsAsync(userId, unitCode, function, documentId, steps, open, null, upTo: DocumentStatus.Approved, ct);
     }
 
-    public Task EnsureCanApproveDirectAsync(int userId, string unitCode, string function, decimal amount, CancellationToken ct) =>
-        EnsureMayApproveAsync(userId, unitCode, function, ct);
+    private static List<DocumentApproval> OpenSteps(List<DocumentApproval> steps) =>
+        steps.Where(x => x.Status is ApprovalStepStatus.Pending or ApprovalStepStatus.Waiting).OrderBy(x => x.Level).ToList();
 
-    /// <summary>The user holds the "Approved" status right (or a later one) of the function in that unit (administrators always).</summary>
-    private async Task<bool> MayApproveAsync(int userId, string unitCode, string function, CancellationToken ct)
-    {
-        var actor = DocumentActor.For(await permissions.GetEffectiveInUnitAsync(userId, unitCode, ct),
-            await permissions.GetRightsInUnitAsync(userId, unitCode, ct), function, isOwner: false, unitCode);
-        return actor.Reaches(DocumentStatus.Approved);
-    }
+    /// <summary>The voucher status a step leads to (steps written before the levels followed the statuses: Approved).</summary>
+    private static DocumentStatus TargetOf(DocumentApproval step) =>
+        Enum.TryParse<DocumentStatus>(step.TargetStatus, out var status) ? status : DocumentStatus.Approved;
 
-    private async Task EnsureMayApproveAsync(int userId, string unitCode, string function, CancellationToken ct)
+    /// <summary>
+    /// Approves the open steps in order while the user reaches the status each leads to, or, with <paramref name="upTo"/>, every open
+    /// step through the last one leading to that status (the user must reach it), inside the caller's transaction. The voucher takes
+    /// the status of the last step approved; the next step becomes Pending and its people are notified, or the requester is told the
+    /// document is approved.
+    /// </summary>
+    private async Task ApproveStepsAsync(int userId, string unitCode, string function, string documentId, List<DocumentApproval> steps,
+        List<DocumentApproval> open, string? note, DocumentStatus? upTo, CancellationToken ct, bool notifyRequester = true)
     {
-        if (!await MayApproveAsync(userId, unitCode, function, ct)) throw new ForbiddenException("approval.noApproveRight");
-    }
-
-    public async Task ApproveDirectAsync(int userId, string unitCode, string function, string documentId, string? title, CancellationToken ct)
-    {
-        var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
-        if (voucher.Status != "Draft") throw new BusinessRuleException("policy.submitDraftOnly");
-        var steps = await LatestRoundAsync(function, documentId, ct);
-        var resolution = await resolver.ResolveAsync(function, unitCode, userId, voucher.TotalValue, ct, includeRequester: true);
-        var now = DateTime.UtcNow;
-        var note = Messages.T("approval.directNote");
-        // One step per level, all approved by this user at once: the history still shows the round and who approved it.
-        var rows = resolution.Levels.Select(level => new DocumentApproval
+        var actor = await ActorAsync(userId, open[0].UnitCode, function, ct);
+        List<DocumentApproval> taken;
+        if (upTo is DocumentStatus limit)
         {
-            MenuId0 = function, DocumentId = documentId, DocumentTitle = title, UnitCode = unitCode, Amount = voucher.TotalValue,
-            Round = steps.Count == 0 ? 1 : steps[0].Round + 1, Level = level.Level, ApproverLabel = level.Label,
-            ApproverUserIds = string.Join(',', level.UserIds), Status = ApprovalStepStatus.Approved,
-            RequestedByUserId = userId, RequestedAtUtc = now, ActedByUserId = userId, ActedAtUtc = now, Note = note
-        }).ToList();
-        db.DocumentApprovals.AddRange(rows);
-        voucher.Status = "Approved";
-        voucher.ApprovedByUserId = userId;
-        await RecordAsync(rows[0], AuditActions.Submit, null, rows.Count, ct);
-        await RecordAsync(rows[^1], AuditActions.Approve, note, rows.Count, ct);
+            if (!actor.Reaches(limit)) throw new ForbiddenException("approval.noApproveRight");
+            var last = open.FindLastIndex(step => TargetOf(step) == limit);
+            taken = last < 0 ? open : open.Take(last + 1).ToList();
+        }
+        else taken = open.TakeWhile(step => actor.Reaches(TargetOf(step))).ToList();
+        if (taken.Count == 0)
+            throw new ForbiddenException("approval.nothingToApprove", await StatusNameAsync(open[0].UnitCode, function, TargetOf(open[0]), ct));
+        foreach (var step in taken) Act(step, userId, ApprovalStepStatus.Approved, note);
+        var next = open.Skip(taken.Count).FirstOrDefault();
+        if (next is not null) next.Status = ApprovalStepStatus.Pending;
+        var reached = TargetOf(taken[^1]);
+        if (IsVoucherFunction(function))
+        {
+            var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
+            voucher.Status = reached.ToString();
+            if (reached == DocumentStatus.Approved) voucher.ApprovedByUserId = userId;
+        }
+        await RecordAsync(taken[^1], AuditActions.Approve, note, steps.Count, ct);
         await db.SaveChangesAsync(ct);
+        if (next is not null) await NotifyApproversAsync(userId, next, ct);
+        else if (notifyRequester && open[0].RequestedByUserId != userId) await NotifyRequesterAsync(userId, taken[^1], approved: true, note, ct);
     }
 
-    public async Task ApproveWithoutFlowAsync(int userId, string unitCode, string function, string documentId, CancellationToken ct)
+    /// <summary>The user's rights on the function in the unit (administrators hold every status right there).</summary>
+    private async Task<DocumentActor> ActorAsync(int userId, string unitCode, string function, CancellationToken ct) =>
+        DocumentActor.For(await permissions.GetEffectiveInUnitAsync(userId, unitCode, ct),
+            await permissions.GetRightsInUnitAsync(userId, unitCode, ct), function, isOwner: false, unitCode);
+
+    /// <summary>The name the unit gave a status of the function (for messages).</summary>
+    private async Task<string> StatusNameAsync(string unitCode, string function, DocumentStatus status, CancellationToken ct)
+    {
+        var voucher = Core.Application.Common.Documents.VoucherCatalog.FindByFunction(function);
+        if (voucher is null) return Core.Application.Common.Documents.VoucherStatusCatalog.DefaultName(status);
+        var names = await statuses.GetNamesAsync(unitCode, ct);
+        return names.GetValueOrDefault(voucher.VoucherType)?.GetValueOrDefault(status.ToString())?.Name
+            ?? Core.Application.Common.Documents.VoucherStatusCatalog.DefaultName(status);
+    }
+
+    /// <summary>For a unit that switched the approval step off: the draft voucher goes to Approved with no approval steps, recorded in the change log.</summary>
+    private async Task ApproveWithoutFlowAsync(int userId, string unitCode, string function, string documentId, CancellationToken ct)
     {
         var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
         if (voucher.Status != "Draft") throw new BusinessRuleException("policy.submitDraftOnly");
@@ -192,11 +243,12 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
     public async Task<DocumentApprovalDto> RejectAsync(int userId, string unitCode, string function, string documentId,
         ApprovalActionRequest request, CancellationToken ct)
     {
-        // Sending back is decided like approving: the "Approved" status right in the document's unit.
+        // Sending back is decided like approving: the right to approve the current level in the document's unit.
         var steps = await LatestRoundAsync(function, documentId, ct, tracking: true, unitCode: unitCode);
         var current = steps.FirstOrDefault(x => x.Status == ApprovalStepStatus.Pending)
             ?? throw new BusinessRuleException("approval.notPending");
-        await EnsureMayApproveAsync(userId, current.UnitCode, function, ct);
+        if (!(await ActorAsync(userId, current.UnitCode, function, ct)).Reaches(TargetOf(current)))
+            throw new ForbiddenException("approval.noApproveRight");
         Guard.Required(request.Note, 1000, "field.rejectReason");
         Act(current, userId, ApprovalStepStatus.Rejected, request.Note);
         foreach (var waiting in steps.Where(x => x.Status == ApprovalStepStatus.Waiting)) waiting.Status = ApprovalStepStatus.Cancelled;
@@ -258,12 +310,12 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
             : pending is not null ? "PENDING"
             : steps.All(x => x.Status == ApprovalStepStatus.Approved) ? "APPROVED" : "WITHDRAWN";
 
-        var canAct = pending is not null && await MayApproveAsync(userId, pending.UnitCode, function, ct);
+        var canAct = pending is not null && (await ActorAsync(userId, pending.UnitCode, function, ct)).Reaches(TargetOf(pending));
         return new DocumentApprovalDto(function, documentId, steps[0].DocumentTitle, status, steps[0].Round, pending?.Level,
             canAct, users.GetValueOrDefault(steps[0].RequestedByUserId), steps[0].RequestedAtUtc,
             steps.Select(s => new ApprovalStepDto(s.Level, s.Status, s.ApproverLabel ?? string.Empty,
                 s.ApproverIds.Where(users.ContainsKey).Select(id => users[id]).ToList(),
-                s.ActedByUserId is int acted ? users.GetValueOrDefault(acted) : null, s.ActedAtUtc, s.Note)).ToList());
+                s.ActedByUserId is int acted ? users.GetValueOrDefault(acted) : null, s.ActedAtUtc, s.Note, TargetOf(s).ToString())).ToList());
     }
 
     public async Task<IReadOnlyList<PendingApprovalDto>> GetPendingForMeAsync(int userId, string unitCode, CancellationToken ct)
@@ -294,10 +346,27 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         ? SpecialRightCatalog.ViewCost : SpecialRightCatalog.ViewPrice;
 
     /// <summary>Vouchers whose status this service moves with the approval steps (each has its own table).</summary>
-    private static bool IsVoucherFunction(string function) => function is "inv_receipt" or "inv_issue" or "inv_issue_request" or "pur_request" or "pur_order" or "pur_invoice" or "sales_orders"
-        or "inv_transfer_order" or "inv_transfer_issue" or "inv_transfer_receipt" or "inv_audit_count";
+    private static bool IsVoucherFunction(string function) => VoucherFunctions.Contains(function);
 
-    private static string NotFoundKey(string function) => function switch { "inv_issue" => "issue.notFound", "inv_issue_request" => "issueRequest.notFound", "pur_request" => "purchaseRequest.notFound", "pur_order" => "purchaseOrder.notFound", "pur_invoice" => "purchaseInvoice.notFound", "sales_orders" => "salesOrder.notFound", "inv_transfer_order" => "transferOrder.notFound", "inv_transfer_issue" => "transferIssue.notFound", "inv_transfer_receipt" => "transferReceipt.notFound", "inv_audit_count" => "stockCount.notFound", _ => "receipt.notFound" };
+    private static readonly HashSet<string> VoucherFunctions = new(StringComparer.Ordinal)
+    {
+        "inv_receipt", "inv_issue", "inv_issue_request", "pur_request", "pur_order", "pur_invoice", "sales_orders",
+        "inv_transfer_order", "inv_transfer_issue", "inv_transfer_receipt", "inv_audit_count",
+        "pur_supplier_eval",
+        // [tao-chung-tu] Chứng từ mới: thêm "mã chức năng", ngay trên dòng này (và ở NotFoundKeys, FindVoucherAsync).
+    };
+
+    private static string NotFoundKey(string function) => NotFoundKeys.GetValueOrDefault(function, "receipt.notFound");
+
+    private static readonly Dictionary<string, string> NotFoundKeys = new(StringComparer.Ordinal)
+    {
+        ["inv_issue"] = "issue.notFound", ["inv_issue_request"] = "issueRequest.notFound", ["pur_request"] = "purchaseRequest.notFound",
+        ["pur_order"] = "purchaseOrder.notFound", ["pur_invoice"] = "purchaseInvoice.notFound", ["sales_orders"] = "salesOrder.notFound",
+        ["inv_transfer_order"] = "transferOrder.notFound", ["inv_transfer_issue"] = "transferIssue.notFound",
+        ["inv_transfer_receipt"] = "transferReceipt.notFound", ["inv_audit_count"] = "stockCount.notFound",
+        ["pur_supplier_eval"] = "supplierEvaluation.notFound",
+        // [tao-chung-tu] Chứng từ mới: thêm ["mã chức năng"] = "loại.notFound", ngay trên dòng này.
+    };
 
     private async Task<IApprovableDocument?> FindVoucherAsync(string function, string documentId, string unitCode, CancellationToken ct) =>
         function switch
@@ -313,6 +382,8 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
             "inv_transfer_issue" => await db.TransferIssues.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             "inv_transfer_receipt" => await db.TransferReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             "inv_audit_count" => await db.StockCounts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
+            "pur_supplier_eval" => await db.SupplierEvaluations.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
+            // [tao-chung-tu] Chứng từ mới: thêm "mã chức năng" => await db.<DbSet>.FirstOrDefaultAsync(...), ngay trên dòng này.
             _ => null
         };
 

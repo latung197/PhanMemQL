@@ -27,6 +27,7 @@ import { PrintMenuButton } from '../PrintMenuButton';
 import { printVoucher, type VoucherPrintKind } from '../voucherPrint';
 import { GoodsVoucher, VoucherItem, Product, Warehouse as WarehouseType, CompanyUnit, UserProfile, SubMenuKey } from '../../../../types';
 import { SAVE_STATUS_LABELS, saveStatusChoices, saveStatusName, type SaveStatus } from '../SaveStatusSelect';
+import { approvalLevelOptions, canApproveVoucher, isInApprovalLabel, POSTABLE_LABELS } from '../voucherStatusLabels';
 import { VoucherStatusBadge } from '../VoucherStatusBadge';
 import { useVoucherStatuses, voucherStatusService } from '../../../../services/voucherStatusService';
 import { reachesStatus } from '../../../../utils/documentPolicy';
@@ -106,7 +107,7 @@ const hasMaterial = (item: VoucherItem) => Boolean(item.productId || item.sku ||
 
 /** The status filter of the form holds the labels the screens keep; the server filters by the status name. */
 const STATUS_OF_LABEL: Record<string, string> = {
-  'Lập chứng từ': 'Draft', 'Chờ duyệt': 'Pending', 'Đã phê duyệt': 'Approved', 'Chuyển sổ kho': 'Posted', 'Hủy': 'Cancelled'
+  'Lập chứng từ': 'Draft', 'Chờ duyệt': 'Pending', 'Duyệt cấp 1': 'Approved1', 'Duyệt cấp 2': 'Approved2', 'Đã phê duyệt': 'Approved', 'Chuyển sổ kho': 'Posted', 'Hủy': 'Cancelled'
 };
 
 export const TransferVoucherView: React.FC<TransferVoucherViewProps> = ({ kind, companyUnits = [], activeUnitCode, currentUser }) => {
@@ -188,7 +189,8 @@ export const TransferVoucherView: React.FC<TransferVoucherViewProps> = ({ kind, 
   const perm = getActionPermission(currentUser, FUNCTION);
   // "Duyệt" on the voucher or on its approval screen (Phê duyệt điều chuyển), as the backend.
   // Approving is a status right of the unit (own vouchers too); the approval rules only say whom to notify.
-  const canApprove = reachesStatus(currentUser, FUNCTION, 'Approved');
+  // The "Duyệt" button: the user reaches the next approval step the unit uses after the voucher's status.
+  const canApproveAt = (label?: string) => canApproveVoucher(currentUser, FUNCTION, cfg.series, label);
   const canViewValue = kind !== 'order' && hasRight(currentUser, FUNCTION, RIGHTS.VIEW_COST);
   const hiddenValueFields = canViewValue || kind === 'order' ? undefined : ['unitPrice', 'amount'];
   const statusChoices = saveStatusChoices(currentUser, FUNCTION, { voucherType: cfg.series, posts: cfg.posts });
@@ -633,11 +635,11 @@ export const TransferVoucherView: React.FC<TransferVoucherViewProps> = ({ kind, 
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'submit')} title={`Gửi duyệt ${cfg.noun}`}
                   className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"><ArrowUpRight className="h-4 w-4" /></button>
               )}
-              {(v.status === 'Chờ duyệt' || v.status === 'Lập chứng từ') && canApprove && (
+              {canApproveAt(v.status) && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'approve')} title={`Phê duyệt ${cfg.noun}`}
                   className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"><ShieldCheck className="h-4 w-4" /></button>
               )}
-              {cfg.posts && ['Lập chứng từ', 'Chờ duyệt', 'Đã phê duyệt'].includes(v.status) && reachesStatus(currentUser, FUNCTION, 'Posted') && (
+              {cfg.posts && POSTABLE_LABELS.includes(v.status) && reachesStatus(currentUser, FUNCTION, 'Posted') && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'post')} title="Chuyển sổ kho"
                   className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg cursor-pointer"><BookCheck className="h-4 w-4" /></button>
               )}
@@ -647,7 +649,7 @@ export const TransferVoucherView: React.FC<TransferVoucherViewProps> = ({ kind, 
               )}
           </RowActionSlot>
           <RowActionSlot>
-              {v.status === 'Chờ duyệt' && v.createdBy === currentUser?.fullName && (
+              {isInApprovalLabel(v.status) && v.createdBy === currentUser?.fullName && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'withdraw')} title="Rút phiếu khỏi quy trình duyệt"
                   className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg"><Undo2 className="h-4 w-4" /></button>
               )}
@@ -705,6 +707,7 @@ export const TransferVoucherView: React.FC<TransferVoucherViewProps> = ({ kind, 
                 <option value="">-- Tất cả trạng thái --</option>
                 <option value="Lập chứng từ">Lập chứng từ</option>
                 <option value="Chờ duyệt">Chờ duyệt</option>
+                {approvalLevelOptions(cfg.series).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 <option value="Đã phê duyệt">Đã phê duyệt</option>
                 {cfg.posts && <option value="Chuyển sổ kho">Chuyển sổ kho</option>}
                 <option value="Hủy">Đã hủy</option>
@@ -887,6 +890,7 @@ export const TransferVoucherView: React.FC<TransferVoucherViewProps> = ({ kind, 
                       : (<>
                           <option value="Lập chứng từ">Lập chứng từ</option>
                           <option value="Chờ duyệt">Chờ duyệt</option>
+                          {approvalLevelOptions(cfg.series, true).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                           <option value="Đã phê duyệt">Đã phê duyệt</option>
                           {cfg.posts && <option value="Chuyển sổ kho">Chuyển sổ kho</option>}
                           <option value="Hủy">Hủy phiếu</option>

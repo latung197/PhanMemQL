@@ -57,6 +57,9 @@ export const RIGHTS = {
   /** Đổi mã, gộp mã của một danh mục. */
   CHANGE_CODE: 'CHANGE_CODE',
   ST_PENDING: 'ST_PENDING',
+  /** Approval level 1 / 2 ("Duyệt cấp 1 / 2"): only count where the unit switched that level on. */
+  ST_APPROVED1: 'ST_APPROVED1',
+  ST_APPROVED2: 'ST_APPROVED2',
   ST_APPROVED: 'ST_APPROVED',
   ST_POSTED: 'ST_POSTED',
   ST_CANCELLED: 'ST_CANCELLED',

@@ -108,6 +108,8 @@ const T = {
   erp_supplier_group: [G.pur_catalog, 'Danh mục nhóm nhà cung cấp.'],
   erp_purchase_request: [G.pur_doc, 'Đầu **phiếu yêu cầu mua hàng** (duyệt, không ghi sổ).'],
   erp_purchase_request_line: [G.pur_doc, 'Dòng phiếu yêu cầu mua hàng.'],
+  erp_supplier_evaluation: [G.pur_doc, 'Đầu **phiếu đánh giá nhà cung cấp** (duyệt, không ghi sổ; sinh bằng npm run tao-chung-tu).'],
+  erp_supplier_evaluation_line: [G.pur_doc, 'Dòng phiếu đánh giá nhà cung cấp: chỉ tiêu, trọng số, điểm.'],
   erp_purchase_order: [G.pur_doc, 'Đầu **đơn mua hàng** (duyệt, không ghi sổ): nhà cung cấp, điều khoản, thuế, ngày giao dự kiến, dự án.'],
   erp_purchase_invoice: [G.pur_doc, 'Đầu **hóa đơn mua hàng** (duyệt, không ghi sổ): hóa đơn của nhà cung cấp, căn cứ để theo dõi công nợ phải trả. Số hóa đơn, ký hiệu, ngày hóa đơn và hạn thanh toán là của nhà cung cấp; nhà cung cấp + số + ký hiệu duy nhất giữa các hóa đơn chưa hủy.'],
   erp_purchase_invoice_line: [G.pur_doc, 'Dòng hóa đơn mua hàng: lập hóa đơn cho dòng phiếu nhập kho (`goods_receipt_line_id`) và / hoặc dòng đơn mua (`purchase_order_line_id`); số lượng đã lập hóa đơn của một dòng nguồn được tính từ các hóa đơn chưa hủy, không lưu.'],
@@ -270,7 +272,7 @@ L.push('## 7. Các script SQL', '', 'Chạy theo thứ tự tên file trong `Ser
 const scripts = fs.readdirSync(path.join(root, 'ServerService/sql/postgresql')).filter(f => f.endsWith('.sql')).sort();
 const missingScript = [];
 for (const f of scripts) {
-  // Two scripts may share a number (55-inventory-reports, 55-production-catalogs): the full name wins over the number.
+  // Two scripts may share a number: an entry under the full file name wins over the number.
   const note = SCRIPT_NOTES[f.replace(/\.sql$/, '')] || SCRIPT_NOTES[f.slice(0, 2)];
   if (!note) missingScript.push(f);
   L.push(`| \`${f}\` | ${esc(note || '(chưa mô tả)')} |`);

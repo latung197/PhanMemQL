@@ -36,7 +36,7 @@ interface RequestRecord {
   exchangeRate: number;
   projectCode?: string | null;
   note?: string | null;
-  status: 'Draft' | 'Pending' | 'Approved' | 'Posted' | 'Cancelled';
+  status: 'Draft' | 'Pending' | 'Approved1' | 'Approved2' | 'Approved' | 'Posted' | 'Cancelled';
   totalValue: number;
   createdBy: string;
   approvedBy?: string | null;
@@ -48,6 +48,8 @@ interface RequestRecord {
 const statusLabels: Record<RequestRecord['status'], string> = {
   Draft: 'Lập chứng từ',
   Pending: 'Chờ duyệt',
+  Approved1: 'Duyệt cấp 1',
+  Approved2: 'Duyệt cấp 2',
   Approved: 'Đã phê duyệt',
   Posted: 'Đã phê duyệt',
   Cancelled: 'Hủy'

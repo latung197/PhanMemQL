@@ -7,6 +7,7 @@ description: Thêm một chứng từ mới (phiếu có trạng thái, phê duy
 
 Quy trình chuẩn để thêm một chứng từ **mà không phải đọc cả dự án**. Chỉ đọc đúng các file nêu dưới đây.
 
+- **Dùng công cụ sinh trước**: `npm run tao-chung-tu -- <mo-ta.json>` (trong `Frontend/`, hướng dẫn `docs/phat-trien/them-chung-tu-nhanh.md`, mẫu `docs/phat-trien/mau-chung-tu/vi-du-danh-gia-nha-cung-cap.json`) sinh trọn một chứng từ không ghi sổ: SQL, thực thể, hợp đồng, dịch vụ, controller, màn hình khai báo trên `components/voucher/VoucherScreen.tsx` và mọi chỗ đăng ký (dòng đánh dấu `[tao-chung-tu]` / `[tao-danh-muc]`). Chạy `--thu` trước, rồi chạy thật, rồi thêm tay phần riêng (luật trong `ValidateAsync`, ghi sổ, lấy dòng từ chứng từ trước, màn phê duyệt, mẫu in) theo các bước dưới. Sai thì `--hoan-tac <mã>`.
 - Hướng dẫn đầy đủ: `docs/phat-trien/them-chung-tu.md`; số mục (§5.4...) dưới đây là mục trong file đó. **Đọc file đó trước khi viết code.**
 - Mẫu đang chạy thật, sao rồi sửa:
   - chứng từ ghi sổ kho: phiếu xuất kho `GoodsIssueService.cs`, `GoodsIssuesController.cs`, `Frontend/src/modules/inventory/documents/goods-issues/`, SQL `39-inventory-goods-issues.sql`;

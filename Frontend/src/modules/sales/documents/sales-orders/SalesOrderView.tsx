@@ -37,6 +37,7 @@ import { PrintMenuButton } from '../../../inventory/documents/PrintMenuButton';
 import { printVoucher } from '../../../inventory/documents/voucherPrint';
 import { GoodsVoucher, VoucherItem, Product, Warehouse as WarehouseType, CompanyUnit, UserProfile } from '../../../../types';
 import { SAVE_STATUS_LABELS, saveStatusChoices, saveStatusName, type SaveStatus } from '../../../inventory/documents/SaveStatusSelect';
+import { approvalLevelOptions, canApproveVoucher, isInApprovalLabel, POSTABLE_LABELS } from '../../../inventory/documents/voucherStatusLabels';
 import { VoucherStatusBadge } from '../../../inventory/documents/VoucherStatusBadge';
 import { useVoucherStatuses, voucherStatusService } from '../../../../services/voucherStatusService';
 import { reachesStatus } from '../../../../utils/documentPolicy';
@@ -76,7 +77,7 @@ const hasMaterial = (item: VoucherItem) => Boolean(item.productId || item.sku ||
 
 /** The status filter of the form holds the labels the screens keep; the server filters by the status name. */
 const STATUS_OF_LABEL: Record<string, string> = {
-  'Lập chứng từ': 'Draft', 'Chờ duyệt': 'Pending', 'Đã phê duyệt': 'Approved', 'Hủy': 'Cancelled'
+  'Lập chứng từ': 'Draft', 'Chờ duyệt': 'Pending', 'Duyệt cấp 1': 'Approved1', 'Duyệt cấp 2': 'Approved2', 'Đã phê duyệt': 'Approved', 'Hủy': 'Cancelled'
 };
 
 export const SalesOrderView: React.FC<SalesOrderViewProps> = ({ companyUnits = [], activeUnitCode, currentUser }) => {
@@ -161,7 +162,8 @@ export const SalesOrderView: React.FC<SalesOrderViewProps> = ({ companyUnits = [
   const perm = getActionPermission(currentUser, FUNCTION);
   // "Duyệt" on the voucher or on its approval screen (Phê duyệt đơn bán hàng), as the backend.
   // Approving is a status right of the unit (own vouchers too); the approval rules only say whom to notify.
-  const canApprove = reachesStatus(currentUser, FUNCTION, 'Approved');
+  // The "Duyệt" button: the user reaches the next approval step the unit uses after the voucher's status.
+  const canApproveAt = (label?: string) => canApproveVoucher(currentUser, FUNCTION, 'SO', label);
   const canViewPrice = hasRight(currentUser, FUNCTION, RIGHTS.VIEW_PRICE);
   const hiddenPriceFields = canViewPrice ? undefined : ['unitPrice', 'amount'];
   // An order is never posted: only Draft, Pending and Approved can be asked for.
@@ -607,13 +609,13 @@ export const SalesOrderView: React.FC<SalesOrderViewProps> = ({ companyUnits = [
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'submit')} title="Gửi duyệt đơn bán hàng"
                   className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"><ArrowUpRight className="h-4 w-4" /></button>
               )}
-              {(v.status === 'Chờ duyệt' || v.status === 'Lập chứng từ') && canApprove && (
+              {canApproveAt(v.status) && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'approve')} title="Phê duyệt đơn bán hàng"
                   className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"><ShieldCheck className="h-4 w-4" /></button>
               )}
           </RowActionSlot>
           <RowActionSlot>
-              {v.status === 'Chờ duyệt' && v.createdBy === currentUser?.fullName && (
+              {isInApprovalLabel(v.status) && v.createdBy === currentUser?.fullName && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'withdraw')} title="Rút phiếu khỏi quy trình duyệt"
                   className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg"><Undo2 className="h-4 w-4" /></button>
               )}
@@ -668,6 +670,7 @@ export const SalesOrderView: React.FC<SalesOrderViewProps> = ({ companyUnits = [
                 <option value="">-- Tất cả trạng thái --</option>
                 <option value="Lập chứng từ">Lập chứng từ</option>
                 <option value="Chờ duyệt">Chờ duyệt</option>
+                {approvalLevelOptions('SO').map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 <option value="Đã phê duyệt">Đã phê duyệt</option>
                 <option value="Hủy">Đã hủy</option>
               </select></div>
@@ -861,6 +864,7 @@ export const SalesOrderView: React.FC<SalesOrderViewProps> = ({ companyUnits = [
                       : (<>
                           <option value="Lập chứng từ">Lập chứng từ</option>
                           <option value="Chờ duyệt">Chờ duyệt</option>
+                          {approvalLevelOptions('SO', true).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                           <option value="Đã phê duyệt">Đã phê duyệt</option>
                           <option value="Hủy">Hủy phiếu</option>
                         </>)}

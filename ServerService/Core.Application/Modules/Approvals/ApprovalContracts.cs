@@ -1,3 +1,4 @@
+using Core.Application.Common.Permissions;
 namespace Core.Application.Modules.Approvals;
 
 // ----- Rules (Settings › Quy trình phê duyệt) -----
@@ -33,8 +34,9 @@ public sealed record SubmitDocumentRequest(string Function, string DocumentId, s
 
 public sealed record ApprovalActionRequest(string? Note);
 
+/// <param name="TargetStatus">The voucher status the level leads to (Approved1, Approved2, Approved).</param>
 public sealed record ApprovalStepDto(int Level, string Status, string ApproverLabel, IReadOnlyList<ApproverUserDto> Approvers,
-    ApproverUserDto? ActedBy, DateTime? ActedAt, string? Note);
+    ApproverUserDto? ActedBy, DateTime? ActedAt, string? Note, string TargetStatus = "Approved");
 
 /// <summary>
 /// Status: NONE (never submitted), PENDING, APPROVED, REJECTED, WITHDRAWN. CanAct = the current user may
@@ -50,34 +52,40 @@ public interface IDocumentApprovalService
 {
     Task<DocumentApprovalDto> SubmitAsync(int userId, string unitCode, SubmitDocumentRequest request, CancellationToken ct);
 
-    /// <summary>Approves a pending document: whoever holds the "Approved" status right of the function in its unit approves every level
-    /// still open at once (own documents too; the approval rules only name whom to notify).</summary>
+    /// <summary>
+    /// Approves a document in approval: the levels still open are approved, in order, as far as the user's status rights reach in the
+    /// document's unit (level k needs the status it leads to: Duyệt cấp 1 / Duyệt cấp 2 / Đã duyệt, a later right includes the earlier
+    /// ones), own documents too; the voucher takes the status of the last level approved and the next level is notified. Refused when
+    /// the user reaches none of them.
+    /// </summary>
     Task<DocumentApprovalDto> ApproveAsync(int userId, string unitCode, string function, string documentId, ApprovalActionRequest request, CancellationToken ct);
 
-    /// <summary>Sends a pending document back to its requester; needs the same right as approving it.</summary>
+    /// <summary>Sends a document in approval back to its requester (to Draft); needs the right to approve its current level.</summary>
     Task<DocumentApprovalDto> RejectAsync(int userId, string unitCode, string function, string documentId, ApprovalActionRequest request, CancellationToken ct);
 
     /// <summary>
-    /// Takes a voucher to Approved inside the caller's transaction, whatever step it is at: a draft is approved at once (one approved
-    /// step per level, or none when the unit switched the approval step off), a pending one has every open level approved by the user,
-    /// an approved one stays. The caller has checked the user's status right (DocumentStatusPolicy).
+    /// The "Duyệt" button of a voucher, inside the caller's transaction: a voucher in approval goes up as <see cref="ApproveAsync"/>; a
+    /// draft goes straight to the highest approval status in use that the user reaches (<see cref="ApproveDraftToAsync"/>).
+    /// </summary>
+    Task ApproveNextAsync(int userId, string unitCode, string function, string documentId, string? title, CancellationToken ct);
+
+    /// <summary>
+    /// Saving a draft voucher straight at <paramref name="target"/> (Approved1, Approved2 or Approved), inside the caller's transaction:
+    /// a new round is opened and its levels up to the target are approved by the user (who must reach the target in the unit), the
+    /// next level is notified. The target must be a status the unit uses. A unit without the approval step (Pending switched off) only
+    /// takes Approved, recorded without a workflow.
+    /// </summary>
+    Task ApproveDraftToAsync(int userId, string unitCode, string function, string documentId, string? title, DocumentStatus target, CancellationToken ct);
+
+    /// <summary>
+    /// Takes a voucher to Approved inside the caller's transaction, whatever step it is at (before posting it): a draft has every
+    /// level approved at once (or none when the unit switched the approval step off), one in approval its open levels, an approved
+    /// one stays. The caller has checked the user's status right (DocumentStatusPolicy: posting reaches every level).
     /// </summary>
     Task ApproveToEndAsync(int userId, string unitCode, string function, string documentId, string? title, CancellationToken ct);
 
-    /// <summary>The requester takes back a pending document (e.g. to edit it).</summary>
+    /// <summary>The requester takes back a document in approval (e.g. to edit it).</summary>
     Task<DocumentApprovalDto> WithdrawAsync(int userId, string unitCode, string function, string documentId, CancellationToken ct);
-
-    /// <summary>Whether the user may save the voucher straight at the approved status: they hold the "Approved" status right of the
-    /// function in that unit (an administrator always does). Throws otherwise.</summary>
-    Task EnsureCanApproveDirectAsync(int userId, string unitCode, string function, decimal amount, CancellationToken ct);
-
-    /// <summary>Records the approval of the whole chain by <paramref name="userId"/> at once (one step per level, all approved)
-    /// and moves the draft voucher to Approved. The caller has checked <see cref="EnsureCanApproveDirectAsync"/>.</summary>
-    Task ApproveDirectAsync(int userId, string unitCode, string function, string documentId, string? title, CancellationToken ct);
-
-    /// <summary>For a unit that switched the approval step off (voucher status "Chờ duyệt"): moves the draft voucher to Approved with no
-    /// approval steps and records it in the change log. The caller has checked the user's status right.</summary>
-    Task ApproveWithoutFlowAsync(int userId, string unitCode, string function, string documentId, CancellationToken ct);
 
     Task<DocumentApprovalDto> GetAsync(int userId, string unitCode, string function, string documentId, CancellationToken ct);
     Task<IReadOnlyList<PendingApprovalDto>> GetPendingForMeAsync(int userId, string unitCode, CancellationToken ct);

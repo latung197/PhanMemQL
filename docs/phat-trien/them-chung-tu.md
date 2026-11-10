@@ -1,5 +1,7 @@
 # Thêm một chứng từ mới (phiếu)
 
+> **Nhanh hơn:** chứng từ không ghi sổ và không lấy dòng từ chứng từ khác thì sinh bằng `npm run tao-chung-tu -- mo-ta.json` ([them-chung-tu-nhanh.md](them-chung-tu-nhanh.md)), rồi thêm phần riêng theo tài liệu này (ghi sổ §5.2, chứng từ nối tiếp §10, màn phê duyệt, mẫu in).
+
 Hướng dẫn từng bước thêm một chứng từ vào S-ERP, làm theo đúng cách đã làm **phiếu nhập kho** (`inv_receipt`) và **phiếu xuất kho** (`inv_issue`). Hai phiếu này là mẫu chạy thật: khi nghi ngờ chỗ nào, mở mã của chúng ra xem. Chứng từ khác với danh mục ở chỗ có **trạng thái** (lập → chờ duyệt → đã duyệt → đã ghi sổ), **phê duyệt nhiều cấp**, **số chứng từ tự cấp**, **khóa sổ**, và thường **ghi sổ** (làm đổi tồn kho hoặc sổ cái).
 
 Cấu trúc chung của dự án xem `docs/phat-trien/kien-truc-du-an.md`; thêm một **danh mục** xem `docs/phat-trien/them-danh-muc.md`. Tài liệu chi tiết của hai phiếu mẫu: `docs/kho/so-kho-va-phieu-nhap-kho.md`, `docs/kho/phieu-xuat-kho.md`.
@@ -151,20 +153,20 @@ Chứng từ ghi vào sổ cái khác (phiếu thu, phiếu chi) cần dịch v�
 
 ### 5.3. Lưu thẳng ở một trạng thái (`TargetStatus`)
 
-Quy trình duyệt vẫn còn, nhưng người có quyền tới trạng thái nào thì lưu phiếu ở trạng thái đó được. Request mang `TargetStatus` (`Draft` mặc định, `Pending`, `Approved`, `Posted`); `VoucherTargetStatus.Parse` đọc nó. Sau khi lưu xong (cùng transaction), dịch vụ gọi `AdvanceAsync`:
+Quy trình duyệt vẫn còn, nhưng người có quyền tới trạng thái nào thì lưu phiếu ở trạng thái đó được. Request mang `TargetStatus` (`Draft` mặc định, `Pending`, `Approved1`, `Approved2`, `Approved`, `Posted`); `VoucherTargetStatus.Parse` đọc nó. Sau khi lưu xong (cùng transaction), dịch vụ gọi `AdvanceAsync`:
 
 | Trạng thái muốn lưu | Điều kiện | Việc thực hiện |
 |---|---|---|
 | Lập chứng từ | luôn được | chỉ lưu |
 | Chờ duyệt | quyền Thêm hoặc Sửa, quyền trạng thái `ST_PENDING` của đơn vị, bước Chờ duyệt đang bật ở đơn vị | `IDocumentApprovalService.SubmitAsync` như bấm Trình duyệt (dựng các cấp, thông báo người duyệt) |
-| Đã duyệt | quyền `ST_APPROVED` của đơn vị (không cần cột Duyệt, không cần có tên trong quy tắc) | `EnsureCanApproveDirectAsync` rồi `ApproveDirectAsync` (đơn vị tắt Chờ duyệt: `ApproveWithoutFlowAsync`): ghi một vòng duyệt, mỗi cấp một dòng đã duyệt bởi chính người này, ghi nhật ký gửi và duyệt |
+| Duyệt cấp 1 / Duyệt cấp 2 / Đã duyệt | quyền trạng thái đó của đơn vị (`ST_APPROVED1` / `ST_APPROVED2` / `ST_APPROVED`; không cần cột Duyệt, không cần có tên trong quy tắc); cấp trung gian phải đang bật ở đơn vị | `approvals.ApproveDraftToAsync(..., target)` (ghi sổ: target `Approved`): mở một vòng duyệt, các cấp đến trạng thái đó ghi là đã duyệt bởi chính người này, cấp sau được báo; đơn vị tắt Chờ duyệt thì chỉ `Approved`, không có vòng duyệt |
 | Đã ghi sổ | như Đã duyệt **cộng** quyền `ST_POSTED` của đơn vị (kiểm trước khi lưu) | ghi sổ như bấm Ghi sổ |
 
 Quyền trạng thái cấp **theo đơn vị cơ sở** (`{chức năng}:ST_POSTED@DVCS01`) và quyền của bước sau bao gồm bước trước (`DocumentActor.Reaches`). Chi tiết: [trang-thai-chung-tu.md](../he-thong/trang-thai-chung-tu.md).
 
 Một bước từ chối (thiếu quyền, tồn không đủ, kỳ đã khóa) thì **cả lần lưu bị hủy**: không bao giờ để phiếu dở dang. Chứng từ mới phải gọi cùng khung này (đã có sẵn trong `GoodsReceiptService` và `GoodsIssueService`: `EnsureTargetAllowedAsync`, `AdvanceAsync`).
 
-**Duyệt và ghi sổ theo quyền trạng thái** (cùng luật cho nút trên danh sách và lưu thẳng): ai có `ST_APPROVED` ở đơn vị của phiếu thì duyệt được, kể cả phiếu mình lập, phiếu Chờ duyệt (mọi cấp còn lại duyệt một lần) hay phiếu Lập (duyệt thẳng); ai có `ST_POSTED` thì ghi sổ được từ Lập / Chờ duyệt / Đã duyệt. Trong `ChangeStatusAsync` của dịch vụ: nhánh `approve` gọi `approvals.ApproveToEndAsync(...)` rồi đặt `Approved`; nhánh `post` gọi `ApproveToEndAsync` trước nếu phiếu chưa Đã duyệt, rồi ghi sổ. Quy tắc phê duyệt chỉ chọn người được báo khi trình. Ai không nên tự duyệt thì **đừng cấp `ST_APPROVED`** cho họ. Chi tiết: [trang-thai-chung-tu.md](../he-thong/trang-thai-chung-tu.md), mục "Duyệt và ghi sổ theo quyền trạng thái".
+**Duyệt và ghi sổ theo quyền trạng thái** (cùng luật cho nút trên danh sách và lưu thẳng): số cấp duyệt là số bước duyệt đơn vị dùng (Duyệt cấp 1, Duyệt cấp 2 khi bật, rồi Đã duyệt); ai có quyền của cấp kế tiếp ở đơn vị của phiếu thì duyệt được, kể cả phiếu mình lập, và phiếu lên cấp cao nhất mà quyền với tới; ai có `ST_POSTED` thì ghi sổ được từ Lập / đang duyệt / Đã duyệt. Trong `ChangeStatusAsync` của dịch vụ: nhánh `approve` gọi `approvals.ApproveNextAsync(...)` (dịch vụ duyệt tự đặt trạng thái phiếu: `Approved1` / `Approved2` / `Approved`, và `ApprovedByUserId` khi xong); nhánh `post` gọi `ApproveToEndAsync` trước nếu phiếu chưa Đã duyệt, rồi ghi sổ; `withdraw` và chặn `cancel` dùng `DocumentStatuses.InApproval(row.Status)` (không so với `"Pending"`). Quy tắc phê duyệt chỉ chọn người được báo ở từng cấp. Ai không nên tự duyệt thì **đừng cấp quyền duyệt** cho họ. Chi tiết: [trang-thai-chung-tu.md](../he-thong/trang-thai-chung-tu.md), mục "Duyệt và ghi sổ theo quyền trạng thái".
 
 ### 5.4. Danh sách phân trang và xuất Excel ở máy chủ
 

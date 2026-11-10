@@ -226,7 +226,7 @@ public sealed class TransferIssueService(CoreContext db, IUnitOfWork unitOfWork,
         var normalized = action.ToLowerInvariant();
         if (normalized == "withdraw")
         {
-            if (row.Status != "Pending") throw new BusinessRuleException("policy.notPending");
+            if (!DocumentStatuses.InApproval(row.Status)) throw new BusinessRuleException("policy.notPending");
             if (row.CreatedBy != userId) throw new ForbiddenException("approval.withdrawOwnOnly");
             await EnsureActionAsync(userId, row, DocumentAction.View, ct);
             await unitOfWork.ExecuteAsync(async token =>
@@ -243,7 +243,7 @@ public sealed class TransferIssueService(CoreContext db, IUnitOfWork unitOfWork,
             "post" => DocumentAction.Post, "unpost" => DocumentAction.Unpost,
             "cancel" => DocumentAction.Cancel, "reopen" => DocumentAction.Reopen, _ => throw new BusinessRuleException("transferIssue.invalidAction")
         };
-        if (normalized == "cancel" && row.Status == "Pending")
+        if (normalized == "cancel" && DocumentStatuses.InApproval(row.Status))
             throw new BusinessRuleException("transferIssue.withdrawBeforeCancel");
         await EnsureActionAsync(userId, row, policyAction, ct);
         if (normalized == "reopen") await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
@@ -260,10 +260,9 @@ public sealed class TransferIssueService(CoreContext db, IUnitOfWork unitOfWork,
             }
             else if (normalized == "approve")
             {
-                // Approving is a status right: a draft, or every level still open, is approved at once by this user.
-                await approvals.ApproveToEndAsync(userId, unitCode, Function, row.Code, row.Code, token);
-                row.Status = "Approved";
-                row.ApprovedByUserId = userId;
+                // Approving is a status right: the voucher goes up to the highest approval level in use that this user reaches
+                // (its status: Duyệt cấp 1, Duyệt cấp 2 or Đã duyệt), the levels on the way recorded as approved by them.
+                await approvals.ApproveNextAsync(userId, unitCode, Function, row.Code, row.Code, token);
             }
             else if (normalized == "post")
             {
@@ -315,7 +314,8 @@ public sealed class TransferIssueService(CoreContext db, IUnitOfWork unitOfWork,
             if (!post.Allowed) throw new ForbiddenException(post.Reason ?? "permission.denied");
         }
         // The step that is switched off is skipped, not refused: only saving at it (Pending) needs it in use.
-        if (target == DocumentStatus.Pending) await statuses.EnsureEnabledAsync(unitCode, Function, DocumentStatus.Pending, ct);
+        if (target is DocumentStatus.Pending or DocumentStatus.Approved1 or DocumentStatus.Approved2)
+            await statuses.EnsureEnabledAsync(unitCode, Function, target, ct);
     }
 
     /// <summary>Takes the just saved draft to the status the user asked for, in the same transaction (see GoodsIssueService.AdvanceAsync).</summary>
@@ -327,12 +327,10 @@ public sealed class TransferIssueService(CoreContext db, IUnitOfWork unitOfWork,
             await approvals.SubmitAsync(userId, unitCode, new SubmitDocumentRequest(Function, row.Code, row.Code, row.TotalValue), token);
             return;
         }
-        if (await statuses.IsEnabledAsync(unitCode, Function, DocumentStatus.Pending, token))
-        {
-            await approvals.EnsureCanApproveDirectAsync(userId, unitCode, Function, row.TotalValue, token);
-            await approvals.ApproveDirectAsync(userId, unitCode, Function, row.Code, row.Code, token);
-        }
-        else await approvals.ApproveWithoutFlowAsync(userId, unitCode, Function, row.Code, token);
+        // Approved1 / Approved2 / Approved: the levels up to it approved by this user (no workflow when the unit has none); Posted
+        // goes through Approved first.
+        await approvals.ApproveDraftToAsync(userId, unitCode, Function, row.Code, row.Code,
+            target == DocumentStatus.Posted ? DocumentStatus.Approved : target, token);
         if (target == DocumentStatus.Posted)
         {
             await ledger.PostAsync(userId, await ToPostingAsync(row, unitCode, token), token);

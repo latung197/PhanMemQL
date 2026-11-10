@@ -60,6 +60,7 @@ export const FUNCTION_REGISTRY: Record<SubMenuKey, FunctionDef> = {
   prod_team_cat: fn('production', '/production/teams', 'Danh mục tổ sản xuất', 'catalog'),
   prod_process_cat: fn('production', '/production/processes', 'Danh mục quy trình sản xuất', 'catalog'),
   prod_structure_cat: fn('production', '/production/product-structures', 'Danh mục cấu trúc sản phẩm', 'catalog'),
+  pur_supplier_eval: fn('purchasing', '/purchasing/supplier-evaluations', 'Phiếu đánh giá nhà cung cấp', 'voucher'),
   // [tao-danh-muc] Danh mục mới: thêm mã: fn(...), ngay trên dòng này.
   pur_order: fn('purchasing', '/purchasing/orders', 'Đơn mua hàng', 'voucher'),
   pur_invoice: fn('purchasing', '/purchasing/invoices', 'Hóa đơn mua hàng', 'voucher'),

@@ -90,7 +90,8 @@ public sealed class ApprovalRuleService(CoreContext db, ApprovalResolver resolve
     private async Task ApplyAsync(ApprovalRule rule, int actorUserId, SaveApprovalRuleRequest request, CancellationToken ct)
     {
         if (!FunctionCatalog.IsFunction(request.Function)) throw new BusinessRuleException("approval.invalidFunction");
-        if (request.Level is < 1 or > 9) throw new BusinessRuleException("approval.invalidLevel");
+        // Level k = the k-th approval step of the unit (Duyệt cấp 1, Duyệt cấp 2, Đã duyệt): at most three.
+        if (request.Level is < 1 or > 3) throw new BusinessRuleException("approval.invalidLevel");
         if (!RequesterTypeList.Contains(request.RequesterType)) throw new BusinessRuleException("approval.invalidRequesterType");
         if (!ApproverTypeList.Contains(request.ApproverType)) throw new BusinessRuleException("approval.invalidApproverType");
         if (request.MinAmount < 0) throw new BusinessRuleException("approval.negativeAmount");

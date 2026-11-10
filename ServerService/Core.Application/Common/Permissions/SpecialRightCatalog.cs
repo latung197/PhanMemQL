@@ -43,6 +43,9 @@ public static class SpecialRightCatalog
     public const string ChangeCode = "CHANGE_CODE";
     // Status rights (per company unit): the right to take a voucher into that status and to change a voucher while it is in it.
     public const string StatusPending = "ST_PENDING";
+    /// <summary>Approval level 1 / 2 ("Duyệt cấp 1 / 2"): only count where the unit switched that level on.</summary>
+    public const string StatusApproved1 = "ST_APPROVED1";
+    public const string StatusApproved2 = "ST_APPROVED2";
     public const string StatusApproved = "ST_APPROVED";
     public const string StatusPosted = "ST_POSTED";
     public const string StatusCancelled = "ST_CANCELLED";
@@ -92,6 +95,8 @@ public static class SpecialRightCatalog
                 list.Add(new(fn, ViewCost, "voucherViewCost", SpecialRightGroups.Data));
             list.Add(new(fn, ViewAll, "viewAll", SpecialRightGroups.Scope));
             list.Add(new(fn, StatusPending, "statusPending", SpecialRightGroups.Status, PerUnit: true));
+            list.Add(new(fn, StatusApproved1, "statusApproved1", SpecialRightGroups.Status, PerUnit: true));
+            list.Add(new(fn, StatusApproved2, "statusApproved2", SpecialRightGroups.Status, PerUnit: true));
             list.Add(new(fn, StatusApproved, "statusApproved", SpecialRightGroups.Status, PerUnit: true));
             if (VoucherStatusCatalog.Posts(fn))
             {
@@ -148,6 +153,8 @@ public static class SpecialRightCatalog
         var units = unitCodes.ToList();
         foreach (var right in PerUnitRights)
         {
+            // The intermediate approval levels are off until a unit switches them on: nobody gets them by default.
+            if (right.Code is StatusApproved1 or StatusApproved2) continue;
             if (!matrix.TryGetValue(right.Function, out var actions)) continue;
             var granted = right.Code == StatusPending ? actions.Create || actions.Edit : actions.Approve;
             if (!granted) continue;

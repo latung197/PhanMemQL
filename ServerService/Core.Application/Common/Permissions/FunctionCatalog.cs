@@ -28,6 +28,7 @@ public static class FunctionCatalog
             ["prod_team_cat"] = "Danh mục tổ sản xuất",
             ["prod_process_cat"] = "Danh mục quy trình sản xuất",
             ["prod_structure_cat"] = "Danh mục cấu trúc sản phẩm",
+            ["pur_supplier_eval"] = "Phiếu đánh giá nhà cung cấp",
             // [tao-danh-muc] Danh mục mới: thêm dòng ["mã chức năng"] = "Tên", ngay trên dòng này.
             ["inv_issue"] = "Phiếu xuất kho",
             ["inv_transfer_order"] = "Lệnh điều chuyển kho",

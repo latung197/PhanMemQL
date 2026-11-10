@@ -8,11 +8,12 @@ import type { SubMenuKey, UserProfile } from '../../../types';
 import { reachesStatus } from '../../../utils/documentPolicy';
 import { getActionPermission } from '../../../utils/permissions';
 
-export type SaveStatus = 'Draft' | 'Pending' | 'Approved' | 'Posted';
+export type SaveStatus = 'Draft' | 'Pending' | 'Approved1' | 'Approved2' | 'Approved' | 'Posted';
 
 /** The labels the voucher screens keep their statuses under (what the API mapping puts in `status`); the names a unit chose are shown instead. */
 export const SAVE_STATUS_LABELS: Record<SaveStatus, string> = {
-  Draft: 'Lập chứng từ', Pending: 'Chờ duyệt', Approved: 'Đã phê duyệt', Posted: 'Chuyển sổ kho'
+  Draft: 'Lập chứng từ', Pending: 'Chờ duyệt', Approved1: 'Duyệt cấp 1', Approved2: 'Duyệt cấp 2', Approved: 'Đã phê duyệt',
+  Posted: 'Chuyển sổ kho'
 };
 
 /** Name of a status as the company unit set it (Settings › Trạng thái chứng từ); the fixed label until the names are loaded. */
@@ -23,8 +24,9 @@ type ChoiceUser = Pick<UserProfile, 'isSystemAdmin' | 'permissions' | 'specialRi
 
 /**
  * The statuses a user may ask for in the unit they work in, from their rights on the voucher function (the server checks again):
- * Pending needs the pending right (or a later one) and the step in use; Approved the approved right (the approval rules only name
- * whom to notify); Posted the posted right (only for vouchers that post).
+ * Pending needs the pending right (or a later one) and the step in use; Duyệt cấp 1 / 2 their right and the level switched on by
+ * the unit; Approved the approved right (the approval rules only name whom to notify); Posted the posted right (only for vouchers
+ * that post).
  */
 export const saveStatusChoices = (user: ChoiceUser, fn: SubMenuKey, options: { voucherType: string; posts: boolean }): SaveStatus[] => {
   const choices: SaveStatus[] = ['Draft'];
@@ -32,6 +34,8 @@ export const saveStatusChoices = (user: ChoiceUser, fn: SubMenuKey, options: { v
   if (!(actions.create || actions.edit)) return choices;
   const approvalInUse = voucherStatusService.isEnabled(options.voucherType, 'Pending');
   if (approvalInUse && reachesStatus(user, fn, 'Pending')) choices.push('Pending');
+  for (const level of ['Approved1', 'Approved2'] as const)
+    if (voucherStatusService.isEnabled(options.voucherType, level) && reachesStatus(user, fn, level)) choices.push(level);
   if (reachesStatus(user, fn, 'Approved')) choices.push('Approved');
   if (options.posts && reachesStatus(user, fn, 'Posted')) choices.push('Posted');
   return choices;

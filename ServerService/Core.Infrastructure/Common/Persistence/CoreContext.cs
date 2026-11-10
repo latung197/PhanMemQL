@@ -153,6 +153,8 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<ProductionProcessLine> ProductionProcessLines => Set<ProductionProcessLine>();
     public DbSet<ProductStructure> ProductStructures => Set<ProductStructure>();
     public DbSet<ProductStructureLine> ProductStructureLines => Set<ProductStructureLine>();
+    public DbSet<Core.Domain.Modules.Purchasing.Documents.SupplierEvaluations.SupplierEvaluation> SupplierEvaluations => Set<Core.Domain.Modules.Purchasing.Documents.SupplierEvaluations.SupplierEvaluation>();
+    public DbSet<Core.Domain.Modules.Purchasing.Documents.SupplierEvaluations.SupplierEvaluationLine> SupplierEvaluationLines => Set<Core.Domain.Modules.Purchasing.Documents.SupplierEvaluations.SupplierEvaluationLine>();
     // [tao-danh-muc] DbSet của danh mục mới: thêm ngay trên dòng này.
     public DbSet<PurchaseOrderLine> PurchaseOrderLines => Set<PurchaseOrderLine>();
     public DbSet<PurchaseInvoiceLine> PurchaseInvoiceLines => Set<PurchaseInvoiceLine>();
@@ -217,6 +219,8 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
         model.Entity<PurchaseOrder>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.OrderId);
         model.Entity<PurchaseInvoice>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.InvoiceId);
         model.Entity<SalesOrder>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.OrderId);
+        model.Entity<Core.Domain.Modules.Purchasing.Documents.SupplierEvaluations.SupplierEvaluation>().HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.SupplierEvaluationId);
+        // [tao-chung-tu] Dòng của chứng từ mới: thêm model.Entity<...>().HasMany(x => x.Lines)..., ngay trên dòng này.
 
         // Row version of records edited in forms (IVersioned): PostgreSQL's xmin system column, changed by every update
         // and checked by every UPDATE / DELETE of the row (RowVersions.ExpectVersion sets the version a screen loaded).

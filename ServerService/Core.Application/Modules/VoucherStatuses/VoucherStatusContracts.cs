@@ -28,6 +28,12 @@ public interface IVoucherStatusService
     /// <summary>Whether the unit uses the status for the voucher function (default: yes). Draft is always enabled.</summary>
     Task<bool> IsEnabledAsync(string unitCode, string function, DocumentStatus status, CancellationToken ct);
 
+    /// <summary>
+    /// The approval steps of the voucher function in the unit, in order: the intermediate levels it switched on (Approved1, Approved2)
+    /// then Approved. Empty when the unit switched the approval step (Pending) off: the voucher is approved without a workflow.
+    /// </summary>
+    Task<IReadOnlyList<DocumentStatus>> ApprovalLevelsAsync(string unitCode, string function, CancellationToken ct);
+
     /// <summary>Throws voucherStatus.disabled when the unit switched the status off.</summary>
     Task EnsureEnabledAsync(string unitCode, string function, DocumentStatus status, CancellationToken ct);
 }

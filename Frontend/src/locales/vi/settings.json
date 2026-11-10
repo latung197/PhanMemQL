@@ -140,7 +140,8 @@
       "generate": "Tạo ngẫu nhiên",
       "reset": "Đặt lại",
       "passwordReset": "Đã đặt lại mật khẩu cho @{username}. Các phiên đăng nhập cũ đã bị đăng xuất."
-    }
+    },
+    "tabSecurity": "Bảo mật đăng nhập"
   },
   "roles": {
     "created": "Đã tạo vai trò \"{name}\"",
@@ -267,10 +268,10 @@
     "ruleCount": "{n} quy tắc",
     "default": "Mặc định",
     "title": "Quy trình duyệt: {name}",
-    "description": "Phiếu được duyệt lần lượt từ cấp 1. Các quy tắc cùng cấp được gộp người duyệt; quy tắc có \"Giá trị từ\" chỉ áp dụng khi tổng tiền đạt mức đó. Người lập không bao giờ tự duyệt phiếu của mình.",
+    "description": "Số cấp duyệt là số bước duyệt đơn vị dùng ở Cài đặt › Trạng thái chứng từ (Duyệt cấp 1, Duyệt cấp 2 khi bật, rồi Đã duyệt): cấp k là bước thứ k. Ai có quyền trạng thái của một bước tại đơn vị thì duyệt được bước đó (quyền bước sau gồm các bước trước). Quy tắc chỉ chọn người được báo ở từng cấp; quy tắc có \"Giá trị từ\" chỉ áp dụng khi tổng tiền đạt mức đó; cấp đơn vị không dùng thì bỏ qua.",
     "add": "Thêm quy tắc",
     "emptyTitle": "Chưa có quy trình riêng",
-    "emptyDescription": "Phiếu loại này sẽ do bất kỳ ai có quyền Duyệt chức năng này (trong cùng đơn vị) phê duyệt, một cấp.",
+    "emptyDescription": "Ở mỗi cấp, hệ thống báo cho những người có quyền trạng thái của cấp đó (trong cùng đơn vị).",
     "col": {
       "level": "Cấp",
       "appliesTo": "Áp dụng cho",
@@ -306,7 +307,7 @@
       "editTitle": "Sửa quy tắc duyệt — {name}",
       "when": "Khi nào áp dụng",
       "level": "Cấp duyệt",
-      "levelHint": "Cấp 1 duyệt trước",
+      "levelHint": "Cấp k = bước duyệt thứ k mà đơn vị dùng",
       "minAmount": "Giá trị phiếu từ",
       "minAmountPlaceholder": "Để trống = mọi giá trị",
       "allUnits": "Tất cả đơn vị",
@@ -552,8 +553,8 @@
   },
   "voucherStatus": {
     "title": "Trạng thái chứng từ",
-    "subtitle": "Mỗi chứng từ có các trạng thái cố định: Lập chứng từ → Chờ duyệt → Đã duyệt → Đã ghi sổ, hoặc Hủy. Mỗi đơn vị cơ sở có thể đổi tên trạng thái và tắt bước \"Chờ duyệt\" (chứng từ khi đó không cần duyệt); không thêm được trạng thái mới.",
-    "rightsHint": "Quyền đưa chứng từ vào từng trạng thái được cấp riêng cho từng đơn vị cơ sở ở Cài đặt › Người dùng & phân quyền (nhóm \"Trạng thái chứng từ\"): quyền cấp đến trạng thái nào thì lập chứng từ được lưu đến trạng thái đó.",
+    "subtitle": "Mỗi chứng từ có các trạng thái cố định: Lập chứng từ → Chờ duyệt → Duyệt cấp 1 → Duyệt cấp 2 → Đã duyệt → Đã ghi sổ, hoặc Hủy. Mỗi đơn vị cơ sở đổi tên trạng thái, tắt bước \"Chờ duyệt\" (chứng từ khi đó không cần duyệt) và bật \"Duyệt cấp 1\" / \"Duyệt cấp 2\" khi cần duyệt nhiều cấp (mặc định tắt; ví dụ đặt tên \"Trưởng bộ phận duyệt\", và đổi \"Đã duyệt\" thành \"Giám đốc duyệt\"). Mỗi bước đang dùng là một cấp duyệt; không thêm được trạng thái mới.",
+    "rightsHint": "Quyền đưa chứng từ vào từng trạng thái được cấp riêng cho từng đơn vị cơ sở ở Cài đặt › Người dùng & phân quyền (nhóm \"Trạng thái chứng từ\"): quyền cấp đến trạng thái nào thì duyệt / lưu chứng từ được đến trạng thái đó (quyền \"Duyệt cấp 2\" gồm cả cấp 1, quyền \"Đã duyệt\" gồm cả hai cấp).",
     "unit": "Đơn vị cơ sở",
     "loading": "Đang tải trạng thái chứng từ...",
     "status": "Trạng thái",
@@ -591,5 +592,75 @@
   },
   "globalSettings": {
     "adminOnly": "Đây là cài đặt chung của toàn hệ thống (mọi đơn vị cơ sở): chỉ quản trị viên sửa được."
+  },
+  "security": {
+    "unit": {
+      "chars": "ký tự",
+      "days": "ngày",
+      "minutes": "phút"
+    },
+    "policy": {
+      "title": "Chính sách bảo mật",
+      "loading": "Đang tải chính sách...",
+      "save": "Lưu",
+      "saved": "Đã lưu chính sách bảo mật.",
+      "defaults": "Mặc định",
+      "defaultsHint": "Điền lại các giá trị mặc định (chưa lưu)",
+      "adminOnly": "Chính sách áp dụng cho toàn hệ thống: chỉ quản trị viên sửa được.",
+      "range": "Giá trị từ {min} đến {max}.",
+      "groupPassword": "Mật khẩu",
+      "groupLogin": "Đăng nhập sai",
+      "groupSession": "Phiên làm việc",
+      "passwordMinLength": "Độ dài tối thiểu",
+      "passwordMinLengthHint": "Từ {min} đến {max} ký tự.",
+      "passwordRequireLetter": "Phải có chữ cái",
+      "passwordRequireDigit": "Phải có chữ số",
+      "passwordRequireUpper": "Phải có chữ hoa",
+      "passwordRequireSpecial": "Phải có ký tự đặc biệt",
+      "passwordExpiryDays": "Hạn dùng mật khẩu",
+      "passwordExpiryDaysHint": "Quá hạn thì phải đổi khi đăng nhập. 0 = không hết hạn.",
+      "passwordHistory": "Không dùng lại mật khẩu gần nhất",
+      "passwordHistoryHint": "Số mật khẩu gần nhất không được dùng lại (tối đa {max}). 0 = không kiểm.",
+      "mustChangeAfterReset": "Bắt đổi mật khẩu sau khi quản trị viên tạo / đặt lại",
+      "loginMaxFailures": "Số lần sai cho phép",
+      "loginMaxFailuresHint": "Sai quá số lần này thì tên đăng nhập phải chờ. 0 = không giới hạn. Tài khoản không bị khóa.",
+      "loginFailureWindowMinutes": "Đếm số lần sai trong",
+      "loginFailureWindowMinutesHint": "Chỉ đếm các lần sai trong khoảng này (từ {min} đến {max} phút).",
+      "loginBlockMinutes": "Thời gian chờ",
+      "loginBlockMinutesHint": "Thời gian phải chờ trước khi thử lại (từ {min} đến {max} phút).",
+      "idleTimeoutMinutes": "Tự đăng xuất sau khi không thao tác",
+      "idleTimeoutMinutesHint": "Báo trước 1 phút. 0 = không tự đăng xuất."
+    },
+    "history": {
+      "title": "Lịch sử đăng nhập",
+      "description": "Mọi lần đăng nhập, đăng nhập sai, đăng xuất. Người không phải quản trị viên chỉ thấy tài khoản cùng đơn vị cơ sở.",
+      "reload": "Tải lại",
+      "loading": "Đang tải lịch sử đăng nhập...",
+      "empty": "Không có dòng nào.",
+      "search": "Tìm kiếm",
+      "searchPlaceholder": "Tên đăng nhập, địa chỉ IP",
+      "result": "Kết quả",
+      "allResults": "Tất cả",
+      "from": "Từ ngày",
+      "to": "Đến ngày",
+      "clear": "Bỏ lọc",
+      "col": {
+        "time": "Thời gian",
+        "user": "Người dùng",
+        "result": "Kết quả",
+        "unit": "ĐVCS",
+        "ip": "Địa chỉ IP",
+        "device": "Trình duyệt / thiết bị"
+      }
+    },
+    "result": {
+      "SUCCESS": "Đăng nhập",
+      "WRONG_PASSWORD": "Sai mật khẩu",
+      "UNKNOWN_USER": "Không có tài khoản",
+      "UNIT_DENIED": "Không được vào ĐVCS",
+      "BLOCKED": "Phải chờ (sai nhiều lần)",
+      "LOGOUT": "Đăng xuất",
+      "IDLE_TIMEOUT": "Tự đăng xuất"
+    }
   }
 }

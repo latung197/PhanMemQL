@@ -1,6 +1,6 @@
 # Mô tả cơ sở dữ liệu S-ERP
 
-Tài liệu này mô tả toàn bộ cơ sở dữ liệu PostgreSQL của S-ERP: **92 bảng**, 1 view, 1221 cột, 335 chỉ mục. Kiểu dữ liệu, độ dài, ràng buộc, chỉ mục, trigger và tham chiếu được **sinh tự động từ database thật** (`erp_dev`) bằng `docs/cong-cu/gen-database-doc.cjs`; phần mô tả bảng và cột viết tay trong `docs/cong-cu/database-notes.cjs` và công cụ. Nhờ vậy khớp với cấu trúc đang chạy. Khi đổi cấu trúc: chạy script SQL, rồi chạy lại công cụ để sinh lại tài liệu.
+Tài liệu này mô tả toàn bộ cơ sở dữ liệu PostgreSQL của S-ERP: **94 bảng**, 1 view, 1251 cột, 341 chỉ mục. Kiểu dữ liệu, độ dài, ràng buộc, chỉ mục, trigger và tham chiếu được **sinh tự động từ database thật** (`erp_dev`) bằng `docs/cong-cu/gen-database-doc.cjs`; phần mô tả bảng và cột viết tay trong `docs/cong-cu/database-notes.cjs` và công cụ. Nhờ vậy khớp với cấu trúc đang chạy. Khi đổi cấu trúc: chạy script SQL, rồi chạy lại công cụ để sinh lại tài liệu.
 
 ## 1. Quy ước chung
 
@@ -75,7 +75,7 @@ Dự án **không dùng ràng buộc khóa ngoại**. Các bảng liên kết b�
 | Danh mục hệ thống | `sys_tax_rate` | 14 | Danh mục mã thuế (VAT, nhập khẩu, khác), thuế suất theo phần trăm, cờ miễn thuế |
 | Phê duyệt, thông báo, nhật ký | `sys_approval_rule` | 13 | Quy tắc phê duyệt: chức năng, điều kiện (giá trị, phòng ban), các cấp duyệt và người duyệt |
 | Phê duyệt, thông báo, nhật ký | `sys_audit_log` | 14 | **Nhật ký thay đổi** dùng chung mọi chức năng, tự ghi khi lưu (trường, giá trị trước → sau, người, đơn vị, địa chỉ IP); dọn tự động theo thời hạn giữ |
-| Phê duyệt, thông báo, nhật ký | `sys_document_approval` | 16 | Các cấp phê duyệt của từng chứng từ (khóa theo mã chức năng + số chứng từ): cấp, người duyệt hợp lệ, trạng thái, người và thời điểm xử lý, lý do |
+| Phê duyệt, thông báo, nhật ký | `sys_document_approval` | 17 | Các cấp phê duyệt của từng chứng từ (khóa theo mã chức năng + số chứng từ): cấp, người duyệt hợp lệ, trạng thái, người và thời điểm xử lý, lý do |
 | Phê duyệt, thông báo, nhật ký | `sys_notification` | 12 | Thông báo gửi cho người dùng (cá nhân hoặc toàn đơn vị), có liên kết mở thẳng chứng từ |
 | Phê duyệt, thông báo, nhật ký | `sys_notification_read` | 4 | Người dùng nào đã đọc thông báo nào |
 | Danh mục Kho | `erp_location` | 14 | Vị trí lưu kho (kệ, ô...) thuộc đúng một kho; mã duy nhất toàn hệ thống |
@@ -119,6 +119,8 @@ Dự án **không dùng ràng buộc khóa ngoại**. Các bảng liên kết b�
 | Chứng từ Mua hàng | `erp_purchase_order_line` | 16 | Dòng đơn mua hàng: dòng yêu cầu mua đã đặt, ngày dự kiến nhận của từng dòng |
 | Chứng từ Mua hàng | `erp_purchase_request` | 23 | Đầu **phiếu yêu cầu mua hàng** (duyệt, không ghi sổ) |
 | Chứng từ Mua hàng | `erp_purchase_request_line` | 14 | Dòng phiếu yêu cầu mua hàng |
+| Chứng từ Mua hàng | `erp_supplier_evaluation` | 18 | Đầu **phiếu đánh giá nhà cung cấp** (duyệt, không ghi sổ; sinh bằng npm run tao-chung-tu) |
+| Chứng từ Mua hàng | `erp_supplier_evaluation_line` | 11 | Dòng phiếu đánh giá nhà cung cấp: chỉ tiêu, trọng số, điểm |
 | Danh mục Bán hàng | `erp_customer` | 17 | Danh mục **khách hàng**: mã số thuế (duy nhất khi có), liên hệ, nhóm, điều khoản thanh toán mặc định, hạn mức công nợ (0 = không giới hạn) |
 | Danh mục Bán hàng | `erp_customer_group` | 9 | Danh mục **nhóm khách hàng**; một bảng giá bán có thể áp dụng cho một nhóm |
 | Danh mục Bán hàng | `erp_price_list` | 13 | Đầu **bảng giá bán**: một loại tiền, hiệu lực từ ngày - đến ngày, áp dụng cho một nhóm khách hoặc mọi khách |
@@ -272,6 +274,8 @@ Mỗi dòng: cột của một bảng trỏ tới khóa của bảng nào. **Ch�
 | `erp_stock_norm` | `material_code` | `erp_material.code` | có |  |
 | `erp_stock_norm` | `warehouse_code` | `erp_warehouse.code` | có |  |
 | `erp_supplier` | `supplier_group_code` | `erp_supplier_group.code` | có |  |
+| `erp_supplier_evaluation` | `supplier_code` | `erp_supplier.code` | có |  |
+| `erp_supplier_evaluation` | `unit_code` | `sys_company_unit.code` | có |  |
 | `erp_transfer_issue` | `from_warehouse_code` | `erp_warehouse.code` | có |  |
 | `erp_transfer_issue` | `to_warehouse_code` | `erp_warehouse.code` | có |  |
 | `erp_transfer_issue` | `unit_code` | `sys_company_unit.code` | có |  |
@@ -315,7 +319,7 @@ Mỗi dòng: cột của một bảng trỏ tới khóa của bảng nào. **Ch�
 | `sys_voucher_sequence` | `unit_code` | `sys_company_unit.code` | có |  |
 | `sys_voucher_status` | `unit_code` | `sys_company_unit.code` | có |  |
 
-(Tổng 149 tham chiếu. Cột chứng từ trỏ dòng nguồn bằng id như `purchase_request_line_id`, `purchase_order_line_id`, `issue_request_line_id` không nằm trong bản đồ vì là id, không phải mã danh mục; chúng được mô tả ở từng bảng.)
+(Tổng 151 tham chiếu. Cột chứng từ trỏ dòng nguồn bằng id như `purchase_request_line_id`, `purchase_order_line_id`, `issue_request_line_id` không nằm trong bản đồ vì là id, không phải mã danh mục; chúng được mô tả ở từng bảng.)
 
 ## 5. Mô tả từng bảng
 
@@ -878,7 +882,7 @@ Tên trạng thái chứng từ đổi theo đơn vị và việc bật / tắt 
 | 1 | `id` | bigint | không | nextval('sys_voucher_status_id_seq') |  | Khóa chính, tự tăng |
 | 2 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
 | 3 | `voucher_type` | varchar(20) | không |  |  | Loại chứng từ |
-| 4 | `status_code` | varchar(20) | không |  |  | Mã trạng thái cố định (Draft, Pending, Approved, Posted, Cancelled) |
+| 4 | `status_code` | varchar(20) | không |  |  | Mã trạng thái cố định (Draft, Pending, Approved1, Approved2, Approved, Posted, Cancelled) |
 | 5 | `name` | varchar(100) | có |  |  | Tên tiếng Việt do đơn vị đặt |
 | 6 | `name_en` | varchar(100) | có |  |  | Tên tiếng Anh do đơn vị đặt |
 | 7 | `is_enabled` | boolean | không | true |  | Bước còn dùng (tắt Chờ duyệt = phiếu bỏ qua bước duyệt) |
@@ -895,7 +899,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_sys_voucher_status_code` (CHECK): CHECK (((status_code)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `ck_sys_voucher_status_code` (CHECK): CHECK (((status_code)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 
 ### 5.3. Danh mục hệ thống
 
@@ -924,7 +928,7 @@ Chỉ mục:
 
 - `sys_company_unit_pkey`: **duy nhất** (code)
 
-Được trỏ tới bởi: `erp_goods_issue.unit_code`, `erp_goods_receipt.unit_code`, `erp_issue_request.unit_code`, `erp_production_process_unit.unit_code`, `erp_purchase_invoice.unit_code`, `erp_purchase_order.unit_code`, `erp_purchase_request.unit_code`, `erp_sales_order.unit_code`, `erp_stock_balance.unit_code`, `erp_stock_count.unit_code`, `erp_stock_location_balance.unit_code`, `erp_stock_lot_balance.unit_code`, `erp_stock_movement.unit_code`, `erp_transfer_issue.unit_code`, `erp_transfer_order.unit_code`, `erp_transfer_receipt.unit_code`, `erp_warehouse.unit_code`, `erp_warehouse_unit.unit_code`, `sys_approval_rule.unit_code`, `sys_company_unit_translation.unit_code`, `sys_document_approval.unit_code`, `sys_fiscal_period.unit_code`, `sys_notification.unit_code`, `sys_user_company_unit.unit_code`, `sys_voucher_sequence.unit_code`, `sys_voucher_status.unit_code`.
+Được trỏ tới bởi: `erp_goods_issue.unit_code`, `erp_goods_receipt.unit_code`, `erp_issue_request.unit_code`, `erp_production_process_unit.unit_code`, `erp_purchase_invoice.unit_code`, `erp_purchase_order.unit_code`, `erp_purchase_request.unit_code`, `erp_sales_order.unit_code`, `erp_stock_balance.unit_code`, `erp_stock_count.unit_code`, `erp_stock_location_balance.unit_code`, `erp_stock_lot_balance.unit_code`, `erp_stock_movement.unit_code`, `erp_supplier_evaluation.unit_code`, `erp_transfer_issue.unit_code`, `erp_transfer_order.unit_code`, `erp_transfer_receipt.unit_code`, `erp_warehouse.unit_code`, `erp_warehouse_unit.unit_code`, `sys_approval_rule.unit_code`, `sys_company_unit_translation.unit_code`, `sys_document_approval.unit_code`, `sys_fiscal_period.unit_code`, `sys_notification.unit_code`, `sys_user_company_unit.unit_code`, `sys_voucher_sequence.unit_code`, `sys_voucher_status.unit_code`.
 
 #### 5.3.2. `sys_company_unit_translation`
 
@@ -1152,7 +1156,7 @@ Các cấp phê duyệt của từng chứng từ (khóa theo mã chức năng +
 | 5 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
 | 6 | `amount` | numeric(18,2) | có |  |  | Giá trị phiếu lúc gửi duyệt |
 | 7 | `round` | integer | không | 1 |  | Vòng duyệt (tăng mỗi lần gửi lại) |
-| 8 | `level` | integer | không |  |  | Cấp duyệt |
+| 8 | `level` | integer | không |  |  | Cấp duyệt (cấp k = bước duyệt thứ k mà đơn vị dùng: Duyệt cấp 1, Duyệt cấp 2, Đã duyệt) |
 | 9 | `approver_user_ids` | text | không |  |  | Danh sách mã người duyệt hợp lệ của cấp, cách nhau dấu phẩy |
 | 10 | `approver_label` | varchar(300) | có |  |  | Mô tả người duyệt để hiển thị |
 | 11 | `status` | varchar(20) | không |  |  | Trạng thái của cấp duyệt (chờ, đã duyệt, từ chối, rút lại) |
@@ -1161,6 +1165,7 @@ Các cấp phê duyệt của từng chứng từ (khóa theo mã chức năng +
 | 14 | `acted_by_user_id` | integer | có |  |  | Người xử lý |
 | 15 | `acted_at_utc` | timestamptz | có |  |  | Thời điểm xử lý (UTC) |
 | 16 | `note` | varchar(1000) | có |  |  | Lý do / ghi chú |
+| 17 | `target_status` | varchar(20) | có |  |  | Trạng thái phiếu sau khi cấp này duyệt xong: Approved1, Approved2 hoặc Approved; trống = Approved (vòng duyệt trước script 63) |
 
 Chỉ mục:
 
@@ -1441,7 +1446,7 @@ Chỉ mục:
 - `ix_erp_supplier_tax_code`: (tax_code)
 - `ux_erp_supplier_name`: **duy nhất** (lower((name)::text))
 
-Được trỏ tới bởi: `erp_goods_receipt.supplier_code`, `erp_lot.supplier_code`, `erp_purchase_invoice.supplier_code`, `erp_purchase_order.supplier_code`, `erp_purchase_request.supplier_code`.
+Được trỏ tới bởi: `erp_goods_receipt.supplier_code`, `erp_lot.supplier_code`, `erp_purchase_invoice.supplier_code`, `erp_purchase_order.supplier_code`, `erp_purchase_request.supplier_code`, `erp_supplier_evaluation.supplier_code`.
 
 #### 5.5.8. `erp_uom`
 
@@ -1628,7 +1633,7 @@ Chỉ mục:
 | 10 | `customer_name` | varchar(200) | có |  |  | Khách hàng / đơn vị nhận hàng (chữ tự do) |
 | 11 | `receiver_name` | varchar(200) | có |  |  | Người nhận hàng |
 | 12 | `note` | varchar(1000) | có |  |  | Ghi chú |
-| 13 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
+| 13 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
 | 14 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
 | 15 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
 | 16 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
@@ -1654,7 +1659,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_goods_issue_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_goods_issue_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `ck_erp_goods_issue_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_goods_issue_code_key` (UNIQUE): UNIQUE (code)
 
 Trigger:
@@ -1721,7 +1726,7 @@ Ràng buộc:
 | 10 | `supplier_name` | varchar(200) | có |  |  | Tên nhà cung cấp / đối tác chép lúc lưu |
 | 11 | `deliverer_name` | varchar(200) | có |  |  | Người giao hàng |
 | 12 | `note` | varchar(1000) | có |  |  | Ghi chú |
-| 13 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
+| 13 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
 | 14 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
 | 15 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
 | 16 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
@@ -1745,7 +1750,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_goods_receipt_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_goods_receipt_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `ck_erp_goods_receipt_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_goods_receipt_code_key` (UNIQUE): UNIQUE (code)
 
 Trigger:
@@ -1812,7 +1817,7 @@ Ràng buộc:
 | 12 | `currency_code` | varchar(10) | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
 | 13 | `exchange_rate` | numeric(18,6) | không | 1 |  | Tỷ giá so với tiền hạch toán tại ngày chứng từ |
 | 14 | `note` | varchar(1000) | có |  |  | Ghi chú |
-| 15 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
+| 15 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
 | 16 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
 | 17 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
 | 18 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
@@ -1834,7 +1839,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_issue_request_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_issue_request_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `ck_erp_issue_request_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_issue_request_code_key` (UNIQUE): UNIQUE (code)
 
 #### 5.6.6. `erp_issue_request_line`
@@ -1906,7 +1911,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_stock_count_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `ck_erp_stock_count_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_stock_count_code_key` (UNIQUE): UNIQUE (code)
 
 #### 5.6.8. `erp_stock_count_line`
@@ -1984,7 +1989,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_transfer_issue_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `ck_erp_transfer_issue_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `ck_erp_transfer_issue_warehouses` (CHECK): CHECK (((from_warehouse_code)::text <> (to_warehouse_code)::text))
 - `erp_transfer_issue_code_key` (UNIQUE): UNIQUE (code)
 
@@ -2065,7 +2070,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_transfer_order_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `ck_erp_transfer_order_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `ck_erp_transfer_order_warehouses` (CHECK): CHECK (((from_warehouse_code)::text <> (to_warehouse_code)::text))
 - `erp_transfer_order_code_key` (UNIQUE): UNIQUE (code)
 
@@ -2137,7 +2142,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_transfer_receipt_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `ck_erp_transfer_receipt_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `ck_erp_transfer_receipt_warehouses` (CHECK): CHECK (((from_warehouse_code)::text <> (to_warehouse_code)::text))
 - `erp_transfer_receipt_code_key` (UNIQUE): UNIQUE (code)
 
@@ -2443,7 +2448,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_purchase_invoice_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_purchase_invoice_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `ck_erp_purchase_invoice_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_purchase_invoice_code_key` (UNIQUE): UNIQUE (code)
 
 #### 5.9.2. `erp_purchase_invoice_line`
@@ -2511,7 +2516,7 @@ Ràng buộc:
 | 18 | `total_value` | numeric(18,2) | không | 0 |  | (Tiền hàng + tiền thuế) × tỷ giá = tiền hạch toán (mức duyệt theo giá trị nhìn vào số này) |
 | 19 | `purchase_request_code` | varchar(500) | có |  |  | Các số phiếu yêu cầu mua mà đơn thực hiện, cách nhau dấu phẩy; suy ra từ các dòng |
 | 20 | `note` | varchar(1000) | có |  |  | Ghi chú |
-| 21 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
+| 21 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
 | 22 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
 | 23 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
 | 24 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
@@ -2535,7 +2540,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_purchase_order_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_purchase_order_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `ck_erp_purchase_order_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_purchase_order_code_key` (UNIQUE): UNIQUE (code)
 
 #### 5.9.4. `erp_purchase_order_line`
@@ -2597,7 +2602,7 @@ Ràng buộc:
 | 13 | `currency_code` | varchar(10) | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
 | 14 | `exchange_rate` | numeric(18,6) | không | 1 |  | Tỷ giá so với tiền hạch toán tại ngày chứng từ |
 | 15 | `note` | varchar(1000) | có |  |  | Ghi chú |
-| 16 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
+| 16 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
 | 17 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
 | 18 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
 | 19 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
@@ -2620,7 +2625,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_purchase_request_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_purchase_request_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `ck_erp_purchase_request_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_purchase_request_code_key` (UNIQUE): UNIQUE (code)
 
 #### 5.9.6. `erp_purchase_request_line`
@@ -2657,6 +2662,66 @@ Ràng buộc:
 - `ck_erp_purchase_request_line_price` (CHECK): CHECK ((unit_price >= (0)::numeric))
 - `ck_erp_purchase_request_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
 - `erp_purchase_request_line_request_id_line_no_key` (UNIQUE): UNIQUE (request_id, line_no)
+
+#### 5.9.7. `erp_supplier_evaluation`
+
+Đầu **phiếu đánh giá nhà cung cấp** (duyệt, không ghi sổ; sinh bằng npm run tao-chung-tu).
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
+| 2 | `code` | varchar(64) | không |  |  | Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001 |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
+| 4 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
+| 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
+| 6 | `supplier_code` | varchar(20) | không |  |  | Nhà cung cấp được đánh giá (trỏ `erp_supplier`) |
+| 7 | `period_from` | date | không |  |  | Kỳ đánh giá từ ngày |
+| 8 | `period_to` | date | không |  |  | Kỳ đánh giá đến ngày |
+| 9 | `evaluator_name` | varchar(200) | có |  |  | Người đánh giá (tên gõ tay) |
+| 10 | `conclusion` | varchar(1000) | có |  |  | Kết luận đánh giá |
+| 11 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 12 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
+| 13 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
+| 14 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
+| 15 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 16 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 17 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 18 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `erp_supplier_evaluation_code_key`: **duy nhất** (code)
+- `erp_supplier_evaluation_pkey`: **duy nhất** (id)
+- `ix_erp_supplier_evaluation_supplier_code`: (supplier_code)
+- `ix_erp_supplier_evaluation_unit_date`: (unit_code, document_date DESC)
+
+Ràng buộc:
+
+- `ck_erp_supplier_evaluation_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `erp_supplier_evaluation_code_key` (UNIQUE): UNIQUE (code)
+
+#### 5.9.8. `erp_supplier_evaluation_line`
+
+Dòng phiếu đánh giá nhà cung cấp: chỉ tiêu, trọng số, điểm.
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
+| 2 | `supplier_evaluation_id` | bigint | không |  |  | Phiếu đánh giá của dòng (`erp_supplier_evaluation.id`) |
+| 3 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
+| 4 | `criterion` | varchar(200) | không |  |  | Chỉ tiêu đánh giá |
+| 5 | `weight` | numeric(18,2) | không | 0 |  | Trọng số (%) |
+| 6 | `score` | numeric(18,2) | không | 0 |  | Điểm |
+| 7 | `note` | varchar(300) | có |  |  | Ghi chú |
+| 8 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 9 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 10 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 11 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `erp_supplier_evaluation_line_pkey`: **duy nhất** (id)
+- `ix_erp_supplier_evaluation_line_supplier_evaluation_id`: (supplier_evaluation_id, line_no)
 
 ### 5.10. Danh mục Bán hàng
 
@@ -2837,7 +2902,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_sales_order_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_sales_order_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `ck_erp_sales_order_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_sales_order_code_key` (UNIQUE): UNIQUE (code)
 
 #### 5.11.2. `erp_sales_order_line`
@@ -3262,12 +3327,14 @@ Chạy theo thứ tự tên file trong `ServerService/sql/postgresql/`:
 | `53-sales-orders.sql` | Đơn bán hàng (đầu phiếu, dòng) và cột nối sang phiếu xuất kho: khách hàng, số đơn, dòng đơn |
 | `54-stock-counts.sql` | Phiếu kiểm kê (đầu phiếu, dòng): tồn sổ sách tính từ sổ kho, ghi sổ phần thừa và phần thiếu |
 | `55-inventory-reports.sql` | Báo cáo kho dưới dạng hàm `rpt_*` (nhập xuất tồn, hàng nhập / xuất chi tiết và tổng hợp, tuổi hàng tồn, tồn tức thời có giữ chỗ, giá trung bình tháng); không có bảng mới |
-| `55-production-catalogs.sql` | Sản xuất: danh mục tổ sản xuất và công đoạn sản xuất |
-| `56-production-process.sql` | Sản xuất: danh mục quy trình sản xuất (các bước công đoạn theo thứ tự, đơn vị áp dụng) |
 | `56-stock-norms.sql` | Định mức tồn kho theo kho (mã VATTU@KHO) và hàm `rpt_stock_balance` đọc định mức (chạy sau 55) |
-| `57-product-structure.sql` | Sản xuất: cấu trúc sản phẩm (định mức nguyên vật liệu, BOM) và các dòng thành phần |
 | `58-user-unit-roles.sql` | Vai trò theo từng đơn vị cơ sở (`sys_user_company_unit.role_id`) |
 | `59-login-security.sql` | Bảo mật đăng nhập: hạn và cờ bắt đổi mật khẩu trên `sys_users`, lịch sử đăng nhập, lịch sử mật khẩu |
+| `60-production-catalogs.sql` | Sản xuất: danh mục tổ sản xuất và công đoạn sản xuất |
+| `61-production-process.sql` | Sản xuất: danh mục quy trình sản xuất (các bước công đoạn theo thứ tự, đơn vị áp dụng) |
+| `62-product-structure.sql` | Sản xuất: cấu trúc sản phẩm (định mức nguyên vật liệu, BOM) và các dòng thành phần |
+| `63-approval-levels.sql` | Duyệt nhiều cấp theo trạng thái chứng từ: thêm Duyệt cấp 1 / Duyệt cấp 2 (Approved1, Approved2) vào ràng buộc trạng thái các bảng chứng từ, cột target_status của bước duyệt |
+| `64-purchasing-supplier-evaluations.sql` | Phiếu đánh giá nhà cung cấp (đầu phiếu, dòng chỉ tiêu), sinh bằng npm run tao-chung-tu |
 
 ## 8. Kiểm tra cấu trúc bằng test tự động
 

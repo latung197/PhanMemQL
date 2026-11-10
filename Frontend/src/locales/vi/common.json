@@ -137,6 +137,8 @@
     "status": {
       "Draft": "Lập chứng từ",
       "Pending": "Chờ duyệt",
+      "Approved1": "Duyệt cấp 1",
+      "Approved2": "Duyệt cấp 2",
       "Approved": "Đã duyệt",
       "Posted": "Đã ghi sổ",
       "Cancelled": "Đã hủy"
@@ -144,7 +146,7 @@
     "deny": {
       "notPending": "Phiếu không ở trạng thái lập chứng từ hoặc chờ duyệt.",
       "ownVoucher": "Không được tự duyệt phiếu do mình lập.",
-      "noApproveRight": "Không có quyền trạng thái \"Đã duyệt\" tại đơn vị cơ sở này.",
+      "noApproveRight": "Không có quyền duyệt bước tiếp theo của phiếu tại đơn vị cơ sở này.",
       "noViewRight": "Không có quyền xem chức năng này.",
       "ownOnly": "Chỉ được thao tác trên phiếu do mình lập.",
       "noEditRight": "Không có quyền sửa phiếu.",
@@ -860,7 +862,8 @@
       "customer": "Khách hàng",
       "customerGroup": "Nhóm khách hàng",
       "priceList": "Bảng giá bán",
-      "stockNorm": "Định mức tồn kho"
+      "stockNorm": "Định mức tồn kho",
+      "supplierEvaluation": "Phiếu đánh giá"
     },
     "objectLabel": {
       "auditLog": "Dọn nhật ký cũ"
@@ -1011,5 +1014,52 @@
     },
     "error": "Không tải được số liệu",
     "noRights": "Tài khoản chưa được cấp quyền xem phần nào của bàn điều hành"
+  },
+  "voucherScreen": {
+    "search": "Tìm số phiếu, ghi chú...",
+    "allStatuses": "Mọi trạng thái",
+    "from": "Từ ngày",
+    "to": "Đến ngày",
+    "clearFilters": "Bỏ lọc",
+    "reload": "Tải lại",
+    "export": "Xuất Excel",
+    "actions": "Thao tác",
+    "code": "Số phiếu",
+    "codeAuto": "Tự cấp khi lưu",
+    "date": "Ngày",
+    "status": "Trạng thái",
+    "createdBy": "Người lập",
+    "note": "Ghi chú",
+    "total": "Tổng tiền",
+    "amount": "Thành tiền",
+    "submit": "Gửi duyệt",
+    "approve": "Duyệt",
+    "reject": "Từ chối",
+    "withdraw": "Rút khỏi quy trình duyệt",
+    "cancel": "Hủy phiếu",
+    "reopen": "Khôi phục (về Lập chứng từ)",
+    "delete": "Xóa phiếu",
+    "editTitle": "{noun} {code}",
+    "addLine": "Thêm dòng",
+    "removeLine": "Xóa dòng",
+    "noLines": "Chưa có dòng nào.",
+    "close": "Đóng",
+    "save": "Lưu",
+    "saveAt": "Lưu và {status}",
+    "saved": "Đã lưu phiếu {code}, trạng thái: {status}.",
+    "statusChanged": "Phiếu {code}: {status}.",
+    "deleted": "Đã xóa phiếu {code}.",
+    "rejected": "Đã từ chối phiếu {code}.",
+    "dateRequired": "Chưa nhập ngày.",
+    "fieldRequired": "Chưa nhập {field}.",
+    "linesRequired": "Phiếu cần ít nhất một dòng.",
+    "lineFieldRequired": "Dòng {line}: chưa nhập {field}.",
+    "cancelTitle": "Hủy phiếu {code}?",
+    "cancelMessage": "Phiếu chuyển sang Hủy; khôi phục được về Lập chứng từ nếu có quyền.",
+    "deleteTitle": "Xóa phiếu {code}?",
+    "deleteMessage": "Phiếu nháp bị xóa hẳn, không khôi phục được.",
+    "rejectTitle": "Từ chối phiếu {code}",
+    "rejectReason": "Lý do từ chối",
+    "rejectReasonRequired": "Cần nhập lý do từ chối."
   }
 }

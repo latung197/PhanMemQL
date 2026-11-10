@@ -25,7 +25,9 @@ public sealed class DashboardService(ISqlExecutor sql, IPermissionService permis
     [
         ("pur_request", "erp_purchase_request"), ("pur_order", "erp_purchase_order"),
         ("inv_receipt", "erp_goods_receipt"), ("inv_issue_request", "erp_issue_request"), ("inv_issue", "erp_goods_issue"),
-        ("inv_transfer_order", "erp_transfer_order"), ("inv_transfer_issue", "erp_transfer_issue"), ("inv_transfer_receipt", "erp_transfer_receipt")
+        ("inv_transfer_order", "erp_transfer_order"), ("inv_transfer_issue", "erp_transfer_issue"), ("inv_transfer_receipt", "erp_transfer_receipt"),
+        ("pur_supplier_eval", "erp_supplier_evaluation"),
+        // [tao-chung-tu] Chứng từ mới: thêm ("mã chức năng", "bảng"), ngay trên dòng này.
     ];
 
     private sealed class StatusRow { public string Status { get; set; } = ""; public int N { get; set; } }
@@ -55,7 +57,8 @@ public sealed class DashboardService(ISqlExecutor sql, IPermissionService permis
                 $"SELECT status, count(*)::int AS n FROM {table} WHERE unit_code = @unit AND document_date >= @from::date AND document_date <= @to::date GROUP BY status",
                 new { unit = unitCode, from = from.ToDateTime(TimeOnly.MinValue), to = today.ToDateTime(TimeOnly.MinValue) }, ct);
             int N(string status) => rows.Where(r => r.Status == status).Sum(r => r.N);
-            counts.Add(new DashboardVoucherCountDto(function, N("Draft"), N("Pending"), N("Approved"), N("Posted"), N("Cancelled")));
+            // "In approval" counts the intermediate approval levels too.
+            counts.Add(new DashboardVoucherCountDto(function, N("Draft"), N("Pending") + N("Approved1") + N("Approved2"), N("Approved"), N("Posted"), N("Cancelled")));
             drafts += await sql.ExecuteScalarAsync<int>($"SELECT count(*)::int FROM {table} WHERE unit_code = @unit AND status = 'Draft' AND created_by = @user",
                 new { unit = unitCode, user = userId }, ct);
         }

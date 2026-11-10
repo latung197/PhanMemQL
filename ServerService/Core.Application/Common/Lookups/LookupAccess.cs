@@ -39,6 +39,22 @@ public static class LookupAccessCatalog
 
     private static string[] Join(params IEnumerable<string>[] parts) => parts.SelectMany(x => x).Distinct().ToArray();
 
+    /// <summary>
+    /// Vouchers made by "npm run tao-chung-tu": the lookups each one picks from. The voucher is added to the consumers of those lookups
+    /// (<see cref="WithPicks"/>), so its users may pick codes without the View right of the catalogs.
+    /// </summary>
+    private static readonly (string Lookup, string Function)[] VoucherPicks =
+    [
+        ("suppliers", "pur_supplier_eval"),
+        // [tao-chung-tu] Ô chọn của chứng từ mới: thêm ("tên tra cứu", "mã chức năng"), ngay trên dòng này.
+    ];
+
+    private static IReadOnlyList<LookupAccessRule> WithPicks(IReadOnlyList<LookupAccessRule> rules) => rules.Select(rule =>
+    {
+        var extra = VoucherPicks.Where(p => string.Equals(p.Lookup, rule.Name, StringComparison.OrdinalIgnoreCase)).Select(p => p.Function).ToArray();
+        return extra.Length == 0 || rule.Open ? rule : rule with { Consumers = Join(rule.Consumers, extra) };
+    }).ToList();
+
     private static LookupAccessRule Rule(string name, string owner, IEnumerable<string>? consumers = null,
         string[]? sensitive = null, IEnumerable<string>? sensitiveFor = null) =>
         new(name, owner, (consumers ?? None).ToArray(), sensitive ?? None, (sensitiveFor ?? None).ToArray());
@@ -46,7 +62,7 @@ public static class LookupAccessCatalog
     private static LookupAccessRule OpenRule(string name, string? owner = null, bool unitScoped = false) =>
         new(name, owner, None, None, None, Open: true, UnitScoped: unitScoped);
 
-    public static IReadOnlyList<LookupAccessRule> All { get; } =
+    public static IReadOnlyList<LookupAccessRule> All { get; } = WithPicks(
     [
         // Units of measure: the unit column of every voucher line and of the price list, the material form, the conversions.
         Rule("uoms", "inv_uom_cat", Join(["inv_material_cat", "inv_uom_conversion_cat", "sales_price_list_cat"], StockVouchers, PurchaseVouchers, SalesVouchers)),
@@ -93,7 +109,7 @@ public static class LookupAccessCatalog
         OpenRule("currencies", "sys_currencies"),
         OpenRule("departments", "sys_departments"),
         OpenRule("companyUnits", "inv_company_unit_cat", unitScoped: true)
-    ];
+    ]);
 
     private static readonly Dictionary<string, LookupAccessRule> ByName = All.ToDictionary(x => x.Name, StringComparer.OrdinalIgnoreCase);
 

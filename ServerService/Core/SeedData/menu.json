@@ -408,6 +408,15 @@
             "icon": "Receipt",
             "orderNo": 30,
             "isActive": true
+          },
+          {
+            "id": "MNU_PUR_SUPPLIER_EVAL",
+            "subKey": "pur_supplier_eval",
+            "titleVi": "Phiếu đánh giá nhà cung cấp",
+            "titleEn": "Supplier evaluations",
+            "icon": "ClipboardCheck",
+            "orderNo": 40,
+            "isActive": true
           }
         ]
       },

@@ -15,8 +15,9 @@ namespace Core.Infrastructure.Modules.VoucherStatuses;
 
 /// <summary>
 /// The statuses of the vouchers of a company unit: the code declares them (VoucherStatusCatalog), the table sys_voucher_status keeps
-/// what the unit changed (name, English name, switched off). A status with no row has its default name and is in use. The rows of
-/// a unit are cached and dropped when the table is written.
+/// what the unit changed (name, English name, switched on / off). A status with no row has its default name and is in use, except the
+/// two intermediate approval levels, which are off until the unit switches them on (VoucherStatusCatalog.EnabledByDefault). The rows
+/// of a unit are cached and dropped when the table is written.
 /// </summary>
 public sealed class VoucherStatusService(CoreContext db, IAppCache cache, ISystemParameters parameters) : IVoucherStatusService
 {
@@ -36,7 +37,7 @@ public sealed class VoucherStatusService(CoreContext db, IAppCache cache, ISyste
     private static VoucherStatusDto ToDto(string unitCode, VoucherDefinition voucher, DocumentStatus status, VoucherStatus? row) =>
         new(unitCode, voucher.VoucherType, VoucherCatalog.DisplayName(voucher.VoucherType, voucher.Name), voucher.Function, status.ToString(),
             row?.Name, row?.NameEn, VoucherStatusCatalog.DefaultName(status), DisplayName(row, status),
-            row?.IsEnabled ?? true, VoucherStatusCatalog.CanDisable(status),
+            row?.IsEnabled ?? VoucherStatusCatalog.EnabledByDefault(status), VoucherStatusCatalog.CanDisable(status),
             VoucherStatusCatalog.StatusesOf(voucher.Function).ToList().IndexOf(status), row?.Version ?? 0);
 
     public async Task<IReadOnlyList<VoucherStatusDto>> GetAllAsync(string unitCode, CancellationToken ct)
@@ -68,7 +69,7 @@ public sealed class VoucherStatusService(CoreContext db, IAppCache cache, ISyste
         if (row is null)
         {
             // Nothing changed from the defaults: no row needed.
-            if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(nameEn) && request.IsEnabled)
+            if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(nameEn) && request.IsEnabled == VoucherStatusCatalog.EnabledByDefault(parsed))
                 return ToDto(unitCode, voucher, parsed, null);
             db.VoucherStatuses.Add(row = new VoucherStatus { UnitCode = unitCode, VoucherType = voucher.VoucherType, StatusCode = parsed.ToString() });
         }
@@ -89,7 +90,7 @@ public sealed class VoucherStatusService(CoreContext db, IAppCache cache, ISyste
                 .ToDictionary(status => status.ToString(), status =>
                 {
                     var row = rows.GetValueOrDefault((voucher.VoucherType, status.ToString()));
-                    return new VoucherStatusNameDto(DisplayName(row, status), row?.IsEnabled ?? true);
+                    return new VoucherStatusNameDto(DisplayName(row, status), row?.IsEnabled ?? VoucherStatusCatalog.EnabledByDefault(status));
                 }));
     }
 
@@ -98,8 +99,22 @@ public sealed class VoucherStatusService(CoreContext db, IAppCache cache, ISyste
         if (status == DocumentStatus.Draft) return true;
         var voucher = VoucherCatalog.FindByFunction(function);
         if (voucher is null) return true;
-        var row = (await RowsAsync(unitCode, ct)).GetValueOrDefault((voucher.VoucherType, status.ToString()));
-        return row?.IsEnabled ?? true;
+        var rows = await RowsAsync(unitCode, ct);
+        bool Own(DocumentStatus s) => rows.GetValueOrDefault((voucher.VoucherType, s.ToString()))?.IsEnabled ?? VoucherStatusCatalog.EnabledByDefault(s);
+        // An intermediate approval level only counts while the voucher goes through approval at all.
+        if (status is DocumentStatus.Approved1 or DocumentStatus.Approved2) return Own(status) && Own(DocumentStatus.Pending);
+        return Own(status);
+    }
+
+    public async Task<IReadOnlyList<DocumentStatus>> ApprovalLevelsAsync(string unitCode, string function, CancellationToken ct)
+    {
+        // A document that is not a voucher of the catalog (tracked by the approval workflow only) has one level.
+        if (VoucherCatalog.FindByFunction(function) is null) return [DocumentStatus.Approved];
+        if (!await IsEnabledAsync(unitCode, function, DocumentStatus.Pending, ct)) return [];
+        var levels = new List<DocumentStatus>();
+        foreach (var status in DocumentStatuses.ApprovalChain)
+            if (status == DocumentStatus.Approved || await IsEnabledAsync(unitCode, function, status, ct)) levels.Add(status);
+        return levels;
     }
 
     public async Task EnsureEnabledAsync(string unitCode, string function, DocumentStatus status, CancellationToken ct)
