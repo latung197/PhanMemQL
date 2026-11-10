@@ -202,6 +202,7 @@ public static class DependencyInjection
         services.AddScoped<Core.Application.Modules.Production.IProductionOperationService, Core.Infrastructure.Modules.Production.ProductionOperationService>();
         services.AddScoped<Core.Application.Modules.Production.IProductionProcessService, Core.Infrastructure.Modules.Production.ProductionProcessService>();
         services.AddScoped<Core.Application.Modules.Production.IProductStructureService, Core.Infrastructure.Modules.Production.ProductStructureService>();
+        // [tao-danh-muc] Dịch vụ của danh mục mới: thêm services.AddScoped<...>() ngay trên dòng này.
         return services;
     }
 }

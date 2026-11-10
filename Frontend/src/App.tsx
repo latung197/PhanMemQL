@@ -549,7 +549,8 @@ const ERPAppContent: React.FC = () => {
 
   return (
     <div className="flex h-dvh w-full min-w-0 bg-background text-slate-800 dark:text-slate-100 overflow-hidden font-sans transition-colors">
-      
+      <IdleSignOut onSignOut={() => { handleLogout(); showToast.warning(t('app.idle.signedOut')); }} />
+
       {/* Multi-level Collapsible Sidebar */}
       <Sidebar
         activeCategory={activeCategory}
@@ -787,7 +788,7 @@ export function App() {
     <ThemeProvider>
       <LanguageProvider>
         <NumberFormatProvider>
-          <Toaster position="top-right" richColors closeButton />
+          <Toaster position="bottom-right" richColors closeButton />
           <ConfirmProvider>
             <ERPAppContent />
           </ConfirmProvider>

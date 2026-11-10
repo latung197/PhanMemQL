@@ -82,6 +82,7 @@ public static class LookupAccessCatalog
         Rule("productionTeams", "prod_team_cat", ["prod_operation_cat", "prod_process_cat"]),
         Rule("productionOperations", "prod_operation_cat", ["prod_process_cat", "prod_structure_cat"]),
         Rule("productionProcesses", "prod_process_cat"),
+        // [tao-danh-muc] Quyền tra cứu của danh mục mới: thêm Rule("tên tra cứu", "mã chức năng", [màn dùng nó]), ngay trên dòng này.
 
         // Finance and tax.
         Rule("accounts", "fin_account_cat", Join(["sys_tax_rates"], FinanceVouchers)),

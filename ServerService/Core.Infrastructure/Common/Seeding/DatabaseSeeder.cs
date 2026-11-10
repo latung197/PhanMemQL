@@ -170,12 +170,21 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
             return;
         }
         var admin = await db.Users.FirstOrDefaultAsync(x => x.UserName == "admin" && x.ValidFlg == 1, ct);
-        if (admin is null || passwords.Verify(admin, password, out _)) return;
-        admin.PasswordHash = passwords.Hash(admin, password);
-        admin.IsActive = true;
-        admin.EnableFl = 1;
-        admin.SecurityVersion++;
+        if (admin is null) return;
+        // The known login is never forced to change or expire either (no date = never expires), else every start would undo the change.
+        var same = passwords.Verify(admin, password, out _);
+        if (same && !admin.MustChangePassword && admin.PasswordChangedAt is null) return;
+        if (!same)
+        {
+            admin.PasswordHash = passwords.Hash(admin, password);
+            admin.IsActive = true;
+            admin.EnableFl = 1;
+            admin.SecurityVersion++;
+        }
+        admin.PasswordChangedAt = null;
+        admin.MustChangePassword = false;
         await db.SaveChangesAsync(ct);
+        if (same) return;
         logger.LogWarning("Development: đã đặt mật khẩu tài khoản admin theo Seed:AdminPassword.");
     }
 
@@ -464,6 +473,7 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
                 MaDvcs = item.MaDvcs ?? defaultUnit
             };
             user.PasswordHash = passwords.Hash(user, password);
+            user.PasswordChangedAt = DateTime.UtcNow; // the expiry of the security policy counts from now
             db.Users.Add(user);
             await db.SaveChangesAsync(ct);
 
@@ -532,6 +542,7 @@ public sealed class DatabaseSeeder(CoreContext db, IPasswordService passwords, U
             FullName = "Quản trị hệ thống", MaDvcs = unitCode, EmployeeCode = "ADMIN"
         };
         user.PasswordHash = passwords.Hash(user, password);
+        user.PasswordChangedAt = DateTime.UtcNow; // the expiry of the security policy counts from now
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
         await access.ReplaceRoleAsync(user.UserId, role, ct);

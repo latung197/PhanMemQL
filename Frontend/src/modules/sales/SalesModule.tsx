@@ -9,6 +9,7 @@ import { DeliveryNoteView } from './DeliveryNoteView';
 import { SalesReportView } from './SalesReportView';
 import { ModuleHeader, ModuleNavGroup } from '../../components/layout/ModuleHeader';
 import { FolderTree, FileText, PieChart, ShoppingBag, UserCheck, Truck, Users, Tags, CheckCircle2 } from 'lucide-react';
+// [tao-danh-muc] Import màn của danh mục mới: thêm ngay trên dòng này.
 
 interface SalesModuleProps {
   subKey: SubMenuKey;
@@ -73,6 +74,7 @@ export const SalesModule: React.FC<SalesModuleProps> = ({
 
   const renderActiveView = () => {
     switch (subKey) {
+      // [tao-danh-muc] Màn của danh mục mới: thêm case 'mã chức năng': return <...View currentUser={currentUser} />; ngay trên dòng này.
       case 'sales_customers':
         return <CustomerCategoryView currentUser={currentUser} />;
       case 'sales_customer_group_cat':

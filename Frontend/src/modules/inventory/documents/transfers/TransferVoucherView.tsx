@@ -31,7 +31,7 @@ import { VoucherStatusBadge } from '../VoucherStatusBadge';
 import { useVoucherStatuses, voucherStatusService } from '../../../../services/voucherStatusService';
 import { reachesStatus } from '../../../../utils/documentPolicy';
 import { getActionPermission } from '../../../../mock/initialRoles';
-import { canApproveVoucher, hasRight, hasStatusRight, RIGHTS } from '../../../../utils/permissions';
+import { hasRight, hasStatusRight, RIGHTS } from '../../../../utils/permissions';
 import { useOpenDocumentRequest } from '../../../../utils/documentLinks';
 import { useDebounced } from '../../../../hooks/useDebounced';
 import { usePagedList } from '../../../../hooks/usePagedList';
@@ -187,7 +187,8 @@ export const TransferVoucherView: React.FC<TransferVoucherViewProps> = ({ kind, 
   useVoucherStatuses();
   const perm = getActionPermission(currentUser, FUNCTION);
   // "Duyệt" on the voucher or on its approval screen (Phê duyệt điều chuyển), as the backend.
-  const canApprove = canApproveVoucher(currentUser, FUNCTION);
+  // Approving is a status right of the unit (own vouchers too); the approval rules only say whom to notify.
+  const canApprove = reachesStatus(currentUser, FUNCTION, 'Approved');
   const canViewValue = kind !== 'order' && hasRight(currentUser, FUNCTION, RIGHTS.VIEW_COST);
   const hiddenValueFields = canViewValue || kind === 'order' ? undefined : ['unitPrice', 'amount'];
   const statusChoices = saveStatusChoices(currentUser, FUNCTION, { voucherType: cfg.series, posts: cfg.posts });
@@ -632,11 +633,11 @@ export const TransferVoucherView: React.FC<TransferVoucherViewProps> = ({ kind, 
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'submit')} title={`Gửi duyệt ${cfg.noun}`}
                   className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"><ArrowUpRight className="h-4 w-4" /></button>
               )}
-              {v.status === 'Chờ duyệt' && canApprove && (
+              {(v.status === 'Chờ duyệt' || v.status === 'Lập chứng từ') && canApprove && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'approve')} title={`Phê duyệt ${cfg.noun}`}
                   className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"><ShieldCheck className="h-4 w-4" /></button>
               )}
-              {cfg.posts && v.status === 'Đã phê duyệt' && reachesStatus(currentUser, FUNCTION, 'Posted') && (
+              {cfg.posts && ['Lập chứng từ', 'Chờ duyệt', 'Đã phê duyệt'].includes(v.status) && reachesStatus(currentUser, FUNCTION, 'Posted') && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'post')} title="Chuyển sổ kho"
                   className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg cursor-pointer"><BookCheck className="h-4 w-4" /></button>
               )}

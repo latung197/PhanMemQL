@@ -1,0 +1,24 @@
+{
+  "ma": "inv_brand_cat",
+  "phanHe": "inventory",
+  "ten": "Brand",
+  "tenVi": "Danh mục thương hiệu",
+  "tenEn": "Brands",
+  "danhTu": "thương hiệu",
+  "danhTuEn": "brand",
+  "nhanMa": "Mã thương hiệu",
+  "nhanMaEn": "Brand code",
+  "nhanTen": "Tên thương hiệu",
+  "nhanTenEn": "Brand name",
+  "icon": "Tag",
+  "doiMa": true,
+  "viDuMa": "TH01",
+  "viDuTen": "Thương hiệu A",
+  "truong": [
+    { "cot": "country", "kieu": "chu", "nhan": "Quốc gia", "nhanEn": "Country", "doDai": 100 },
+    { "cot": "website", "kieu": "chu", "nhan": "Trang web", "nhanEn": "Website", "doDai": 200 },
+    { "cot": "material_group_code", "kieu": "ma", "nhan": "Nhóm vật tư", "nhanEn": "Material group",
+      "tro": { "lop": "MaterialGroup", "bang": "erp_material_group", "traCuu": "materialGroups" } },
+    { "cot": "note", "kieu": "ghichu", "nhan": "Ghi chú", "nhanEn": "Note", "doDai": 300 }
+  ]
+}

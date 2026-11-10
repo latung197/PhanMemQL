@@ -66,10 +66,24 @@ Quyền của trạng thái sau **bao gồm các bước trước**: người c�
 |---|---|
 | chỉ Thêm / Sửa, không quyền trạng thái | Lập chứng từ |
 | `ST_PENDING` | Lập, Chờ duyệt |
-| `ST_APPROVED` (và là người duyệt) | thêm Đã duyệt |
-| `ST_POSTED` (và là người duyệt) | thêm Đã ghi sổ |
+| `ST_APPROVED` | thêm Đã duyệt |
+| `ST_POSTED` | thêm Đã ghi sổ |
 
-Phải có quyền **Thêm** hoặc **Sửa** của chức năng thì mới lưu ở trạng thái sau Lập. Lưu ở trạng thái nào thì server chạy các bước đó trong **một giao dịch**; bước nào bị từ chối thì cả phiếu không được lưu. Người duyệt vẫn phải đúng quy tắc phê duyệt (cấp duyệt theo số tiền, không tự duyệt phiếu mình lập), trừ khi đơn vị đã tắt bước Chờ duyệt.
+Phải có quyền **Thêm** hoặc **Sửa** của chức năng thì mới lưu ở trạng thái sau Lập. Lưu ở trạng thái nào thì server chạy các bước đó trong **một giao dịch**; bước nào bị từ chối thì cả phiếu không được lưu.
+
+### Duyệt và ghi sổ theo quyền trạng thái
+
+**Được phân quyền đến trạng thái nào thì chuyển chứng từ đến trạng thái đó**, ở đơn vị của phiếu:
+
+| Có quyền | Làm được |
+|---|---|
+| `ST_APPROVED` | Duyệt phiếu **Chờ duyệt** (mọi cấp còn lại được duyệt một lần), duyệt thẳng phiếu **Lập chứng từ**, từ chối phiếu chờ duyệt. **Kể cả phiếu mình lập** |
+| `ST_POSTED` | Như trên, và **ghi sổ** phiếu Lập / Chờ duyệt / Đã duyệt: hệ thống ghi luôn bước duyệt còn thiếu (ghi tên người này) rồi ghi sổ, trong một giao dịch |
+
+- Không cần cột **Duyệt** trong ma trận quyền, không cần có tên trong quy tắc phê duyệt. Cột Duyệt chỉ còn để mở các màn Phê duyệt riêng.
+- **Quy tắc phê duyệt** dùng cho người chỉ có `ST_PENDING`: họ trình phiếu, hệ thống báo cho người duyệt theo quy tắc (chỉ những người có `ST_APPROVED` ở đơn vị đó, và chỉ người ở cấp đầu, vì ai duyệt cũng duyệt hết các cấp). Muốn cấp sau mới là người quyết định thì đừng cấp `ST_APPROVED` cho người cấp trước.
+- Mọi bước vẫn được ghi vào lịch sử duyệt và nhật ký thay đổi (ai, lúc nào).
+- Mã nguồn: `DocumentStatusPolicy` (Approve / Reject / Post), `IDocumentApprovalService.ApproveAsync` / `ApproveToEndAsync` (duyệt mọi cấp còn lại hoặc duyệt thẳng phiếu nháp), `ApprovalResolver` (người được báo).
 
 ### Quyền theo từng đơn vị: mã có kèm đơn vị
 
@@ -119,8 +133,9 @@ Lần chạy đầu của script 43 (dấu hiệu: bảng `sys_voucher_status` c
 | Sửa phiếu Chờ duyệt | Sửa + với tới Chờ duyệt (`ST_PENDING` hoặc quyền sau nó) |
 | Sửa phiếu Đã duyệt | Sửa + với tới Đã duyệt |
 | Gửi duyệt | Phiếu Lập, Thêm hoặc Sửa, với tới Chờ duyệt, bước Chờ duyệt đang dùng |
-| Duyệt / từ chối | Như cũ: phiếu Chờ duyệt, không phải người lập, có quyền Duyệt (trên phiếu hoặc màn phê duyệt), đúng cấp duyệt |
-| Ghi sổ | Phiếu Đã duyệt + `ST_POSTED` |
+| Duyệt | Phiếu Chờ duyệt (không cần Xem / `VIEW_ALL`) hoặc Lập chứng từ (cần Xem, phiếu người khác cần `VIEW_ALL`) + với tới Đã duyệt; **kể cả người lập**, không cần cột Duyệt hay có tên trong quy tắc |
+| Từ chối | Phiếu Chờ duyệt + với tới Đã duyệt |
+| Ghi sổ | Phiếu Lập / Chờ duyệt / Đã duyệt + `ST_POSTED` (phiếu chưa duyệt được duyệt luôn trong cùng giao dịch) |
 | Bỏ ghi sổ | Phiếu Đã ghi sổ + `ST_UNPOST` |
 | Hủy | Người lập hủy phiếu nháp của mình cần Xóa; trường hợp khác cần `ST_CANCELLED`; phiếu Đã ghi sổ phải bỏ ghi sổ trước |
 | Khôi phục (Hủy → Lập chứng từ) | Chỉ phiếu đã hủy; cần `ST_CANCELLED` của đơn vị (ai hủy được thì khôi phục được) |

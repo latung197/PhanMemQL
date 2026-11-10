@@ -131,6 +131,8 @@ Khi làm một nghiệp vụ thật, làm theo quy trình bên dưới rồi b�
 
 Mỗi chức năng có một **mã** (ví dụ `inv_supplier_cat`) và thuộc một trong ba loại: **danh mục**, **phiếu (chứng từ)** hoặc **báo cáo**. Các bước chung giống nhau; phần khác nhau ghi ở cuối.
 
+Làm bằng trợ lý Claude Code: mỗi loại có một lệnh (skill trong `.claude/skills/`) đi theo đúng hướng dẫn của loại đó: **`/them-danh-muc`**, **`/them-chung-tu`**, **`/them-bao-cao`**.
+
 ### Bước chung
 
 **Backend** (`ServerService/`, chi tiết: [ServerService/README.md](ServerService/README.md#thêm-module-mới))
@@ -160,6 +162,8 @@ Mỗi chức năng có một **mã** (ví dụ `inv_supplier_cat`) và thuộc m
 
 ### Danh mục
 
+**Cách nhanh (tự làm, vài phút):** viết một file mô tả JSON rồi chạy `cd Frontend && npm run tao-danh-muc -- mo-ta.json`, hoặc chép bộ khung `docs/phat-trien/mau-danh-muc/`: **[docs/phat-trien/them-danh-muc-nhanh.md](docs/phat-trien/them-danh-muc-nhanh.md)**.
+
 Hướng dẫn từng bước, từng file (lấy danh mục đơn vị tính làm mẫu): **[docs/phat-trien/them-danh-muc.md](docs/phat-trien/them-danh-muc.md)**.
 
 Quy trình triển khai thực tế danh mục quy đổi đơn vị tính, gồm tra cứu chọn một/chọn nhiều: **[docs/kho/them-quy-doi-don-vi-tinh.md](docs/kho/them-quy-doi-don-vi-tinh.md)**.
@@ -186,10 +190,12 @@ Hướng dẫn từng bước, từng file: **[docs/phat-trien/them-chung-tu.md]
   | Tỷ giá hạch toán cho phiếu ngoại tệ | `IExchangeRateService.GetRateAsync(mã tiền, ngày)` |
   | Thao tác nào được phép theo trạng thái phiếu | `DocumentStatusPolicy.Check(...)` |
   | Trình duyệt / duyệt / từ chối | `IDocumentApprovalService` (`/api/approvals/...`) |
-  | Ghi sổ kho / sổ cái | SQL trong `Modules/<Module>/Sql/*.sql` qua `ISqlExecutor`, cùng transaction |
+  | Ghi sổ kho | `IStockLedger.PostAsync` / `UnpostAsync` (không viết SQL ghi sổ riêng); sổ cái sau này: một dịch vụ ghi sổ tương tự, SQL qua `ISqlExecutor` cùng transaction |
+  | Danh sách phiếu và Excel | `ListAsync` / `ExportAsync` với `VoucherListQuery` (phân trang, sắp xếp, lọc ở máy chủ); frontend `usePagedList` + `GridView serverSide` |
+  | Khôi phục phiếu đã hủy | thao tác `reopen` (về Lập chứng từ, kiểm lại chứng từ trước) |
   | Nhật ký ai sửa gì | `[Audited]` trên entity (tự động); trình / duyệt / ghi sổ bằng SQL thì ghi tay `IAuditLog.RecordAsync`; xem ở Cài đặt › Nhật ký thay đổi |
 
-- Frontend: dùng `modules/_templates/voucher-feature-template/` để tham khảo bố cục; đây là dữ liệu mẫu, cần thay ô nhập và định dạng cố định bằng control chung, `useLanguage` và `useNumberFormat` trước khi dùng thật. Số phiếu hiển thị trước khi lưu lấy bằng `voucherNumberingApi.preview(loại)`; số thật do backend cấp lúc lưu. Kiểm tra ngày bằng `fiscalPeriodsApi.check(ngày)`. Mở đúng phiếu từ thông báo bằng `useOpenDocumentRequest('mã', id => ...)`.
+- Frontend: dùng `modules/_templates/voucher-feature-template/` để tham khảo bố cục; đây là dữ liệu mẫu, cần thay ô nhập và định dạng cố định bằng control chung, `useLanguage` và `useNumberFormat` trước khi dùng thật. Mẫu chạy thật để sao: `modules/sales/documents/sales-orders/` (danh sách phân trang) và `modules/inventory/documents/goods-issues/` (ghi sổ kho). Các cột của lưới chi tiết khai ở `mock/voucherGridConfigs.ts` rồi chạy `npm run export-voucher-grids` (cấu hình ở Cài đặt › Cấu hình lưới chứng từ). Số phiếu hiển thị trước khi lưu lấy bằng `voucherNumberingApi.preview(loại)`; số thật do backend cấp lúc lưu. Kiểm tra ngày bằng `fiscalPeriodsApi.check(ngày)`. Mở đúng phiếu từ thông báo bằng `useOpenDocumentRequest('mã', id => ...)`.
 
 ### Báo cáo
 

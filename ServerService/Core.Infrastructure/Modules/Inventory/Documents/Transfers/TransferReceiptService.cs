@@ -230,16 +230,15 @@ public sealed class TransferReceiptService(CoreContext db, IUnitOfWork unitOfWor
             }
             else if (normalized == "approve")
             {
-                var result = await approvals.ApproveAsync(userId, unitCode, Function, row.Code,
-                    new ApprovalActionRequest(null), token);
-                if (result.Status == "APPROVED")
-                {
-                    row.Status = "Approved";
-                    row.ApprovedByUserId = userId;
-                }
+                // Approving is a status right: a draft, or every level still open, is approved at once by this user.
+                await approvals.ApproveToEndAsync(userId, unitCode, Function, row.Code, row.Code, token);
+                row.Status = "Approved";
+                row.ApprovedByUserId = userId;
             }
             else if (normalized == "post")
             {
+                // The posted right takes a draft or pending voucher through the approval first.
+                if (row.Status != "Approved") await approvals.ApproveToEndAsync(userId, unitCode, Function, row.Code, row.Code, token);
                 await ledger.PostAsync(userId, await ToPostingAsync(row, unitCode, token), token);
                 row.Status = "Posted";
             }

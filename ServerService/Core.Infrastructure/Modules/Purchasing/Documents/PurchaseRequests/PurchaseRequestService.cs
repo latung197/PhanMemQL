@@ -283,13 +283,10 @@ public sealed class PurchaseRequestService(CoreContext db, IUnitOfWork unitOfWor
             }
             else if (normalized == "approve")
             {
-                var result = await approvals.ApproveAsync(userId, unitCode, Function, row.Code,
-                    new ApprovalActionRequest(null), token);
-                if (result.Status == "APPROVED")
-                {
-                    row.Status = "Approved";
-                    row.ApprovedByUserId = userId;
-                }
+                // Approving is a status right: a draft, or every level still open, is approved at once by this user.
+                await approvals.ApproveToEndAsync(userId, unitCode, Function, row.Code, row.Code, token);
+                row.Status = "Approved";
+                row.ApprovedByUserId = userId;
             }
             else if (normalized == "reopen")
             {

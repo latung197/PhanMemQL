@@ -195,7 +195,7 @@ Cả hai dịch vụ cùng một khung (sao từ `IssueRequestService`/`GoodsIss
 
 - `withdraw`: chỉ người lập, chỉ khi `Pending`; gọi `approvals.WithdrawAsync`, về `Draft`.
 - `submit`: `DocumentStatusPolicy.Check` rồi `approvals.SubmitAsync` (dựng các cấp duyệt theo quy tắc và giá trị phiếu, gửi thông báo cho người duyệt); bước **Chờ duyệt** phải đang bật ở đơn vị (`statuses.EnsureEnabledAsync`).
-- `approve`: `approvals.ApproveAsync`; khi mọi cấp xong (`APPROVED`) thì phiếu sang `Approved` và ghi `ApprovedByUserId`. **Người lập không tự duyệt qua nút Duyệt.**
+- `approve`: `approvals.ApproveToEndAsync` (duyệt mọi cấp còn lại, hoặc duyệt thẳng phiếu nháp) rồi phiếu sang `Approved` và ghi `ApprovedByUserId`. Cần `ST_APPROVED` của đơn vị, **kể cả người lập** (duyệt là quyền trạng thái).
 - `cancel`: chỉ từ `Approved`; **chặn nếu còn chứng từ sau chưa hủy** lấy từ nó (`PurchaseRequestProgress.HasOrdersAsync`, `PurchaseOrderProgress.HasReceiptsAsync`).
 - `RejectAsync(reason)`: từ chối kèm lý do, về `Draft`.
 
@@ -228,7 +228,7 @@ Người có quyền tới trạng thái nào thì lưu thẳng ở trạng thá
 |---|---|---|
 | Lập chứng từ | luôn được | chỉ lưu |
 | Chờ duyệt | quyền Thêm / Sửa + `ST_PENDING` của đơn vị, bước Chờ duyệt đang bật | `approvals.SubmitAsync` |
-| Đã phê duyệt | quyền **Duyệt**, `ST_APPROVED` của đơn vị, và là người duyệt của **mọi cấp** | `EnsureCanApproveDirectAsync` + `ApproveDirectAsync` (ghi mỗi cấp một dòng đã duyệt bởi chính người này). Nếu đơn vị **tắt** bước Chờ duyệt: `ApproveWithoutFlowAsync`, không cần người duyệt |
+| Đã phê duyệt | `ST_APPROVED` của đơn vị (không cần cột Duyệt hay có tên trong quy tắc) | `EnsureCanApproveDirectAsync` + `ApproveDirectAsync` (ghi mỗi cấp một dòng đã duyệt bởi chính người này). Nếu đơn vị **tắt** bước Chờ duyệt: `ApproveWithoutFlowAsync`, không cần người duyệt |
 
 Quyền cho một trạng thái sau **bao gồm** các bước trước (Chờ duyệt < Đã duyệt). Một bước bị từ chối thì **cả lần lưu bị hủy** nhờ giao dịch chung: không bao giờ để phiếu dở dang.
 
@@ -422,7 +422,7 @@ Ví dụ giả định cần thêm **Phiếu đề nghị thanh toán** (`pur_pa
 **E. Kiểm tra bằng tay** (kịch bản đầy đủ ở `docs/phat-trien/them-chung-tu.md` mục 8; ngày chứng từ dùng năm **2027** vì các tháng 2026 của DVCS01 đã khóa)
 
 1. Lập, sửa, sửa bằng `version` cũ (409), ngày thuộc kỳ khóa (bị chặn), kho / vật tư / đơn vị tính sai (lỗi rõ).
-2. Gửi duyệt, người khác duyệt, từ chối, rút lại; người lập không tự duyệt bằng nút Duyệt.
+2. Gửi duyệt, duyệt (người có `ST_APPROVED`, kể cả người lập; người thiếu quyền bị chặn), từ chối, rút lại.
 3. Lưu thẳng từng trạng thái với tài khoản đủ quyền và thiếu quyền (`ST_*`).
 4. Chứng từ sau lấy từ nó: đặt vượt số còn lại bị từ chối; hủy chứng từ trước khi còn chứng từ sau bị chặn; hủy chứng từ sau thì số trả lại.
 5. Tài khoản không có quyền Xem gọi danh sách → 403; không có `VIEW_PRICE` thấy giá 0 **và sửa không làm mất giá**; không có `VIEW_ALL` chỉ thấy phiếu của mình.
@@ -441,7 +441,7 @@ Ví dụ giả định cần thêm **Phiếu đề nghị thanh toán** (`pur_pa
 | `TablesThatKeepARowInUseHaveAMessageLabel` đỏ | bảng mới được trỏ tới nhưng thiếu `table.<tên bảng>` | thêm nhãn vi + en |
 | `MessagesTests` đỏ | thiếu khóa vi hoặc en, hoặc khóa mới bắt đầu bằng `voucher.` | đủ hai ngôn ngữ, đổi tiền tố |
 | Duyệt xong phiếu vẫn "Chờ duyệt" | quên một trong ba chỗ của `DocumentApprovalService` | kiểm cả ba |
-| Lưu phiếu báo "chưa có người duyệt hợp lệ" | người lập là người duyệt duy nhất, không tự duyệt được | thêm người duyệt khác ở Quy tắc phê duyệt, hoặc cấp `ST_APPROVED` + quyền Duyệt để lưu thẳng |
+| Trình duyệt báo "chưa có người duyệt hợp lệ" | không ai khác người lập có `ST_APPROVED` ở đơn vị trong cấp duyệt (người được báo phải có quyền đó) | cấp `ST_APPROVED` cho người duyệt theo quy tắc; hoặc người lập có `ST_APPROVED` thì duyệt / lưu thẳng ở Đã duyệt |
 | Giá về 0 sau khi sửa | người sửa không có `VIEW_PRICE`, form gửi giá 0 | dịch vụ phải giữ giá cũ (đã làm ở hai phiếu mua) |
 | Trạng thái đổi tên theo đơn vị không ăn trên màn | màn dùng sai loại chứng từ khi tra nhãn (từng nhầm `YCX` thay `YCM`) | dùng đúng mã loại ở `VoucherStatusBadge`, `saveStatusChoices`, `voucherStatusService` |
 | Số phiếu trùng giữa các đơn vị | mẫu số thiếu `{DVCS}` | mẫu mặc định đã có |

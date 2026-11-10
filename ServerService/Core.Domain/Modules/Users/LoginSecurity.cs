@@ -6,8 +6,8 @@ namespace Core.Domain.Modules.Users;
 
 /// <summary>
 /// One sign-in attempt or sign-out (Settings › Người dùng &amp; phân quyền › Bảo mật đăng nhập): who, when, from where and the result
-/// (SUCCESS, WRONG_PASSWORD, UNKNOWN_USER, UNIT_DENIED, BLOCKED, LOGOUT, IDLE_TIMEOUT). The wrong passwords of a user name since its last
-/// success also decide whether it has to wait before trying again. Rows are purged with the change log retention.
+/// (SUCCESS, WRONG_PASSWORD, UNKNOWN_USER, UNIT_DENIED, BLOCKED, LOGOUT, IDLE_TIMEOUT). The failed attempts (wrong password or unknown name)
+/// of a user name since its last success also decide whether it has to wait before trying again. Rows are purged with the change log retention.
 /// </summary>
 [NotAudited("The login history is itself a log.")]
 [Table("sys_login_history")]

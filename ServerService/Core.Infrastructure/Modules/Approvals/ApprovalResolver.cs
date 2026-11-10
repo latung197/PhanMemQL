@@ -15,10 +15,10 @@ public sealed record ResolvedApprovalLevel(int Level, string Label, IReadOnlyLis
 public sealed record ApprovalResolution(bool UsesDefaultApprovers, IReadOnlyList<ResolvedApprovalLevel> Levels);
 
 /// <summary>
-/// Turns the rules into concrete approvers for a document. An approver must be active, allowed in the
-/// unit, hold the "Duyệt" right on the voucher or on its approval screen (PermissionMatrix.CanApprove) and must
-/// not be the requester. Without a matching
-/// rule, every user with the "Duyệt" right in the unit approves (one level).
+/// Turns the rules into concrete approvers for a document: the people notified when it is sent for approval. An approver must be
+/// active, allowed in the unit and hold the "Approved" status right of the voucher there (or a later one: whoever approves needs it,
+/// DocumentStatusPolicy), and must not be the requester (who, holding that right, approves without being asked). Without a matching
+/// rule, every user of the unit holding that right is notified (one level).
 /// </summary>
 public sealed class ApprovalResolver(CoreContext db, IPermissionService permissions)
 {
@@ -89,7 +89,8 @@ public sealed class ApprovalResolver(CoreContext db, IPermissionService permissi
         {
             // Administrators may work in every unit (cached by GetEffectiveManyAsync, no query).
             if (!inUnit.Contains(id) && !await permissions.IsAdminAsync(id, ct)) continue;
-            if (PermissionMatrix.CanApprove(matrix, function)) result.Add(id);
+            var rights = await permissions.GetRightsInUnitAsync(id, unitCode, ct);
+            if (DocumentActor.For(matrix, rights, function, isOwner: false, unitCode).Reaches(DocumentStatus.Approved)) result.Add(id);
         }
         return result.Order().ToList();
     }

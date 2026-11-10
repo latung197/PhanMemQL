@@ -56,5 +56,11 @@ module.exports = {
   '54': 'Phiếu kiểm kê (đầu phiếu, dòng): tồn sổ sách tính từ sổ kho, ghi sổ phần thừa và phần thiếu',
   '55': 'Báo cáo kho dưới dạng hàm `rpt_*` (nhập xuất tồn, hàng nhập / xuất chi tiết và tổng hợp, tuổi hàng tồn, tồn tức thời có giữ chỗ, giá trung bình tháng); không có bảng mới',
   '56': 'Định mức tồn kho theo kho (mã VATTU@KHO) và hàm `rpt_stock_balance` đọc định mức (chạy sau 55)',
+  // Two scripts share 55 and 56: these entries use the full file name (gen-database-doc.cjs tries it before the number).
+  '55-production-catalogs': 'Sản xuất: danh mục tổ sản xuất và công đoạn sản xuất',
+  '56-production-process': 'Sản xuất: danh mục quy trình sản xuất (các bước công đoạn theo thứ tự, đơn vị áp dụng)',
+  '57': 'Sản xuất: cấu trúc sản phẩm (định mức nguyên vật liệu, BOM) và các dòng thành phần',
+  '58': 'Vai trò theo từng đơn vị cơ sở (`sys_user_company_unit.role_id`)',
+  '59': 'Bảo mật đăng nhập: hạn và cờ bắt đổi mật khẩu trên `sys_users`, lịch sử đăng nhập, lịch sử mật khẩu',
   '53': 'Đơn bán hàng (đầu phiếu, dòng) và cột nối sang phiếu xuất kho: khách hàng, số đơn, dòng đơn'
 };

@@ -1,6 +1,6 @@
 # Mô tả cơ sở dữ liệu S-ERP
 
-Tài liệu này mô tả toàn bộ cơ sở dữ liệu PostgreSQL của S-ERP: **83 bảng**, 1 view, 1139 cột, 310 chỉ mục. Kiểu dữ liệu, độ dài, ràng buộc, chỉ mục, trigger và tham chiếu được **sinh tự động từ database thật** (`erp_dev`) bằng `docs/cong-cu/gen-database-doc.cjs`; phần mô tả bảng và cột viết tay trong `docs/cong-cu/database-notes.cjs` và công cụ. Nhờ vậy khớp với cấu trúc đang chạy. Khi đổi cấu trúc: chạy script SQL, rồi chạy lại công cụ để sinh lại tài liệu.
+Tài liệu này mô tả toàn bộ cơ sở dữ liệu PostgreSQL của S-ERP: **92 bảng**, 1 view, 1221 cột, 335 chỉ mục. Kiểu dữ liệu, độ dài, ràng buộc, chỉ mục, trigger và tham chiếu được **sinh tự động từ database thật** (`erp_dev`) bằng `docs/cong-cu/gen-database-doc.cjs`; phần mô tả bảng và cột viết tay trong `docs/cong-cu/database-notes.cjs` và công cụ. Nhờ vậy khớp với cấu trúc đang chạy. Khi đổi cấu trúc: chạy script SQL, rồi chạy lại công cụ để sinh lại tài liệu.
 
 ## 1. Quy ước chung
 
@@ -45,14 +45,16 @@ Dự án **không dùng ràng buộc khóa ngoại**. Các bảng liên kết b�
 |---|---|---|---|
 | Người dùng và phân quyền | `sys_command` | 27 | Danh mục **chức năng và nút menu** (cây module → nhóm → chức năng) |
 | Người dùng và phân quyền | `sys_command_translation` | 3 | Tên chức năng / menu theo từng ngôn ngữ |
+| Người dùng và phân quyền | `sys_login_history` | 8 | **Lịch sử đăng nhập**: mỗi lần đăng nhập, đăng xuất, hết phiên (SUCCESS, WRONG_PASSWORD, UNKNOWN_USER, UNIT_DENIED, BLOCKED, LOGOUT, IDLE_TIMEOUT), tên đã gõ, IP, trình duyệt |
+| Người dùng và phân quyền | `sys_password_history` | 4 | Mật khẩu cũ (dạng băm) của từng tài khoản, tối đa 24 dòng, để chặn dùng lại N mật khẩu gần nhất theo chính sách bảo mật |
 | Người dùng và phân quyền | `sys_role` | 10 | Vai trò (nhóm quyền) |
 | Người dùng và phân quyền | `sys_role_command` | 18 | Ma trận quyền của **vai trò** theo chức năng (xem, thêm, sửa, xóa, duyệt, in, xuất; vẫn lưu dạng 11 cờ cũ) |
 | Người dùng và phân quyền | `sys_role_right` | 8 | Quyền đặc biệt của vai trò, dạng `{chức năng}:{MÃ}` (ví dụ `inv_receipt:VIEW_PRICE`); quyền trạng thái theo đơn vị có đuôi `@DVCS` |
 | Người dùng và phân quyền | `sys_user_command` | 18 | Quyền **ngoại lệ** của người dùng: mỗi dòng thay thế quyền của vai trò cho đúng một chức năng; hệ thống chỉ lưu phần chênh lệch |
-| Người dùng và phân quyền | `sys_user_company_unit` | 2 | Các đơn vị cơ sở mà người dùng được làm việc (đổi đơn vị bằng `POST /api/auth/switch-unit`) |
+| Người dùng và phân quyền | `sys_user_company_unit` | 3 | Các đơn vị cơ sở mà người dùng được làm việc (đổi đơn vị bằng `POST /api/auth/switch-unit`), kèm vai trò riêng ở từng đơn vị (`role_id`, trống = vai trò mặc định) |
 | Người dùng và phân quyền | `sys_user_right` | 9 | Quyền đặc biệt của riêng người dùng: `is_granted` = true cấp thêm, false thu hồi so với vai trò |
 | Người dùng và phân quyền | `sys_user_role` | 7 | Gán vai trò cho người dùng |
-| Người dùng và phân quyền | `sys_users` | 25 | Tài khoản người dùng |
+| Người dùng và phân quyền | `sys_users` | 27 | Tài khoản người dùng |
 | Cài đặt hệ thống | `sys_banner` | 13 | Thanh thông báo hệ thống dưới header: mức INFO / WARNING / URGENT, khoảng giờ UTC, đơn vị áp dụng |
 | Cài đặt hệ thống | `sys_fiscal_period` | 6 | Khóa sổ theo **tháng và đơn vị cơ sở**: tháng đã khóa không lập, sửa, xóa chứng từ có ngày thuộc tháng đó |
 | Cài đặt hệ thống | `sys_grid_layout` | 7 | Bố cục lưới của từng người dùng (cột ẩn, thứ tự, độ rộng, sắp xếp, cỡ trang) và bố cục mặc định của công ty, theo chức năng + tên lưới |
@@ -124,6 +126,13 @@ Dự án **không dùng ràng buộc khóa ngoại**. Các bảng liên kết b�
 | Chứng từ Bán hàng | `erp_sales_order` | 28 | Đầu **đơn bán hàng** (duyệt, không ghi sổ): khách hàng, kho xuất, địa chỉ và ngày giao, điều khoản, một mã thuế, dự án; tiền hàng / thuế / tổng cộng |
 | Chứng từ Bán hàng | `erp_sales_order_line` | 14 | Dòng đơn bán hàng; số lượng đã xuất của một dòng được tính từ các phiếu xuất kho chưa hủy lấy theo dòng này, không lưu |
 | Danh mục Tài chính | `erp_account` | 14 | Danh mục **hệ thống tài khoản kế toán** (Thông tư 200) nhiều cấp, dùng chung toàn hệ thống: mã con bắt đầu bằng mã cha, chỉ tài khoản lá mới được hạch toán; mã thuế trỏ tới tài khoản lá thuế GTGT đầu vào / đầu ra |
+| Danh mục Sản xuất | `erp_product_structure` | 8 | **Cấu trúc sản phẩm (định mức nguyên vật liệu, BOM)**: một cấu trúc cho mỗi sản phẩm, khóa `code` = mã vật tư thành phẩm (chép sang `material_code` để tham chiếu) |
+| Danh mục Sản xuất | `erp_product_structure_line` | 12 | Dòng cấu trúc sản phẩm: vật tư thành phần, đơn vị tính (gốc hoặc quy đổi), công đoạn dùng, số lượng, tỷ lệ hao hụt (%) |
+| Danh mục Sản xuất | `erp_production_operation` | 13 | Danh mục **công đoạn sản xuất**: tên phụ (`name_en`), tổ thực hiện (tùy chọn), cần máy, công đoạn nặng |
+| Danh mục Sản xuất | `erp_production_process` | 12 | Danh mục **quy trình sản xuất**: các công đoạn theo thứ tự, ngày hiệu lực từ / đến, các đơn vị cơ sở áp dụng (không có = mọi đơn vị) |
+| Danh mục Sản xuất | `erp_production_process_line` | 7 | Các bước của quy trình: khóa quy trình + `line_no`, công đoạn của bước |
+| Danh mục Sản xuất | `erp_production_process_unit` | 6 | Đơn vị cơ sở áp dụng một quy trình (không có dòng = mọi đơn vị) |
+| Danh mục Sản xuất | `erp_production_team` | 9 | Danh mục **tổ sản xuất** |
 | Kỹ thuật (hạ tầng của khung) | `sys_migration` | 2 | Dấu các script SQL đã chạy (nếu dùng); không chứa dữ liệu nghiệp vụ |
 | Kỹ thuật (hạ tầng của khung) | `sys_table_ref` | 9 | Bản đồ tham chiếu giữa các bảng (không có khóa ngoại): mỗi cột `*_code` / `*_id` trỏ tới bảng nào, có chặn xóa không, có thể rỗng không |
 | Kỹ thuật (hạ tầng của khung) | `sys_v_columns` | 12 | View: mọi cột của các bảng `erp_*` / `sys_*` ghép với bản đồ tham chiếu để thấy cột nào trỏ sang bảng nào |
@@ -192,6 +201,16 @@ Mỗi dòng: cột của một bảng trỏ tới khóa của bảng nào. **Ch�
 | `erp_price_list_line` | `material_code` | `erp_material.code` | có |  |
 | `erp_price_list_line` | `price_list_code` | `erp_price_list.code` | không |  |
 | `erp_price_list_line` | `uom_code` | `erp_uom.code` | có |  |
+| `erp_product_structure` | `material_code` | `erp_material.code` | có |  |
+| `erp_product_structure_line` | `component_material_code` | `erp_material.code` | có |  |
+| `erp_product_structure_line` | `product_structure_code` | `erp_product_structure.code` | không |  |
+| `erp_product_structure_line` | `production_operation_code` | `erp_production_operation.code` | có |  |
+| `erp_product_structure_line` | `uom_code` | `erp_uom.code` | có |  |
+| `erp_production_operation` | `production_team_code` | `erp_production_team.code` | có |  |
+| `erp_production_process_line` | `production_operation_code` | `erp_production_operation.code` | có |  |
+| `erp_production_process_line` | `production_process_code` | `erp_production_process.code` | không |  |
+| `erp_production_process_unit` | `production_process_code` | `erp_production_process.code` | không |  |
+| `erp_production_process_unit` | `unit_code` | `sys_company_unit.code` | có |  |
 | `erp_project` | `department_code` | `sys_department.code` | có |  |
 | `erp_purchase_invoice` | `currency_code` | `sys_currency.code` | có |  |
 | `erp_purchase_invoice` | `payment_term_code` | `erp_payment_term.code` | có |  |
@@ -296,7 +315,7 @@ Mỗi dòng: cột của một bảng trỏ tới khóa của bảng nào. **Ch�
 | `sys_voucher_sequence` | `unit_code` | `sys_company_unit.code` | có |  |
 | `sys_voucher_status` | `unit_code` | `sys_company_unit.code` | có |  |
 
-(Tổng 139 tham chiếu. Cột chứng từ trỏ dòng nguồn bằng id như `purchase_request_line_id`, `purchase_order_line_id`, `issue_request_line_id` không nằm trong bản đồ vì là id, không phải mã danh mục; chúng được mô tả ở từng bảng.)
+(Tổng 149 tham chiếu. Cột chứng từ trỏ dòng nguồn bằng id như `purchase_request_line_id`, `purchase_order_line_id`, `issue_request_line_id` không nằm trong bản đồ vì là id, không phải mã danh mục; chúng được mô tả ở từng bảng.)
 
 ## 5. Mô tả từng bảng
 
@@ -359,7 +378,45 @@ Chỉ mục:
 
 - `sys_command_translation_pkey`: **duy nhất** (menuid0, language_code)
 
-#### 5.1.3. `sys_role`
+#### 5.1.3. `sys_login_history`
+
+**Lịch sử đăng nhập**: mỗi lần đăng nhập, đăng xuất, hết phiên (SUCCESS, WRONG_PASSWORD, UNKNOWN_USER, UNIT_DENIED, BLOCKED, LOGOUT, IDLE_TIMEOUT), tên đã gõ, IP, trình duyệt. Các lần thất bại gần đây của một tên quyết định việc chặn tạm; dọn theo thời hạn của nhật ký thay đổi. Xem `docs/he-thong/bao-mat-dang-nhap.md`.
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `id` | bigint | không | nextval('sys_login_history_id_seq') |  | Khóa chính, tự tăng |
+| 2 | `log_time` | timestamptz | không | now() |  | Thời điểm (UTC) |
+| 3 | `user_name` | varchar(100) | không |  |  | Tên đăng nhập đã gõ (chữ thường), kể cả tên không tồn tại |
+| 4 | `user_id` | integer | có |  |  | Người dùng (trống khi tên không tồn tại) |
+| 5 | `unit_code` | varchar(20) | có |  |  | Đơn vị cơ sở đã chọn khi đăng nhập |
+| 6 | `ip_address` | varchar(64) | có |  |  | Địa chỉ IP của máy gọi |
+| 7 | `user_agent` | varchar(300) | có |  |  | Trình duyệt (User-Agent, cắt 300 ký tự) |
+| 8 | `result` | varchar(30) | không |  |  | SUCCESS, WRONG_PASSWORD, UNKNOWN_USER, UNIT_DENIED, BLOCKED, LOGOUT, IDLE_TIMEOUT |
+
+Chỉ mục:
+
+- `ix_sys_login_history_log_time`: (log_time DESC)
+- `ix_sys_login_history_user_id`: (user_id, log_time DESC)
+- `ix_sys_login_history_user_name`: (user_name, log_time DESC)
+- `sys_login_history_pkey`: **duy nhất** (id)
+
+#### 5.1.4. `sys_password_history`
+
+Mật khẩu cũ (dạng băm) của từng tài khoản, tối đa 24 dòng, để chặn dùng lại N mật khẩu gần nhất theo chính sách bảo mật.
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `id` | bigint | không | nextval('sys_password_history_id_seq') |  | Khóa chính, tự tăng |
+| 2 | `user_id` | integer | không |  |  | Mã người dùng (trỏ `sys_users`) |
+| 3 | `password_hash` | varchar(255) | không |  |  | Băm của một mật khẩu cũ (không bao giờ trả về qua API) |
+| 4 | `created_at` | timestamptz | không | now() |  | Thời điểm mật khẩu đó bị thay |
+
+Chỉ mục:
+
+- `ix_sys_password_history_user_id`: (user_id, id DESC)
+- `sys_password_history_pkey`: **duy nhất** (id)
+
+#### 5.1.5. `sys_role`
 
 Vai trò (nhóm quyền). `role_code` duy nhất; vai trò `ADMIN` có mọi quyền.
 
@@ -382,7 +439,7 @@ Chỉ mục:
 - `ux_sys_role_code`: **duy nhất** (role_code)
 - `ux_sys_role_name`: **duy nhất** (role_name)
 
-#### 5.1.4. `sys_role_command`
+#### 5.1.6. `sys_role_command`
 
 Ma trận quyền của **vai trò** theo chức năng (xem, thêm, sửa, xóa, duyệt, in, xuất; vẫn lưu dạng 11 cờ cũ).
 
@@ -412,7 +469,7 @@ Chỉ mục:
 - `ix_sys_role_command_menu`: (menuid0)
 - `sys_role_command_pkey`: **duy nhất** (role_id, menuid0)
 
-#### 5.1.5. `sys_role_right`
+#### 5.1.7. `sys_role_right`
 
 Quyền đặc biệt của vai trò, dạng `{chức năng}:{MÃ}` (ví dụ `inv_receipt:VIEW_PRICE`); quyền trạng thái theo đơn vị có đuôi `@DVCS`.
 
@@ -431,7 +488,7 @@ Chỉ mục:
 
 - `sys_role_right_pkey`: **duy nhất** (role_id, menuid0, right_code)
 
-#### 5.1.6. `sys_user_command`
+#### 5.1.8. `sys_user_command`
 
 Quyền **ngoại lệ** của người dùng: mỗi dòng thay thế quyền của vai trò cho đúng một chức năng; hệ thống chỉ lưu phần chênh lệch.
 
@@ -461,21 +518,24 @@ Chỉ mục:
 - `ix_sys_user_command_menu`: (menuid0)
 - `sys_user_command_pkey`: **duy nhất** (user_id, menuid0)
 
-#### 5.1.7. `sys_user_company_unit`
+#### 5.1.9. `sys_user_company_unit`
 
-Các đơn vị cơ sở mà người dùng được làm việc (đổi đơn vị bằng `POST /api/auth/switch-unit`).
+Các đơn vị cơ sở mà người dùng được làm việc (đổi đơn vị bằng `POST /api/auth/switch-unit`), kèm vai trò riêng ở từng đơn vị (`role_id`, trống = vai trò mặc định).
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `user_id` | integer | không |  |  | Mã người dùng (trỏ `sys_users`) |
 | 2 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở được phép làm việc. Trỏ `sys_company_unit` |
+| 3 | `role_id` | integer | có |  |  | Vai trò của người dùng ở đơn vị này (trỏ sys_role); trống = vai trò mặc định ở sys_user_role; không bao giờ là ADMIN |
 
 Chỉ mục:
 
+- `ix_sys_user_company_unit_role_id`: (role_id) WHERE (role_id IS NOT NULL)
 - `ix_sys_user_company_unit_unit`: (unit_code)
+- `ix_sys_user_company_unit_unit_role`: (unit_code, role_id) WHERE (role_id IS NOT NULL)
 - `sys_user_company_unit_pkey`: **duy nhất** (user_id, unit_code)
 
-#### 5.1.8. `sys_user_right`
+#### 5.1.10. `sys_user_right`
 
 Quyền đặc biệt của riêng người dùng: `is_granted` = true cấp thêm, false thu hồi so với vai trò.
 
@@ -495,7 +555,7 @@ Chỉ mục:
 
 - `sys_user_right_pkey`: **duy nhất** (user_id, menuid0, right_code)
 
-#### 5.1.9. `sys_user_role`
+#### 5.1.11. `sys_user_role`
 
 Gán vai trò cho người dùng.
 
@@ -514,7 +574,7 @@ Chỉ mục:
 - `ix_sys_user_role_role`: (role_id)
 - `sys_user_role_pkey`: **duy nhất** (user_id, role_id)
 
-#### 5.1.10. `sys_users`
+#### 5.1.12. `sys_users`
 
 Tài khoản người dùng. Khóa là `user_id`; `user_name` đăng nhập; `password_hash` là băm mật khẩu; `security_version` tăng khi khóa tài khoản hoặc đổi mật khẩu để vô hiệu hóa token cũ; `ma_dvcs` là đơn vị cơ sở mặc định. Nhiều cột `createtime/createid/...` là kiểu cũ (legacy).
 
@@ -545,6 +605,8 @@ Tài khoản người dùng. Khóa là `user_id`; `user_name` đăng nhập; `pa
 | 23 | `status` | varchar(1) | không | '1' |  | Cờ trạng thái kiểu cũ |
 | 24 | `department_code` | varchar(20) | có |  |  | Phòng ban (trỏ `sys_department`) |
 | 25 | `language` | varchar(10) | có |  |  | Ngôn ngữ riêng của người dùng (rỗng = ngôn ngữ mặc định; gửi lên bằng Accept-Language) |
+| 26 | `password_changed_at` | timestamptz | có |  |  | Thời điểm đặt mật khẩu gần nhất (UTC); tính hạn mật khẩu theo chính sách; trống = không hết hạn |
+| 27 | `must_change_password` | boolean | không | false |  | Phải đổi mật khẩu ở lần đăng nhập tới (mật khẩu do quản trị viên đặt) |
 
 Chỉ mục:
 
@@ -862,7 +924,7 @@ Chỉ mục:
 
 - `sys_company_unit_pkey`: **duy nhất** (code)
 
-Được trỏ tới bởi: `erp_goods_issue.unit_code`, `erp_goods_receipt.unit_code`, `erp_issue_request.unit_code`, `erp_purchase_invoice.unit_code`, `erp_purchase_order.unit_code`, `erp_purchase_request.unit_code`, `erp_sales_order.unit_code`, `erp_stock_balance.unit_code`, `erp_stock_count.unit_code`, `erp_stock_location_balance.unit_code`, `erp_stock_lot_balance.unit_code`, `erp_stock_movement.unit_code`, `erp_transfer_issue.unit_code`, `erp_transfer_order.unit_code`, `erp_transfer_receipt.unit_code`, `erp_warehouse.unit_code`, `erp_warehouse_unit.unit_code`, `sys_approval_rule.unit_code`, `sys_company_unit_translation.unit_code`, `sys_document_approval.unit_code`, `sys_fiscal_period.unit_code`, `sys_notification.unit_code`, `sys_user_company_unit.unit_code`, `sys_voucher_sequence.unit_code`, `sys_voucher_status.unit_code`.
+Được trỏ tới bởi: `erp_goods_issue.unit_code`, `erp_goods_receipt.unit_code`, `erp_issue_request.unit_code`, `erp_production_process_unit.unit_code`, `erp_purchase_invoice.unit_code`, `erp_purchase_order.unit_code`, `erp_purchase_request.unit_code`, `erp_sales_order.unit_code`, `erp_stock_balance.unit_code`, `erp_stock_count.unit_code`, `erp_stock_location_balance.unit_code`, `erp_stock_lot_balance.unit_code`, `erp_stock_movement.unit_code`, `erp_transfer_issue.unit_code`, `erp_transfer_order.unit_code`, `erp_transfer_receipt.unit_code`, `erp_warehouse.unit_code`, `erp_warehouse_unit.unit_code`, `sys_approval_rule.unit_code`, `sys_company_unit_translation.unit_code`, `sys_document_approval.unit_code`, `sys_fiscal_period.unit_code`, `sys_notification.unit_code`, `sys_user_company_unit.unit_code`, `sys_voucher_sequence.unit_code`, `sys_voucher_status.unit_code`.
 
 #### 5.3.2. `sys_company_unit_translation`
 
@@ -1270,7 +1332,7 @@ Ràng buộc:
 - `ck_erp_material_stock` (CHECK): CHECK (((min_stock IS NULL) OR (min_stock >= (0)::numeric)))
 - `ck_erp_material_stock_max` (CHECK): CHECK (((max_stock IS NULL) OR (min_stock IS NULL) OR (max_stock >= min_stock)))
 
-Được trỏ tới bởi: `erp_goods_issue_line.material_code`, `erp_goods_receipt_line.material_code`, `erp_issue_request_line.material_code`, `erp_lot.material_code`, `erp_price_list_line.material_code`, `erp_purchase_invoice_line.material_code`, `erp_purchase_order_line.material_code`, `erp_purchase_request_line.material_code`, `erp_sales_order_line.material_code`, `erp_stock_balance.material_code`, `erp_stock_count_line.material_code`, `erp_stock_location_balance.material_code`, `erp_stock_lot_balance.material_code`, `erp_stock_movement.material_code`, `erp_stock_norm.material_code`, `erp_transfer_issue_line.material_code`, `erp_transfer_order_line.material_code`, `erp_transfer_receipt_line.material_code`, `erp_uom_conversion.material_code`.
+Được trỏ tới bởi: `erp_goods_issue_line.material_code`, `erp_goods_receipt_line.material_code`, `erp_issue_request_line.material_code`, `erp_lot.material_code`, `erp_price_list_line.material_code`, `erp_product_structure.material_code`, `erp_product_structure_line.component_material_code`, `erp_purchase_invoice_line.material_code`, `erp_purchase_order_line.material_code`, `erp_purchase_request_line.material_code`, `erp_sales_order_line.material_code`, `erp_stock_balance.material_code`, `erp_stock_count_line.material_code`, `erp_stock_location_balance.material_code`, `erp_stock_lot_balance.material_code`, `erp_stock_movement.material_code`, `erp_stock_norm.material_code`, `erp_transfer_issue_line.material_code`, `erp_transfer_order_line.material_code`, `erp_transfer_receipt_line.material_code`, `erp_uom_conversion.material_code`.
 
 #### 5.5.4. `erp_material_group`
 
@@ -1403,7 +1465,7 @@ Chỉ mục:
 - `erp_uom_pkey`: **duy nhất** (code)
 - `ux_erp_uom_name`: **duy nhất** (lower((name)::text))
 
-Được trỏ tới bởi: `erp_goods_issue_line.uom_code`, `erp_goods_receipt_line.uom_code`, `erp_issue_request_line.uom_code`, `erp_material.uom_code`, `erp_price_list_line.uom_code`, `erp_purchase_invoice_line.uom_code`, `erp_purchase_order_line.uom_code`, `erp_purchase_request_line.uom_code`, `erp_sales_order_line.uom_code`, `erp_stock_count_line.uom_code`, `erp_stock_movement.line_uom_code`, `erp_stock_movement.uom_code`, `erp_transfer_issue_line.uom_code`, `erp_transfer_order_line.uom_code`, `erp_transfer_receipt_line.uom_code`, `erp_uom_conversion.from_uom_code`, `erp_uom_conversion.to_uom_code`, `erp_uom_translation.uom_code`.
+Được trỏ tới bởi: `erp_goods_issue_line.uom_code`, `erp_goods_receipt_line.uom_code`, `erp_issue_request_line.uom_code`, `erp_material.uom_code`, `erp_price_list_line.uom_code`, `erp_product_structure_line.uom_code`, `erp_purchase_invoice_line.uom_code`, `erp_purchase_order_line.uom_code`, `erp_purchase_request_line.uom_code`, `erp_sales_order_line.uom_code`, `erp_stock_count_line.uom_code`, `erp_stock_movement.line_uom_code`, `erp_stock_movement.uom_code`, `erp_transfer_issue_line.uom_code`, `erp_transfer_order_line.uom_code`, `erp_transfer_receipt_line.uom_code`, `erp_uom_conversion.from_uom_code`, `erp_uom_conversion.to_uom_code`, `erp_uom_translation.uom_code`.
 
 #### 5.5.9. `erp_uom_conversion`
 
@@ -2849,9 +2911,182 @@ Ràng buộc:
 
 Được trỏ tới bởi: `sys_tax_rate.input_account_code`, `sys_tax_rate.output_account_code`.
 
-### 5.13. Kỹ thuật (hạ tầng của khung)
+### 5.13. Danh mục Sản xuất
 
-#### 5.13.1. `sys_migration`
+#### 5.13.1. `erp_product_structure`
+
+**Cấu trúc sản phẩm (định mức nguyên vật liệu, BOM)**: một cấu trúc cho mỗi sản phẩm, khóa `code` = mã vật tư thành phẩm (chép sang `material_code` để tham chiếu).
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `code` | varchar(50) | không |  |  | Mã cấu trúc = mã vật tư thành phẩm |
+| 2 | `material_code` | varchar(50) | không |  |  | Vật tư thành phẩm (trỏ erp_material); chép từ code để có tham chiếu |
+| 3 | `note` | varchar(300) | có |  |  | Ghi chú |
+| 4 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
+| 5 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 6 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 7 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 8 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `erp_product_structure_pkey`: **duy nhất** (code)
+- `ix_erp_product_structure_material_code`: (material_code)
+
+Được trỏ tới bởi: `erp_product_structure_line.product_structure_code`.
+
+#### 5.13.2. `erp_product_structure_line`
+
+Dòng cấu trúc sản phẩm: vật tư thành phần, đơn vị tính (gốc hoặc quy đổi), công đoạn dùng, số lượng, tỷ lệ hao hụt (%). Thành phần có cấu trúc riêng tạo thành cây; vòng lặp bị từ chối.
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `product_structure_code` | varchar(50) | không |  |  | Cấu trúc (trỏ erp_product_structure) |
+| 2 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
+| 3 | `component_material_code` | varchar(50) | không |  |  | Vật tư thành phần (trỏ erp_material) |
+| 4 | `uom_code` | varchar(20) | không |  |  | Đơn vị tính (trỏ `erp_uom`) |
+| 5 | `production_operation_code` | varchar(20) | có |  |  | Công đoạn dùng thành phần (trỏ erp_production_operation), tùy chọn |
+| 6 | `quantity` | numeric(18,4) | không |  |  | Số lượng thành phần cho một đơn vị thành phẩm |
+| 7 | `scrap_percent` | numeric(9,4) | không | 0 |  | Tỷ lệ hao hụt (%) |
+| 8 | `note` | varchar(300) | có |  |  | Ghi chú |
+| 9 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 10 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 11 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 12 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `erp_product_structure_line_pkey`: **duy nhất** (product_structure_code, line_no)
+- `ix_erp_product_structure_line_component_material_code`: (component_material_code)
+- `ix_erp_product_structure_line_production_operation_code`: (production_operation_code) WHERE (production_operation_code IS NOT NULL)
+- `ix_erp_product_structure_line_uom_code`: (uom_code)
+
+Ràng buộc:
+
+- `ck_erp_product_structure_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
+- `ck_erp_product_structure_line_scrap` (CHECK): CHECK (((scrap_percent >= (0)::numeric) AND (scrap_percent < (100)::numeric)))
+
+#### 5.13.3. `erp_production_operation`
+
+Danh mục **công đoạn sản xuất**: tên phụ (`name_en`), tổ thực hiện (tùy chọn), cần máy, công đoạn nặng.
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(200) | không |  |  | Tên hiển thị |
+| 3 | `name_en` | varchar(200) | có |  |  | Tên phụ (tiếng Anh) |
+| 4 | `production_team_code` | varchar(20) | có |  |  | Tổ thực hiện (trỏ erp_production_team), tùy chọn |
+| 5 | `require_machine` | boolean | không | false |  | Công đoạn cần máy |
+| 6 | `is_heavy` | boolean | không | false |  | Công đoạn nặng |
+| 7 | `note` | varchar(300) | có |  |  | Ghi chú |
+| 8 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
+| 9 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
+| 10 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 11 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 12 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 13 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `erp_production_operation_pkey`: **duy nhất** (code)
+- `ix_erp_production_operation_production_team_code`: (production_team_code) WHERE (production_team_code IS NOT NULL)
+- `ux_erp_production_operation_name`: **duy nhất** (lower((name)::text))
+
+Được trỏ tới bởi: `erp_product_structure_line.production_operation_code`, `erp_production_process_line.production_operation_code`.
+
+#### 5.13.4. `erp_production_process`
+
+Danh mục **quy trình sản xuất**: các công đoạn theo thứ tự, ngày hiệu lực từ / đến, các đơn vị cơ sở áp dụng (không có = mọi đơn vị).
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(200) | không |  |  | Tên hiển thị |
+| 3 | `name_en` | varchar(200) | có |  |  | Tên phụ (tiếng Anh) |
+| 4 | `effective_from` | date | không |  |  | Ngày ban hành / hiệu lực từ |
+| 5 | `effective_to` | date | có |  |  | Ngày hết hiệu lực (trống = còn hiệu lực) |
+| 6 | `note` | varchar(300) | có |  |  | Ghi chú |
+| 7 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
+| 8 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
+| 9 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 10 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 11 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 12 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `erp_production_process_pkey`: **duy nhất** (code)
+- `ux_erp_production_process_name`: **duy nhất** (lower((name)::text))
+
+Ràng buộc:
+
+- `ck_erp_production_process_dates` (CHECK): CHECK (((effective_to IS NULL) OR (effective_to >= effective_from)))
+
+Được trỏ tới bởi: `erp_production_process_line.production_process_code`, `erp_production_process_unit.production_process_code`.
+
+#### 5.13.5. `erp_production_process_line`
+
+Các bước của quy trình: khóa quy trình + `line_no`, công đoạn của bước.
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `production_process_code` | varchar(20) | không |  |  | Quy trình (trỏ erp_production_process) |
+| 2 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
+| 3 | `production_operation_code` | varchar(20) | không |  |  | Công đoạn của bước (trỏ erp_production_operation) |
+| 4 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 5 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 6 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 7 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `erp_production_process_line_pkey`: **duy nhất** (production_process_code, line_no)
+- `ix_erp_production_process_line_production_operation_code`: (production_operation_code)
+
+#### 5.13.6. `erp_production_process_unit`
+
+Đơn vị cơ sở áp dụng một quy trình (không có dòng = mọi đơn vị).
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `production_process_code` | varchar(20) | không |  |  | Quy trình (trỏ erp_production_process) |
+| 2 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 3 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 4 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 5 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 6 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `erp_production_process_unit_pkey`: **duy nhất** (production_process_code, unit_code)
+- `ix_erp_production_process_unit_unit_code`: (unit_code)
+
+#### 5.13.7. `erp_production_team`
+
+Danh mục **tổ sản xuất**.
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
+| 3 | `note` | varchar(300) | có |  |  | Ghi chú |
+| 4 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
+| 5 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
+| 6 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 7 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 8 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 9 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `erp_production_team_pkey`: **duy nhất** (code)
+- `ux_erp_production_team_name`: **duy nhất** (lower((name)::text))
+
+Được trỏ tới bởi: `erp_production_operation.production_team_code`.
+
+### 5.14. Kỹ thuật (hạ tầng của khung)
+
+#### 5.14.1. `sys_migration`
 
 Dấu các script SQL đã chạy (nếu dùng); không chứa dữ liệu nghiệp vụ.
 
@@ -2864,7 +3099,7 @@ Chỉ mục:
 
 - `sys_migration_pkey`: **duy nhất** (name)
 
-#### 5.13.2. `sys_table_ref`
+#### 5.14.2. `sys_table_ref`
 
 Bản đồ tham chiếu giữa các bảng (không có khóa ngoại): mỗi cột `*_code` / `*_id` trỏ tới bảng nào, có chặn xóa không, có thể rỗng không. Ghi lại từ các thuộc tính `[References]` mỗi lần backend khởi động.
 
@@ -2885,7 +3120,7 @@ Chỉ mục:
 - `ix_sys_table_ref_target`: (ref_table)
 - `sys_table_ref_pkey`: **duy nhất** (table_name, column_name)
 
-#### 5.13.3. `sys_v_columns`
+#### 5.14.3. `sys_v_columns`
 
 View: mọi cột của các bảng `erp_*` / `sys_*` ghép với bản đồ tham chiếu để thấy cột nào trỏ sang bảng nào.
 
@@ -3027,7 +3262,12 @@ Chạy theo thứ tự tên file trong `ServerService/sql/postgresql/`:
 | `53-sales-orders.sql` | Đơn bán hàng (đầu phiếu, dòng) và cột nối sang phiếu xuất kho: khách hàng, số đơn, dòng đơn |
 | `54-stock-counts.sql` | Phiếu kiểm kê (đầu phiếu, dòng): tồn sổ sách tính từ sổ kho, ghi sổ phần thừa và phần thiếu |
 | `55-inventory-reports.sql` | Báo cáo kho dưới dạng hàm `rpt_*` (nhập xuất tồn, hàng nhập / xuất chi tiết và tổng hợp, tuổi hàng tồn, tồn tức thời có giữ chỗ, giá trung bình tháng); không có bảng mới |
+| `55-production-catalogs.sql` | Sản xuất: danh mục tổ sản xuất và công đoạn sản xuất |
+| `56-production-process.sql` | Sản xuất: danh mục quy trình sản xuất (các bước công đoạn theo thứ tự, đơn vị áp dụng) |
 | `56-stock-norms.sql` | Định mức tồn kho theo kho (mã VATTU@KHO) và hàm `rpt_stock_balance` đọc định mức (chạy sau 55) |
+| `57-product-structure.sql` | Sản xuất: cấu trúc sản phẩm (định mức nguyên vật liệu, BOM) và các dòng thành phần |
+| `58-user-unit-roles.sql` | Vai trò theo từng đơn vị cơ sở (`sys_user_company_unit.role_id`) |
+| `59-login-security.sql` | Bảo mật đăng nhập: hạn và cờ bắt đổi mật khẩu trên `sys_users`, lịch sử đăng nhập, lịch sử mật khẩu |
 
 ## 8. Kiểm tra cấu trúc bằng test tự động
 

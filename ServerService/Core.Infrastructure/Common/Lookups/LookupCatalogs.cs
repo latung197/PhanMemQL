@@ -97,6 +97,7 @@ public static class LookupCatalogs
 
         // "warehouses" is a LookupProvider (WarehouseLookup): it lists only the warehouses of the working unit.
 
+        // [tao-danh-muc] Tra cứu của danh mục mới: thêm new LookupDefinition(...), ngay trên dòng này.
         new LookupDefinition("warehouseTypes", db =>
         {
             var language = Messages.CurrentLanguage;

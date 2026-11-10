@@ -490,4 +490,41 @@ Object.assign(PER, {
   'erp_account.nature': 'Tính chất số dư: DEBIT, CREDIT, BOTH'
 });
 
+// Vai trò theo đơn vị và bảo mật đăng nhập (script 58, 59; docs/he-thong/bao-mat-dang-nhap.md).
+Object.assign(PER, {
+  'sys_user_company_unit.role_id': 'Vai trò của người dùng ở đơn vị này (trỏ sys_role); trống = vai trò mặc định ở sys_user_role; không bao giờ là ADMIN',
+  'sys_users.password_changed_at': 'Thời điểm đặt mật khẩu gần nhất (UTC); tính hạn mật khẩu theo chính sách; trống = không hết hạn',
+  'sys_users.must_change_password': 'Phải đổi mật khẩu ở lần đăng nhập tới (mật khẩu do quản trị viên đặt)',
+  'sys_login_history.log_time': 'Thời điểm (UTC)',
+  'sys_login_history.user_name': 'Tên đăng nhập đã gõ (chữ thường), kể cả tên không tồn tại',
+  'sys_login_history.user_id': 'Người dùng (trống khi tên không tồn tại)',
+  'sys_login_history.unit_code': 'Đơn vị cơ sở đã chọn khi đăng nhập',
+  'sys_login_history.ip_address': 'Địa chỉ IP của máy gọi',
+  'sys_login_history.user_agent': 'Trình duyệt (User-Agent, cắt 300 ký tự)',
+  'sys_login_history.result': 'SUCCESS, WRONG_PASSWORD, UNKNOWN_USER, UNIT_DENIED, BLOCKED, LOGOUT, IDLE_TIMEOUT',
+  'sys_password_history.password_hash': 'Băm của một mật khẩu cũ (không bao giờ trả về qua API)',
+  'sys_password_history.created_at': 'Thời điểm mật khẩu đó bị thay',
+});
+
+// Danh mục sản xuất (script 55-production-catalogs, 56-production-process, 57).
+Object.assign(PER, {
+  'erp_production_operation.name_en': 'Tên phụ (tiếng Anh)',
+  'erp_production_operation.production_team_code': 'Tổ thực hiện (trỏ erp_production_team), tùy chọn',
+  'erp_production_operation.require_machine': 'Công đoạn cần máy',
+  'erp_production_operation.is_heavy': 'Công đoạn nặng',
+  'erp_production_process.name_en': 'Tên phụ (tiếng Anh)',
+  'erp_production_process.effective_from': 'Ngày ban hành / hiệu lực từ',
+  'erp_production_process.effective_to': 'Ngày hết hiệu lực (trống = còn hiệu lực)',
+  'erp_production_process_line.production_process_code': 'Quy trình (trỏ erp_production_process)',
+  'erp_production_process_line.production_operation_code': 'Công đoạn của bước (trỏ erp_production_operation)',
+  'erp_production_process_unit.production_process_code': 'Quy trình (trỏ erp_production_process)',
+  'erp_product_structure.code': 'Mã cấu trúc = mã vật tư thành phẩm',
+  'erp_product_structure.material_code': 'Vật tư thành phẩm (trỏ erp_material); chép từ code để có tham chiếu',
+  'erp_product_structure_line.product_structure_code': 'Cấu trúc (trỏ erp_product_structure)',
+  'erp_product_structure_line.component_material_code': 'Vật tư thành phần (trỏ erp_material)',
+  'erp_product_structure_line.production_operation_code': 'Công đoạn dùng thành phần (trỏ erp_production_operation), tùy chọn',
+  'erp_product_structure_line.quantity': 'Số lượng thành phần cho một đơn vị thành phẩm',
+  'erp_product_structure_line.scrap_percent': 'Tỷ lệ hao hụt (%)',
+});
+
 module.exports = PER;

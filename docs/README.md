@@ -8,8 +8,8 @@ docs/
   tai-chinh/    Nghiệp vụ Tài chính - kế toán: hệ thống tài khoản kế toán (Thông tư 200), tài khoản thuế của mã thuế
   mua-hang/     Nghiệp vụ Mua hàng: luồng yêu cầu → đơn → nhập kho → hóa đơn, danh mục dự án, báo cáo chi phí theo dự án, công nợ phải trả
   ban-hang/     Nghiệp vụ Bán hàng: danh mục nhóm khách hàng, khách hàng, bảng giá bán, đơn bán hàng và phiếu xuất kho lấy từ đơn (hóa đơn bán ở giai đoạn sau)
-  he-thong/     Cài đặt hệ thống: phân quyền, quản lý menu, thông báo đăng nhập và thanh thông báo
-  phat-trien/   Khung kỹ thuật cho người viết code: kiến trúc dự án, thêm danh mục, thêm chứng từ, tham chiếu danh mục, chống ghi đè
+  he-thong/     Cài đặt hệ thống: phân quyền, bảo mật đăng nhập, quản lý menu, thông báo đăng nhập và thanh thông báo
+  phat-trien/   Khung kỹ thuật cho người viết code: kiến trúc dự án, thêm danh mục / chứng từ / báo cáo, tham chiếu danh mục, chống ghi đè
   cong-cu/      Script sinh file Word từ Markdown
 ```
 
@@ -60,6 +60,7 @@ docs/
 | Tài liệu | Nội dung | Word |
 |---|---|---|
 | [phan-quyen.md](he-thong/phan-quyen.md) | Mô hình quyền: vai trò, ngoại lệ, quyền đặc biệt (kể cả theo đơn vị), trạng thái chứng từ, báo cáo, danh mục; **Phần C: các luồng làm từng bước** (đưa nhân viên mới vào, tạo vai trò, quy tắc duyệt, đường đi của phiếu, thu hồi quyền, gỡ rối, danh sách kiểm tra) | `Phan-quyen-S-ERP.docx` (và bản cũ `Phan-quyen-S-ERP (cu).docx`) |
+| [bao-mat-dang-nhap.md](he-thong/bao-mat-dang-nhap.md) | Bảo mật đăng nhập: chính sách mật khẩu (độ dài, độ phức tạp, hết hạn, không dùng lại), bắt đổi mật khẩu sau khi quản trị viên đặt, chặn tạm khi đăng nhập sai nhiều lần (không khóa tài khoản), tự đăng xuất khi không thao tác (trình duyệt và máy chủ), lịch sử đăng nhập; bảng, API, cách đổi chính sách, kiểm tra, giới hạn | `Bao-mat-dang-nhap.docx` |
 | [quan-ly-menu.md](he-thong/quan-ly-menu.md) | Menu lưu ở đâu, thêm chức năng vào menu, ai thấy gì, sửa cấu trúc menu (super admin) | `Quan-ly-menu-S-ERP.docx` |
 | [thong-bao-dang-nhap-va-thanh-thong-bao.md](he-thong/thong-bao-dang-nhap-va-thanh-thong-bao.md) | Thông báo và ảnh nền ở trang đăng nhập, khẩu hiệu và chân trang lấy từ hồ sơ doanh nghiệp, thanh thông báo hệ thống dưới header (cách dùng, bảng, API, luồng ảnh, kiểm tra) | `Thong-bao-dang-nhap-va-thanh-thong-bao.docx` |
 
@@ -67,13 +68,14 @@ docs/
 
 | Tài liệu | Nội dung | Word |
 |---|---|---|
+| [them-danh-muc-nhanh.md](phat-trien/them-danh-muc-nhanh.md) | **Thêm danh mục nhanh, tự làm không cần trợ lý**: script `npm run tao-danh-muc` sinh đủ SQL, backend, màn hình và các chỗ đăng ký từ một file mô tả JSON (7 kiểu trường, hoàn tác `--hoan-tac`), hoặc chép bộ khung `mau-danh-muc/` bằng tay theo bảng 11 chỗ đăng ký (dòng đánh dấu `[tao-danh-muc]`) | `Them-danh-muc-nhanh.docx` |
 | [them-danh-muc.md](phat-trien/them-danh-muc.md) | Quy trình và mã mẫu đầy đủ để thêm một danh mục (SQL, backend, frontend, kiểm tra). Đi cùng skill `/them-danh-muc` | `Them-danh-muc-S-ERP.docx` |
 | [tham-chieu-danh-muc.md](phat-trien/tham-chieu-danh-muc.md) | `[References]`, chặn xóa bản ghi đang dùng, bảng `sys_table_ref` | `Tham-chieu-danh-muc-S-ERP.docx` |
-| [mo-ta-co-so-du-lieu.md](phat-trien/mo-ta-co-so-du-lieu.md) | **Từ điển dữ liệu** toàn bộ cơ sở dữ liệu: quy ước, danh sách 82 bảng (kể cả hóa đơn mua, bán hàng, điều chuyển kho, tài khoản kế toán), bản đồ tham chiếu, từng bảng (cột, kiểu, null, mặc định, khóa, mô tả, chỉ mục, ràng buộc, trigger), view, hàm, các script SQL. **Sinh tự động từ database thật** | `Mo-ta-co-so-du-lieu.docx` |
+| [mo-ta-co-so-du-lieu.md](phat-trien/mo-ta-co-so-du-lieu.md) | **Từ điển dữ liệu** toàn bộ cơ sở dữ liệu: quy ước, danh sách 93 bảng / view (kể cả hóa đơn mua, bán hàng, điều chuyển kho, tài khoản kế toán, danh mục sản xuất, lịch sử đăng nhập), bản đồ tham chiếu, từng bảng (cột, kiểu, null, mặc định, khóa, mô tả, chỉ mục, ràng buộc, trigger), view, hàm, các script SQL. **Sinh tự động từ database thật** | `Mo-ta-co-so-du-lieu.docx` |
 | [tong-quan-du-an.md](phat-trien/tong-quan-du-an.md) | Tổng quan dự án: phân hệ nào đã chạy thật, kiến trúc hệ thống (thành phần, luồng yêu cầu, bảo mật, dữ liệu, triển khai, vận hành) và kiến trúc mã nguồn (thư mục, các lớp backend, các khung dùng lại, frontend, quy ước) | [Tong-quan-du-an.docx](phat-trien/Tong-quan-du-an.docx) |
 | [kien-truc-du-an.md](phat-trien/kien-truc-du-an.md) | Kiến trúc và thiết kế dự án cho người mới: các lớp, quy ước cơ sở dữ liệu, khung danh mục, chứng từ và sổ kho, phân quyền, frontend, đa ngôn ngữ, phần nào đã chạy thật | `Kien-truc-du-an.docx` |
-| [them-chung-tu.md](phat-trien/them-chung-tu.md) | Thêm một chứng từ mới từng bước (SQL, thực thể, dịch vụ, duyệt, ghi sổ, lưu thẳng trạng thái, chứng từ nối tiếp / không ghi sổ, frontend, in, kiểm tra, lỗi hay gặp, danh sách việc) | `Them-chung-tu.docx` |
-| [them-bao-cao.md](phat-trien/them-bao-cao.md) | Thêm một báo cáo mới từng bước: hàm `rpt_*` trong cơ sở dữ liệu, file SQL, service che tiền theo `VIEW_COST`, xuất Excel có nhật ký, màn dùng `ReportKit`, quyền ô chọn, kiểm tra, triển khai | `Them-bao-cao.docx` |
+| [them-chung-tu.md](phat-trien/them-chung-tu.md) | Thêm một chứng từ mới từng bước (SQL, thực thể, dịch vụ, duyệt, ghi sổ, lưu thẳng trạng thái, danh sách phân trang và xuất Excel ở máy chủ, khôi phục phiếu đã hủy, chứng từ nối tiếp / không ghi sổ, frontend, lưới chi tiết, in, kiểm tra, lỗi hay gặp, danh sách việc). Đi cùng skill `/them-chung-tu` | `Them-chung-tu.docx` |
+| [them-bao-cao.md](phat-trien/them-bao-cao.md) | Thêm một báo cáo mới từng bước: hàm `rpt_*` trong cơ sở dữ liệu, file SQL, service che tiền theo `VIEW_COST`, xuất Excel có nhật ký, màn dùng `ReportKit`, quyền ô chọn, kiểm tra, triển khai. Đi cùng skill `/them-bao-cao` | `Them-bao-cao.docx` |
 | [da-ngon-ngu.md](phat-trien/da-ngon-ngu.md) | Đa ngôn ngữ: bốn lớp chữ (màn hình, máy chủ, tên dữ liệu, định dạng), ngôn ngữ của một yêu cầu đi thế nào, các luồng làm từng bước có code (thêm ngôn ngữ, màn mới, chuyển màn cũ, lỗi backend, bảng dịch dữ liệu, chức năng mới), cách kiểm tra, **chức năng nào đã / chưa có đa ngôn ngữ** | `Da-ngon-ngu.docx` |
 | [chong-ghi-de.md](phat-trien/chong-ghi-de.md) | Chống ghi đè khi nhiều người cùng sửa (`Version`, `xmin`, lỗi 409) | `Chong-ghi-de.docx` |
 

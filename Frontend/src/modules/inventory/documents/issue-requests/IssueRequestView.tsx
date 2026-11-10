@@ -42,7 +42,7 @@ import { VoucherStatusBadge } from '../VoucherStatusBadge';
 import { useVoucherStatuses, voucherStatusService } from '../../../../services/voucherStatusService';
 import { reachesStatus } from '../../../../utils/documentPolicy';
 import { getActionPermission } from '../../../../mock/initialRoles';
-import { canApproveVoucher, hasRight, hasStatusRight, RIGHTS } from '../../../../utils/permissions';
+import { hasRight, hasStatusRight, RIGHTS } from '../../../../utils/permissions';
 import { useOpenDocumentRequest } from '../../../../utils/documentLinks';
 import { useDebounced } from '../../../../hooks/useDebounced';
 import { usePagedList } from '../../../../hooks/usePagedList';
@@ -156,7 +156,8 @@ export const IssueRequestView: React.FC<IssueRequestViewProps> = ({ companyUnits
   useVoucherStatuses();
   const perm = getActionPermission(currentUser, FUNCTION);
   // "Duyệt" on the voucher or on its approval screen (Phê duyệt yêu cầu xuất kho), as the backend.
-  const canApprove = canApproveVoucher(currentUser, FUNCTION);
+  // Approving is a status right of the unit (own vouchers too); the approval rules only say whom to notify.
+  const canApprove = reachesStatus(currentUser, FUNCTION, 'Approved');
   const canViewPrice = hasRight(currentUser, FUNCTION, RIGHTS.VIEW_PRICE);
   const hiddenPriceFields = canViewPrice ? undefined : ['unitPrice', 'amount'];
   // A request is never posted: only Draft, Pending and Approved can be asked for.
@@ -555,7 +556,7 @@ export const IssueRequestView: React.FC<IssueRequestViewProps> = ({ companyUnits
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'submit')} title="Gửi duyệt phiếu yêu cầu xuất kho"
                   className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"><ArrowUpRight className="h-4 w-4" /></button>
               )}
-              {v.status === 'Chờ duyệt' && canApprove && (
+              {(v.status === 'Chờ duyệt' || v.status === 'Lập chứng từ') && canApprove && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'approve')} title="Phê duyệt phiếu yêu cầu xuất kho"
                   className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"><ShieldCheck className="h-4 w-4" /></button>
               )}

@@ -97,8 +97,10 @@ public sealed class LoginHistoryService(CoreContext db, IHttpContextAccessor htt
         var lastSuccess = await db.LoginHistories.AsNoTracking().Where(x => x.UserName == userName && x.Result == LoginResults.Success)
             .OrderByDescending(x => x.LogTime).Select(x => (DateTime?)x.LogTime).FirstOrDefaultAsync(ct);
         if (lastSuccess > since) since = lastSuccess.Value;
+        // Unknown user names count too: otherwise only a real name would ever be told to wait, which gives the names away.
         return await db.LoginHistories.AsNoTracking()
-            .Where(x => x.UserName == userName && x.Result == LoginResults.WrongPassword && x.LogTime > since)
+            .Where(x => x.UserName == userName && (x.Result == LoginResults.WrongPassword || x.Result == LoginResults.UnknownUser)
+                && x.LogTime > since)
             .Select(x => x.LogTime).ToListAsync(ct);
     }
 
@@ -148,12 +150,18 @@ public sealed class SessionActivity
         Sweep();
     }
 
-    /// <summary>True when the session has been idle longer than <paramref name="minutes"/>; a session not seen yet starts now.</summary>
+    /// <summary>
+    /// The browser sends its heartbeat at most once a minute, so its last one may come up to a minute before the user's last action; the
+    /// server waits this much longer than the browser before refusing, so a user coming back just before the browser's limit is not refused.
+    /// </summary>
+    private static readonly TimeSpan HeartbeatGrace = TimeSpan.FromMinutes(2);
+
+    /// <summary>True when the session has been idle longer than <paramref name="minutes"/> (+ the heartbeat grace); a session not seen yet starts now.</summary>
     public bool IsIdle(string sessionId, int minutes)
     {
         if (minutes <= 0 || string.IsNullOrEmpty(sessionId)) return false;
         var last = _seen.GetOrAdd(sessionId, _ => DateTime.UtcNow);
-        return DateTime.UtcNow - last > TimeSpan.FromMinutes(minutes);
+        return DateTime.UtcNow - last > TimeSpan.FromMinutes(minutes) + HeartbeatGrace;
     }
 
     /// <summary>True the first time a session is found idle (to log it once).</summary>

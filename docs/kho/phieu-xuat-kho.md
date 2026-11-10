@@ -107,7 +107,7 @@ Cách điền dòng:
 Quy tắc chung (bộ `DocumentStatusPolicy`; bản sao ở frontend `utils/documentPolicy.ts`, hai bên được kiểm bằng cùng một bộ ca thử):
 
 - Mọi thao tác trừ Duyệt và Từ chối cần quyền **Xem**; người không có `VIEW_ALL` chỉ thao tác trên phiếu mình lập.
-- **Không được tự duyệt phiếu do mình lập.**
+- **Duyệt là quyền trạng thái**: người có `ST_APPROVED` của đơn vị duyệt được, kể cả phiếu mình lập.
 - Phiếu đang chờ duyệt không sửa, không hủy được: phải **Rút lại** (hoặc bị Từ chối) để về Lập chứng từ.
 - Phiếu đã ghi sổ phải **Bỏ ghi sổ** trước khi sửa hoặc hủy.
 - Bộ quy tắc chung có cho sửa phiếu đã duyệt nếu có quyền trạng thái `ST_APPROVED` (chờ duyệt: `ST_PENDING`), nhưng **dịch vụ phiếu xuất hiện chỉ cho sửa khi phiếu đang Lập chứng từ**. Cần đổi phiếu đã duyệt thì hủy và lập phiếu mới.
@@ -122,10 +122,10 @@ Quy tắc chung (bộ `DocumentStatusPolicy`; bản sao ở frontend `utils/docu
 |---|---|---|
 | Lập chứng từ | luôn có | chỉ lưu |
 | Chờ duyệt | quyền Thêm hoặc Sửa | lưu rồi gửi duyệt như bấm Trình duyệt (dựng các cấp, thông báo người duyệt) |
-| Đã phê duyệt | quyền **Duyệt** và là người duyệt của **mọi cấp** theo quy tắc phê duyệt (quản trị viên luôn đạt) | lưu rồi ghi một vòng duyệt, mỗi cấp một dòng đã duyệt bởi chính người lưu; nhật ký ghi gửi và duyệt, ghi chú "Lưu thẳng ở trạng thái đã duyệt…" |
+| Đã phê duyệt | quyền trạng thái `ST_APPROVED` của đơn vị (không cần cột Duyệt hay có tên trong quy tắc phê duyệt) | lưu rồi ghi một vòng duyệt, mỗi cấp một dòng đã duyệt bởi chính người lưu; nhật ký ghi gửi và duyệt, ghi chú "Lưu thẳng ở trạng thái đã duyệt…" |
 | Chuyển sổ kho | như Đã phê duyệt **cộng** quyền đặc biệt `POST` | lưu, duyệt rồi ghi sổ |
 
-Tất cả chạy trong **một transaction**: bước nào bị từ chối (thiếu quyền, không phải người duyệt cấp nào đó, không đủ tồn, kỳ đã khóa) thì **cả lần lưu bị hủy**, phiếu không bao giờ bị dở dang. Sửa một phiếu nháp rồi lưu ở trạng thái cao hơn cũng được. API: thêm `"targetStatus": "Pending" | "Approved" | "Posted"` vào nội dung lập / sửa phiếu. Nút Duyệt trên phiếu của người khác vẫn không cho tự duyệt phiếu mình lập; chỉ lưu thẳng ở Đã phê duyệt mới cho người lập tự duyệt, nên **ai không nên tự duyệt thì đừng cấp quyền Duyệt**.
+Tất cả chạy trong **một transaction**: bước nào bị từ chối (thiếu quyền, không đủ tồn, kỳ đã khóa) thì **cả lần lưu bị hủy**, phiếu không bao giờ bị dở dang. Sửa một phiếu nháp rồi lưu ở trạng thái cao hơn cũng được. API: thêm `"targetStatus": "Pending" | "Approved" | "Posted"` vào nội dung lập / sửa phiếu. Nút Duyệt và nút Ghi sổ trên danh sách theo cùng luật: ai có `ST_APPROVED` duyệt được (kể cả phiếu mình lập, phiếu nháp hay phiếu chờ duyệt), ai có `ST_POSTED` ghi sổ được từ Lập / Chờ duyệt / Đã duyệt; nên **ai không nên tự duyệt thì đừng cấp `ST_APPROVED`** (xem `docs/he-thong/trang-thai-chung-tu.md`).
 
 ### 4.1. Lập phiếu
 
@@ -192,7 +192,7 @@ Phiếu xuất dùng nhánh **xuất** (`StockDirection.Out`) của dịch vụ 
 
 1. Phiếu nhập 10 cái vật tư `AUD-SNY-XM5` đơn giá 100.000 → ghi sổ: tồn **10**, giá trị **1.000.000**.
 2. Lập phiếu xuất 4 cái, đơn giá xuất 150.000, rồi **sửa** thành 5 cái (tổng giá trị trên phiếu 750.000). Phiếu chưa đụng tới tồn.
-3. Ghi sổ phiếu xuất khi chưa duyệt → bị chặn ("Chỉ ghi sổ phiếu đã duyệt; cần quyền Ghi sổ"). Sau khi duyệt, ghi sổ → dòng sổ **−5, giá trị −500.000** (bình quân 1.000.000 ÷ 10 = 100.000 mỗi cái, **không** phải 150.000 trên phiếu); tồn còn **5**, giá trị **500.000**.
+3. Ghi sổ bằng tài khoản chỉ có `ST_APPROVED` → bị chặn ("Cần quyền trạng thái "Đã ghi sổ" tại đơn vị này…"). Người có `ST_POSTED` ghi sổ (từ phiếu đã duyệt, hoặc thẳng từ phiếu nháp / chờ duyệt: hệ thống ghi luôn bước duyệt) → dòng sổ **−5, giá trị −500.000** (bình quân 1.000.000 ÷ 10 = 100.000 mỗi cái, **không** phải 150.000 trên phiếu); tồn còn **5**, giá trị **500.000**.
 4. Phiếu xuất khác 20 cái → ghi sổ bị từ chối "Không đủ tồn kho: vật tư … chỉ còn 5 CAI"; tồn vẫn 5.
 5. Sửa hoặc xóa phiếu đã ghi sổ → bị chặn ("phải bỏ ghi sổ trước khi sửa / hủy").
 6. Bỏ ghi sổ phiếu xuất → phiếu về Đã duyệt, tồn trở lại **10** và **1.000.000**; `GET /api/inventory/stock/verify` trả danh sách rỗng (không lệch).
@@ -385,8 +385,8 @@ Xem sổ của một phiếu: `GET /api/inventory/stock/movements?sourceFunction
 | Cần rút phiếu khỏi quy trình duyệt trước khi hủy | Hủy phiếu đang chờ duyệt | Rút lại trước |
 | Chỉ được xóa phiếu xuất kho đang ở trạng thái lập chứng từ | Xóa phiếu đã gửi duyệt hoặc đã ghi sổ | Rút lại, bỏ ghi sổ hoặc hủy |
 | Phiếu đã ghi sổ; phải bỏ ghi sổ trước khi sửa / hủy | Sửa hoặc hủy phiếu đã ghi sổ | Bỏ ghi sổ trước |
-| Chỉ ghi sổ phiếu đã duyệt; cần quyền trạng thái "Đã ghi sổ" tại đơn vị này | Ghi sổ phiếu chưa duyệt hoặc thiếu quyền ở đơn vị của phiếu | Duyệt phiếu, cấp quyền `ST_POSTED` cho đơn vị |
-| Không được tự duyệt phiếu do mình lập | Người lập bấm Duyệt | Nhờ người khác duyệt |
+| Cần quyền trạng thái "Đã ghi sổ" tại đơn vị này; phiếu chưa ghi sổ và chưa hủy | Ghi sổ khi thiếu `ST_POSTED` ở đơn vị của phiếu, hoặc phiếu đã ghi sổ / đã hủy | Cấp quyền `ST_POSTED` cho đơn vị |
+| Không có quyền trạng thái "Đã duyệt" tại đơn vị cơ sở của phiếu | Bấm Duyệt / Từ chối khi thiếu `ST_APPROVED` | Cấp `ST_APPROVED` cho đơn vị, hoặc nhờ người có quyền duyệt |
 | Chỉ được thao tác trên phiếu do mình lập | Không có `VIEW_ALL` | Cấp quyền hoặc dùng tài khoản người lập |
 | Bản ghi đã bị thay đổi (409) | Người khác vừa sửa phiếu | Tải lại phiếu rồi sửa |
 | Chứng từ đã được ghi sổ kho | Ghi sổ lần hai | Không cần làm gì |
@@ -411,7 +411,7 @@ Dùng ngày chứng từ năm 2027 (dữ liệu dev đã khóa 2026).
 1. Lập và ghi sổ một phiếu nhập 10 cái, đơn giá 100.000 (cần duyệt bởi người khác).
 2. Lập phiếu xuất 4 cái: có số `PXK-...-0001`, trạng thái Lập chứng từ, tồn chưa đổi.
 3. Sửa lên 5 cái; thử sửa với phiên bản cũ (kỳ vọng 409).
-4. Trình duyệt, người khác duyệt (người lập tự duyệt phải bị chặn), ghi sổ: tồn còn 5, dòng sổ −5 / −500.000.
+4. Trình duyệt, duyệt (người có `ST_APPROVED`, kể cả người lập; người thiếu quyền bị chặn), ghi sổ: tồn còn 5, dòng sổ −5 / −500.000.
 5. Lập phiếu xuất 20 cái, duyệt, ghi sổ: bị từ chối "Không đủ tồn kho", tồn không đổi.
 6. Thử sửa, xóa phiếu đã ghi sổ: bị chặn. Bỏ ghi sổ: tồn về 10.
 7. Thử một ngày thuộc tháng đã khóa: bị chặn ở lập, ghi sổ.
@@ -420,7 +420,7 @@ Dùng ngày chứng từ năm 2027 (dữ liệu dev đã khóa 2026).
 10. Sau mỗi bước, `GET /api/inventory/stock/verify` phải trống.
 11. Xóa dữ liệu thử; nếu xóa trực tiếp bằng SQL thì chạy `POST /api/inventory/stock/rebuild` rồi `verify` để chắc các bảng tồn khớp sổ.
 
-Trong dev, admin không tự duyệt được phiếu của mình; khi thử bằng API có thể đặt `status = 'Approved'` bằng SQL.
+Trong dev, admin có mọi quyền trạng thái nên tự duyệt và ghi sổ được phiếu của mình; muốn thử người thiếu quyền thì dùng tài khoản và vai trò tạm.
 
 ---
 

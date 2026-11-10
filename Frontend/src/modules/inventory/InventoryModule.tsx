@@ -26,6 +26,7 @@ import { IssueApprovalView } from './documents/approval-issue/IssueApprovalView'
 import { IssueRequestApprovalView } from './documents/approval-issue-request/IssueRequestApprovalView';
 import { TransferApprovalView } from './documents/approval-transfer/TransferApprovalView';
 import { StockCountApprovalView } from './documents/approval-stock-count/StockCountApprovalView';
+// [tao-danh-muc] Import màn của danh mục mới: thêm ngay trên dòng này.
 
 interface InventoryModuleProps {
   subKey: SubMenuKey;
@@ -77,6 +78,7 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
 
   const renderActiveView = () => {
     switch (subKey) {
+      // [tao-danh-muc] Màn của danh mục mới: thêm case 'mã chức năng': return <...View currentUser={currentUser} />; ngay trên dòng này.
       // 1. Cập nhật số liệu
       case 'inv_receipt':
         return (

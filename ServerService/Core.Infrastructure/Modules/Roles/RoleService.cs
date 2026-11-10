@@ -70,7 +70,7 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
         var rightsBefore = await LoadRightsAsync(role.RoleId, ct);
         var matrixBefore = MatrixOf(role);
         await grants.EnsureRightUnitsExistAsync(request.SpecialRights, ct);
-        await grants.EnsureCanGrantAsync(actorUserId, before, request.Permissions, rightsBefore, request.SpecialRights, ct);
+        await EnsureCanEditAsync(actorUserId, role.RoleId, before, request.Permissions, rightsBefore, request.SpecialRights, ct);
         Apply(role, request);
         await EnsureUniqueAsync(role, ct);
         var rights = request.SpecialRights is null ? rightsBefore : await ReplaceRightsAsync(role, request.SpecialRights, ct);
@@ -78,6 +78,57 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
             .Rights(rightsBefore, rights), null, ct);
         await db.SaveChangesAsync(ct);
         return ToDto(role, rights, await ActiveUnitsAsync(ct));
+    }
+
+    /// <summary>
+    /// A role is shared by all its holders in every unit where it counts, so a non-administrator may change it only when they could change
+    /// each holder by hand: they do not hold the role themselves (no raising one's own rights through a role), they may manage every holder
+    /// (units and rights inside their own, <see cref="GrantGuard.EnsureCanManageAccountAsync"/>), and every action or right added is one
+    /// they hold in each unit where the role counts. A role nobody holds is checked against the actor's rights in the session unit.
+    /// </summary>
+    private async Task EnsureCanEditAsync(int actorUserId, int roleId,
+        IReadOnlyDictionary<string, ActionPermissions>? before, IReadOnlyDictionary<string, ActionPermissions>? after,
+        IEnumerable<string>? rightsBefore, IEnumerable<string>? rightsAfter, CancellationToken ct)
+    {
+        if (await permissions.IsAdminAsync(actorUserId, ct)) return;
+        var (holders, units) = await HoldersAsync(roleId, ct);
+        await EnsureMayManageHoldersAsync(actorUserId, holders, ct);
+        if (units.Count == 0)
+            await grants.EnsureCanGrantAsync(actorUserId, before, after, rightsBefore, rightsAfter, ct);
+        foreach (var unit in units.Order(StringComparer.Ordinal))
+            await grants.EnsureCanGrantAsync(actorUserId, before, after, rightsBefore, rightsAfter, ct, actorUnit: unit);
+    }
+
+    /// <summary>Refuses a non-administrator who holds the role, or who could not manage one of its holders by hand.</summary>
+    private async Task EnsureMayManageHoldersAsync(int actorUserId, IReadOnlyCollection<int> holders, CancellationToken ct)
+    {
+        if (holders.Contains(actorUserId)) throw new ForbiddenException("roles.ownRole");
+        foreach (var holder in holders.Order())
+        {
+            try { await grants.EnsureCanManageAccountAsync(actorUserId, holder, ct); }
+            catch (ForbiddenException)
+            {
+                var name = await db.Users.AsNoTracking().Where(x => x.UserId == holder).Select(x => x.FullName).FirstOrDefaultAsync(ct);
+                throw new ForbiddenException("roles.holderNotManaged", name ?? holder.ToString());
+            }
+        }
+    }
+
+    /// <summary>
+    /// The active accounts holding the role (as their default role or as the role of one unit) and the units where it counts: the units of
+    /// its default-role holders that have no role of their own, and the units it is the role of.
+    /// </summary>
+    private async Task<(HashSet<int> Holders, HashSet<string> Units)> HoldersAsync(int roleId, CancellationToken ct)
+    {
+        var byDefault = await db.UserRoles.AsNoTracking()
+            .Where(x => x.RoleId == roleId && x.Status == "1" && db.Users.Any(u => u.UserId == x.UserId && u.ValidFlg == 1))
+            .Select(x => x.UserId).ToListAsync(ct);
+        var places = await db.UserCompanyUnits.AsNoTracking()
+            .Where(x => db.Users.Any(u => u.UserId == x.UserId && u.ValidFlg == 1)
+                && (x.RoleId == roleId || (x.RoleId == null && byDefault.Contains(x.UserId))))
+            .Select(x => new { x.UserId, x.UnitCode }).ToListAsync(ct);
+        var holders = byDefault.Concat(places.Select(x => x.UserId)).ToHashSet();
+        return (holders, places.Select(x => x.UnitCode).ToHashSet(StringComparer.Ordinal));
     }
 
     /// <summary>
@@ -89,17 +140,31 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
         var role = await FindAsync(roleId, ct);
         var userIds = await db.UserRoles.Where(x => x.RoleId == roleId && x.Status == "1")
             .Select(x => x.UserId).ToListAsync(ct);
-        // Dropping an exception can give back a right the administrator took away on purpose, so every holder
-        // goes through the same check as editing their rights by hand.
+        // Dropping an exception can give back a right the administrator took away on purpose, in every unit of the holder (exceptions apply
+        // in every unit, whatever role the unit uses), so every holder goes through the same checks as editing their rights by hand, unit by unit.
         if (!await permissions.IsAdminAsync(actorUserId, ct))
+        {
             foreach (var userId in userIds)
-            {
                 if (await permissions.IsAdminAsync(userId, ct))
                     throw new ForbiddenException("roles.syncAdminOnly");
-                var (matrixAfter, rightsAfter) = await RoleRightsOfAsync(userId, ct);
-                await grants.EnsureCanGrantAsync(actorUserId, await permissions.GetEffectiveAsync(userId, ct), matrixAfter,
-                    await permissions.GetRightsAsync(userId, ct), rightsAfter, ct);
+            await EnsureMayManageHoldersAsync(actorUserId, userIds, ct);
+            foreach (var userId in userIds)
+            {
+                var units = await grants.UnitsOfAsync(userId, ct);
+                if (units.Count == 0)
+                {
+                    var (matrix, rights) = await RoleRightsOfAsync(userId, null, ct);
+                    await grants.EnsureCanGrantAsync(actorUserId, await permissions.GetEffectiveInUnitAsync(userId, null, ct), matrix,
+                        await permissions.GetRightsInUnitAsync(userId, null, ct), rights, ct);
+                }
+                foreach (var unit in units.Order(StringComparer.Ordinal))
+                {
+                    var (matrixAfter, rightsAfter) = await RoleRightsOfAsync(userId, unit, ct);
+                    await grants.EnsureCanGrantAsync(actorUserId, await permissions.GetEffectiveInUnitAsync(userId, unit, ct), matrixAfter,
+                        await permissions.GetRightsInUnitAsync(userId, unit, ct), rightsAfter, ct, actorUnit: unit);
+                }
             }
+        }
         var before = new Dictionary<int, UserAccessAudit.Snapshot>();
         foreach (var userId in userIds) before[userId] = await userAudit.SnapshotAsync(userId, ct);
         foreach (var userId in userIds) await access.ClearOverridesAsync(userId, ct);
@@ -151,13 +216,16 @@ public sealed class RoleService(CoreContext db, UserAccessWriter access, IPermis
     }
 
     /// <summary>
-    /// Rights of a user without any exception: the combined matrix and special rights of their roles, special
-    /// rights only on functions they may view (same rule as PermissionService).
+    /// Rights of a user in a unit without any exception: the combined matrix and special rights of the role that counts there (the unit's own
+    /// role, else their default roles), special rights only on functions they may view (same rule as PermissionService).
     /// </summary>
-    private async Task<(Dictionary<string, ActionPermissions> Matrix, List<string> Rights)> RoleRightsOfAsync(int userId,
+    private async Task<(Dictionary<string, ActionPermissions> Matrix, List<string> Rights)> RoleRightsOfAsync(int userId, string? unitCode,
         CancellationToken ct)
     {
-        var roleIds = db.UserRoles.ActiveRoles().Where(x => x.UserId == userId).Select(x => x.RoleId);
+        var unitRole = unitCode is null ? null : await db.UserCompanyUnits.AsNoTracking()
+            .Where(x => x.UserId == userId && x.UnitCode == unitCode).Select(x => x.RoleId).FirstOrDefaultAsync(ct);
+        var roleIds = unitRole is int own ? [own]
+            : await db.UserRoles.ActiveRoles().Where(x => x.UserId == userId).Select(x => x.RoleId).ToListAsync(ct);
         var grantRows = await db.RoleCommands.AsNoTracking().Where(x => x.Status == "1" && roleIds.Contains(x.RoleId))
             .ToListAsync(ct);
         var matrix = PermissionMatrix.Build(grantRows.Select(x => (x.MenuId0, x.ToActions())));

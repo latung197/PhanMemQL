@@ -10,6 +10,7 @@ import { PayableReportView } from './reports/PayableReportView';
 import { ProjectCategoryView } from './categories/ProjectCategoryView';
 import { PaymentTermCategoryView, SupplierGroupCategoryView } from './categories/SimpleCategoryViews';
 import { PurchaseRequestApprovalView } from './documents/approval-purchase-request/PurchaseRequestApprovalView';
+// [tao-danh-muc] Import màn của danh mục mới: thêm ngay trên dòng này.
 
 interface PurchasingModuleProps {
   subKey: SubMenuKey;
@@ -21,6 +22,7 @@ interface PurchasingModuleProps {
 /** Purchasing: purchase requests, purchase orders, purchase invoices (and their approvals) and the purchasing catalogs. */
 export const PurchasingModule: React.FC<PurchasingModuleProps> = ({ subKey, companyUnits, activeCompanyUnitCode, currentUser }) => {
   switch (subKey) {
+    // [tao-danh-muc] Màn của danh mục mới: thêm case 'mã chức năng': return <...View currentUser={currentUser} />; ngay trên dòng này.
     case 'pur_request':
       return <PurchaseRequestView companyUnits={companyUnits} activeUnitCode={activeCompanyUnitCode ?? ''} currentUser={currentUser} />;
     case 'pur_approve_request':

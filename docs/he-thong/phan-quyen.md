@@ -209,8 +209,9 @@ Vòng đời của mọi phiếu:
 | Xem | Xem (+ `VIEW_ALL` nếu phiếu người khác) | như Lập | như Lập | như Lập | như Lập |
 | Sửa | Sửa | Sửa + `ST_PENDING` | Sửa + `ST_APPROVED` | Không ai | Không ai |
 | Gửi duyệt | Thêm hoặc Sửa + `ST_PENDING` | — | — | — | — |
-| Duyệt / Từ chối | — | Người duyệt cấp hiện tại, **không phải người lập** | — | — | — |
-| Ghi sổ | — | — | `ST_POSTED` | — | — |
+| Duyệt | `ST_APPROVED` (duyệt thẳng, như lưu ở Đã duyệt) | `ST_APPROVED`, **kể cả phiếu mình lập**; mọi cấp còn lại được duyệt một lần | — | — | — |
+| Từ chối | — | `ST_APPROVED` | — | — | — |
+| Ghi sổ | `ST_POSTED` (tự đi qua bước duyệt) | `ST_POSTED` (duyệt nốt rồi ghi sổ) | `ST_POSTED` | — | — |
 | Bỏ ghi sổ | — | — | — | `ST_UNPOST` | — |
 | Hủy | Người lập có Xóa; người khác cần `ST_CANCELLED` | `ST_CANCELLED` | `ST_CANCELLED` | Không (bỏ ghi sổ trước) | — |
 | Khôi phục (về Lập) | — | — | — | — | `ST_CANCELLED` |
@@ -222,8 +223,8 @@ Quyền trạng thái là quyền **đến** một trạng thái: người có `
 Quy tắc chung:
 - Mọi thao tác (trừ duyệt / từ chối) cần quyền **Xem** chức năng.
 - Phiếu của người khác chỉ thấy và thao tác được khi có **`VIEW_ALL`**.
-- **Không ai tự duyệt phiếu mình lập**, kể cả quản trị viên.
-- Người duyệt **không cần** Xem chức năng hay `VIEW_ALL`: duyệt từ màn Phê duyệt là đủ.
+- **Duyệt và ghi sổ là quyền trạng thái**: ai có `ST_APPROVED` (hoặc quyền sau nó) ở đơn vị của phiếu thì duyệt được, có `ST_POSTED` thì ghi sổ được từ Lập, Chờ duyệt hay Đã duyệt, **kể cả phiếu mình lập**. Cột **Duyệt** trong ma trận không còn quyết định việc duyệt (chỉ còn để mở màn Phê duyệt); quy tắc duyệt chỉ chọn **người được báo**.
+- Duyệt / từ chối phiếu **đang chờ duyệt** không cần Xem chức năng hay `VIEW_ALL`: duyệt từ màn Phê duyệt là đủ. Duyệt phiếu **nháp** thì như mọi thao tác khác (Xem, phiếu người khác cần `VIEW_ALL`).
 
 Cài đặt **"Duyệt trước khi ghi sổ"** (Cài đặt mặc định) quyết định phiếu chưa duyệt có được ghi sổ không.
 
@@ -242,15 +243,15 @@ Cài đặt **"Duyệt trước khi ghi sổ"** (Cài đặt mặc định) quy�
 | Người lập | Bất kỳ ai; một người; một vai trò; một phòng ban |
 | Số tiền từ | Để trống = mọi giá trị |
 | Cấp | 1, 2, 3... |
-| Người duyệt | Một người, hoặc một vai trò (mọi người giữ vai trò đó). Chỉ tính người **có quyền Duyệt** chức năng (hoặc màn phê duyệt của nó) **và được làm việc ở đơn vị của phiếu** |
+| Người duyệt | Một người, hoặc một vai trò (mọi người giữ vai trò đó). Chỉ tính người **có quyền trạng thái `ST_APPROVED` (hoặc `ST_POSTED`) của chức năng ở đơn vị của phiếu** và được làm việc ở đơn vị đó. Quy tắc chỉ quyết định **ai được báo**: ai có quyền đó cũng duyệt được dù không có tên trong quy tắc |
 
 ### Cách chạy
 
 1. Khi phiếu được gửi duyệt, hệ thống lấy mọi quy tắc **khớp** (đúng chức năng, đơn vị, người lập, số tiền) và gom theo cấp.
-2. Các cấp chạy **lần lượt** 1 → 2 → 3. Trong một cấp, **một người** trong danh sách duyệt là đủ để qua cấp.
+2. Chỉ những người ở **cấp đầu** được báo. Ai có quyền `ST_APPROVED` bấm Duyệt thì **mọi cấp còn lại được duyệt luôn** (quyền duyệt là quyền trạng thái, không theo cấp). Muốn người cấp sau mới là người quyết định thì đừng cấp `ST_APPROVED` cho người cấp trước: họ chỉ xem, người có quyền mới duyệt.
 3. Duyệt xong cấp cuối thì phiếu thành **Đã duyệt**. Bị từ chối ở bất kỳ cấp nào thì phiếu về **Lập**, người lập sửa rồi gửi lại (lượt mới).
 4. Người lập (hoặc quản trị viên) rút lại được khi phiếu đang chờ.
-5. Không có quy tắc nào khớp thì phiếu vẫn phải duyệt một cấp: mọi người có quyền **Duyệt** chức năng đó (hoặc màn phê duyệt của nó), được làm việc ở đơn vị của phiếu, trừ người lập. Một cấp có quy tắc mà không còn ai duyệt được (vai trò không có người, người duyệt bị khóa) thì không gửi duyệt được và báo lỗi.
+5. Không có quy tắc nào khớp thì phiếu vẫn phải duyệt một cấp: mọi người có quyền `ST_APPROVED` (hoặc `ST_POSTED`) của chức năng ở đơn vị của phiếu, được làm việc ở đơn vị đó, trừ người lập (người lập có quyền đó thì tự duyệt luôn). Một cấp có quy tắc mà không còn ai duyệt được (vai trò không có người, người duyệt bị khóa) thì không gửi duyệt được và báo lỗi.
 
 Mỗi bước gửi thông báo, theo ngôn ngữ của từng người:
 - người duyệt cấp kế tiếp nhận yêu cầu duyệt;
@@ -279,6 +280,7 @@ Người có quyền ở chức năng **Người dùng và phân quyền** quả
 | **Không cấp quá quyền mình có.** Người không phải quản trị viên chỉ thêm được hành động, quyền đặc biệt, đơn vị mà chính họ có. Những gì người kia đã có từ trước thì được giữ | Không ai tự "đẻ" ra quyền lớn hơn mình |
 | **Không quản lý tài khoản rộng hơn mình.** Người không phải quản trị viên chỉ sửa, khóa, phân quyền, đặt lại mật khẩu, xóa được tài khoản mà mọi đơn vị của tài khoản đó mình đều được vào, và **ở từng đơn vị**, mọi quyền của tài khoản đó mình đều có (so quyền hai bên ở cùng đơn vị). Gắn vai trò riêng cho một đơn vị cũng chỉ được khi chính mình có đủ quyền của vai trò đó ở đơn vị đó. Ví dụ người quản lý tài khoản ở Hà Nội không đặt lại được mật khẩu của nhân viên Hồ Chí Minh, cũng không của một thủ kho Hà Nội có quyền Sửa phiếu xuất mà mình không có | Không ai chiếm được tài khoản có quyền cao hơn hoặc ở đơn vị khác (đặt mật khẩu rồi đăng nhập thay) |
 | **Không tự sửa quyền của mình** (trừ quản trị viên) | Không tự nâng quyền |
+| **Sửa / đồng bộ vai trò như sửa từng người giữ nó.** Người không phải quản trị viên không sửa, không bấm "Đưa N người về đúng vai trò" được với vai trò **mình đang giữ** (làm vai trò mặc định hay vai trò của một đơn vị); với vai trò khác thì phải quản lý được **mọi** người đang giữ vai trò (quy tắc ở dòng trên), và quyền thêm vào vai trò phải là quyền mình có **ở từng đơn vị** vai trò đang được dùng. Đồng bộ xóa ngoại lệ của người giữ vai trò ở mọi đơn vị, nên được kiểm từng đơn vị theo vai trò thật ở đơn vị đó (kể cả vai trò riêng của đơn vị). Vai trò chưa ai giữ thì so với quyền của mình ở đơn vị đang đăng nhập. Lỗi `roles.ownRole`, `roles.holderNotManaged` | Vai trò dùng chung mọi đơn vị: sửa vai trò là sửa quyền của mọi người giữ nó, nên không ai tự nâng quyền qua vai trò (thêm vào vai trò của mình một quyền chỉ có ở đơn vị khác) hay bớt quyền của người ở đơn vị mình không quản lý |
 | **Chỉ quản trị viên** gán vai trò quản trị, hoặc sửa / khóa / đặt mật khẩu tài khoản quản trị viên | Bảo vệ tài khoản cao nhất |
 | **Không khóa / xóa quản trị viên cuối cùng** | Luôn còn người vào được hệ thống |
 | Không tự khóa, tự xóa tài khoản mình; đổi mật khẩu của mình qua màn Tài khoản, không qua "đặt lại mật khẩu" | Tránh tự khóa nhầm |
@@ -467,6 +469,8 @@ Khi lưu quyền một người, màn hình gửi **ma trận mong muốn đầy
 | `EnsureCanAssignUnitsAsync(actor, before, after)` | Đơn vị mới phải là đơn vị actor được làm việc |
 | `EnsureNotSelfAsync(actor, target)` | Không tự sửa quyền mình (trừ quản trị viên) |
 | `EnsureCanManageAccountAsync(actor, target)` | Người không phải quản trị viên chỉ quản lý (sửa, khóa, phân quyền, đặt lại mật khẩu, xóa) tài khoản mà mọi đơn vị, mọi hành động và mọi quyền đặc biệt của nó actor đều có. Quy tắc thuần ở `Core.Application/Common/Permissions/AccountCoverage.cs` (test `AccountCoverageTests`); lỗi `grant.manageUnit`, `grant.manageHigher` |
+
+`RoleService` (sửa, đồng bộ vai trò) dùng các hàm trên cho **mọi người giữ vai trò**: `EnsureCanManageAccountAsync` từng người, `EnsureCanGrantAsync(..., actorUnit)` cho từng đơn vị vai trò đang được dùng; người sửa đang giữ vai trò thì bị từ chối (`roles.ownRole`).
 
 `UserService` còn có: chỉ quản trị viên động vào tài khoản / vai trò quản trị (`EnsureActorMayManageAsync`, gọi thêm `EnsureCanManageAccountAsync` cho tài khoản đã có), không khóa / xóa quản trị viên cuối (`EnsureNotLastAdminAsync`), không tự khóa / tự xóa. `GetAllAsync(actor)` chỉ trả tài khoản có đơn vị chung với actor (quản trị viên thấy hết).
 
@@ -697,17 +701,17 @@ Ví dụ phiếu xuất kho. Mỗi dòng là một bước; cột phải là th�
 | --- | --- | --- |
 | 1. Lập phiếu (lưu nháp) | Nhân viên kho | Xem + Thêm của `inv_issue` |
 | 2. Gửi duyệt | Người lập | Thêm hoặc Sửa, và `ST_PENDING` ở đơn vị của phiếu; đơn vị không tắt bước Chờ duyệt |
-| 3. Duyệt cấp 1, cấp 2... | Người duyệt theo quy tắc (C6), **không phải người lập** | Quyền Duyệt (trên phiếu hoặc màn Phê duyệt); không cần Xem chức năng hay `VIEW_ALL` |
-| 3'. Từ chối | Người duyệt cấp hiện tại | Như trên; phiếu về Lập kèm lý do, người lập sửa rồi gửi lại |
+| 3. Duyệt | Bất kỳ ai có `ST_APPROVED` ở đơn vị của phiếu, **kể cả người lập**; người duyệt theo quy tắc (C6) là người được báo | `ST_APPROVED` (hoặc `ST_POSTED`); không cần Xem chức năng hay `VIEW_ALL`. Duyệt một lần là xong mọi cấp |
+| 3'. Từ chối | Người có `ST_APPROVED` | Như trên; phiếu về Lập kèm lý do, người lập sửa rồi gửi lại |
 | 3''. Rút lại | Người lập (hoặc quản trị viên) | Phiếu đang chờ duyệt |
-| 4. Ghi sổ | Thủ kho / kế toán kho | `ST_POSTED` ở đơn vị của phiếu; sổ kho kiểm tra đủ tồn |
+| 4. Ghi sổ | Thủ kho / kế toán kho | `ST_POSTED` ở đơn vị của phiếu; ghi được cả phiếu Lập / Chờ duyệt (hệ thống ghi luôn bước duyệt); sổ kho kiểm tra đủ tồn |
 | 5. Bỏ ghi sổ (khi cần) | Người có quyền | `ST_UNPOST`; không bỏ được nếu việc đó làm âm kho |
 
 **Lưu thẳng đến một trạng thái.** Ô "Trạng thái" trên phiếu cho chọn Lập, Chờ duyệt, Đã duyệt, Đã ghi sổ tùy quyền của người lập. Phiếu được lưu rồi chạy các bước trong **một giao dịch**; thiếu quyền ở bước nào thì cả lần lưu bị hoàn tác:
-- đến **Đã duyệt**: cần `ST_APPROVED`, quyền Duyệt và là người duyệt của mọi cấp (không cần người duyệt nếu đơn vị tắt "Chờ duyệt");
+- đến **Đã duyệt**: cần `ST_APPROVED` (không cần có tên trong quy tắc duyệt, không cần cột Duyệt);
 - đến **Đã ghi sổ**: cần thêm `ST_POSTED`.
 
-**Luôn đúng:** không ai tự duyệt phiếu mình lập (kể cả quản trị viên); phiếu của người khác chỉ thấy khi có `VIEW_ALL`.
+**Luôn đúng:** quyền trạng thái ở đơn vị của phiếu quyết định ai duyệt, ai ghi sổ (kể cả phiếu mình lập); phiếu của người khác chỉ thấy khi có `VIEW_ALL`.
 
 ## C8. Luồng 7: sửa, xóa, hủy và khôi phục phiếu
 

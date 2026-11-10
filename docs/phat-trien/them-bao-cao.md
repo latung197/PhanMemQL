@@ -4,6 +4,8 @@ Hướng dẫn thêm một báo cáo đọc dữ liệu (ví dụ "Báo cáo hà
 
 Mẫu để đối chiếu: các báo cáo Kho ([bao-cao-kho.md](../kho/bao-cao-kho.md)) và ba màn tính toán ([ton-tuc-thoi-gia-binh-quan-dinh-muc.md](../kho/ton-tuc-thoi-gia-binh-quan-dinh-muc.md)). Phân quyền: [phan-quyen.md](../he-thong/phan-quyen.md) mục C9 và C14. Đa ngôn ngữ: [da-ngon-ngu.md](da-ngon-ngu.md). Thêm danh mục và chứng từ: [them-danh-muc.md](them-danh-muc.md), [them-chung-tu.md](them-chung-tu.md).
 
+Làm bằng trợ lý: lệnh `/them-bao-cao` (skill `.claude/skills/them-bao-cao/SKILL.md`) đi theo đúng các bước của tài liệu này.
+
 ---
 
 ## 1. Quyết định trước khi viết code

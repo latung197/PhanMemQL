@@ -1,10 +1,12 @@
 # Thêm một danh mục mới (backend + frontend)
 
+> **Cách nhanh:** danh mục thông thường tạo được trong vài phút bằng `npm run tao-danh-muc` (một file mô tả JSON), hoặc chép bộ khung có sẵn: xem [them-danh-muc-nhanh.md](them-danh-muc-nhanh.md). Tài liệu này giải thích từng tệp mà công cụ đó sinh ra, và các dạng danh mục đặc biệt (Phần 5).
+
 Tài liệu này hướng dẫn từng bước thêm một danh mục chạy thật trên backend, từ bảng trong database đến màn hình, phân quyền, Excel, tra cứu và kiểm tra. Ví dụ xuyên suốt là **Danh mục nhà cung cấp**.
 
 > **Tài liệu này đã được kiểm chứng.** Danh mục nhà cung cấp trong ví dụ được dựng lại **đúng từ các khối mã ở đây** (không sửa tay): biên dịch 0 lỗi, toàn bộ test qua, `npm run lint` sạch, thử đủ API (phân trang, sắp xếp, tìm không dấu, lọc, xuất Excel, tra cứu, chống ghi đè, nhật ký) và màn hình trên trình duyệt. Làm theo đúng thứ tự thì ra đúng như vậy. Gặp lỗi mà tài liệu không nói thì xem §7.3.
 
-Mẫu để copy là **Danh mục đơn vị tính** (danh mục khác trong dự án đã theo khung này: quy đổi, nhà cung cấp, nhóm vật tư, loại vật tư, loại kho, kho, phòng ban, ngoại tệ, tỷ giá, mã thuế, ngôn ngữ, đơn vị cơ sở; Phần 5.1 mô tả mẫu danh mục có danh sách chọn nhiều, Phần 5.2 mẫu khóa ghép). Đây là mẫu đầy đủ và mới nhất: bảng `erp_*`, nhật ký tự động, cột người tạo / người sửa, chống ghi đè, Excel, xóa nhiều, tra cứu, hai ngôn ngữ.
+Mẫu để copy là **Danh mục đơn vị tính** (danh mục khác trong dự án đã theo khung này: quy đổi, nhà cung cấp, nhóm vật tư, loại vật tư, loại kho, kho, phòng ban, ngoại tệ, tỷ giá, mã thuế, ngôn ngữ, đơn vị cơ sở; Phần 5.1 mô tả mẫu danh mục có danh sách chọn nhiều, Phần 5.2 mẫu khóa ghép, Phần 5.3 mẫu có lưới dòng con sửa cùng form, Phần 5.4 khi nào viết tay không qua khung). Đây là mẫu đầy đủ và mới nhất: bảng `erp_*`, nhật ký tự động, cột người tạo / người sửa, chống ghi đè, Excel, xóa nhiều, tra cứu, hai ngôn ngữ.
 
 | Lớp | File mẫu |
 | --- | --- |
@@ -105,7 +107,7 @@ Thêm một danh mục là **khai báo**, không phải viết lại chức năn
 | 12 | Cấp quyền, build, test, chạy thử, dọn dữ liệu thử | | 6, 7 |
 | 13 | Tài liệu: từ điển cơ sở dữ liệu, `docs/README.md`, `CLAUDE.md`, Word | | 8 |
 
-Việc thêm tùy chọn khi cần: tham chiếu danh mục khác (Phần 5, chi tiết ở `docs/phat-trien/tham-chieu-danh-muc.md`), bộ lọc riêng (§2.5), bản dịch / bảng con (`AfterApplyAsync`), tra cứu riêng nhiều bảng hoặc có tham số (§4.3).
+Việc thêm tùy chọn khi cần: tham chiếu danh mục khác (Phần 5, chi tiết ở `docs/phat-trien/tham-chieu-danh-muc.md`), bộ lọc riêng (§2.5), bản dịch / bảng con (`AfterApplyAsync`, lưới dòng con ở Phần 5.3), tra cứu riêng nhiều bảng hoặc có tham số (§4.3).
 
 ---
 
@@ -1222,6 +1224,41 @@ Khung chỉ biết một khóa văn bản là `code`. Khi khóa thật là một
 | Bộ lọc | `ApplyFilters` đọc `currency`, `from`, `to`; màn dùng `filters` của `CatalogDefinition` cho ô ngoại tệ |
 | Đọc ở nơi khác | Hàm riêng (`GetRateAsync`) ở interface của danh mục; endpoint mở cho mọi người đăng nhập tách ra **controller riêng** (controller danh mục từ chối action không khai `CatalogRight`) |
 
+### 5.3. Danh mục có lưới dòng con sửa cùng form (mẫu: bảng giá bán → các dòng giá)
+
+Khác 5.1 (một danh sách mã): mỗi dòng con có **nhiều trường** (vật tư, đơn vị tính, số lượng từ, đơn giá...) và có thể tới hàng nghìn dòng, nên danh sách **không** đi kèm danh sách trang hay file Excel mà form đọc riêng khi mở. Mẫu chạy thật: `PriceListService` (`Core.Infrastructure/Modules/Sales/Categories/`), `PriceListsController` (`Core/Modules/Sales/Categories/SalesCategoriesControllers.cs`), màn `Frontend/src/modules/sales/categories/price-lists/`, script `52-sales-catalogs.sql`.
+
+| Việc | Cách làm |
+| --- | --- |
+| Bảng con | `erp_<ten>_line`: `id` tự tăng, `<ten>_code` trỏ bảng cha, các cột của dòng, 4 cột dấu vết, `CHECK` cho số không âm; chỉ mục duy nhất của khóa nghiệp vụ dòng (`price_list_code, material_code, uom_code, min_quantity`) và **chỉ mục cho mỗi cột `*_code`** (ví dụ `material_code`: xóa vật tư tra cột này) |
+| Entity con | `: ErpEntity`, `[NotAudited("service ghi các dòng vào nhật ký của bản ghi cha")]`; `[References<Cha>(BlocksDelete = false)]` trên cột trỏ cha (xóa cùng cha), `[References<Material>]`, `[References<Uom>]`... trên các cột trỏ danh mục khác (vật tư còn nằm trong bảng giá thì không xóa được) |
+| Request | Thêm `IReadOnlyList<Save<Ten>Line>? Lines = null` vào **cuối** request. **`null` = giữ nguyên dòng đã lưu**: nhập Excel chỉ mang phần đầu nên không làm mất dòng; danh sách rỗng `[]` = xóa hết |
+| DTO | **Không** trả dòng trong DTO của danh sách (trang nặng); có thể trả số dòng (`MapAsync` đếm một lần cho cả trang) |
+| Đọc dòng | Hàm `GetLinesAsync(code)` ở interface; controller thêm `[HttpGet("{code}/lines"), CatalogRight(PermissionAction.View)]` (controller danh mục từ chối action thiếu `CatalogRight`) |
+| Lưu | `AfterApplyAsync(row, request, isNew, ct)`: `request.Lines is null` thì thôi; giới hạn số dòng (`MaxLines`); kiểm từng dòng (vật tư có và đang dùng, đơn vị dùng được qua `UomRules.EnsureUsableAsync`, số hợp lệ, không trùng khóa dòng) và đọc danh mục **một lần** cho mọi dòng; dựng danh sách mới, so với danh sách cũ bằng một chuỗi tóm tắt sắp xếp ổn định; giống nhau thì không làm gì; khác thì xóa dòng cũ, thêm dòng mới và `AuditLog.Attach(row, [new AuditChange("lines", trước, sau)])` |
+| Chống ghi đè | Lần sửa **chỉ đổi dòng** vẫn phải tăng phiên bản của bản ghi cha: trong `AfterApplyAsync` đặt `if (!isNew) Db.Entry(row).Property(x => x.Name).IsModified = true;` |
+| Xóa | `BeforeDeleteAsync` xóa các dòng con |
+| Tìm kiếm | `Search` thêm `Db.<Ten>Lines.Any(l => l.<Ten>Code == x.Code && SearchFunctions.Matches(l.MaterialCode, pattern))` để tìm bản ghi theo mã trong dòng |
+| Màn hình | `api.ts` = `createCatalogApi(...)` cộng `getLines: code => apiRequest('GET', url + '/' + encodeURIComponent(code) + '/lines')`. Trong `CatalogDefinition`, `renderForm` vẽ thêm một component lưới nhận `CatalogFormProps` (`form`, `setForm`, `editing`): khi mở form sửa thì gọi `getLines(editing.code)` một lần rồi gán vào `form.lines` (dùng `useRef` giữ form mới nhất, vì form đổi theo từng phím gõ); form thêm mới bắt đầu với `lines: []`. **`toInput` không điền `lines`** (để `undefined`, gửi đi là `null` = giữ), nên lưu khi dòng chưa tải xong không xóa mất dòng. Cột Excel chỉ có phần đầu |
+
+### 5.4. Khi nào không dùng khung danh mục (mẫu: cấu trúc sản phẩm)
+
+Khung `CatalogService` hợp với danh mục **phẳng** (một dòng = một mã, danh sách phân trang, nhập / xuất Excel). Một số danh mục không vừa khung: cấu trúc sản phẩm (BOM) là **cây** (thành phần có cấu trúc riêng), danh sách có chế độ tìm "dùng ở đâu" (`mode=parent`), phải chặn vòng lặp, và màn là cây bên trái + lưới định mức bên phải. Những danh mục đó viết tay, nhưng **vẫn giữ đủ các quy ước** mà khung lẽ ra lo hộ. Mẫu: `ProductStructureService.cs` (`Core.Infrastructure/Modules/Production/`), `ProductStructuresController.cs`, màn `modules/production/product-structures/`.
+
+| Khung tự lo | Viết tay phải tự làm |
+| --- | --- |
+| Quyền theo `[CatalogFunction]` | Controller kế thừa `ApiControllerBase`, `const string Function = "<mã>"`, **mọi** action có `[RequirePermission(Function, PermissionAction.View / Create / Edit / Delete)]` (`ReadAccessContractTests` bắt `GET` thiếu quyền) |
+| Phân trang, sắp xếp | `SortMap<T>` (khóa phụ duy nhất) + `ToPagedAsync(query, SortColumns, ct)` với query kế thừa `IPagedQuery` |
+| Chống ghi đè | Request có `uint? Version = null`, DTO có `Version`; `UpdateAsync` gọi `db.ExpectVersion(row, request.Version, touch: true)` ngay sau khi nạp (`touch` vì có lần sửa chỉ đổi dòng con). `ConcurrencyContractTests` kiểm |
+| Kiểm mã tham chiếu khi lưu | `await db.EnsureReferencesExistAsync(row, ct)` trước `SaveChangesAsync` (đọc các `[References]` của entity) |
+| Chặn xóa bản ghi đang dùng | `await db.EnsureNotInUseAsync<TEntity>(code, name, ct)` đầu `DeleteAsync` khi đã có bảng khác trỏ tới (thông báo `record.inUse` nêu tên bảng) |
+| Nhật ký | Entity cha `[Audited(...)]` vẫn tự ghi; dòng con `[NotAudited]` và service tự gắn thay đổi dòng bằng `audit.Attach(row, [new AuditChange("components", trước, sau)])` |
+| Dấu bản ghi | Không gán `CreatedAt`... (`CoreContext` làm); DTO trả `RecordStampDto` |
+| Thông báo lỗi | Khóa riêng `<loai>.notFound`, `<loai>.exists`... ở `Messages.vi.json` và `Messages.en.json`, `throw new BusinessRuleException("khóa", args)` |
+| Không có sẵn | Nhập / xuất Excel, xóa nhiều, đổi mã: chỉ làm khi thật cần |
+
+Quy tắc chọn: **thử khung trước** (các hook `ApplyFilters`, `AfterApplyAsync`, `BeforeDeleteAsync`, `SaveAsync`, `BeforeExportAsync` và lưới dòng con ở 5.3 đã đủ cho hầu hết danh mục); chỉ viết tay khi dữ liệu không phẳng hoặc màn hình không phải một lưới.
+
 ---
 
 ## Phần 6. Phân quyền cho người dùng
@@ -1269,7 +1306,10 @@ Backend đang chạy thì dừng trước khi build (file DLL bị khóa).
 cd Frontend
 npm run lint
 npm run check-i18n
+npm run check-menu
 ```
+
+`check-menu` kiểm logic thanh menu (dựng cây, quyền, cờ ẩn) với chính `ServerService/Core/SeedData/menu.json`, nên chạy sau mỗi lần thêm nút vào `menu.json`.
 
 Test tự bắt các điểm hay quên:
 
@@ -1290,6 +1330,7 @@ Test tự bắt các điểm hay quên:
 | `EveryEntityDeclaresItsChangeLog` | Entity thiếu `[Audited]` / `[NotAudited]` |
 | `AuditDeclarationsNameExistingProperties` | Mã chức năng trong `[Audited]` chưa có ở `FunctionCatalog`, hoặc `Label` dùng property không tồn tại |
 | `MessagesTests` | Khóa thông báo thiếu ở `Messages.vi.json` / `Messages.en.json`, hoặc `throw` viết câu tiếng Việt |
+| `MenuSeedFileTests` | `menu.json` và `FunctionCatalog` lệch nhau (mã chức năng có trong một bên mà không có trong bên kia) |
 | `npm run lint` | Thiếu mã trong `SubMenuKey` / `FUNCTION_REGISTRY`, sai kiểu giữa `types.ts` và `CatalogDefinition` |
 | `npm run check-i18n` | Khóa có ở tiếng Việt mà thiếu ở tiếng Anh; chữ tiếng Việt gõ cứng trong màn (hiện chỉ quét phần dùng chung và Cài đặt) |
 
@@ -1368,7 +1409,9 @@ Thử xong thì xóa dữ liệu thử (bản ghi, tài khoản thử, dòng nh�
 
 **Kiểm tra**
 - [ ] `dotnet build Core.sln` (0 lỗi, 0 cảnh báo) và `dotnet test` (tất cả qua, kể cả `CatalogFrameworkTests`, `LookupCacheTests`)
-- [ ] `npm run lint` sạch, `npm run check-i18n` không thêm lỗi mới
+- [ ] `npm run lint` sạch, `npm run check-i18n` không thêm lỗi mới, `npm run check-menu` qua
+- [ ] Có lưới dòng con sửa cùng form: `Lines = null` giữ dòng cũ, `GET {code}/lines`, `AfterApplyAsync` + nhật ký `lines` + tăng phiên bản cha (Phần 5.3)
+- [ ] Danh mục viết tay (không qua khung): `RequirePermission` mọi action, `ExpectVersion`, `EnsureReferencesExistAsync`, `EnsureNotInUseAsync`, nhật ký dòng con (Phần 5.4)
 - [ ] Thử API: phân trang, sắp xếp (cột lạ → 400), tìm, lọc, export (có nhật ký `EXPORT`), 401 / 403, tra cứu cập nhật ngay
 - [ ] Thử trình duyệt (Phần 7.2) rồi xóa dữ liệu thử
 

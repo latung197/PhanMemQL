@@ -42,7 +42,7 @@ import { VoucherStatusBadge } from '../VoucherStatusBadge';
 import { useVoucherStatuses, voucherStatusService } from '../../../../services/voucherStatusService';
 import { reachesStatus } from '../../../../utils/documentPolicy';
 import { getActionPermission } from '../../../../mock/initialRoles';
-import { canApproveVoucher, hasRight, hasStatusRight, RIGHTS } from '../../../../utils/permissions';
+import { hasRight, hasStatusRight, RIGHTS } from '../../../../utils/permissions';
 import { useOpenDocumentRequest } from '../../../../utils/documentLinks';
 import { useDebounced } from '../../../../hooks/useDebounced';
 import { usePagedList } from '../../../../hooks/usePagedList';
@@ -170,7 +170,8 @@ export const StockCountView: React.FC<StockCountViewProps> = ({ companyUnits = [
   useVoucherStatuses();
   const perm = getActionPermission(currentUser, FUNCTION);
   // "Duyệt" on the voucher or on its approval screen (Phê duyệt kiểm kê), as the backend.
-  const canApprove = canApproveVoucher(currentUser, FUNCTION);
+  // Approving is a status right of the unit (own vouchers too); the approval rules only say whom to notify.
+  const canApprove = reachesStatus(currentUser, FUNCTION, 'Approved');
   // The values of a count are costs (cost of the stock found in surplus or missing).
   const canViewCost = hasRight(currentUser, FUNCTION, RIGHTS.VIEW_COST);
   const hiddenCostFields = canViewCost ? undefined : ['unitPrice', 'amount'];
@@ -651,11 +652,11 @@ export const StockCountView: React.FC<StockCountViewProps> = ({ companyUnits = [
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'submit')} title="Gửi duyệt phiếu kiểm kê"
                   className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"><ArrowUpRight className="h-4 w-4" /></button>
               )}
-              {v.status === 'Chờ duyệt' && canApprove && (
+              {(v.status === 'Chờ duyệt' || v.status === 'Lập chứng từ') && canApprove && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'approve')} title="Phê duyệt phiếu kiểm kê"
                   className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"><ShieldCheck className="h-4 w-4" /></button>
               )}
-              {v.status === 'Đã phê duyệt' && reachesStatus(currentUser, FUNCTION, 'Posted') && (
+              {['Lập chứng từ', 'Chờ duyệt', 'Đã phê duyệt'].includes(v.status) && reachesStatus(currentUser, FUNCTION, 'Posted') && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'post')} title="Chuyển sổ kho (nhập phần thừa, xuất phần thiếu)"
                   className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-colors cursor-pointer"><CheckCircle2 className="h-4 w-4" /></button>
               )}

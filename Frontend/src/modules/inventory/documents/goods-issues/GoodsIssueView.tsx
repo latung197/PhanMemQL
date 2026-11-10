@@ -58,7 +58,7 @@ import { VoucherStatusBadge } from '../VoucherStatusBadge';
 import { useVoucherStatuses, voucherStatusService } from '../../../../services/voucherStatusService';
 import { reachesStatus } from '../../../../utils/documentPolicy';
 import { getActionPermission } from '../../../../mock/initialRoles';
-import { canApproveVoucher, hasRight, hasStatusRight, RIGHTS } from '../../../../utils/permissions';
+import { hasRight, hasStatusRight, RIGHTS } from '../../../../utils/permissions';
 import { useOpenDocumentRequest } from '../../../../utils/documentLinks';
 import { showToast } from '../../../../utils/toast';
 import { getErrorMessage } from '../../../../services/apiClient';
@@ -208,7 +208,8 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
   useVoucherStatuses();
   const perm = getActionPermission(currentUser, 'inv_issue');
   // "Duyệt" on the voucher or on its approval screen (Phê duyệt xuất kho), as the backend.
-  const canApprove = canApproveVoucher(currentUser, 'inv_issue');
+  // Approving is a status right of the unit (own vouchers too); the approval rules only say whom to notify.
+  const canApprove = reachesStatus(currentUser, 'inv_issue', 'Approved');
   // Quyền đặc biệt "Xem đơn giá & thành tiền": không có thì ẩn mọi cột/ô giá trị trên phiếu.
   const canViewPrice = hasRight(currentUser, 'inv_issue', RIGHTS.VIEW_PRICE);
   const hiddenPriceFields = canViewPrice ? undefined : ['unitPrice', 'amount'];
@@ -1328,7 +1329,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   <ArrowUpRight className="h-4 w-4" />
                 </button>
               )}
-              {v.status === 'Chờ duyệt' && canApprove && (
+              {(v.status === 'Chờ duyệt' || v.status === 'Lập chứng từ') && canApprove && (
                 <button
                   type="button"
                   onClick={() => void handleQuickStatusChange(v.id, 'approve')}
@@ -1338,7 +1339,7 @@ export const GoodsIssueView: React.FC<GoodsIssueViewProps> = ({
                   <ShieldCheck className="h-4 w-4" />
                 </button>
               )}
-              {v.status === 'Đã phê duyệt' && reachesStatus(currentUser, 'inv_issue', 'Posted') && (
+              {['Lập chứng từ', 'Chờ duyệt', 'Đã phê duyệt'].includes(v.status) && reachesStatus(currentUser, 'inv_issue', 'Posted') && (
                 <button
                   type="button"
                   onClick={() => void handleQuickStatusChange(v.id, 'post')}

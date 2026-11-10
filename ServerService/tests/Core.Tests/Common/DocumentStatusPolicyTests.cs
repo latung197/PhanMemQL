@@ -37,18 +37,28 @@ public sealed class DocumentStatusPolicyTests
     }
 
     [Fact]
-    public void NobodyApprovesOwnDocument()
+    public void ApprovingIsTheApprovedStatusRightOwnDocumentsToo()
     {
-        Assert.False(DocumentStatusPolicy.Check(DocumentAction.Approve, DocumentStatus.Pending, Actor(Approver, true, ViewAll)).Allowed);
-        Assert.True(DocumentStatusPolicy.Check(DocumentAction.Approve, DocumentStatus.Pending, Actor(Approver, false, ViewAll)).Allowed);
-        Assert.False(DocumentStatusPolicy.Check(DocumentAction.Approve, DocumentStatus.Draft, Actor(Approver, false, ViewAll)).Allowed);
+        // The "Duyệt" action alone does not approve any more: the status right of the unit does, for one's own voucher as well.
+        Assert.False(DocumentStatusPolicy.Check(DocumentAction.Approve, DocumentStatus.Pending, Actor(Approver, false, ViewAll)).Allowed);
+        Assert.True(DocumentStatusPolicy.Check(DocumentAction.Approve, DocumentStatus.Pending, Actor(Clerk, true, StatusApproved)).Allowed);
+        Assert.True(DocumentStatusPolicy.Check(DocumentAction.Approve, DocumentStatus.Pending, Actor(Clerk, false, StatusPosted)).Allowed);
+        Assert.True(DocumentStatusPolicy.Check(DocumentAction.Approve, DocumentStatus.Draft, Actor(Clerk, true, StatusApproved)).Allowed);
+        Assert.False(DocumentStatusPolicy.Check(DocumentAction.Approve, DocumentStatus.Draft, Actor(Clerk, false, StatusApproved)).Allowed);
+        Assert.False(DocumentStatusPolicy.Check(DocumentAction.Approve, DocumentStatus.Approved, Actor(Clerk, true, StatusApproved)).Allowed);
+        Assert.True(DocumentStatusPolicy.Check(DocumentAction.Reject, DocumentStatus.Pending, Actor(Clerk, true, StatusApproved)).Allowed);
+        Assert.False(DocumentStatusPolicy.Check(DocumentAction.Reject, DocumentStatus.Pending, Actor(Approver, false, StatusPending)).Allowed);
     }
 
     [Fact]
     public void PostingAndCancelFollowStatus()
     {
-        Assert.False(DocumentStatusPolicy.Check(DocumentAction.Post, DocumentStatus.Pending, Actor(Clerk, true, StatusPosted)).Allowed);
+        // The posted right takes a draft or pending voucher through the approval to posted.
+        Assert.True(DocumentStatusPolicy.Check(DocumentAction.Post, DocumentStatus.Draft, Actor(Clerk, true, StatusPosted)).Allowed);
+        Assert.True(DocumentStatusPolicy.Check(DocumentAction.Post, DocumentStatus.Pending, Actor(Clerk, true, StatusPosted)).Allowed);
+        Assert.False(DocumentStatusPolicy.Check(DocumentAction.Post, DocumentStatus.Pending, Actor(Clerk, true, StatusApproved)).Allowed);
         Assert.True(DocumentStatusPolicy.Check(DocumentAction.Post, DocumentStatus.Approved, Actor(Clerk, true, StatusPosted)).Allowed);
+        Assert.False(DocumentStatusPolicy.Check(DocumentAction.Post, DocumentStatus.Posted, Actor(Clerk, true, StatusPosted)).Allowed);
         Assert.True(DocumentStatusPolicy.Check(DocumentAction.Cancel, DocumentStatus.Draft, Actor(Clerk, true)).Allowed);
         Assert.False(DocumentStatusPolicy.Check(DocumentAction.Cancel, DocumentStatus.Approved, Actor(Clerk, true)).Allowed);
         Assert.True(DocumentStatusPolicy.Check(DocumentAction.Cancel, DocumentStatus.Approved, Actor(Clerk, true, StatusCancelled)).Allowed);

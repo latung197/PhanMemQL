@@ -2,7 +2,7 @@
 // Core.Application/Common/Permissions/DocumentStatusPolicy.cs: keep the two in step (same rules and
 // messages). The frontend uses it to enable buttons; the backend checks the same rules again.
 import { SubMenuKey, UserProfile } from '../types';
-import { canApproveVoucher, getActionPermission, hasRight, hasStatusRight, RIGHTS } from './permissions';
+import { getActionPermission, hasRight, hasStatusRight, RIGHTS } from './permissions';
 import { translate } from './i18n';
 
 /** Voucher life cycle: Lập → Chờ duyệt → Đã duyệt → Đã ghi sổ, or Hủy. Same names as the backend enum. */
@@ -56,18 +56,24 @@ export function reachesStatus(user: PolicyUser, fn: SubMenuKey, status: Document
 
 /**
  * Whether `user` may perform `action` on a voucher of function `fn` in `status`.
- * isOwner = the user created the voucher. Approve / Reject also need the user to be an approver of the
- * current level; that part is decided by the backend approval API (DocumentApprovalDto.canAct). They need
- * neither "Xem" on the voucher nor VIEW_ALL, so an approver working from an approval screen can act.
+ * isOwner = the user created the voucher. The status rights of the unit decide: approving needs the "Approved" right, posting
+ * the "Posted" right, also on one's own voucher; the approval rules only say whom to notify. Approve / Reject of a pending
+ * voucher need neither "Xem" on the voucher nor VIEW_ALL, so an approver working from an approval screen can act.
  */
 export function checkDocumentAction(user: PolicyUser, fn: SubMenuKey, action: DocumentAction,
   status: DocumentStatus, isOwner: boolean): PolicyDecision {
   const a = getActionPermission(user, fn);
   const has = (code: string) => hasRight(user, fn, code);
+  // Approving is a status right like the others: whoever reaches "Approved" in the unit approves (own vouchers too), a pending
+  // voucher from an approval screen without "Xem" on the voucher, a draft straight away like saving it at Approved.
   if (action === 'Approve' || action === 'Reject') {
-    if (status !== 'Pending') return deny('notPending');
-    if (isOwner) return deny('ownVoucher');
-    return canApproveVoucher(user, fn) ? allow : deny('noApproveRight');
+    const open = status === 'Pending' || (action === 'Approve' && status === 'Draft');
+    if (!open) return deny('notPending');
+    if (status === 'Draft') {
+      if (!a.view) return deny('noViewRight');
+      if (!isOwner && !has(RIGHTS.VIEW_ALL)) return deny('ownOnly');
+    }
+    return reachesStatus(user, fn, 'Approved') ? allow : deny('noApproveRight');
   }
 
   if (!a.view) return deny('noViewRight');
@@ -92,8 +98,10 @@ export function checkDocumentAction(user: PolicyUser, fn: SubMenuKey, action: Do
       if (status !== 'Draft' || !(a.create || a.edit)) return deny('submitDraftOnly');
       return reachesStatus(user, fn, 'Pending') ? allow : deny('noStatusRight');
 
+    // The posted right takes a draft or pending voucher through the approval to posted in one go.
     case 'Post':
-      return status === 'Approved' && reachesStatus(user, fn, 'Posted') ? allow : deny('postApprovedOnly');
+      return (status === 'Draft' || status === 'Pending' || status === 'Approved') && reachesStatus(user, fn, 'Posted')
+        ? allow : deny('postApprovedOnly');
 
     case 'Unpost':
       return status === 'Posted' && hasStatusRight(user, fn, RIGHTS.ST_UNPOST) ? allow : deny('unpostRight');

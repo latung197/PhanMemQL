@@ -36,7 +36,7 @@ const viewDef = query(`select pg_get_viewdef('sys_v_columns'::regclass)`).map(r 
 // ---------------------------------------------------------------------------------------------------- mô tả viết tay
 const G = {
   sys_access: 'Người dùng và phân quyền', sys_config: 'Cài đặt hệ thống', sys_catalog: 'Danh mục hệ thống', sys_flow: 'Phê duyệt, thông báo, nhật ký',
-  inv_catalog: 'Danh mục Kho', inv_doc: 'Chứng từ Kho', inv_ledger: 'Sổ kho và tồn kho', pur_catalog: 'Danh mục Mua hàng', pur_doc: 'Chứng từ Mua hàng', sales_catalog: 'Danh mục Bán hàng', sales_doc: 'Chứng từ Bán hàng', fin_catalog: 'Danh mục Tài chính', tech: 'Kỹ thuật (hạ tầng của khung)'
+  inv_catalog: 'Danh mục Kho', inv_doc: 'Chứng từ Kho', inv_ledger: 'Sổ kho và tồn kho', pur_catalog: 'Danh mục Mua hàng', pur_doc: 'Chứng từ Mua hàng', sales_catalog: 'Danh mục Bán hàng', sales_doc: 'Chứng từ Bán hàng', fin_catalog: 'Danh mục Tài chính', prod_catalog: 'Danh mục Sản xuất', tech: 'Kỹ thuật (hạ tầng của khung)'
 };
 const T = {
   sys_users: [G.sys_access, 'Tài khoản người dùng. Khóa là `user_id`; `user_name` đăng nhập; `password_hash` là băm mật khẩu; `security_version` tăng khi khóa tài khoản hoặc đổi mật khẩu để vô hiệu hóa token cũ; `ma_dvcs` là đơn vị cơ sở mặc định. Nhiều cột `createtime/createid/...` là kiểu cũ (legacy).'],
@@ -48,7 +48,9 @@ const T = {
   sys_user_command: [G.sys_access, 'Quyền **ngoại lệ** của người dùng: mỗi dòng thay thế quyền của vai trò cho đúng một chức năng; hệ thống chỉ lưu phần chênh lệch.'],
   sys_role_right: [G.sys_access, 'Quyền đặc biệt của vai trò, dạng `{chức năng}:{MÃ}` (ví dụ `inv_receipt:VIEW_PRICE`); quyền trạng thái theo đơn vị có đuôi `@DVCS`.'],
   sys_user_right: [G.sys_access, 'Quyền đặc biệt của riêng người dùng: `is_granted` = true cấp thêm, false thu hồi so với vai trò.'],
-  sys_user_company_unit: [G.sys_access, 'Các đơn vị cơ sở mà người dùng được làm việc (đổi đơn vị bằng `POST /api/auth/switch-unit`).'],
+  sys_user_company_unit: [G.sys_access, 'Các đơn vị cơ sở mà người dùng được làm việc (đổi đơn vị bằng `POST /api/auth/switch-unit`), kèm vai trò riêng ở từng đơn vị (`role_id`, trống = vai trò mặc định).'],
+  sys_login_history: [G.sys_access, '**Lịch sử đăng nhập**: mỗi lần đăng nhập, đăng xuất, hết phiên (SUCCESS, WRONG_PASSWORD, UNKNOWN_USER, UNIT_DENIED, BLOCKED, LOGOUT, IDLE_TIMEOUT), tên đã gõ, IP, trình duyệt. Các lần thất bại gần đây của một tên quyết định việc chặn tạm; dọn theo thời hạn của nhật ký thay đổi. Xem `docs/he-thong/bao-mat-dang-nhap.md`.'],
+  sys_password_history: [G.sys_access, 'Mật khẩu cũ (dạng băm) của từng tài khoản, tối đa 24 dòng, để chặn dùng lại N mật khẩu gần nhất theo chính sách bảo mật.'],
   sys_setting: [G.sys_config, 'Cấu hình dạng JSON theo mục (`section`) và đơn vị: mặc định, năm làm việc, hồ sơ doanh nghiệp, định dạng số, ẩn / hiện menu, thời hạn giữ nhật ký... Dùng cho giá trị mà bảng khác không tham chiếu tới.'],
   sys_fiscal_period: [G.sys_config, 'Khóa sổ theo **tháng và đơn vị cơ sở**: tháng đã khóa không lập, sửa, xóa chứng từ có ngày thuộc tháng đó.'],
   sys_voucher_numbering: [G.sys_config, 'Mẫu số chứng từ theo loại chứng từ và đơn vị (có `{DVCS}`, năm, tháng, số thứ tự).'],
@@ -122,7 +124,14 @@ const T = {
   erp_sales_order: [G.sales_doc, 'Đầu **đơn bán hàng** (duyệt, không ghi sổ): khách hàng, kho xuất, địa chỉ và ngày giao, điều khoản, một mã thuế, dự án; tiền hàng / thuế / tổng cộng.'],
   erp_sales_order_line: [G.sales_doc, 'Dòng đơn bán hàng; số lượng đã xuất của một dòng được tính từ các phiếu xuất kho chưa hủy lấy theo dòng này, không lưu.'],
   erp_account: [G.fin_catalog, 'Danh mục **hệ thống tài khoản kế toán** (Thông tư 200) nhiều cấp, dùng chung toàn hệ thống: mã con bắt đầu bằng mã cha, chỉ tài khoản lá mới được hạch toán; mã thuế trỏ tới tài khoản lá thuế GTGT đầu vào / đầu ra.'],
-  erp_purchase_order_line: [G.pur_doc, 'Dòng đơn mua hàng: dòng yêu cầu mua đã đặt, ngày dự kiến nhận của từng dòng.']
+  erp_purchase_order_line: [G.pur_doc, 'Dòng đơn mua hàng: dòng yêu cầu mua đã đặt, ngày dự kiến nhận của từng dòng.'],
+  erp_production_team: [G.prod_catalog, 'Danh mục **tổ sản xuất**.'],
+  erp_production_operation: [G.prod_catalog, 'Danh mục **công đoạn sản xuất**: tên phụ (`name_en`), tổ thực hiện (tùy chọn), cần máy, công đoạn nặng.'],
+  erp_production_process: [G.prod_catalog, 'Danh mục **quy trình sản xuất**: các công đoạn theo thứ tự, ngày hiệu lực từ / đến, các đơn vị cơ sở áp dụng (không có = mọi đơn vị).'],
+  erp_production_process_line: [G.prod_catalog, 'Các bước của quy trình: khóa quy trình + `line_no`, công đoạn của bước.'],
+  erp_production_process_unit: [G.prod_catalog, 'Đơn vị cơ sở áp dụng một quy trình (không có dòng = mọi đơn vị).'],
+  erp_product_structure: [G.prod_catalog, '**Cấu trúc sản phẩm (định mức nguyên vật liệu, BOM)**: một cấu trúc cho mỗi sản phẩm, khóa `code` = mã vật tư thành phẩm (chép sang `material_code` để tham chiếu).'],
+  erp_product_structure_line: [G.prod_catalog, 'Dòng cấu trúc sản phẩm: vật tư thành phần, đơn vị tính (gốc hoặc quy đổi), công đoạn dùng, số lượng, tỷ lệ hao hụt (%). Thành phần có cấu trúc riêng tạo thành cây; vòng lặp bị từ chối.']
 };
 const COMMON = {
   id: 'Khóa chính, tự tăng', code: 'Mã (khóa nghiệp vụ, chữ hoa)', name: 'Tên hiển thị', note: 'Ghi chú', is_active: 'Đang sử dụng (false = ngừng dùng)', sort_order: 'Thứ tự sắp xếp mặc định',
@@ -136,7 +145,7 @@ const COMMON = {
   voucher_type: 'Loại nghiệp vụ của chứng từ', required_date: 'Ngày cần hàng', delivery_date: 'Ngày giao / nhận dự kiến', lot_number: 'Số lô', position: 'Vị trí lưu kho', language: 'Mã ngôn ngữ',
   user_id: 'Mã người dùng (trỏ `sys_users`)', role_id: 'Mã vai trò (trỏ `sys_role`)', menuid0: 'Mã chức năng', description: 'Mô tả', email: 'Email', phone: 'Điện thoại', address: 'Địa chỉ', tax_code: 'Mã số thuế (khác `tax_rate_code`)'
 };
-const GROUP_ORDER = [G.sys_access, G.sys_config, G.sys_catalog, G.sys_flow, G.inv_catalog, G.inv_doc, G.inv_ledger, G.pur_catalog, G.pur_doc, G.sales_catalog, G.sales_doc, G.fin_catalog, G.tech];
+const GROUP_ORDER = [G.sys_access, G.sys_config, G.sys_catalog, G.sys_flow, G.inv_catalog, G.inv_doc, G.inv_ledger, G.pur_catalog, G.pur_doc, G.sales_catalog, G.sales_doc, G.fin_catalog, G.prod_catalog, G.tech];
 
 // ---------------------------------------------------------------------------------------------------- dựng tài liệu
 const esc = s => String(s ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
@@ -261,9 +270,10 @@ L.push('## 7. Các script SQL', '', 'Chạy theo thứ tự tên file trong `Ser
 const scripts = fs.readdirSync(path.join(root, 'ServerService/sql/postgresql')).filter(f => f.endsWith('.sql')).sort();
 const missingScript = [];
 for (const f of scripts) {
-  const key = f.slice(0, 2);
-  if (!SCRIPT_NOTES[key]) missingScript.push(f);
-  L.push(`| \`${f}\` | ${esc(SCRIPT_NOTES[key] || '(chưa mô tả)')} |`);
+  // Two scripts may share a number (55-inventory-reports, 55-production-catalogs): the full name wins over the number.
+  const note = SCRIPT_NOTES[f.replace(/\.sql$/, '')] || SCRIPT_NOTES[f.slice(0, 2)];
+  if (!note) missingScript.push(f);
+  L.push(`| \`${f}\` | ${esc(note || '(chưa mô tả)')} |`);
 }
 if (missingScript.length) console.warn('Script chưa có mô tả trong database-scripts.cjs:', missingScript.join(', '));
 L.push('', '## 8. Kiểm tra cấu trúc bằng test tự động', '',

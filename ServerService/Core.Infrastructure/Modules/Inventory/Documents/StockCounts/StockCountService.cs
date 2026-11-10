@@ -270,10 +270,17 @@ public sealed class StockCountService(CoreContext db, IUnitOfWork unitOfWork, IS
             }
             else if (normalized == "approve")
             {
-                var result = await approvals.ApproveAsync(userId, unitCode, Function, row.Code, new ApprovalActionRequest(null), token);
-                if (result.Status == "APPROVED") { row.Status = "Approved"; row.ApprovedByUserId = userId; }
+                // Approving is a status right: a draft, or every level still open, is approved at once by this user.
+                await approvals.ApproveToEndAsync(userId, unitCode, Function, row.Code, row.Code, token);
+                row.Status = "Approved";
+                row.ApprovedByUserId = userId;
             }
-            else if (normalized == "post") { await PostAsync(row, unitCode, userId, token); }
+            else if (normalized == "post")
+            {
+                // The posted right takes a draft or pending voucher through the approval first.
+                if (row.Status != "Approved") await approvals.ApproveToEndAsync(userId, unitCode, Function, row.Code, row.Code, token);
+                await PostAsync(row, unitCode, userId, token);
+            }
             else if (normalized == "unpost") { await UnpostAsync(row, userId, token); row.Status = "Approved"; }
             else if (normalized == "reopen") { row.Status = "Draft"; row.ApprovedByUserId = null; }
             else row.Status = "Cancelled";

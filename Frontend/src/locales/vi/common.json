@@ -142,9 +142,9 @@
       "Cancelled": "Đã hủy"
     },
     "deny": {
-      "notPending": "Phiếu không ở trạng thái chờ duyệt.",
+      "notPending": "Phiếu không ở trạng thái lập chứng từ hoặc chờ duyệt.",
       "ownVoucher": "Không được tự duyệt phiếu do mình lập.",
-      "noApproveRight": "Không có quyền phê duyệt.",
+      "noApproveRight": "Không có quyền trạng thái \"Đã duyệt\" tại đơn vị cơ sở này.",
       "noViewRight": "Không có quyền xem chức năng này.",
       "ownOnly": "Chỉ được thao tác trên phiếu do mình lập.",
       "noEditRight": "Không có quyền sửa phiếu.",
@@ -153,7 +153,7 @@
       "postedNoEdit": "Phiếu đã ghi sổ; phải bỏ ghi sổ trước khi sửa.",
       "cancelled": "Phiếu đã hủy.",
       "submitDraftOnly": "Chỉ trình duyệt được phiếu đang lập.",
-      "postApprovedOnly": "Chỉ ghi sổ phiếu đã duyệt; cần quyền trạng thái \"Đã ghi sổ\" tại đơn vị này.",
+      "postApprovedOnly": "Cần quyền trạng thái \"Đã ghi sổ\" tại đơn vị này; phiếu chưa ghi sổ và chưa hủy.",
       "unpostRight": "Cần quyền \"Bỏ ghi sổ\" tại đơn vị này.",
       "postedNoCancel": "Phiếu đã ghi sổ; phải bỏ ghi sổ trước khi hủy.",
       "cancelRight": "Cần quyền trạng thái \"Hủy phiếu\" tại đơn vị này.",
@@ -502,6 +502,12 @@
     "noViewRight": "Bạn không có quyền xem chức năng này.",
     "demoReset": "Đã khởi tạo & tái tạo lại toàn bộ dữ liệu mẫu ERP thành công!",
     "restoringSession": "Đang khôi phục phiên đăng nhập...",
+    "idle": {
+      "title": "Sắp đăng xuất",
+      "message": "Bạn không thao tác đã lâu. Hệ thống sẽ tự đăng xuất sau {seconds} giây.",
+      "stay": "Tiếp tục làm việc",
+      "signedOut": "Đã tự đăng xuất vì bạn không thao tác quá lâu."
+    },
     "headers": {
       "inventory": {
         "title": "Phân Hệ Quản Lý Kho Hàng",
@@ -578,6 +584,19 @@
     "footer": "© 2026 S-ERP Enterprise Solution. Bảo mật dữ liệu doanh nghiệp."
   },
   "account": {
+    "forced": {
+      "title": "Cần đổi mật khẩu",
+      "message": "Chào {name}, bạn cần đổi mật khẩu trước khi tiếp tục làm việc (mật khẩu vừa được đặt lại hoặc đã hết hạn).",
+      "logout": "Đăng xuất"
+    },
+    "rules": {
+      "minLength": "Ít nhất {n} ký tự",
+      "letter": "Có ít nhất một chữ cái",
+      "digit": "Có ít nhất một chữ số",
+      "upper": "Có ít nhất một chữ hoa",
+      "special": "Có ít nhất một ký tự đặc biệt",
+      "history": "Không trùng {n} mật khẩu gần nhất"
+    },
     "title": "Tài khoản của tôi",
     "tabProfile": "Thông tin tài khoản",
     "tabPassword": "Đổi mật khẩu",

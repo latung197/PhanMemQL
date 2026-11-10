@@ -7,11 +7,14 @@ description: Thêm một danh mục mới (master data) chạy thật trên back
 
 Quy trình chuẩn để thêm một danh mục **mà không phải đọc cả dự án**. Chỉ đọc đúng các file nêu dưới đây.
 
+**Làm nhanh trước:** danh mục phẳng (mã, tên và các cột chữ / ghi chú / số / số nguyên / đúng-sai / ngày / mã trỏ danh mục khác) thì viết file mô tả JSON rồi chạy `cd Frontend && npm run tao-danh-muc -- <mo-ta.json> --thu` (xem trước), bỏ `--thu` để tạo: script sinh 8 tệp và chèn mọi chỗ đăng ký (dòng `[tao-danh-muc]`), tự sao lưu để `--hoan-tac <mã>`. Khóa của file mô tả: `docs/phat-trien/them-danh-muc-nhanh.md`, mẫu `docs/phat-trien/mau-danh-muc/vi-du-thuong-hieu.json`. Sau đó vẫn làm Bước 4 (chạy SQL, build, test, thử) và phần riêng của danh mục (luật trong `ApplyAsync`, `Consumers` của tra cứu). Chỉ làm tay theo các bước dưới khi danh mục không phẳng (lưới dòng con, khóa ghép, cây).
+
 - Code mẫu đầy đủ (ví dụ nhà cung cấp) nằm trong `docs/phat-trien/them-danh-muc.md`; số mục (§2.5...) dưới đây là mục trong file đó.
 - Mẫu đang chạy thật: đơn vị tính (có bản dịch), quy đổi đơn vị tính (đơn giản hơn), kho (có danh sách đơn vị cơ sở chọn nhiều, bộ lọc riêng, cột xuất lấy từ bảng con), ngôn ngữ (mã chữ thường, một dòng mặc định), ngoại tệ (một đồng tiền hạch toán duy nhất cùng giao dịch), phòng ban (chép tên mới sang người dùng). Mọi danh mục đã chuyển sang khung `CatalogService`; dùng khi cần xem code thực tế:
   - backend `ServerService/**/Inventory/Categories/uom/` và `.../uom-conversions/`;
   - SQL `ServerService/sql/postgresql/13-inventory-uom.sql`, `15-inventory-uom-conversions.sql`;
   - frontend `Frontend/src/modules/inventory/categories/uom/` và `.../uom-conversions/`.
+- Dạng đặc biệt (Phần 5 của tài liệu): danh sách chọn nhiều (5.1, mẫu kho), khóa ghép (5.2, mẫu tỷ giá), **lưới dòng con sửa cùng form** (5.3, mẫu bảng giá bán `PriceListService`: `Lines = null` giữ dòng, `GET {code}/lines`, `AfterApplyAsync`), **danh mục không vừa khung** như cây BOM (5.4, mẫu `ProductStructureService`: viết tay nhưng vẫn `RequirePermission` mọi action, `ExpectVersion`, `EnsureReferencesExistAsync`, `EnsureNotInUseAsync`, nhật ký dòng). Thử khung trước, chỉ viết tay khi dữ liệu không phẳng.
 - **Khung dùng chung** (không viết lại, xem `docs/phat-trien/them-danh-muc.md` §0.3): backend `CatalogService`, `CatalogControllerBase`, `SortMap`, `IExcelExporter`, `CatalogBatch`; frontend `createCatalogApi`, `CatalogScreen`. Một danh mục chỉ **khai báo** phần riêng: cột sắp xếp, trường tìm kiếm, kiểm tra dữ liệu, cột xuất Excel.
 
 ## Quy tắc làm việc
@@ -100,7 +103,7 @@ Bắt buộc:
 1. Dừng backend nếu đang chạy (DLL bị khóa), rồi:
    ```bash
    cd /d/TungLV/Project/PhanMemQL/ServerService && dotnet build Core.sln && dotnet test tests/Core.Tests/Core.Tests.csproj
-   cd /d/TungLV/Project/PhanMemQL/Frontend && npm run lint && npm run check-i18n
+   cd /d/TungLV/Project/PhanMemQL/Frontend && npm run lint && npm run check-i18n && npm run check-menu
    ```
    Lint phải sạch. `check-i18n` hiện còn các lỗi cũ không liên quan (chữ gõ cứng trong Cài đặt, khóa `function.*` chỉ có ở bản en); chỉ cần không thêm lỗi mới.
 2. Chạy `backend` và `frontend` bằng preview (`.claude/launch.json`), đăng nhập `admin` / `admin`. Mật khẩu admin đặt lại mỗi lần backend khởi động, nên token cũ mất hiệu lực.

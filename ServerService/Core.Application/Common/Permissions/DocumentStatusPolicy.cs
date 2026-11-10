@@ -84,18 +84,28 @@ public sealed record PolicyDecision(bool Allowed, string? Reason = null)
 /// Which document actions are allowed in which status. Voucher services call Check before changing a
 /// document; the frontend mirrors these rules to enable buttons (Frontend/src/utils/documentPolicy.ts,
 /// keep both in step). Enum names travel as strings in JSON ("Draft", "Pending"...).
-/// Approve / Reject also require the user to be an approver of the current level (DocumentApprovalService); they
-/// need neither "Xem" on the voucher nor VIEW_ALL, so an approver working from an approval screen can act.
+/// The status rights of the voucher's unit decide (granted up to a status, a later one includes the earlier steps): approving needs
+/// the "Approved" right, posting the "Posted" right, also on one's own voucher; the approval rules only say whom to notify. Approve /
+/// Reject of a pending voucher need neither "Xem" on the voucher nor VIEW_ALL, so an approver working from an approval screen can act.
 /// </summary>
 public static class DocumentStatusPolicy
 {
     public static PolicyDecision Check(DocumentAction action, DocumentStatus status, DocumentActor actor)
     {
         var a = actor.Actions;
+        // Approving is a status right like the others: whoever reaches "Approved" in the voucher's unit approves (own vouchers too),
+        // a pending voucher from an approval screen without "Xem" on the voucher, a draft straight away like saving it at Approved.
         if (action is DocumentAction.Approve or DocumentAction.Reject)
-            return status != DocumentStatus.Pending ? PolicyDecision.Deny("policy.notPending")
-                : actor.IsOwner ? PolicyDecision.Deny("policy.ownVoucher")
-                : actor.CanApprove ? PolicyDecision.Allow : PolicyDecision.Deny("policy.noApproveRight");
+        {
+            var open = status == DocumentStatus.Pending || (action == DocumentAction.Approve && status == DocumentStatus.Draft);
+            if (!open) return PolicyDecision.Deny("policy.notPending");
+            if (status == DocumentStatus.Draft)
+            {
+                if (!a.View) return PolicyDecision.Deny("policy.noViewRight");
+                if (!actor.IsOwner && !actor.Has(SpecialRightCatalog.ViewAll)) return PolicyDecision.Deny("policy.ownOnly");
+            }
+            return actor.Reaches(DocumentStatus.Approved) ? PolicyDecision.Allow : PolicyDecision.Deny("policy.noApproveRight");
+        }
 
         if (!a.View) return PolicyDecision.Deny("policy.noViewRight");
         if (!actor.IsOwner && !actor.Has(SpecialRightCatalog.ViewAll))
@@ -120,8 +130,9 @@ public static class DocumentStatusPolicy
                 ? PolicyDecision.Deny("policy.submitDraftOnly")
                 : actor.Reaches(DocumentStatus.Pending) ? PolicyDecision.Allow : PolicyDecision.Deny("policy.noStatusRight"),
 
-            DocumentAction.Post => status == DocumentStatus.Approved && actor.Reaches(DocumentStatus.Posted)
-                ? PolicyDecision.Allow : PolicyDecision.Deny("policy.postApprovedOnly"),
+            // The posted right takes a draft or pending voucher through the approval to posted in one go.
+            DocumentAction.Post => status is DocumentStatus.Draft or DocumentStatus.Pending or DocumentStatus.Approved
+                && actor.Reaches(DocumentStatus.Posted) ? PolicyDecision.Allow : PolicyDecision.Deny("policy.postApprovedOnly"),
 
             DocumentAction.Unpost => status == DocumentStatus.Posted && actor.Has(SpecialRightCatalog.StatusUnpost)
                 ? PolicyDecision.Allow : PolicyDecision.Deny("policy.unpostRight"),
@@ -157,7 +168,7 @@ public static class DocumentStatusPolicy
 
 /// <summary>
 /// The status a voucher is saved at. A user may save straight at any status their rights reach (Draft always; Pending with
-/// the right to add / change; Approved with the "Duyệt" right and being an approver of every level; Posted with both and the
+/// the right to add / change; Approved with the "Approved" status right of the unit (the approval rules only name whom to notify); Posted with the
 /// POST right), the voucher then goes through those steps in the same transaction, approvals and ledger included.
 /// </summary>
 public static class VoucherTargetStatus

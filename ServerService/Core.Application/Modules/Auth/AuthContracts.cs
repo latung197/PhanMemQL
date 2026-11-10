@@ -52,7 +52,7 @@ public sealed record LoginHistoryQuery(int Page = 1, int PageSize = 50, string? 
 public interface ILoginHistoryService
 {
     Task RecordAsync(string userName, int? userId, string? unitCode, string result, CancellationToken ct);
-    /// <summary>Times of the wrong passwords of a user name inside the window and after its last successful sign-in.</summary>
+    /// <summary>Times of the failed attempts (wrong password or unknown user name) of a user name inside the window and after its last successful sign-in.</summary>
     Task<IReadOnlyList<DateTime>> FailuresSinceLastSuccessAsync(string userName, TimeSpan window, CancellationToken ct);
     Task<Core.Application.Common.Paging.PagedResult<LoginHistoryDto>> QueryAsync(int actorUserId, LoginHistoryQuery query, CancellationToken ct);
 }

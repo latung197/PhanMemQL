@@ -80,10 +80,10 @@ Tổng giá trị phiếu = tổng (số lượng × đơn giá) của các dòn
 |---|---|---|
 | Lập chứng từ | luôn có | chỉ lưu |
 | Chờ duyệt | quyền Thêm hoặc Sửa | lưu rồi gửi duyệt như bấm Trình duyệt (dựng các cấp, thông báo người duyệt) |
-| Đã phê duyệt | quyền **Duyệt** và là người duyệt của **mọi cấp** theo quy tắc phê duyệt (quản trị viên luôn đạt) | lưu rồi ghi một vòng duyệt, mỗi cấp một dòng đã duyệt bởi chính người lưu; nhật ký ghi gửi và duyệt, ghi chú "Lưu thẳng ở trạng thái đã duyệt…" |
+| Đã phê duyệt | quyền trạng thái `ST_APPROVED` của đơn vị (không cần cột Duyệt hay có tên trong quy tắc phê duyệt) | lưu rồi ghi một vòng duyệt, mỗi cấp một dòng đã duyệt bởi chính người lưu; nhật ký ghi gửi và duyệt, ghi chú "Lưu thẳng ở trạng thái đã duyệt…" |
 | Chuyển sổ kho | như Đã phê duyệt **cộng** quyền trạng thái `ST_POSTED` | lưu, duyệt rồi ghi sổ |
 
-Tất cả chạy trong **một transaction**: bước nào bị từ chối (thiếu quyền, không phải người duyệt cấp nào đó, không đủ tồn, kỳ đã khóa) thì **cả lần lưu bị hủy**, phiếu không bao giờ bị dở dang. Sửa một phiếu nháp rồi lưu ở trạng thái cao hơn cũng được. API: thêm `"targetStatus": "Pending" | "Approved" | "Posted"` vào nội dung lập / sửa phiếu. Nút Duyệt trên phiếu của người khác vẫn không cho tự duyệt phiếu mình lập; chỉ lưu thẳng ở Đã phê duyệt mới cho người lập tự duyệt, nên **ai không nên tự duyệt thì đừng cấp quyền Duyệt**.
+Tất cả chạy trong **một transaction**: bước nào bị từ chối (thiếu quyền, không đủ tồn, kỳ đã khóa) thì **cả lần lưu bị hủy**, phiếu không bao giờ bị dở dang. Sửa một phiếu nháp rồi lưu ở trạng thái cao hơn cũng được. API: thêm `"targetStatus": "Pending" | "Approved" | "Posted"` vào nội dung lập / sửa phiếu. Nút Duyệt và nút Ghi sổ trên danh sách theo cùng luật: ai có `ST_APPROVED` duyệt được (kể cả phiếu mình lập, phiếu nháp hay phiếu chờ duyệt), ai có `ST_POSTED` ghi sổ được từ Lập / Chờ duyệt / Đã duyệt; nên **ai không nên tự duyệt thì đừng cấp `ST_APPROVED`** (xem `docs/he-thong/trang-thai-chung-tu.md`).
 
 **In phiếu nhập kho** (nút máy in ở từng dòng và nút "In phiếu" trong form, cần quyền In): có **hai mẫu** A4, in từ cửa sổ in của trình duyệt (lưu được thành PDF):
 
@@ -118,7 +118,7 @@ Ghi chú: bộ quy tắc chung cho phép sửa phiếu đã duyệt nếu có qu
 Quy tắc chung (bộ `DocumentStatusPolicy`, có bản sao ở frontend `utils/documentPolicy.ts`, hai bên được kiểm bằng cùng một bộ 34 ca thử):
 
 - Mọi thao tác trừ Duyệt / Từ chối cần quyền **Xem** chức năng; người không có `VIEW_ALL` chỉ thao tác trên phiếu mình lập.
-- **Không được tự duyệt phiếu do mình lập** ("Không được tự duyệt phiếu do mình lập").
+- **Duyệt là quyền trạng thái**: người có `ST_APPROVED` của đơn vị duyệt được, kể cả phiếu mình lập; thiếu quyền thì báo "Không có quyền trạng thái "Đã duyệt" tại đơn vị cơ sở của phiếu."
 - Phiếu đang chờ duyệt không sửa được: phải **Rút lại** (hoặc bị Từ chối) để về Lập chứng từ rồi mới sửa. Hủy phiếu đang chờ duyệt cũng phải rút lại trước.
 - Phiếu đã ghi sổ phải **Bỏ ghi sổ** trước khi sửa hoặc hủy.
 
@@ -203,7 +203,7 @@ Danh sách phiếu không tải hết một lần: `GET /` nhận `VoucherListQu
 | Kỳ tháng MM/YYYY của đơn vị … đã khóa sổ | Ngày chứng từ nằm trong tháng đã khóa | Đổi ngày hoặc mở khóa ở Cài đặt › Năm tài chính & khóa sổ |
 | Kho … không dành cho đơn vị cơ sở … | Kho không thuộc / không dùng chung cho đơn vị | Chọn kho khác, hoặc thêm đơn vị vào danh sách "Đơn vị cơ sở sử dụng" của kho |
 | Chưa có tỷ giá … | Phiếu ngoại tệ nhưng chưa khai tỷ giá | Khai ở Cài đặt › Tỷ giá |
-| Không được tự duyệt phiếu do mình lập | Người lập bấm Duyệt | Nhờ người khác duyệt |
+| Không có quyền trạng thái "Đã duyệt" tại đơn vị cơ sở của phiếu | Bấm Duyệt / Từ chối khi thiếu `ST_APPROVED` ở đơn vị của phiếu | Cấp `ST_APPROVED` cho đơn vị, hoặc nhờ người có quyền duyệt |
 | Vật tư X không có trong danh mục vật tư | Mã vật tư chưa khai | Thêm ở Danh mục vật tư |
 | Vật tư X theo dõi theo lô nên phải nhập số lô | Thiếu số lô | Nhập số lô |
 | Vật tư X theo dõi theo vị trí… | Thiếu vị trí | Nhập mã vị trí đúng kho của phiếu |

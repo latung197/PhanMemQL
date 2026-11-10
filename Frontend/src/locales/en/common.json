@@ -142,9 +142,9 @@
       "Cancelled": "Cancelled"
     },
     "deny": {
-      "notPending": "The voucher is not waiting for approval.",
+      "notPending": "The voucher is neither a draft nor waiting for approval.",
       "ownVoucher": "You cannot approve a voucher you created.",
-      "noApproveRight": "You have no approval right.",
+      "noApproveRight": "You do not hold the \"Approved\" status right in this unit.",
       "noViewRight": "You have no right to view this function.",
       "ownOnly": "You may only work on vouchers you created.",
       "noEditRight": "You have no right to edit vouchers.",
@@ -153,7 +153,7 @@
       "postedNoEdit": "The voucher is posted; unpost it before editing.",
       "cancelled": "The voucher is cancelled.",
       "submitDraftOnly": "Only draft vouchers can be submitted for approval.",
-      "postApprovedOnly": "Only approved vouchers can be posted; the \"Posted\" status right is required in this unit.",
+      "postApprovedOnly": "The \"Posted\" status right of this unit is required, and the voucher must be neither posted nor cancelled.",
       "unpostRight": "The \"Unpost\" right is required in this unit.",
       "postedNoCancel": "The voucher is posted; unpost it before cancelling.",
       "cancelRight": "The \"Cancel vouchers\" status right is required in this unit.",
@@ -502,6 +502,12 @@
     "noViewRight": "You have no right to view this function.",
     "demoReset": "The ERP demo data has been rebuilt!",
     "restoringSession": "Restoring your session...",
+    "idle": {
+      "title": "Signing out soon",
+      "message": "You have been inactive for a while. You will be signed out in {seconds} seconds.",
+      "stay": "Keep working",
+      "signedOut": "You were signed out because you were inactive for too long."
+    },
     "headers": {
       "inventory": {
         "title": "Inventory Management",
@@ -578,6 +584,19 @@
     "footer": "© 2026 S-ERP Enterprise Solution. Enterprise data security."
   },
   "account": {
+    "forced": {
+      "title": "Password change required",
+      "message": "Hello {name}, please change your password before you continue (it was just reset or has expired).",
+      "logout": "Sign out"
+    },
+    "rules": {
+      "minLength": "At least {n} characters",
+      "letter": "At least one letter",
+      "digit": "At least one digit",
+      "upper": "At least one upper-case letter",
+      "special": "At least one special character",
+      "history": "Not one of the last {n} passwords"
+    },
     "title": "My account",
     "tabProfile": "Account information",
     "tabPassword": "Change password",

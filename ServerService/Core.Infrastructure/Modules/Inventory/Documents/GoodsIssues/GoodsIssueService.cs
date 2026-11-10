@@ -167,6 +167,13 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
             await EnsureActionAsync(userId, row, DocumentAction.Edit, ct);
             if (row.Status != "Draft") throw new BusinessRuleException("issue.editDraftOnly");
         }
+        // Someone who may not see prices got 0 in the form: keep the prices already saved (matched by kind, line and material).
+        if (!await permissions.HasRightAsync(userId, Function, SpecialRightCatalog.ViewPrice, ct))
+            request = request with
+            {
+                Items = KeepPrices(request.Items, row.Lines, "ITEM"),
+                MaterialItems = request.MaterialItems is null ? null : KeepPrices(request.MaterialItems, row.Lines, "MATERIAL")
+            };
         await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
         var check = await ValidateAsync(unitCode, request, id, ct);
         await ProjectChecks.EnsureAsync(db, request.ProjectCode, row.ProjectCode, ct);
@@ -233,16 +240,15 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
             }
             else if (normalized == "approve")
             {
-                var result = await approvals.ApproveAsync(userId, unitCode, Function, row.Code,
-                    new ApprovalActionRequest(null), token);
-                if (result.Status == "APPROVED")
-                {
-                    row.Status = "Approved";
-                    row.ApprovedByUserId = userId;
-                }
+                // Approving is a status right: a draft, or every level still open, is approved at once by this user.
+                await approvals.ApproveToEndAsync(userId, unitCode, Function, row.Code, row.Code, token);
+                row.Status = "Approved";
+                row.ApprovedByUserId = userId;
             }
             else if (normalized == "post")
             {
+                // The posted right takes a draft or pending voucher through the approval first.
+                if (row.Status != "Approved") await approvals.ApproveToEndAsync(userId, unitCode, Function, row.Code, row.Code, token);
                 await ledger.PostAsync(userId, await ToPostingAsync(row, unitCode, token), token);
                 row.Status = "Posted";
             }
@@ -601,6 +607,18 @@ public sealed class GoodsIssueService(CoreContext db, IUnitOfWork unitOfWork, IS
         row.Note = request.Note?.Trim();
         row.ProjectCode = ProjectChecks.Normalize(request.ProjectCode);
         row.TotalValue = decimal.Round(request.Items.Sum(x => x.Quantity * x.UnitPrice) * check.Rate, 2);
+    }
+
+    /// <summary>The saved price of the line at the same place of the same kind when it is still the same material; 0 for a new line.</summary>
+    private static List<SaveGoodsIssueLine> KeepPrices(IEnumerable<SaveGoodsIssueLine> items, IEnumerable<GoodsIssueLine> savedLines, string kind)
+    {
+        var saved = savedLines.Where(x => x.Kind == kind).OrderBy(x => x.LineNo).ToList();
+        return items.Select((item, index) =>
+        {
+            var line = index < saved.Count ? saved[index] : null;
+            var same = line is not null && string.Equals(line.MaterialCode, item.MaterialCode?.Trim(), StringComparison.OrdinalIgnoreCase);
+            return item with { UnitPrice = same ? line!.UnitPrice : 0 };
+        }).ToList();
     }
 
     private static List<GoodsIssueLine> Lines(SaveGoodsIssueRequest request, long id, IReadOnlyDictionary<string, string> names)

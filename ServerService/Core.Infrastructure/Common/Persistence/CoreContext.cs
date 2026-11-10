@@ -153,6 +153,7 @@ public sealed class CoreContext(DbContextOptions<CoreContext> options, ICurrentU
     public DbSet<ProductionProcessLine> ProductionProcessLines => Set<ProductionProcessLine>();
     public DbSet<ProductStructure> ProductStructures => Set<ProductStructure>();
     public DbSet<ProductStructureLine> ProductStructureLines => Set<ProductStructureLine>();
+    // [tao-danh-muc] DbSet của danh mục mới: thêm ngay trên dòng này.
     public DbSet<PurchaseOrderLine> PurchaseOrderLines => Set<PurchaseOrderLine>();
     public DbSet<PurchaseInvoiceLine> PurchaseInvoiceLines => Set<PurchaseInvoiceLine>();
 

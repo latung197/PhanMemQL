@@ -7,6 +7,7 @@ import { PaymentVoucherForm } from './PaymentVoucherForm';
 import { FinanceReportView } from './FinanceReportView';
 import { ModuleHeader, ModuleNavGroup } from '../../components/layout/ModuleHeader';
 import { FolderTree, ListTree, FileText, PieChart, DollarSign, CreditCard, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+// [tao-danh-muc] Import màn của danh mục mới: thêm ngay trên dòng này.
 
 interface FinanceModuleProps {
   subKey: SubMenuKey;
@@ -57,6 +58,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({
 
   const renderActiveView = () => {
     switch (subKey) {
+      // [tao-danh-muc] Màn của danh mục mới: thêm case 'mã chức năng': return <...View currentUser={currentUser} />; ngay trên dòng này.
       case 'fin_account_cat':
         return <AccountCategoryView currentUser={currentUser} />;
       case 'fin_categories':

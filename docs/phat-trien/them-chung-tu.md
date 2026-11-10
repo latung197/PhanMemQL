@@ -15,8 +15,11 @@ Nội dung:
 7. [Frontend](#7-frontend)
 8. [Kiểm tra](#8-kiểm-tra)
 9. [Tài liệu](#9-tài-liệu)
-10. [Những lỗi hay gặp](#10-những-lỗi-hay-gặp)
-11. [Danh sách việc phải làm (tóm tắt)](#11-danh-sách-việc-phải-làm-tóm-tắt)
+10. [Chứng từ nối tiếp và chứng từ không ghi sổ](#10-chứng-từ-nối-tiếp-và-chứng-từ-không-ghi-sổ)
+11. [Những lỗi hay gặp](#11-những-lỗi-hay-gặp)
+12. [Danh sách việc phải làm (tóm tắt)](#12-danh-sách-việc-phải-làm-tóm-tắt)
+
+Làm bằng trợ lý: lệnh `/them-chung-tu` (skill `.claude/skills/them-chung-tu/SKILL.md`) đi theo đúng các bước của tài liệu này.
 
 ---
 
@@ -92,7 +95,7 @@ Trigger xóa dòng chi tiết cùng đầu phiếu, từ chối nếu phiếu c�
 
 - `<Ten>LineDto`, `<Ten>Dto` (kèm `Version`), `Save<Ten>Line`, `Save<Ten>Request`.
 - `Save<Ten>Request` kết thúc bằng `uint? Version = null, string? TargetStatus = null`: `Version` cho chống ghi đè, `TargetStatus` để lưu thẳng ở trạng thái mà quyền của người dùng cho phép (mục 5.3).
-- Giao diện `I<Ten>Service`: `GetAll`, `GetOptions`, `Get`, `Create`, `Update`, `ChangeStatus` (nhận `action` là chuỗi), `Reject`, `Delete`.
+- Giao diện `I<Ten>Service`: `ListAsync` (một trang, nhận `VoucherListQuery`, trả `PagedResult<Dto>`), `ExportAsync` (cùng bộ lọc, trả `ExportFile`), `GetOptions`, `Get`, `Create`, `Update`, `ChangeStatus` (nhận thao tác là chuỗi, gồm cả `reopen`), `Reject`, `Delete`. **Không** có hàm trả toàn bộ phiếu (`GetAll` kiểu cũ): danh sách luôn phân trang ở máy chủ (mục 5.4).
 
 ---
 
@@ -131,10 +134,10 @@ Quy tắc đặt khóa thông báo: dùng tiền tố riêng của chứng từ 
 
 ### 5.1. Khung các hàm
 
-- **`GetAll`**: lọc theo đơn vị; không có `VIEW_ALL` thì chỉ phiếu mình lập. Người không có `VIEW_PRICE` nhận giá bằng 0 (backend **không** gửi giá về).
+- **`ListAsync` / `ExportAsync`**: lọc theo đơn vị; không có `VIEW_ALL` thì chỉ phiếu mình lập. Người không có `VIEW_PRICE` nhận giá bằng 0 (backend **không** gửi giá về) và không sắp xếp được theo cột tiền. Chi tiết mục 5.4.
 - **`Create`**: kiểm quyền `Create` → `ValidateAsync` (khóa sổ, kho, tiền tệ, tỷ giá, dòng, danh mục) → trong một transaction: lưu đầu phiếu, cấp số, lưu dòng, `audit.Attach`.
-- **`Update`**: chỉ khi **Lập chứng từ**; kiểm khóa sổ cả ngày cũ và mới; `ExpectVersion`; xóa dòng cũ, thêm dòng mới.
-- **`ChangeStatus`**: `submit`, `approve`, `post`, `unpost`, `cancel`, `withdraw`; mỗi thao tác qua `EnsureActionAsync` (policy theo trạng thái và quyền) rồi chạy trong một transaction.
+- **`Update`**: chỉ khi **Lập chứng từ**; kiểm khóa sổ cả ngày cũ và mới; `ExpectVersion`; xóa dòng cũ, thêm dòng mới. Người sửa không có `VIEW_PRICE` (form nhận giá 0) thì **giữ giá đã lưu** trước khi kiểm và lưu (`KeepPrices`, mục 11).
+- **`ChangeStatus`**: `submit`, `approve`, `post`, `unpost`, `cancel`, `withdraw`, `reopen`; mỗi thao tác qua `EnsureActionAsync` (policy theo trạng thái và quyền) rồi chạy trong một transaction. `reopen` xem mục 5.5.
 - **`Delete`**: chỉ phiếu Lập chứng từ.
 - **Đầu `ChangeStatus` và `Reject`**: gọi `PermissionGate.EnsureTouchAsync(permissions, userId, Function, ct)` **trước khi tìm phiếu**: người không có quyền gì với chức năng nhận 403 dù id có hay không, nên không dò được id nào tồn tại (404 với id không có, 403 với id có). Quyền cụ thể trên phiếu vẫn do `DocumentStatusPolicy` quyết định sau đó.
 
@@ -153,13 +156,70 @@ Quy trình duyệt vẫn còn, nhưng người có quyền tới trạng thái n
 | Trạng thái muốn lưu | Điều kiện | Việc thực hiện |
 |---|---|---|
 | Lập chứng từ | luôn được | chỉ lưu |
-| Chờ duyệt | quyền Thêm hoặc Sửa | `IDocumentApprovalService.SubmitAsync` như bấm Trình duyệt (dựng các cấp, thông báo người duyệt) |
-| Đã duyệt | quyền **Duyệt** và là người duyệt của **mọi cấp** theo quy tắc (quản trị viên luôn đạt) | `EnsureCanApproveDirectAsync` rồi `ApproveDirectAsync`: ghi một vòng duyệt, mỗi cấp một dòng đã duyệt bởi chính người này, ghi nhật ký gửi và duyệt |
-| Đã ghi sổ | như Đã duyệt **cộng** quyền đặc biệt `POST` (kiểm trước khi lưu) | ghi sổ như bấm Ghi sổ |
+| Chờ duyệt | quyền Thêm hoặc Sửa, quyền trạng thái `ST_PENDING` của đơn vị, bước Chờ duyệt đang bật ở đơn vị | `IDocumentApprovalService.SubmitAsync` như bấm Trình duyệt (dựng các cấp, thông báo người duyệt) |
+| Đã duyệt | quyền `ST_APPROVED` của đơn vị (không cần cột Duyệt, không cần có tên trong quy tắc) | `EnsureCanApproveDirectAsync` rồi `ApproveDirectAsync` (đơn vị tắt Chờ duyệt: `ApproveWithoutFlowAsync`): ghi một vòng duyệt, mỗi cấp một dòng đã duyệt bởi chính người này, ghi nhật ký gửi và duyệt |
+| Đã ghi sổ | như Đã duyệt **cộng** quyền `ST_POSTED` của đơn vị (kiểm trước khi lưu) | ghi sổ như bấm Ghi sổ |
 
-Một bước từ chối (thiếu quyền, không phải người duyệt cấp nào đó, tồn không đủ, kỳ đã khóa) thì **cả lần lưu bị hủy**: không bao giờ để phiếu dở dang. Chứng từ mới phải gọi cùng khung này (đã có sẵn trong `GoodsReceiptService` và `GoodsIssueService`: `EnsureTargetAllowedAsync`, `AdvanceAsync`).
+Quyền trạng thái cấp **theo đơn vị cơ sở** (`{chức năng}:ST_POSTED@DVCS01`) và quyền của bước sau bao gồm bước trước (`DocumentActor.Reaches`). Chi tiết: [trang-thai-chung-tu.md](../he-thong/trang-thai-chung-tu.md).
 
-Ngoại lệ có chủ ý so với luồng thường: nút Duyệt không cho tự duyệt phiếu mình lập, nhưng lưu thẳng ở Đã duyệt thì người lập có quyền duyệt (và là người duyệt của mọi cấp) tự duyệt được. Đó là hệ quả của việc "quyền quyết định": ai không nên tự duyệt thì **đừng cấp quyền Duyệt** cho họ.
+Một bước từ chối (thiếu quyền, tồn không đủ, kỳ đã khóa) thì **cả lần lưu bị hủy**: không bao giờ để phiếu dở dang. Chứng từ mới phải gọi cùng khung này (đã có sẵn trong `GoodsReceiptService` và `GoodsIssueService`: `EnsureTargetAllowedAsync`, `AdvanceAsync`).
+
+**Duyệt và ghi sổ theo quyền trạng thái** (cùng luật cho nút trên danh sách và lưu thẳng): ai có `ST_APPROVED` ở đơn vị của phiếu thì duyệt được, kể cả phiếu mình lập, phiếu Chờ duyệt (mọi cấp còn lại duyệt một lần) hay phiếu Lập (duyệt thẳng); ai có `ST_POSTED` thì ghi sổ được từ Lập / Chờ duyệt / Đã duyệt. Trong `ChangeStatusAsync` của dịch vụ: nhánh `approve` gọi `approvals.ApproveToEndAsync(...)` rồi đặt `Approved`; nhánh `post` gọi `ApproveToEndAsync` trước nếu phiếu chưa Đã duyệt, rồi ghi sổ. Quy tắc phê duyệt chỉ chọn người được báo khi trình. Ai không nên tự duyệt thì **đừng cấp `ST_APPROVED`** cho họ. Chi tiết: [trang-thai-chung-tu.md](../he-thong/trang-thai-chung-tu.md), mục "Duyệt và ghi sổ theo quyền trạng thái".
+
+### 5.4. Danh sách phân trang và xuất Excel ở máy chủ
+
+Danh sách phiếu **không bao giờ tải hết về trình duyệt**: máy chủ lọc, sắp xếp và cắt trang; nút Xuất Excel cũng do máy chủ làm từ **mọi dòng** bộ lọc để lại (không chỉ trang đang xem). Mẫu: `SalesOrderService.cs` (`FilterAsync`, `ListAsync`, `ExportAsync`) và `SalesOrdersController.cs`.
+
+**Truy vấn chung `VoucherListQuery`** (`Core.Application/Common/Paging/VoucherListQuery.cs`), dùng cho mọi phiếu: `page`, `pageSize` (tối đa 200), `sort`, `dir`, `search` (không dấu), và các bộ lọc `status`, `warehouse`, `voucherType`, `code` (một phần mã, hoặc nhiều mã đầy đủ cách nhau dấu phẩy: `CodeParts`), `from`, `to`, `department`, `supplier`, `customer`, `project`. `StatusFilter` từ chối trạng thái lạ (`paging.statusInvalid`). Phiếu mới cần bộ lọc chưa có thì **thêm tham số vào record này** (tùy chọn, mặc định `null`), không tạo truy vấn riêng.
+
+Trong dịch vụ:
+
+```csharp
+private static readonly SortMap<Ten> SortColumns = SortMap<Ten>.By(x => x.Id, "date", defaultDescending: true)
+    .Add("date", x => x.DocumentDate).Add("code", x => x.Code).Add("status", x => x.Status)
+    .Add("totalValue", x => x.TotalValue).AddRecordStamps();   // khóa phụ duy nhất = Id
+
+private async Task<IQueryable<Ten>> FilterAsync(int userId, string unitCode, VoucherListQuery query, CancellationToken ct)
+{
+    var rows = db.Tens.AsNoTracking().Where(x => x.UnitCode == unitCode);
+    if (!await permissions.HasRightAsync(userId, Function, SpecialRightCatalog.ViewAll, ct)) rows = rows.Where(x => x.CreatedBy == userId);
+    if (query.StatusFilter is { } status) { var text = status.ToString(); rows = rows.Where(x => x.Status == text); }
+    // ... warehouse, from, to, code (CodeParts), search: PagingExtensions.ContainsPattern + SearchFunctions.Matches
+    //     trên số phiếu, ghi chú, đối tác, kho, và x.Lines.Any(mã / tên vật tư)
+    return rows;
+}
+
+public async Task<PagedResult<TenDto>> ListAsync(int userId, string unitCode, VoucherListQuery query, CancellationToken ct)
+{
+    var canSeePrice = await permissions.HasRightAsync(userId, Function, SpecialRightCatalog.ViewPrice, ct);
+    EnsureSortAllowed(query, canSeePrice);                 // không có VIEW_PRICE thì không sắp theo cột tiền
+    var page = await (await FilterAsync(userId, unitCode, query, ct)).ToPagedAsync(query, SortColumns, ct);
+    // đọc dòng của các phiếu trên trang bằng MỘT truy vấn, rồi dựng DTO
+}
+```
+
+`ExportAsync` dùng **cùng** `FilterAsync`: kiểm thêm quyền Xuất (`EnsureAllowedAsync(..., PermissionAction.Export)`), đếm trước và từ chối khi quá `PagingLimits.MaxExportRows` (`export.tooMany`), dựng cột `ExportColumn<T>` với tiêu đề là khóa `export.<loai>.*` (cột tiền chỉ khi có `VIEW_PRICE`, tên trạng thái lấy theo đơn vị qua `IVoucherStatusService`), ghi `excel.Write("export.<loai>.sheet", ...)`, rồi ghi nhật ký `AuditActions.Export` kèm bộ lọc. `audit.RecordAsync` chỉ **thêm** dòng vào context: phải gọi `db.SaveChangesAsync` sau đó.
+
+Controller: `GET` danh sách nhận `[FromQuery] VoucherListQuery`; `GET export` cần **cả** `View` và `Export` (hai thuộc tính `RequirePermission`), trả `File(file.Content, ExportFile.ContentType, file.FileName)`.
+
+### 5.5. Khôi phục phiếu đã hủy (`reopen`)
+
+Phiếu **Hủy** đưa lại được về **Lập chứng từ** (nút "Khôi phục"). Thao tác `DocumentAction.Reopen` đã có trong `DocumentStatusPolicy` và bản sao `utils/documentPolicy.ts`: cần quyền trạng thái `ST_CANCELLED` của đơn vị. Trong `ChangeStatusAsync`:
+
+```csharp
+"reopen" => DocumentAction.Reopen,
+// ...
+if (normalized == "reopen") await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);   // tháng phải còn mở
+// trong transaction:
+else if (normalized == "reopen")
+{
+    await EnsureLinksStillFitAsync(row, token);   // dòng lấy theo chứng từ trước phải còn chỗ (mục 10.4)
+    row.Status = "Draft";
+    row.ApprovedByUserId = null;
+}
+```
+
+`EnsureLinksStillFitAsync` kiểm từng dòng có cột nối (mẫu trong `GoodsIssueService.cs`): chứng từ trước còn ở trạng thái cho phép (`reopen.sourceNotReady`) và số còn lại, tính bằng lớp `...Progress` với id phiếu đang khôi phục được loại trừ, đủ cho dòng này, vì trong lúc phiếu bị hủy các phiếu khác có thể đã lấy hàng (`reopen.exceedsSource`). Phiếu không nối chứng từ nào thì hàm rỗng.
 
 ---
 
@@ -186,6 +246,10 @@ Mẫu: `modules/inventory/documents/goods-issues/` (`GoodsIssueView.tsx`, `api.t
 | Menu và icon | `menu.json`; icon mới thêm vào cả hai chỗ của `components/common/DynamicIcon.tsx` |
 | Hiện màn | `case '<ma>'` trong `modules/<phan-he>/<PhanHe>Module.tsx` |
 | Gọi API | `api.ts` trong thư mục chức năng: `apiRequest` (không `fetch` trực tiếp). Đổi qua lại giữa dữ liệu API và kiểu giao diện chung `GoodsVoucher` ở `toVoucher` / `toRequest` |
+| Danh sách phân trang | `api.ts` có `getPage(query)` (`apiRequest('GET', url + pagedQueryString(query))`) và `exportAll(query)` (`apiDownload(url + '/export' + pagedQueryString(query, false), tên tệp)`). Màn hình: các ô lọc gom vào `listFilters` (tên khóa = tên tham số của `VoucherListQuery`), ô tìm và ô mã qua `useDebounced`, đổi lọc / sắp xếp / cỡ trang thì về trang 1, `usePagedList(fetchPage, listQuery)`, và `GridView` với `serverSide`, `currentPage`, `totalItems`, `onPageChange`, `onPageSizeChange`, `sortColumn`. `sortKey` của cột phải có trong `SortMap` của backend. Nút Xuất Excel gọi `exportAll(listQuery)` và chỉ hiện khi `perm.export`. Mẫu: `modules/sales/documents/sales-orders/SalesOrderView.tsx` |
+| Mở phiếu không nằm trên trang | trong `useOpenDocumentRequest`: tìm trên trang đang có, không thấy thì `getPage({ page: 1, pageSize: 1, filters: { code } })` |
+| Lưới chi tiết (các cột dưới phiếu) | khai lưới ở `mock/voucherGridConfigs.ts`: một `VoucherGridInfo` với `gridId` = `<LOAI>_ITEMS` (tab thứ hai `<LOAI>_BOM`...), `voucherType`, `columns` (field, tiêu đề vi / en, kiểu, độ rộng, số lẻ, bắt buộc, chỉ đọc, tổng), thêm vào `systemVoucherGridRegistry`; truyền `gridInfo={...}` cho `VoucherDetailGrid`. Rồi chạy `npm run export-voucher-grids` để cập nhật `ServerService/Core/SeedData/voucher-grids.json`: backend thêm lưới / cột còn thiếu khi khởi động (không ghi đè cột người dùng đã chỉnh) và lưới hiện ở Cài đặt › Cấu hình lưới chứng từ. Xem [cau-hinh-luoi-chung-tu.md](../he-thong/cau-hinh-luoi-chung-tu.md) |
+| Khôi phục phiếu đã hủy | `changeStatus(id, 'reopen')`; nút "Khôi phục" trên dòng phiếu Hủy, hiện theo `documentPolicy.ts` (thao tác `reopen`) |
 | Lưu thẳng ở trạng thái | `toRequest(voucher, targetStatus)` gửi `targetStatus`; trường **Trạng thái** của form là ô chọn (khi lập mới hoặc sửa phiếu nháp), các lựa chọn lấy từ `saveStatusChoices` (`modules/inventory/documents/SaveStatusSelect.tsx`) theo quyền (Duyệt, `POST`), server kiểm lại |
 | Chọn vật tư, đơn vị tính, kho | ô tra cứu `CatalogLookup` (đọc `/api/lookups/...`), không đọc danh sách của danh mục |
 | Quyền | `getActionPermission`, `hasRight(user, '<ma>', RIGHTS.VIEW_PRICE)`; ẩn cột giá khi không có `VIEW_PRICE` (chỉ hiển thị, backend là nơi chặn thật) |
@@ -211,12 +275,16 @@ cd ../Frontend && npm run lint && npm run check-i18n && npm run check-menu && np
 2b. **Thử bằng tài khoản không phải quản trị viên** (vai trò thủ kho, kế toán, nhân viên kinh doanh): chỉ có quyền Xem + Thêm phiếu thì các ô chọn (vật tư, kho, đối tác, dự án...) phải tải được; không có quyền Xem phiếu thì mọi API của phiếu 403 và tra cứu của riêng phiếu (nếu người đó chẳng có màn nào dùng) 403; quyền theo trạng thái cấp **theo đơn vị**: thử ghi sổ ở đơn vị chưa được cấp (phải bị từ chối). Dùng bảng "ai dùng được tra cứu nào" ở [phan-quyen.md](../he-thong/phan-quyen.md) mục C10 để đối chiếu.
 3. Thử bằng API hoặc màn hình, **mỗi bước kiểm `GET /api/inventory/stock/verify` trống** nếu chứng từ ghi sổ kho:
    - lập, sửa, sửa với `version` cũ (409), kỳ đã khóa (bị chặn), đơn vị / kho / vật tư / đơn vị tính sai (lỗi rõ ràng);
-   - gửi duyệt, tự duyệt (bị chặn), người khác duyệt, từ chối kèm lý do, rút lại;
+   - gửi duyệt; người có `ST_APPROVED` tự duyệt phiếu mình (được) và duyệt phiếu nháp thẳng (được); người chỉ có cột Duyệt mà thiếu `ST_APPROVED` (bị chặn); từ chối kèm lý do; rút lại; người có `ST_POSTED` ghi sổ thẳng phiếu nháp và phiếu chờ duyệt;
    - ghi sổ (số liệu đúng), ghi sổ thiếu điều kiện (từ chối và không đổi gì), bỏ ghi sổ (số liệu về như cũ), sửa hoặc xóa phiếu đã ghi sổ (bị chặn);
    - lưu thẳng ở từng trạng thái với tài khoản có đủ và không đủ quyền (mục 5.3);
+   - danh sách: `?page=2&pageSize=2`, `sort=code&dir=asc`, `search=` (có dấu và không dấu), từng bộ lọc, `status=Abc` → 400, `sort=<cột lạ>` → 400, `sort=totalValue` khi không có `VIEW_PRICE` → 400; tài khoản không có `VIEW_ALL` chỉ thấy phiếu mình lập;
+   - `GET .../export`: tệp .xlsx đúng số dòng của bộ lọc, không có cột tiền khi thiếu `VIEW_PRICE`, có dòng nhật ký `EXPORT`; thiếu quyền Xuất → 403;
+   - hủy rồi khôi phục (về Lập chứng từ); khôi phục khi tháng đã khóa (bị chặn); với chứng từ nối tiếp: khôi phục sau khi phiếu khác đã lấy hết số còn lại (bị chặn, `reopen.exceedsSource`);
+   - lưới chi tiết mới hiện ở Cài đặt › Cấu hình lưới chứng từ sau khi khởi động lại backend; đổi tiêu đề / ẩn một cột ở đó thì màn phiếu đổi theo;
    - xóa phiếu nháp; xóa trực tiếp bằng SQL phiếu còn ghi sổ (trigger chặn), phiếu đã bỏ ghi sổ (trigger dọn);
    - tài khoản không có quyền Xem gọi danh sách → 403; không có `VIEW_PRICE` thấy giá 0.
-4. Tài khoản admin không tự duyệt được phiếu mình lập qua nút Duyệt; khi thử bằng API, đặt `status = 'Approved'` bằng SQL hoặc dùng `TargetStatus`.
+4. Quản trị viên có mọi quyền trạng thái ở mọi đơn vị, nên tự duyệt và ghi sổ được phiếu của mình; muốn thử người thiếu quyền thì dùng một tài khoản và vai trò tạm.
 5. **Xóa dữ liệu thử**: phiếu, dòng, dòng sổ, vòng duyệt (`sys_document_approval`), dòng nhật ký, dải số `sys_voucher_sequence` của tháng thử, tài khoản và vai trò tạm; nếu xóa sổ bằng SQL thì chạy `POST /api/inventory/stock/rebuild` rồi `verify`.
 
 ---
@@ -319,10 +387,15 @@ Tài liệu mẫu cho từng chuỗi: `docs/mua-hang/mua-hang-va-du-an.md`, `doc
 | `MessagesTests` đỏ | thiếu khóa thông báo vi / en, hoặc khóa mới bắt đầu bằng `voucher.` | thêm đủ hai ngôn ngữ, đổi tiền tố |
 | Phiếu duyệt xong vẫn "Chờ duyệt" | quên thêm chức năng vào `DocumentApprovalService` | ba chỗ ở mục 6 |
 | Số phiếu trùng giữa các đơn vị | mẫu số thiếu `{DVCS}` | mẫu mặc định đã có; số phiếu phải duy nhất toàn hệ thống vì vòng duyệt khóa theo số phiếu |
-| Người không có quyền xem giá vô tình ghi đè giá về 0 khi sửa | backend trả giá 0 rồi tính lại tổng từ request | giữ đơn giá cũ khi người sửa không có `VIEW_PRICE` (chưa làm ở hai phiếu mẫu) |
+| Người không có quyền xem giá vô tình ghi đè giá về 0 khi sửa | backend trả giá 0 rồi tính lại tổng từ request | trong `UpdateAsync`, người sửa không có `VIEW_PRICE` thì thay đơn giá trong request bằng giá đã lưu của dòng cùng vị trí (cùng loại dòng) và cùng vật tư, dòng mới giá 0 (`KeepPrice` / `KeepPrices`: đã có ở phiếu nhập, phiếu xuất, yêu cầu xuất, yêu cầu mua, đơn mua, hóa đơn mua, đơn bán). Thiếu bước này thì phiếu đã ghi sổ sửa lại sẽ ghi sổ giá trị 0 |
 | `id` dòng đổi sau khi sửa | sửa phiếu xóa dòng cũ và thêm lại | chỉ dòng của phiếu **đã ghi sổ** gắn với sổ, và phiếu đã ghi sổ không sửa được |
 | Phiếu lấy theo chứng từ trước vẫn lưu được khi lấy quá số lượng | tiến độ không loại trừ phiếu đang sửa, hoặc không tính phiếu nháp | dùng hàm tiến độ với id phiếu đang sửa và tính cả phiếu nháp (mục 10.3) |
 | Chứng từ trước hủy được dù còn chứng từ sau | quên chặn hủy | mục 10.4 |
+| Màn danh sách chậm dần khi nhiều phiếu, Excel chỉ có trang đang xem | danh sách tải hết về trình duyệt và xuất từ đó (kiểu cũ) | `ListAsync` / `ExportAsync` với `VoucherListQuery`, `usePagedList` + `GridView serverSide` (mục 5.4) |
+| Sắp xếp theo một cột báo 400 | `sortKey` của cột không có trong `SortMap` | thêm vào `SortColumns`, hoặc bỏ sắp xếp ở cột đó |
+| Người không có quyền xem giá đoán được giá | cho sắp xếp theo cột tiền | `EnsureSortAllowed` (mục 5.4) |
+| Lưới chi tiết không có trong Cài đặt › Cấu hình lưới chứng từ | quên `systemVoucherGridRegistry` hoặc `npm run export-voucher-grids` | mục 7, rồi khởi động lại backend |
+| Khôi phục phiếu làm vượt số lượng chứng từ trước | `reopen` không kiểm lại dòng nối | `EnsureLinksStillFitAsync` (mục 5.5) |
 | Test ghi sổ lỗi vì kỳ khóa | ngày thử thuộc 2026 | dùng ngày 2027 |
 | Sổ kho lệch sau khi xóa bằng SQL | xóa dòng sổ tay | `rebuild` rồi `verify` |
 
@@ -336,9 +409,12 @@ Tài liệu mẫu cho từng chuỗi: `docs/mua-hang/mua-hang-va-du-an.md`, `doc
 - [ ] Hợp đồng (`Version`, `TargetStatus`), giao diện dịch vụ
 - [ ] `FunctionCatalog`, `VoucherCatalog` (+ `ApprovalScreens`), `SpecialRightCatalog` nếu cần (`VIEW_COST`, `ST_EDIT_POSTED`), menu, thông báo vi / en (`voucher.<LOẠI>`, `function.<mã>`, `table.<bảng>`)
 - [ ] **`LookupAccessCatalog`: thêm phiếu vào nhóm `StockVouchers` / `PurchaseVouchers` / `SalesVouchers` / `FinanceVouchers` (hoặc `Consumers`, `SensitiveFor`)**; `LookupAccessTests` kiểm chức năng có thật
-- [ ] Dịch vụ: kiểm tra, cấp số, khóa sổ, chính sách trạng thái, duyệt, ghi sổ, nhật ký, chống ghi đè, `TargetStatus`
-- [ ] `DocumentApprovalService`: ba chỗ; controller; đăng ký DI
-- [ ] Frontend: mã chức năng, menu, module, `api.ts`, màn phiếu, màn duyệt, lưu thẳng trạng thái, in phiếu, `APPROVAL_SCREENS`
+- [ ] Dịch vụ: kiểm tra, cấp số, khóa sổ, chính sách trạng thái, duyệt, ghi sổ, nhật ký, chống ghi đè, `TargetStatus`, giữ giá đã lưu khi người sửa không có `VIEW_PRICE`
+- [ ] Danh sách phân trang `ListAsync` + `ExportAsync` dùng chung `FilterAsync` với `VoucherListQuery`, `SortMap`, che cột tiền, nhật ký `Export`; khóa `export.<loai>.*` vi + en (mục 5.4)
+- [ ] Khôi phục phiếu đã hủy: `reopen` trong `ChangeStatusAsync`, kiểm tháng mở, `EnsureLinksStillFitAsync` (mục 5.5)
+- [ ] `DocumentApprovalService`: ba chỗ; controller (`GET`, `GET export` cần View + Export); đăng ký DI
+- [ ] Frontend: mã chức năng, menu, module, `api.ts` (`getPage`, `exportAll`), màn phiếu với `usePagedList` + `GridView serverSide`, màn duyệt, lưu thẳng trạng thái, nút Khôi phục, in phiếu, `APPROVAL_SCREENS`
+- [ ] Lưới chi tiết: `VoucherGridInfo` trong `mock/voucherGridConfigs.ts` + `systemVoucherGridRegistry`, chạy `npm run export-voucher-grids` (mục 7)
 - [ ] Build, test, lint, `check-i18n`, `check-menu`, `check-policy`; thử đủ kịch bản mục 8, **kể cả bằng tài khoản không phải quản trị viên (các ô chọn, quyền theo đơn vị)**; dọn dữ liệu thử
 - [ ] Nếu chứng từ nối tiếp chứng từ khác: làm thêm danh sách ở mục 10.6
 - [ ] Chữ màn hình bằng `t()` (vi + en); tên chứng từ `voucher.<LOẠI>`; phiếu in có bản dịch nếu làm in song ngữ

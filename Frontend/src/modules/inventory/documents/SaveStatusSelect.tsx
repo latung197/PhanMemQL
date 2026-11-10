@@ -6,7 +6,7 @@
 import { voucherStatusService } from '../../../services/voucherStatusService';
 import type { SubMenuKey, UserProfile } from '../../../types';
 import { reachesStatus } from '../../../utils/documentPolicy';
-import { canApproveVoucher, getActionPermission } from '../../../utils/permissions';
+import { getActionPermission } from '../../../utils/permissions';
 
 export type SaveStatus = 'Draft' | 'Pending' | 'Approved' | 'Posted';
 
@@ -23,17 +23,16 @@ type ChoiceUser = Pick<UserProfile, 'isSystemAdmin' | 'permissions' | 'specialRi
 
 /**
  * The statuses a user may ask for in the unit they work in, from their rights on the voucher function (the server checks again):
- * Pending needs the pending right (or a later one) and the step in use; Approved the approved right and, while the approval step is
- * in use, being an approver; Posted the posted right too (only for vouchers that post).
+ * Pending needs the pending right (or a later one) and the step in use; Approved the approved right (the approval rules only name
+ * whom to notify); Posted the posted right (only for vouchers that post).
  */
 export const saveStatusChoices = (user: ChoiceUser, fn: SubMenuKey, options: { voucherType: string; posts: boolean }): SaveStatus[] => {
   const choices: SaveStatus[] = ['Draft'];
   const actions = getActionPermission(user, fn);
   if (!(actions.create || actions.edit)) return choices;
   const approvalInUse = voucherStatusService.isEnabled(options.voucherType, 'Pending');
-  const mayApprove = !approvalInUse || canApproveVoucher(user, fn);
   if (approvalInUse && reachesStatus(user, fn, 'Pending')) choices.push('Pending');
-  if (mayApprove && reachesStatus(user, fn, 'Approved')) choices.push('Approved');
-  if (options.posts && mayApprove && reachesStatus(user, fn, 'Posted')) choices.push('Posted');
+  if (reachesStatus(user, fn, 'Approved')) choices.push('Approved');
+  if (options.posts && reachesStatus(user, fn, 'Posted')) choices.push('Posted');
   return choices;
 };

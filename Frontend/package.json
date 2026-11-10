@@ -14,7 +14,8 @@
     "check-policy": "tsx scripts/check-document-policy.ts",
     "check-menu": "tsx scripts/check-menu.ts",
     "check-label": "tsx scripts/check-stock-label.ts",
-    "check-i18n": "tsx scripts/check-i18n.ts"
+    "check-i18n": "tsx scripts/check-i18n.ts",
+    "tao-danh-muc": "tsx scripts/tao-danh-muc.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

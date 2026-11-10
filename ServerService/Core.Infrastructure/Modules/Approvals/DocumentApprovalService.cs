@@ -80,38 +80,78 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         return await GetAsync(userId, unitCode, request.Function, documentId, ct);
     }
 
+    /// <summary>
+    /// Approves a pending document. Approving is a status right: whoever holds "Approved" (or a later status) of the function in the
+    /// document's unit approves, their own document too, whether the rules named them or not; the levels still open are all approved
+    /// by them at once (the rules only said whom to notify). The document is looked up in the session unit only.
+    /// </summary>
     public async Task<DocumentApprovalDto> ApproveAsync(int userId, string unitCode, string function, string documentId,
         ApprovalActionRequest request, CancellationToken ct)
     {
-        var (steps, current) = await CurrentStepForAsync(userId, function, documentId, ct);
-        Act(current, userId, ApprovalStepStatus.Approved, request.Note);
-        var next = steps.Where(x => x.Status == ApprovalStepStatus.Waiting).OrderBy(x => x.Level).FirstOrDefault();
-        if (next is not null) next.Status = ApprovalStepStatus.Pending;
-        if (next is null && IsVoucherFunction(function))
+        var steps = await LatestRoundAsync(function, documentId, ct, tracking: true, unitCode: unitCode);
+        var open = steps.Where(x => x.Status is ApprovalStepStatus.Pending or ApprovalStepStatus.Waiting).OrderBy(x => x.Level).ToList();
+        if (open.Count == 0 || open[0].Status != ApprovalStepStatus.Pending) throw new BusinessRuleException("approval.notPending");
+        await EnsureMayApproveAsync(userId, open[0].UnitCode, function, ct);
+        await unitOfWork.ExecuteAsync(async token =>
+        {
+            await ApproveOpenStepsAsync(userId, unitCode, function, documentId, steps, open, request.Note, token);
+        }, ct);
+        return await GetAsync(userId, unitCode, function, documentId, ct);
+    }
+
+    /// <summary>The open levels approved by the user, the voucher approved, the log written and the requester told (inside the caller's transaction).</summary>
+    private async Task ApproveOpenStepsAsync(int userId, string unitCode, string function, string documentId,
+        List<DocumentApproval> steps, List<DocumentApproval> open, string? note, CancellationToken ct)
+    {
+        foreach (var step in open) Act(step, userId, ApprovalStepStatus.Approved, note);
+        if (IsVoucherFunction(function))
         {
             var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
             voucher.Status = "Approved";
             voucher.ApprovedByUserId = userId;
         }
-        await unitOfWork.ExecuteAsync(async token =>
-        {
-            await RecordAsync(current, AuditActions.Approve, request.Note, steps.Count, token);
-            await db.SaveChangesAsync(token);
-            if (next is not null) await NotifyApproversAsync(current.RequestedByUserId, next, token);
-            else await NotifyRequesterAsync(userId, current, approved: true, request.Note, token);
-        }, ct);
-        return await GetAsync(userId, unitCode, function, documentId, ct);
+        await RecordAsync(open[^1], AuditActions.Approve, note, steps.Count, ct);
+        await db.SaveChangesAsync(ct);
+        if (open[0].RequestedByUserId != userId) await NotifyRequesterAsync(userId, open[^1], approved: true, note, ct);
     }
 
-    public async Task EnsureCanApproveDirectAsync(int userId, string unitCode, string function, decimal amount, CancellationToken ct)
+    public async Task ApproveToEndAsync(int userId, string unitCode, string function, string documentId, string? title, CancellationToken ct)
     {
-        if (!PermissionMatrix.CanApprove(await permissions.GetEffectiveAsync(userId, ct), function))
-            throw new ForbiddenException("approval.noApproveRight");
-        if (await permissions.IsAdminAsync(userId, ct)) return;
-        // The levels as the rules resolve them, the requester kept in: the user must be an approver of every one of them.
-        var resolution = await resolver.ResolveAsync(function, unitCode, userId, amount, ct, includeRequester: true);
-        var blocked = resolution.Levels.FirstOrDefault(x => !x.UserIds.Contains(userId));
-        if (blocked is not null) throw new ForbiddenException("approval.notApproverOfLevel", blocked.Level);
+        var voucher = await FindVoucherAsync(function, documentId, unitCode, ct) ?? throw new NotFoundException(NotFoundKey(function));
+        switch (voucher.Status)
+        {
+            case "Approved":
+                return;
+            case "Draft":
+                if (await statuses.IsEnabledAsync(unitCode, function, DocumentStatus.Pending, ct))
+                    await ApproveDirectAsync(userId, unitCode, function, documentId, title, ct);
+                else await ApproveWithoutFlowAsync(userId, unitCode, function, documentId, ct);
+                return;
+            case "Pending":
+                var steps = await LatestRoundAsync(function, documentId, ct, tracking: true, unitCode: unitCode);
+                var open = steps.Where(x => x.Status is ApprovalStepStatus.Pending or ApprovalStepStatus.Waiting).OrderBy(x => x.Level).ToList();
+                if (open.Count == 0) throw new BusinessRuleException("approval.notPending");
+                await ApproveOpenStepsAsync(userId, unitCode, function, documentId, steps, open, null, ct);
+                return;
+            default:
+                throw new BusinessRuleException("policy.notPending");
+        }
+    }
+
+    public Task EnsureCanApproveDirectAsync(int userId, string unitCode, string function, decimal amount, CancellationToken ct) =>
+        EnsureMayApproveAsync(userId, unitCode, function, ct);
+
+    /// <summary>The user holds the "Approved" status right (or a later one) of the function in that unit (administrators always).</summary>
+    private async Task<bool> MayApproveAsync(int userId, string unitCode, string function, CancellationToken ct)
+    {
+        var actor = DocumentActor.For(await permissions.GetEffectiveInUnitAsync(userId, unitCode, ct),
+            await permissions.GetRightsInUnitAsync(userId, unitCode, ct), function, isOwner: false, unitCode);
+        return actor.Reaches(DocumentStatus.Approved);
+    }
+
+    private async Task EnsureMayApproveAsync(int userId, string unitCode, string function, CancellationToken ct)
+    {
+        if (!await MayApproveAsync(userId, unitCode, function, ct)) throw new ForbiddenException("approval.noApproveRight");
     }
 
     public async Task ApproveDirectAsync(int userId, string unitCode, string function, string documentId, string? title, CancellationToken ct)
@@ -152,7 +192,11 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
     public async Task<DocumentApprovalDto> RejectAsync(int userId, string unitCode, string function, string documentId,
         ApprovalActionRequest request, CancellationToken ct)
     {
-        var (steps, current) = await CurrentStepForAsync(userId, function, documentId, ct);
+        // Sending back is decided like approving: the "Approved" status right in the document's unit.
+        var steps = await LatestRoundAsync(function, documentId, ct, tracking: true, unitCode: unitCode);
+        var current = steps.FirstOrDefault(x => x.Status == ApprovalStepStatus.Pending)
+            ?? throw new BusinessRuleException("approval.notPending");
+        await EnsureMayApproveAsync(userId, current.UnitCode, function, ct);
         Guard.Required(request.Note, 1000, "field.rejectReason");
         Act(current, userId, ApprovalStepStatus.Rejected, request.Note);
         foreach (var waiting in steps.Where(x => x.Status == ApprovalStepStatus.Waiting)) waiting.Status = ApprovalStepStatus.Cancelled;
@@ -214,8 +258,9 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
             : pending is not null ? "PENDING"
             : steps.All(x => x.Status == ApprovalStepStatus.Approved) ? "APPROVED" : "WITHDRAWN";
 
+        var canAct = pending is not null && await MayApproveAsync(userId, pending.UnitCode, function, ct);
         return new DocumentApprovalDto(function, documentId, steps[0].DocumentTitle, status, steps[0].Round, pending?.Level,
-            pending?.ApproverIds.Contains(userId) == true, users.GetValueOrDefault(steps[0].RequestedByUserId), steps[0].RequestedAtUtc,
+            canAct, users.GetValueOrDefault(steps[0].RequestedByUserId), steps[0].RequestedAtUtc,
             steps.Select(s => new ApprovalStepDto(s.Level, s.Status, s.ApproverLabel ?? string.Empty,
                 s.ApproverIds.Where(users.ContainsKey).Select(id => users[id]).ToList(),
                 s.ActedByUserId is int acted ? users.GetValueOrDefault(acted) : null, s.ActedAtUtc, s.Note)).ToList());
@@ -240,6 +285,13 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
             users.GetValueOrDefault(x.RequestedByUserId, new ApproverUserDto(x.RequestedByUserId.ToString(), "?", "?")),
             x.RequestedAtUtc)).ToList();
     }
+
+    /// <summary>
+    /// The right that shows the amount of a voucher: its stock cost for the vouchers the ledger values (transfer issue / receipt, stock
+    /// count: VIEW_COST, as their own screens), its price for the others (VIEW_PRICE).
+    /// </summary>
+    private static string AmountRight(string function) => function is "inv_transfer_issue" or "inv_transfer_receipt" or "inv_audit_count"
+        ? SpecialRightCatalog.ViewCost : SpecialRightCatalog.ViewPrice;
 
     /// <summary>Vouchers whose status this service moves with the approval steps (each has its own table).</summary>
     private static bool IsVoucherFunction(string function) => function is "inv_receipt" or "inv_issue" or "inv_issue_request" or "pur_request" or "pur_order" or "pur_invoice" or "sales_orders"
@@ -275,22 +327,6 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         return round is null ? [] : await query.Where(x => x.Round == round).OrderBy(x => x.Level).ToListAsync(ct);
     }
 
-    /// <summary>The pending step of the document, checking that the user may act on it.</summary>
-    private async Task<(List<DocumentApproval> Steps, DocumentApproval Current)> CurrentStepForAsync(int userId,
-        string function, string documentId, CancellationToken ct)
-    {
-        var steps = await LatestRoundAsync(function, documentId, ct, tracking: true);
-        var current = steps.FirstOrDefault(x => x.Status == ApprovalStepStatus.Pending)
-            ?? throw new BusinessRuleException("approval.notPending");
-        if (current.RequestedByUserId == userId) throw new ForbiddenException("approval.noSelfApprove");
-        if (!current.ApproverIds.Contains(userId))
-            throw new ForbiddenException("approval.notApproverOfLevel", current.Level);
-        // "Duyệt" on the voucher or on its approval screen.
-        if (!PermissionMatrix.CanApprove(await permissions.GetEffectiveAsync(userId, ct), function))
-            throw new ForbiddenException("approval.noApproveRight");
-        return (steps, current);
-    }
-
     private static void Act(DocumentApproval step, int userId, string status, string? note)
     {
         step.Status = status;
@@ -306,10 +342,14 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         foreach (var approverId in step.ApproverIds)
         {
             var lang = languages[approverId];
+            // The amount only for an approver who may see it on that voucher, with their rights in the voucher's unit.
+            var showAmount = step.Amount is decimal && (!IsVoucherFunction(step.MenuId0)
+                || (await permissions.GetRightsInUnitAsync(approverId, step.UnitCode, ct))
+                    .Contains(SpecialRightCatalog.Key(step.MenuId0, AmountRight(step.MenuId0))));
             await notifications.PublishAsync(fromUserId, new PublishNotificationRequest(
                 Messages.Format(lang, "approval.notify.pendingTitle", step.DocumentTitle ?? step.DocumentId),
                 Messages.Format(lang, "approval.notify.pendingBody", FunctionCatalog.Name(step.MenuId0, lang), step.DocumentId, step.Level)
-                + (step.Amount is decimal amount ? Messages.Format(lang, "approval.notify.amount", amount.ToString("N0")) : string.Empty),
+                + (showAmount ? Messages.Format(lang, "approval.notify.amount", step.Amount!.Value.ToString("N0")) : string.Empty),
                 "warning", ModuleOf(step.MenuId0), step.UnitCode, approverId, null, step.MenuId0, step.DocumentId), ct);
         }
     }
