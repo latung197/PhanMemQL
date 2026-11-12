@@ -67,11 +67,11 @@ public class SalesOrderLine : ErpEntity
     [Column("order_id")] public long OrderId { get; set; }
     [Column("line_no")] public int LineNo { get; set; }
     [References<Material>]
-    [Required, Column("material_code"), MaxLength(64)] public string MaterialCode { get; set; } = string.Empty;
+    [Required, Column("material_code"), MaxLength(50)] public string MaterialCode { get; set; } = string.Empty;
     [Required, Column("material_name"), MaxLength(200)] public string MaterialName { get; set; } = string.Empty;
     /// <summary>The unit the goods are sold in; the goods issue that delivers the line uses the same unit.</summary>
     [References<Uom>]
-    [Required, Column("uom_code"), MaxLength(30)] public string UomCode { get; set; } = string.Empty;
+    [Required, Column("uom_code"), MaxLength(20)] public string UomCode { get; set; } = string.Empty;
     [Column("quantity", TypeName = "numeric(18,4)")] public decimal Quantity { get; set; }
     /// <summary>Selling price before tax, in the order currency.</summary>
     [Column("unit_price", TypeName = "numeric(18,4)")] public decimal UnitPrice { get; set; }

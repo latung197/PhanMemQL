@@ -44,7 +44,7 @@ Mã chức năng đã có trong `Frontend/src/types/index.ts` (màn đang là mo
 
 ## Bước 1. Database (§2)
 
-1. Tạo `ServerService/sql/postgresql/NN-<phan-he>-<ten>.sql`: chạy lại được, **không khóa ngoại**, 4 cột dấu bản ghi, `CHECK` trạng thái, chỉ mục `(unit_code, document_date DESC)`, **chỉ mục bắt đầu bằng chính cột cho mỗi cột `*_code`**, chỉ mục cho cột nối `*_line_id`, trigger xóa phiếu nếu ghi sổ kho (`erp_voucher_delete_cleanup`).
+1. Tạo `ServerService/sql/postgresql/NN-<phan-he>-<ten>.sql`: chạy lại được, **Kiểu cột bằng domain `ud_*` của `00-helpers.sql`** (`ud_code20`, `ud_text200`, `ud_dec18_2`, `ud_status`, `ud_user_id`...), không gõ `varchar(N)` / `numeric(P,S)` tay; cột `*_code` trỏ sang danh mục dài đúng bằng mã của danh mục đó (`ColumnLengthTests`); entity ghi `MaxLength` khớp. **Không khóa ngoại**, 4 cột dấu bản ghi, `CHECK` trạng thái, chỉ mục `(unit_code, document_date DESC)`, **chỉ mục bắt đầu bằng chính cột cho mỗi cột `*_code`**, chỉ mục cho cột nối `*_line_id`, trigger xóa phiếu nếu ghi sổ kho (`erp_voucher_delete_cleanup`).
 2. Chạy script **hai lần** trên `erp_dev`, không in mật khẩu:
    ```bash
    cd /d/TungLV/Project/PhanMemQL/ServerService

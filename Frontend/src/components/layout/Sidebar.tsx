@@ -24,8 +24,6 @@ interface SidebarProps {
   onSelectSubMenu: (category: ModuleCategoryKey, subMenu: SubMenuKey) => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
-  lowStockCount: number;
-  pendingOrderCount: number;
   menuVisibility: MenuVisibilityConfig;
   menuTree: SysModule[];
 }
@@ -34,7 +32,6 @@ interface ModuleMenuItem {
   key: ModuleCategoryKey;
   title: string;
   icon: React.ReactNode;
-  badgeCount?: number;
   subGroups?: {
     groupTitle: string;
     icon: React.ReactNode;
@@ -54,8 +51,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectSubMenu,
   mobileOpen,
   onCloseMobile,
-  lowStockCount,
-  pendingOrderCount,
   menuVisibility,
   menuTree
 }) => {
@@ -107,7 +102,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     menuTree,
     language,
     currentUser || undefined,
-    { lowStockCount, pendingOrderCount },
     menuVisibility
   );
   const aiMenu = menuTree.find(mod => mod.key === 'ai' && mod.isActive && mod.directSubKey === 'ai_main');
@@ -226,7 +220,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* Hierarchical Navigation Menu */}
-        <nav className="p-3 grow space-y-1.5 overflow-y-auto custom-scrollbar">
+        <nav className="p-3 grow space-y-1.5 overflow-y-auto custom-scrollbar scrollbar-left">
           {query ? (
             searchItems.length ? searchItems.map(item => (
               <button
@@ -270,9 +264,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   title={mod.title}
                 >
                   <DynamicIcon name={mod.iconName} className="h-4.5 w-4.5" />
-                  {mod.badgeCount && mod.badgeCount > 0 ? (
-                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500"></span>
-                  ) : null}
                 </button>
               );
             }
@@ -302,11 +293,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </span>
 
                   <div className="flex items-center gap-1.5">
-                    {mod.badgeCount && mod.badgeCount > 0 ? (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-500 text-white">
-                        {mod.badgeCount}
-                      </span>
-                    ) : null}
                     {hasSubGroups && (
                       <span className={isCatActive ? 'text-indigo-200' : 'text-slate-400'}>
                         <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${isExpanded ? '' : '-rotate-90'}`} />

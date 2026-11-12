@@ -62,5 +62,6 @@ module.exports = {
   '57': 'Sản xuất: cấu trúc sản phẩm (định mức nguyên vật liệu, BOM) và các dòng thành phần',
   '58': 'Vai trò theo từng đơn vị cơ sở (`sys_user_company_unit.role_id`)',
   '59': 'Bảo mật đăng nhập: hạn và cờ bắt đổi mật khẩu trên `sys_users`, lịch sử đăng nhập, lịch sử mật khẩu',
+  '60': 'Chuyển các cột của mọi bảng `erp_*` / `sys_*` sang domain dùng chung `ud_*` (định nghĩa ở 00-helpers.sql); không bảng mới, chạy lại không đổi gì thêm',
   '53': 'Đơn bán hàng (đầu phiếu, dòng) và cột nối sang phiếu xuất kho: khách hàng, số đơn, dòng đơn'
 };

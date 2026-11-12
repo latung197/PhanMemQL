@@ -440,7 +440,7 @@ public sealed class TransferReceiptService(CoreContext db, IUnitOfWork unitOfWor
             _ = Guard.Code(item.MaterialCode, 50, "field.materialCode");
             _ = Guard.Code(item.UomCode, 20, "field.uomCode");
             _ = Guard.Optional(item.Note, 300, "field.note");
-            _ = Guard.Optional(item.LotNumber, 64, "field.lotNumber");
+            _ = Guard.Optional(item.LotNumber, 30, "field.lotNumber");
             _ = Guard.Optional(item.Position, 100, "field.position");
             if (item.Quantity <= 0) throw new BusinessRuleException("transferReceipt.lineInvalid");
         }

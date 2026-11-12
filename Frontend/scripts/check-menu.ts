@@ -70,10 +70,10 @@ const viewOnly: ActionPermissions = { ...none, view: true };
 const user = (view: SubMenuKey[], isSystemAdmin = false): UserProfile => ({
   isSystemAdmin, permissions: Object.fromEntries(view.map(code => [code, viewOnly]))
 } as unknown as UserProfile);
-const visible = (u: UserProfile, config?: Parameters<typeof menuService.getUserMenuTree>[4], mutate?: (t: typeof tree) => void) => {
+const visible = (u: UserProfile, config?: Parameters<typeof menuService.getUserMenuTree>[3], mutate?: (t: typeof tree) => void) => {
   const copy = structuredClone(tree);
   mutate?.(copy);
-  return menuService.getUserMenuTree(copy, 'vi', u, undefined, config).flatMap(m => m.subGroups.flatMap(g => g.items.map(i => i.subKey)));
+  return menuService.getUserMenuTree(copy, 'vi', u, config).flatMap(m => m.subGroups.flatMap(g => g.items.map(i => i.subKey)));
 };
 const allActive = seedFunctions;
 

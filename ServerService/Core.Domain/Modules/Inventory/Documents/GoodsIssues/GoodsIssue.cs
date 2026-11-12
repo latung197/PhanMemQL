@@ -53,16 +53,16 @@ public class GoodsIssueLine : ErpEntity
     [Required, Column("kind"), MaxLength(20)] public string Kind { get; set; } = "ITEM";
     [Column("line_no")] public int LineNo { get; set; }
     [References<Material>]
-    [Required, Column("material_code"), MaxLength(64)] public string MaterialCode { get; set; } = string.Empty;
+    [Required, Column("material_code"), MaxLength(50)] public string MaterialCode { get; set; } = string.Empty;
     /// <summary>The material name when the line was saved (what the printed voucher shows even if the catalog is renamed).</summary>
     [Required, Column("material_name"), MaxLength(200)] public string MaterialName { get; set; } = string.Empty;
     /// <summary>The unit of the line: the base unit of the material or one it converts from (<c>erp_uom_conversion</c>).</summary>
     [References<Uom>]
-    [Required, Column("uom_code"), MaxLength(30)] public string UomCode { get; set; } = string.Empty;
+    [Required, Column("uom_code"), MaxLength(20)] public string UomCode { get; set; } = string.Empty;
     [Column("quantity", TypeName = "numeric(18,4)")] public decimal Quantity { get; set; }
     [Column("unit_price", TypeName = "numeric(18,4)")] public decimal UnitPrice { get; set; }
     [Column("amount", TypeName = "numeric(18,2)")] public decimal Amount { get; set; }
-    [Column("lot_number"), MaxLength(64)] public string? LotNumber { get; set; }
+    [Column("lot_number"), MaxLength(30)] public string? LotNumber { get; set; }
     [Column("position"), MaxLength(100)] public string? Position { get; set; }
     /// <summary>The line of the issue request this line carries out (null on a free issue).</summary>
     [Column("issue_request_line_id")] public long? IssueRequestLineId { get; set; }

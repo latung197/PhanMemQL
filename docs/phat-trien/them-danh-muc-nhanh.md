@@ -60,13 +60,13 @@ Chép `docs/phat-trien/mau-danh-muc/vi-du-thuong-hieu.json` ra một chỗ bất
 
 | Kiểu | Cột SQL | Ô trên màn | Tùy chọn |
 |---|---|---|---|
-| `chu` | `varchar(doDai)` | ô chữ | `doDai` (100), `batBuoc`, `khongTrung` (không trùng, bỏ qua hoa thường) |
-| `ghichu` | `varchar(doDai)` | ô nhiều dòng | `doDai` (300), `batBuoc` |
-| `so` | `numeric(18,soLe)`, mặc định 0 | ô số | `soLe` (2) |
+| `chu` | `ud_text<doDai>` | ô chữ | `doDai` (100), `batBuoc`, `khongTrung` (không trùng, bỏ qua hoa thường) |
+| `ghichu` | `ud_text<doDai>` | ô nhiều dòng | `doDai` (300), `batBuoc` |
+| `so` | `ud_dec18_<soLe>`, mặc định 0 | ô số | `soLe` (2) |
 | `nguyen` | `integer`, mặc định 0 | ô số nguyên | |
-| `logic` | `boolean`, mặc định false | ô tick | |
+| `logic` | `ud_bool`, mặc định false | ô tick | |
 | `ngay` | `date` | ô ngày | `batBuoc` |
-| `ma` | `varchar(doDai)` + chỉ mục + `[References]` | ô tra cứu F2 | `tro`: `{ "lop": lớp C# của danh mục đích, "bang": bảng đích, "traCuu": tên tra cứu }`, `batBuoc`. **Tên cột phải kết thúc bằng tên bảng đích bỏ `erp_` / `sys_` + `_code`** (ví dụ `material_group_code` trỏ `erp_material_group`) |
+| `ma` | `ud_code<độ dài mã của danh mục đích>` + chỉ mục + `[References]` | ô tra cứu F2 | `tro`: `{ "lop": lớp C# của danh mục đích, "bang": bảng đích, "traCuu": tên tra cứu }`, `batBuoc`. **Tên cột phải kết thúc bằng tên bảng đích bỏ `erp_` / `sys_` + `_code`** (ví dụ `material_group_code` trỏ `erp_material_group`) |
 
 Mỗi trường có `cot` (snake_case), `nhan`, `nhanEn`, và `viDu` (giá trị mẫu Excel) tùy chọn. Không đặt cột `code`, `name`, `is_active`, `sort_order`, dấu bản ghi: khung đã có.
 

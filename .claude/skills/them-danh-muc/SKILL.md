@@ -51,7 +51,7 @@ Kiểm tra trước: `ls ServerService/sql/postgresql` (lấy số script tiếp
 
 ## Bước 1. Database
 
-1. Tạo `ServerService/sql/postgresql/NN-<phan-he>-<ten>.sql` theo §1.1. Chạy lại không lỗi (`IF NOT EXISTS`), có 4 cột `created_at/created_by/updated_at/updated_by`, **không khóa ngoại**, không cột phiên bản, unique index cho cột không được trùng, **index bắt đầu bằng chính cột cho mỗi cột `*_code` trỏ sang danh mục khác** (xóa danh mục đích tra cột đó; test `EveryReferenceColumnIsIndexed` kiểm tra).
+1. Tạo `ServerService/sql/postgresql/NN-<phan-he>-<ten>.sql` theo §1.1. Chạy lại không lỗi (`IF NOT EXISTS`), có 4 cột `created_at/created_by/updated_at/updated_by`, **Kiểu cột bằng domain `ud_*` của `00-helpers.sql`** (`ud_code20`, `ud_text200`, `ud_dec18_2`, `ud_status`, `ud_user_id`...), không gõ `varchar(N)` / `numeric(P,S)` tay; cột `*_code` trỏ sang danh mục dài đúng bằng mã của danh mục đó (`ColumnLengthTests`); entity ghi `MaxLength` khớp. **Không khóa ngoại**, không cột phiên bản, unique index cho cột không được trùng, **index bắt đầu bằng chính cột cho mỗi cột `*_code` trỏ sang danh mục khác** (xóa danh mục đích tra cột đó; test `EveryReferenceColumnIsIndexed` kiểm tra).
 2. Chạy script trên `erp_dev`, không in mật khẩu:
    ```bash
    cd /d/TungLV/Project/PhanMemQL/ServerService

@@ -431,7 +431,7 @@ public sealed class StockCountService(CoreContext db, IUnitOfWork unitOfWork, IS
         foreach (var item in request.Items)
         {
             _ = Guard.Code(item.MaterialCode, 50, "field.materialCode");
-            _ = Guard.Optional(item.LotNumber, 64, "field.lotNumber");
+            _ = Guard.Optional(item.LotNumber, 30, "field.lotNumber");
             _ = Guard.Optional(item.Position, 100, "field.position");
             _ = Guard.Optional(item.Note, 300, "field.note");
             if (item.CountedQuantity < 0 || item.UnitCost < 0) throw new BusinessRuleException("stockCount.lineInvalid");

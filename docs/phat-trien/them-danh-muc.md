@@ -214,6 +214,27 @@ Danh mục không có `name` vẫn dùng được khung (xem mẫu tỷ giá ở
 > - Các index (`ix_...`) giúp tìm và lọc nhanh khi bảng có nhiều dòng.
 > - Không có khóa ngoại (`FOREIGN KEY`) vì quy ước dự án: liên kết bằng cột mã, và service tự kiểm tra (xem §2.5 và Phần 5).
 
+### Kiểu cột dùng chung (domain `ud_*`)
+
+Cột mới **không gõ `varchar(N)` / `numeric(P,S)` tay**: dùng domain trong `ServerService/sql/postgresql/00-helpers.sql`. Tên domain ghi luôn định nghĩa (`ud_code20` = `varchar(20)`), nên cùng một loại giá trị luôn cùng kiểu ở mọi bảng. Code .NET (EF Core, Dapper) đọc domain như kiểu gốc, không phải đổi gì.
+
+| Loại giá trị | Domain |
+| --- | --- |
+| Mã (danh mục, số chứng từ) | `ud_code10`, `ud_code20`, `ud_code30`, `ud_code50`, `ud_code64` |
+| Chữ tự do (tên, mô tả, ghi chú) | `ud_text100`, `ud_text200`, `ud_text300`, `ud_text500`, `ud_text1000` |
+| Tiền | `ud_dec18_2` |
+| Số lượng, đơn giá, giá vốn | `ud_dec18_4` |
+| Tỷ lệ phần trăm | `ud_dec9_4` |
+| Hệ số quy đổi | `ud_dec20_8` |
+| Trạng thái; id người dùng | `ud_status` (`varchar(20)`); `ud_user_id` (`integer`) |
+| Kiểu thường | `ud_smallint`, `ud_int`, `ud_bigint`, `ud_bool`, `ud_date`, `ud_timestamptz` |
+
+Quy tắc:
+- **Cột `*_code` trỏ sang danh mục dài đúng bằng mã của danh mục đó** (vật tư `ud_code50`, đơn vị tính `ud_code20`, kho `ud_code20`...). Test `ColumnLengthTests` kiểm tra từ các thuộc tính `[References]` và `MaxLength` của entity, nên entity phải ghi `MaxLength` khớp domain.
+- Cần độ dài chưa có domain: thêm một dòng vào danh sách trong `00-helpers.sql`, không gõ kiểu tay. Domain `varchar` không đổi độ dài tại chỗ được: độ dài mới là domain mới (`ud_code64` cạnh `ud_code50`) rồi chuyển cột sang.
+- Script `60-shared-domains.sql` chuyển các cột đã có của mọi bảng `erp_*` / `sys_*` sang domain theo tên và kiểu (chạy lại không đổi gì thêm). Bảng mới viết bằng domain ngay từ đầu thì không cần nó.
+- Bộ sinh `npm run tao-danh-muc` đã viết SQL bằng domain và chỉ nhận các độ dài ở trên.
+
 `NN` là số tiếp theo trong thư mục `ServerService/sql/postgresql/` (xem số lớn nhất trước khi tạo file mới). Script phải **chạy lại nhiều lần không lỗi**: dùng `IF NOT EXISTS`, không `DROP`.
 
 ```sql
@@ -221,19 +242,19 @@ Danh mục không có `name` vẫn dùng được khung (xem mẫu tỷ giá ở
 -- Goods receipts will link to a supplier by its code.
 
 CREATE TABLE IF NOT EXISTS erp_supplier (
-    code varchar(20) PRIMARY KEY,           -- NCC001...
-    name varchar(200) NOT NULL,
-    tax_code varchar(30),
-    phone varchar(30),
-    address varchar(300),
-    note varchar(300),
-    is_active boolean NOT NULL DEFAULT true,
-    sort_order integer NOT NULL DEFAULT 0,
+    code ud_code20 PRIMARY KEY,             -- NCC001...
+    name ud_text200 NOT NULL,
+    tax_code ud_code30,
+    phone ud_code30,
+    address ud_text300,
+    note ud_text300,
+    is_active ud_bool NOT NULL DEFAULT true,
+    sort_order ud_int NOT NULL DEFAULT 0,
     -- Record stamps of every erp_* table (ErpEntity): filled by the API on save, UTC.
-    created_at timestamptz NOT NULL DEFAULT now(),
-    created_by integer,                     -- sys_users.user_id; null for rows created by scripts
-    updated_at timestamptz,
-    updated_by integer
+    created_at ud_timestamptz NOT NULL DEFAULT now(),
+    created_by ud_user_id,                  -- sys_users.user_id; null for rows created by scripts
+    updated_at ud_timestamptz,
+    updated_by ud_user_id
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_erp_supplier_name ON erp_supplier (lower(name));
 CREATE INDEX IF NOT EXISTS ix_erp_supplier_tax_code ON erp_supplier (tax_code);
@@ -1171,7 +1192,7 @@ Ví dụ nhà cung cấp có **nhóm nhà cung cấp** (`group_code`, tra cứu 
 
 1. **SQL**: thêm cột và index.
    ```sql
-   ALTER TABLE erp_supplier ADD COLUMN IF NOT EXISTS group_code varchar(20);
+   ALTER TABLE erp_supplier ADD COLUMN IF NOT EXISTS group_code ud_code20;
    CREATE INDEX IF NOT EXISTS ix_erp_supplier_group_code ON erp_supplier (group_code);
    ```
 2. **Entity danh mục con**: khai báo cột trỏ sang nhóm. Khung tự kiểm mã có thật khi lưu và tự chặn xóa nhóm khi còn nhà cung cấp dùng.

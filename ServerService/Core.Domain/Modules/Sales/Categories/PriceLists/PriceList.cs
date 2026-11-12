@@ -40,9 +40,9 @@ public class PriceListLine : ErpEntity
     [References<PriceList>(BlocksDelete = false)]
     [Required, Column("price_list_code"), MaxLength(20)] public string PriceListCode { get; set; } = string.Empty;
     [References<Material>]
-    [Required, Column("material_code"), MaxLength(64)] public string MaterialCode { get; set; } = string.Empty;
+    [Required, Column("material_code"), MaxLength(50)] public string MaterialCode { get; set; } = string.Empty;
     [References<Uom>]
-    [Required, Column("uom_code"), MaxLength(30)] public string UomCode { get; set; } = string.Empty;
+    [Required, Column("uom_code"), MaxLength(20)] public string UomCode { get; set; } = string.Empty;
     [Column("min_quantity", TypeName = "numeric(18,4)")] public decimal MinQuantity { get; set; }
     /// <summary>Price before tax in the currency of the price list.</summary>
     [Column("unit_price", TypeName = "numeric(18,4)")] public decimal UnitPrice { get; set; }

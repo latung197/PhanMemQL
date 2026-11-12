@@ -42,11 +42,11 @@ public class TransferOrderLine : ErpEntity
     [Column("order_id")] public long OrderId { get; set; }
     [Column("line_no")] public int LineNo { get; set; }
     [References<Material>]
-    [Required, Column("material_code"), MaxLength(64)] public string MaterialCode { get; set; } = string.Empty;
+    [Required, Column("material_code"), MaxLength(50)] public string MaterialCode { get; set; } = string.Empty;
     [Required, Column("material_name"), MaxLength(200)] public string MaterialName { get; set; } = string.Empty;
     /// <summary>The unit of the line: the base unit of the material or one it converts from (<c>erp_uom_conversion</c>).</summary>
     [References<Uom>]
-    [Required, Column("uom_code"), MaxLength(30)] public string UomCode { get; set; } = string.Empty;
+    [Required, Column("uom_code"), MaxLength(20)] public string UomCode { get; set; } = string.Empty;
     [Column("quantity", TypeName = "numeric(18,4)")] public decimal Quantity { get; set; }
     [Column("note"), MaxLength(300)] public string? Note { get; set; }
 }
@@ -88,16 +88,16 @@ public class TransferIssueLine : ErpEntity
     [Column("issue_id")] public long IssueId { get; set; }
     [Column("line_no")] public int LineNo { get; set; }
     [References<Material>]
-    [Required, Column("material_code"), MaxLength(64)] public string MaterialCode { get; set; } = string.Empty;
+    [Required, Column("material_code"), MaxLength(50)] public string MaterialCode { get; set; } = string.Empty;
     [Required, Column("material_name"), MaxLength(200)] public string MaterialName { get; set; } = string.Empty;
     /// <summary>The unit of the line: the base unit of the material or one it converts from (<c>erp_uom_conversion</c>).</summary>
     [References<Uom>]
-    [Required, Column("uom_code"), MaxLength(30)] public string UomCode { get; set; } = string.Empty;
+    [Required, Column("uom_code"), MaxLength(20)] public string UomCode { get; set; } = string.Empty;
     [Column("quantity", TypeName = "numeric(18,4)")] public decimal Quantity { get; set; }
     /// <summary>Value per unit of the line (base currency): set from the stock ledger on an issue, copied from the issue on a receipt.</summary>
     [Column("unit_price", TypeName = "numeric(18,4)")] public decimal UnitPrice { get; set; }
     [Column("amount", TypeName = "numeric(18,2)")] public decimal Amount { get; set; }
-    [Column("lot_number"), MaxLength(64)] public string? LotNumber { get; set; }
+    [Column("lot_number"), MaxLength(30)] public string? LotNumber { get; set; }
     [Column("position"), MaxLength(100)] public string? Position { get; set; }
     [Column("note"), MaxLength(300)] public string? Note { get; set; }
     /// <summary>The line this line follows (null on a free issue).</summary>
@@ -141,16 +141,16 @@ public class TransferReceiptLine : ErpEntity
     [Column("receipt_id")] public long ReceiptId { get; set; }
     [Column("line_no")] public int LineNo { get; set; }
     [References<Material>]
-    [Required, Column("material_code"), MaxLength(64)] public string MaterialCode { get; set; } = string.Empty;
+    [Required, Column("material_code"), MaxLength(50)] public string MaterialCode { get; set; } = string.Empty;
     [Required, Column("material_name"), MaxLength(200)] public string MaterialName { get; set; } = string.Empty;
     /// <summary>The unit of the line: the base unit of the material or one it converts from (<c>erp_uom_conversion</c>).</summary>
     [References<Uom>]
-    [Required, Column("uom_code"), MaxLength(30)] public string UomCode { get; set; } = string.Empty;
+    [Required, Column("uom_code"), MaxLength(20)] public string UomCode { get; set; } = string.Empty;
     [Column("quantity", TypeName = "numeric(18,4)")] public decimal Quantity { get; set; }
     /// <summary>Value per unit of the line (base currency): set from the stock ledger on an issue, copied from the issue on a receipt.</summary>
     [Column("unit_price", TypeName = "numeric(18,4)")] public decimal UnitPrice { get; set; }
     [Column("amount", TypeName = "numeric(18,2)")] public decimal Amount { get; set; }
-    [Column("lot_number"), MaxLength(64)] public string? LotNumber { get; set; }
+    [Column("lot_number"), MaxLength(30)] public string? LotNumber { get; set; }
     [Column("position"), MaxLength(100)] public string? Position { get; set; }
     [Column("note"), MaxLength(300)] public string? Note { get; set; }
     /// <summary>The line this line follows (null on a free issue).</summary>

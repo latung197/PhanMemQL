@@ -86,6 +86,29 @@ const MODULES: Record<MoTa['phanHe'], { Pascal: string; menuGroup: string; local
 
 // ------------------------------------------------------------------------------------------------------------- tiện ích
 const fail = (message: string): never => { console.error(`LỖI: ${message}`); process.exit(1); };
+
+/** Độ dài có domain trong ServerService/sql/postgresql/00-helpers.sql (ud_code<N>, ud_text<N>): cột mới chỉ dùng các độ dài này. */
+const CODE_LENGTHS = [10, 20, 30, 50, 64];
+const TEXT_LENGTHS = [100, 200, 300, 500, 1000];
+const DECIMAL_SCALES = [2, 4];
+
+/** Độ dài mã (MaxLength của khóa `code`) của một thực thể có sẵn: cột trỏ tới nó phải dài đúng bằng vậy (ColumnLengthTests). */
+function keyLengthOf(className: string): number | undefined {
+  const stack = [P('ServerService', 'Core.Domain')];
+  while (stack.length) {
+    const dir = stack.pop()!;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) { if (!['bin', 'obj'].includes(entry.name)) stack.push(full); continue; }
+      if (!entry.name.endsWith('.cs')) continue;
+      const text = readFileSync(full, 'utf8');
+      if (!new RegExp(`\bclass ${className}\b`).test(text)) continue;
+      const m = /[Key, Column("code"), MaxLength((d+))]/.exec(text);
+      return m ? Number(m[1]) : undefined;
+    }
+  }
+  return undefined;
+}
 const pascal = (snake: string) => snake.split('_').map(p => p[0].toUpperCase() + p.slice(1)).join('');
 const camel = (s: string) => s[0].toLowerCase() + s.slice(1);
 const kebabOf = (Pascal: string) => Pascal.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
@@ -180,7 +203,11 @@ function load(path: string): MoTa {
       if (!f.cot.endsWith(`${target}_code`)) fail(`cột ${f.cot}: cột trỏ sang ${f.tro!.bang} phải kết thúc bằng "${target}_code" (quy ước tham chiếu)`);
     }
     if (f.cot.endsWith('_code') && f.kieu !== 'ma') fail(`cột ${f.cot}: cột tên *_code phải là kiểu "ma" (có "tro")`);
+    if ((f.kieu === 'chu' || f.kieu === 'ghichu') && f.doDai && !TEXT_LENGTHS.includes(f.doDai)) fail(`cột ${f.cot}: doDai ${f.doDai} chưa có domain, chọn một trong ${TEXT_LENGTHS.join(', ')} (ud_text<N>, 00-helpers.sql)`);
+    if (f.kieu === 'so' && f.soLe !== undefined && !DECIMAL_SCALES.includes(f.soLe)) fail(`cột ${f.cot}: soLe ${f.soLe} chưa có domain, chọn một trong ${DECIMAL_SCALES.join(', ')} (ud_dec18_<N>)`);
   }
+  if (spec.doDaiMa !== undefined && !CODE_LENGTHS.includes(spec.doDaiMa)) fail(`"doDaiMa" ${spec.doDaiMa} chưa có domain, chọn một trong ${CODE_LENGTHS.join(', ')} (ud_code<N>, 00-helpers.sql)`);
+  if (spec.doDaiTen !== undefined && !TEXT_LENGTHS.includes(spec.doDaiTen)) fail(`"doDaiTen" ${spec.doDaiTen} chưa có domain, chọn một trong ${TEXT_LENGTHS.join(', ')} (ud_text<N>, 00-helpers.sql)`);
   return spec;
 }
 
@@ -209,13 +236,14 @@ const KHUNG: Ten = {
 // ------------------------------------------------------------------------------------------------------- từng trường
 interface Field extends Truong { Prop: string; prop: string; n: number }
 const fieldsOf = (spec: Pick<MoTa, 'truong'>): Field[] => (spec.truong ?? []).map(f => ({
-  ...f, Prop: pascal(f.cot), prop: camel(pascal(f.cot)), n: f.doDai ?? (f.kieu === 'ghichu' ? 300 : f.kieu === 'ma' ? 20 : 100)
+  ...f, Prop: pascal(f.cot), prop: camel(pascal(f.cot)), n: f.kieu === 'ma' ? ((f.tro?.lop ? keyLengthOf(f.tro.lop) : undefined) ?? f.doDai ?? 20) : f.doDai ?? (f.kieu === 'ghichu' ? 300 : 100)
 }));
 
+/** Kiểu cột bằng domain dùng chung (00-helpers.sql), không gõ varchar(N) / numeric(P,S) tay. */
 const sqlType = (f: Field) => ({
-  chu: `varchar(${f.n})${f.batBuoc ? ' NOT NULL' : ''}`, ghichu: `varchar(${f.n})${f.batBuoc ? ' NOT NULL' : ''}`,
-  so: `numeric(18,${f.soLe ?? 2}) NOT NULL DEFAULT 0`, nguyen: 'integer NOT NULL DEFAULT 0', logic: 'boolean NOT NULL DEFAULT false',
-  ngay: `date${f.batBuoc ? ' NOT NULL' : ''}`, ma: `varchar(${f.n})${f.batBuoc ? ' NOT NULL' : ''}`
+  chu: `ud_text${f.n}${f.batBuoc ? ' NOT NULL' : ''}`, ghichu: `ud_text${f.n}${f.batBuoc ? ' NOT NULL' : ''}`,
+  so: `ud_dec18_${f.soLe ?? 2} NOT NULL DEFAULT 0`, nguyen: 'ud_int NOT NULL DEFAULT 0', logic: 'ud_bool NOT NULL DEFAULT false',
+  ngay: `ud_date${f.batBuoc ? ' NOT NULL' : ''}`, ma: `ud_code${f.n}${f.batBuoc ? ' NOT NULL' : ''}`
 }[f.kieu]);
 const csType = (f: Field, forRequest = false) => ({
   chu: f.batBuoc && !forRequest ? 'string' : 'string?', ghichu: f.batBuoc && !forRequest ? 'string' : 'string?', ma: f.batBuoc && !forRequest ? 'string' : 'string?',
@@ -238,14 +266,14 @@ function sqlFile(t: Ten, fields: Field[], tenKhongTrung: boolean, number: string
   ].filter(Boolean).join('\n');
   return `-- ${t.tenVi} (${t.bang}), chức năng ${t.ma}. Sinh bằng "npm run tao-danh-muc" (script ${number}); không khóa ngoại, chạy lại được.
 CREATE TABLE IF NOT EXISTS ${t.bang} (
-    code varchar(${t.doDaiMa}) PRIMARY KEY,
-    name varchar(${t.doDaiTen}) NOT NULL,
-${cols ? cols + '\n' : ''}    is_active boolean NOT NULL DEFAULT true,
-    sort_order integer NOT NULL DEFAULT 0,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    created_by integer,
-    updated_at timestamptz,
-    updated_by integer
+    code ud_code${t.doDaiMa} PRIMARY KEY,
+    name ud_text${t.doDaiTen} NOT NULL,
+${cols ? cols + '\n' : ''}    is_active ud_bool NOT NULL DEFAULT true,
+    sort_order ud_int NOT NULL DEFAULT 0,
+    created_at ud_timestamptz NOT NULL DEFAULT now(),
+    created_by ud_user_id,
+    updated_at ud_timestamptz,
+    updated_by ud_user_id
 );
 ${idx}
 `;

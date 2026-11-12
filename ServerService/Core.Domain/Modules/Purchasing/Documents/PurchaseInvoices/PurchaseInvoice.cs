@@ -75,10 +75,10 @@ public class PurchaseInvoiceLine : ErpEntity
     [Column("invoice_id")] public long InvoiceId { get; set; }
     [Column("line_no")] public int LineNo { get; set; }
     [References<Material>]
-    [Required, Column("material_code"), MaxLength(64)] public string MaterialCode { get; set; } = string.Empty;
+    [Required, Column("material_code"), MaxLength(50)] public string MaterialCode { get; set; } = string.Empty;
     [Required, Column("material_name"), MaxLength(200)] public string MaterialName { get; set; } = string.Empty;
     [References<Uom>]
-    [Required, Column("uom_code"), MaxLength(30)] public string UomCode { get; set; } = string.Empty;
+    [Required, Column("uom_code"), MaxLength(20)] public string UomCode { get; set; } = string.Empty;
     [Column("quantity", TypeName = "numeric(18,4)")] public decimal Quantity { get; set; }
     /// <summary>Price on the invoice before tax, in the invoice's currency (the invoice is the truth: it may differ from the order).</summary>
     [Column("unit_price", TypeName = "numeric(18,4)")] public decimal UnitPrice { get; set; }

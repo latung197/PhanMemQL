@@ -61,7 +61,6 @@ export interface TransformedModuleItem {
   key: ModuleCategoryKey;
   title: string;
   iconName: string;
-  badgeCount?: number;
   directSubKey?: SubMenuKey;
   subGroups?: TransformedMenuGroup[];
 }

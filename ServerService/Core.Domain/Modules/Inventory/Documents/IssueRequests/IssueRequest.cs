@@ -53,12 +53,12 @@ public class IssueRequestLine : ErpEntity
     [Column("request_id")] public long RequestId { get; set; }
     [Column("line_no")] public int LineNo { get; set; }
     [References<Material>]
-    [Required, Column("material_code"), MaxLength(64)] public string MaterialCode { get; set; } = string.Empty;
+    [Required, Column("material_code"), MaxLength(50)] public string MaterialCode { get; set; } = string.Empty;
     /// <summary>The material name when the line was saved.</summary>
     [Required, Column("material_name"), MaxLength(200)] public string MaterialName { get; set; } = string.Empty;
     /// <summary>The unit the goods are asked in; the goods issue that carries the line out uses the same unit.</summary>
     [References<Uom>]
-    [Required, Column("uom_code"), MaxLength(30)] public string UomCode { get; set; } = string.Empty;
+    [Required, Column("uom_code"), MaxLength(20)] public string UomCode { get; set; } = string.Empty;
     [Column("quantity", TypeName = "numeric(18,4)")] public decimal Quantity { get; set; }
     [Column("unit_price", TypeName = "numeric(18,4)")] public decimal UnitPrice { get; set; }
     [Column("amount", TypeName = "numeric(18,2)")] public decimal Amount { get; set; }

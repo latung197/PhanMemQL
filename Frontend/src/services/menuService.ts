@@ -103,7 +103,6 @@ export const menuService = {
 
   getUserMenuTree(
     tree: SysModule[], lang: Language = 'vi', currentUser?: UserProfile,
-    badgeCounts?: { lowStockCount?: number; pendingOrderCount?: number },
     visibility: MenuVisibilityConfig = EMPTY_MENU_VISIBILITY
   ): TransformedModuleItem[] {
     const allowed = (item: { subKey: SubMenuKey }) =>
@@ -112,8 +111,6 @@ export const menuService = {
     return tree.filter(m => m.isActive && isMenuModuleVisible(visibility, m.key))
       .sort((a, b) => a.orderNo - b.orderNo)
       .map(mod => {
-        const badgeCount = mod.key === 'inventory' ? badgeCounts?.lowStockCount
-          : mod.key === 'sales' ? badgeCounts?.pendingOrderCount : undefined;
         const subGroups = (mod.subGroups ?? []).filter(g => g.isActive).sort((a, b) => a.orderNo - b.orderNo)
           .map(group => ({
             groupTitle: menuTitle(group, lang),
@@ -123,7 +120,7 @@ export const menuService = {
               .map(item => ({ subKey: item.subKey, label: menuTitle(item, lang), iconName: item.icon }))
           })).filter(group => group.items.length > 0);
         return { key: mod.key, title: menuTitle(mod, lang),
-          iconName: mod.icon, badgeCount, directSubKey: mod.directSubKey, subGroups };
+          iconName: mod.icon, directSubKey: mod.directSubKey, subGroups };
       }).filter(mod => mod.subGroups.length > 0);
   }
 };

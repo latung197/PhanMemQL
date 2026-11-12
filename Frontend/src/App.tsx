@@ -534,10 +534,6 @@ const ERPAppContent: React.FC = () => {
   // Other modules read company units from erpData; the list comes from the backend.
   const erpDataView: ERPData = { ...erpData, companyUnits };
 
-  // Calculate badges
-  const lowStockCount = erpData.products.filter(p => p.quantity <= p.minThreshold).length;
-  const pendingOrderCount = erpData.orders.filter(o => o.status === 'Chờ xử lý' || o.status === 'Đang giao').length;  // i18n-ignore: stored demo value
-
   // Module title and subtitle in the user's language (texts: app.headers.<module>).
   const getSubTitleText = (): { title: string; subtitle: string } => {
     const withHeader = ['inventory', 'purchasing', 'production', 'sales', 'finance', 'hr', 'reports', 'ai', 'settings'];
@@ -561,8 +557,6 @@ const ERPAppContent: React.FC = () => {
         }}
         mobileOpen={mobileSidebarOpen}
         onCloseMobile={() => setMobileSidebarOpen(false)}
-        lowStockCount={lowStockCount}
-        pendingOrderCount={pendingOrderCount}
         menuVisibility={menuVisibility}
         menuTree={menuTree}
       />
