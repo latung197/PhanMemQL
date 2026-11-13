@@ -232,7 +232,7 @@ Cột mới **không gõ `varchar(N)` / `numeric(P,S)` tay**: dùng domain trong
 Quy tắc:
 - **Cột `*_code` trỏ sang danh mục dài đúng bằng mã của danh mục đó** (vật tư `ud_code50`, đơn vị tính `ud_code20`, kho `ud_code20`...). Test `ColumnLengthTests` kiểm tra từ các thuộc tính `[References]` và `MaxLength` của entity, nên entity phải ghi `MaxLength` khớp domain.
 - Cần độ dài chưa có domain: thêm một dòng vào danh sách trong `00-helpers.sql`, không gõ kiểu tay. Domain `varchar` không đổi độ dài tại chỗ được: độ dài mới là domain mới (`ud_code64` cạnh `ud_code50`) rồi chuyển cột sang.
-- Script `60-shared-domains.sql` chuyển các cột đã có của mọi bảng `erp_*` / `sys_*` sang domain theo tên và kiểu (chạy lại không đổi gì thêm). Bảng mới viết bằng domain ngay từ đầu thì không cần nó.
+- Script `65-shared-domains.sql` chuyển các cột đã có của mọi bảng `erp_*` / `sys_*` sang domain theo tên và kiểu (chạy lại không đổi gì thêm). Bảng mới viết bằng domain ngay từ đầu thì không cần nó.
 - Bộ sinh `npm run tao-danh-muc` đã viết SQL bằng domain và chỉ nhận các độ dài ở trên.
 
 `NN` là số tiếp theo trong thư mục `ServerService/sql/postgresql/` (xem số lớn nhất trước khi tạo file mới). Script phải **chạy lại nhiều lần không lỗi**: dùng `IF NOT EXISTS`, không `DROP`.

@@ -69,5 +69,24 @@
     "inUse": "In use",
     "notInUse": "Not in use",
     "isActive": "In use"
+  },
+  "supplierEvaluations": {
+    "title": "Supplier evaluations",
+    "subtitle": "Create, approve and follow supplier evaluations.",
+    "noun": "Supplier evaluation",
+    "add": "New supplier evaluation",
+    "header": {
+      "supplierCode": "Supplier",
+      "periodFrom": "Period from",
+      "periodTo": "Period to",
+      "evaluatorName": "Evaluator",
+      "conclusion": "Conclusion"
+    },
+    "line": {
+      "criterion": "Criterion",
+      "weight": "Weight (%)",
+      "score": "Score",
+      "note": "Note"
+    }
   }
 }

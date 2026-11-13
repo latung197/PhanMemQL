@@ -69,5 +69,24 @@
     "inUse": "Đang dùng",
     "notInUse": "Ngừng sử dụng",
     "isActive": "Đang sử dụng"
+  },
+  "supplierEvaluations": {
+    "title": "Phiếu đánh giá nhà cung cấp",
+    "subtitle": "Lập, duyệt và theo dõi phiếu đánh giá.",
+    "noun": "Phiếu đánh giá",
+    "add": "Lập phiếu đánh giá",
+    "header": {
+      "supplierCode": "Nhà cung cấp",
+      "periodFrom": "Đánh giá từ ngày",
+      "periodTo": "Đến ngày",
+      "evaluatorName": "Người đánh giá",
+      "conclusion": "Kết luận"
+    },
+    "line": {
+      "criterion": "Chỉ tiêu đánh giá",
+      "weight": "Trọng số (%)",
+      "score": "Điểm",
+      "note": "Ghi chú"
+    }
   }
 }

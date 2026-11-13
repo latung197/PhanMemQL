@@ -17,7 +17,7 @@ WITH po AS (
     GROUP BY project_code
 ), pr AS (
     SELECT project_code, count(*)::int AS n FROM erp_purchase_request
-    WHERE unit_code = @unit AND project_code IS NOT NULL AND status IN ('Approved', 'Pending')
+    WHERE unit_code = @unit AND project_code IS NOT NULL AND status IN ('Approved', 'Pending', 'Approved1', 'Approved2')
       AND (@from::date IS NULL OR document_date >= @from) AND (@to::date IS NULL OR document_date <= @to)
     GROUP BY project_code
 )

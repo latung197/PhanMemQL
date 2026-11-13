@@ -7,7 +7,7 @@ namespace Core.Tests.Common;
 
 /// <summary>
 /// The same kind of value has the same length everywhere (shared domains ud_code20, ud_code50 ... of sql/postgresql/00-helpers.sql,
-/// moved onto by script 60): a column that points to a catalog is exactly as long as the code it points to, so a code that fits the
+/// moved onto by script 65): a column that points to a catalog is exactly as long as the code it points to, so a code that fits the
 /// catalog always fits the voucher line, and a column never promises room the catalog does not have.
 /// </summary>
 public sealed class ColumnLengthTests

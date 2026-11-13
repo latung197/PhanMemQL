@@ -88,11 +88,13 @@ Có hai lớp, cùng dùng số phút "Tự đăng xuất khi không thao tác" 
 
 Mỗi dòng có thời điểm (UTC), tên đăng nhập đã gõ, mã người dùng (nếu có), đơn vị, địa chỉ IP và trình duyệt (`User-Agent`). Dòng cũ được xóa cùng lúc và cùng thời hạn với nhật ký thay đổi (Cài đặt › Nhật ký thay đổi › Lưu trữ; 0 = giữ mãi), bởi `AuditLogCleanupService`.
 
-Xem lịch sử: `GET /api/settings/security/login-history` (quyền Xem của `sys_users`). Quản trị viên thấy mọi dòng; người khác chỉ thấy các tài khoản **cùng đơn vị cơ sở** với mình và không thấy các tên không tồn tại.
+Xem lịch sử: **Cài đặt › Người dùng & phân quyền › tab Bảo mật đăng nhập**, khung bên phải (lọc theo tên đăng nhập / địa chỉ IP, kết quả, từ ngày, đến ngày; phân trang). API `GET /api/settings/security/login-history` (quyền Xem của `sys_users`). Quản trị viên thấy mọi dòng; người khác chỉ thấy các tài khoản **cùng đơn vị cơ sở** với mình và không thấy các tên không tồn tại.
 
 ## 7. Đổi chính sách
 
-Hiện **chưa có màn hình** cho chính sách và lịch sử đăng nhập (xem mục 11): backend và hàm gọi API ở frontend (`services/securityApi.ts`: `getPolicy`, `savePolicy`, `loginHistory`) đã có. Trong lúc chờ, quản trị viên đổi bằng Swagger (`http://localhost:2512/swagger` ở môi trường Development):
+Vào **Cài đặt › Người dùng & phân quyền › tab Bảo mật đăng nhập** (quyền Xem của `sys_users`). Khung bên trái là chính sách, chia ba nhóm Mật khẩu / Đăng nhập sai / Phiên làm việc; dưới mỗi ô có giải thích và giới hạn. Chỉ **quản trị viên** sửa được (chính sách áp dụng cho mọi đơn vị cơ sở); người khác chỉ xem. Nút **Mặc định** điền lại các giá trị mặc định (chưa lưu), nút **Lưu** chỉ sáng khi có thay đổi và mọi giá trị nằm trong giới hạn. Mỗi lần lưu được ghi vào Nhật ký thay đổi (đối tượng `SECURITY_POLICY (GLOBAL)`, từng trường trước → sau). Màn hình: `Frontend/src/modules/settings/permissions/SecurityPanel.tsx`.
+
+Không có giao diện (ví dụ khi tự động hóa) thì dùng Swagger (`http://localhost:2512/swagger` ở môi trường Development):
 
 1. `POST /api/auth/login` bằng tài khoản quản trị, bấm **Authorize** và dán token.
 2. `GET /api/settings/security/policy` để lấy chính sách hiện tại.
@@ -153,12 +155,11 @@ Script `ServerService/sql/postgresql/59-login-security.sql` (chạy lại đư�
 1. Gõ sai mật khẩu của một tài khoản có thật 5 lần → lần 6 báo "Đăng nhập sai quá nhiều lần...", kể cả khi gõ đúng mật khẩu. Làm lại với một tên **không tồn tại** → lần 6 cũng báo câu đó.
 2. Quản trị viên đặt lại mật khẩu cho một người → người đó đăng nhập thì chỉ thấy màn Cần đổi mật khẩu; gọi một API khác bằng token đó → 403. Đổi xong thì vào làm việc bình thường.
 3. Đổi mật khẩu về một trong các mật khẩu gần nhất → bị từ chối.
-4. Đặt `idleTimeoutMinutes` = 2 bằng Swagger, đăng nhập rồi để yên: sau 1 phút hiện hộp đếm ngược, sau 2 phút tự đăng xuất. Trong lúc làm việc, tab Network có `POST /api/auth/activity` (nhiều nhất mỗi phút một lần). Đặt lại giá trị cũ khi xong.
-5. Xem `GET /api/settings/security/login-history` có đủ các dòng của các bước trên. Xóa các dòng thử: `delete from sys_login_history where user_name = '<tên thử>'`.
+4. Đặt "Tự đăng xuất sau khi không thao tác" = 2 phút ở tab Bảo mật đăng nhập, đăng nhập rồi để yên: sau 1 phút hiện hộp đếm ngược, sau 2 phút tự đăng xuất. Trong lúc làm việc, tab Network có `POST /api/auth/activity` (nhiều nhất mỗi phút một lần). Đặt lại giá trị cũ khi xong.
+5. Xem khung Lịch sử đăng nhập có đủ các dòng của các bước trên (lọc theo kết quả). Xóa các dòng thử: `delete from sys_login_history where user_name = '<tên thử>'`.
 
 ## 11. Giới hạn hiện tại
 
-- **Chưa có màn hình** Cài đặt cho chính sách bảo mật và lịch sử đăng nhập (chỉ có API, mục 7).
 - Bấm Đăng xuất chỉ bỏ phiên khỏi bộ nhớ của máy chủ, **không thu hồi token**: nếu token đã bị sao chép, nó vẫn dùng được (và bắt đầu đếm thời gian không thao tác lại từ đầu) cho tới khi hết hạn JWT. Khóa tài khoản hoặc đổi mật khẩu thì mọi token cũ mất hiệu lực ngay (`security_version`).
 - Bộ nhớ phiên nằm trong một tiến trình backend: chạy nhiều máy chủ sau bộ cân bằng tải thì cần chuyển sang bộ nhớ dùng chung.
 - Môi trường Development: tài khoản `admin` được đặt lại mật khẩu theo `Seed:AdminPassword` mỗi lần backend khởi động và không bao giờ bị bắt đổi hay hết hạn mật khẩu (để luôn có một tài khoản đăng nhập được). Tài khoản mẫu và tài khoản quản trị đầu tiên của môi trường mới tính hạn mật khẩu từ lúc được tạo.
@@ -173,5 +174,6 @@ Script `ServerService/sql/postgresql/59-login-security.sql` (chạy lại đư�
 | Kiểm phiên không thao tác | `ServerService/Core/Common/Extensions/ApiServiceExtensions.cs` (`OnTokenValidated`) |
 | Chặn API khi phải đổi mật khẩu | `ServerService/Core/Common/Authorization/PasswordChangeFilter.cs` |
 | API | `ServerService/Core/Modules/Auth/AuthController.cs`, `ServerService/Core/Modules/Users/SecurityController.cs` |
+| Màn chính sách + lịch sử đăng nhập | `Frontend/src/modules/settings/permissions/SecurityPanel.tsx` (tab của `UserPermissionManager.tsx`), chữ `security.*` trong `locales/*/settings.json` |
 | Thực thể | `ServerService/Core.Domain/Modules/Users/LoginSecurity.cs` |
 | Frontend | `components/layout/IdleSignOut.tsx`, `modules/account/ForcedPasswordChange.tsx`, `modules/account/PasswordRulesHint.tsx`, `services/securityApi.ts`, `services/authService.ts` (`mustChangePassword`) |

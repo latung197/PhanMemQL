@@ -54,6 +54,7 @@ import { StockLabelDialog } from '../StockLabelDialog';
 import { printVoucher } from '../voucherPrint';
 import { GoodsVoucher, VoucherItem, Product, Warehouse as WarehouseType, CompanyUnit, UserProfile } from '../../../../types';
 import { SAVE_STATUS_LABELS, saveStatusChoices, saveStatusName, type SaveStatus } from '../SaveStatusSelect';
+import { approvalLevelOptions, canApproveVoucher, isInApprovalLabel, POSTABLE_LABELS } from '../voucherStatusLabels';
 import { VoucherStatusBadge } from '../VoucherStatusBadge';
 import { useVoucherStatuses, voucherStatusService } from '../../../../services/voucherStatusService';
 import { reachesStatus } from '../../../../utils/documentPolicy';
@@ -86,7 +87,7 @@ interface GoodsReceiptViewProps {
 
 /** The status filter of the form holds the labels the screens keep; the server filters by the status name. */
 const STATUS_OF_LABEL: Record<string, string> = {
-  'Lập chứng từ': 'Draft', 'Chờ duyệt': 'Pending', 'Đã phê duyệt': 'Approved', 'Chuyển sổ kho': 'Posted', 'Hủy': 'Cancelled'
+  'Lập chứng từ': 'Draft', 'Chờ duyệt': 'Pending', 'Duyệt cấp 1': 'Approved1', 'Duyệt cấp 2': 'Approved2', 'Đã phê duyệt': 'Approved', 'Chuyển sổ kho': 'Posted', 'Hủy': 'Cancelled'
 };
 
 export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
@@ -207,7 +208,8 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
   const perm = getActionPermission(currentUser, 'inv_receipt');
   // "Duyệt" on the voucher or on its approval screen (Phê duyệt nhập / xuất kho), as the backend.
   // Approving is a status right of the unit (own vouchers too); the approval rules only say whom to notify.
-  const canApprove = reachesStatus(currentUser, 'inv_receipt', 'Approved');
+  // The "Duyệt" button: the user reaches the next approval step the unit uses after the voucher's status.
+  const canApproveAt = (label?: string) => canApproveVoucher(currentUser, 'inv_receipt', 'PNK', label);
   // Quyền đặc biệt "Xem đơn giá & thành tiền": không có thì ẩn mọi cột/ô giá trị trên phiếu.
   const canViewPrice = hasRight(currentUser, 'inv_receipt', RIGHTS.VIEW_PRICE);
   const hiddenPriceFields = canViewPrice ? undefined : ['unitPrice', 'amount'];
@@ -1281,7 +1283,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                   <ArrowUpRight className="h-4 w-4" />
                 </button>
               )}
-              {(v.status === 'Chờ duyệt' || v.status === 'Lập chứng từ') && canApprove && (
+              {canApproveAt(v.status) && (
                 <button
                   type="button"
                   onClick={() => void handleQuickStatusChange(v.id, 'approve')}
@@ -1291,7 +1293,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                   <ShieldCheck className="h-4 w-4" />
                 </button>
               )}
-              {['Lập chứng từ', 'Chờ duyệt', 'Đã phê duyệt'].includes(v.status) && reachesStatus(currentUser, 'inv_receipt', 'Posted') && (
+              {POSTABLE_LABELS.includes(v.status) && reachesStatus(currentUser, 'inv_receipt', 'Posted') && (
                 <button
                   type="button"
                   onClick={() => void handleQuickStatusChange(v.id, 'post')}
@@ -1309,7 +1311,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
               )}
           </RowActionSlot>
           <RowActionSlot>
-              {v.status === 'Chờ duyệt' && v.createdBy === currentUser?.fullName && (
+              {isInApprovalLabel(v.status) && v.createdBy === currentUser?.fullName && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'withdraw')}
                   className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Rút phiếu khỏi quy trình duyệt">
                   <Undo2 className="h-4 w-4" />
@@ -1405,6 +1407,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                 <option value="">-- Tất cả trạng thái --</option>
                 <option value="Lập chứng từ">Lập chứng từ</option>
                 <option value="Chờ duyệt">Chờ duyệt</option>
+                {approvalLevelOptions('PNK').map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 <option value="Đã phê duyệt">Đã phê duyệt</option>
                 <option value="Chuyển sổ kho">Chuyển sổ kho</option>
                 <option value="Hủy">Đã hủy</option>
@@ -1750,6 +1753,7 @@ export const GoodsReceiptView: React.FC<GoodsReceiptViewProps> = ({
                         <>
                           <option value="Lập chứng từ">Lập chứng từ</option>
                           <option value="Chờ duyệt">Chờ duyệt</option>
+                          {approvalLevelOptions('PNK', true).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                           <option value="Đã phê duyệt">Đã phê duyệt</option>
                           <option value="Chuyển sổ kho">Chuyển sổ kho</option>
                           <option value="Hủy">Hủy phiếu</option>

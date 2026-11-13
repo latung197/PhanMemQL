@@ -193,9 +193,9 @@ Cả hai dịch vụ cùng một khung (sao từ `IssueRequestService`/`GoodsIss
 
 **`ChangeStatusAsync(action)`** — `submit`, `approve`, `cancel`, `withdraw` (không có `post`/`unpost`):
 
-- `withdraw`: chỉ người lập, chỉ khi `Pending`; gọi `approvals.WithdrawAsync`, về `Draft`.
+- `withdraw`: chỉ người lập, chỉ khi phiếu đang duyệt (`Pending`, `Approved1`, `Approved2`: `DocumentStatuses.InApproval`); gọi `approvals.WithdrawAsync`, về `Draft`.
 - `submit`: `DocumentStatusPolicy.Check` rồi `approvals.SubmitAsync` (dựng các cấp duyệt theo quy tắc và giá trị phiếu, gửi thông báo cho người duyệt); bước **Chờ duyệt** phải đang bật ở đơn vị (`statuses.EnsureEnabledAsync`).
-- `approve`: `approvals.ApproveToEndAsync` (duyệt mọi cấp còn lại, hoặc duyệt thẳng phiếu nháp) rồi phiếu sang `Approved` và ghi `ApprovedByUserId`. Cần `ST_APPROVED` của đơn vị, **kể cả người lập** (duyệt là quyền trạng thái).
+- `approve`: `approvals.ApproveNextAsync`: phiếu lên cấp duyệt cao nhất đơn vị dùng mà quyền người bấm với tới (`Approved1`, `Approved2` hoặc `Approved`; ghi `ApprovedByUserId` khi tới `Approved`). Cần quyền của cấp kế tiếp ở đơn vị, **kể cả người lập** (duyệt là quyền trạng thái).
 - `cancel`: chỉ từ `Approved`; **chặn nếu còn chứng từ sau chưa hủy** lấy từ nó (`PurchaseRequestProgress.HasOrdersAsync`, `PurchaseOrderProgress.HasReceiptsAsync`).
 - `RejectAsync(reason)`: từ chối kèm lý do, về `Draft`.
 
@@ -228,9 +228,9 @@ Người có quyền tới trạng thái nào thì lưu thẳng ở trạng thá
 |---|---|---|
 | Lập chứng từ | luôn được | chỉ lưu |
 | Chờ duyệt | quyền Thêm / Sửa + `ST_PENDING` của đơn vị, bước Chờ duyệt đang bật | `approvals.SubmitAsync` |
-| Đã phê duyệt | `ST_APPROVED` của đơn vị (không cần cột Duyệt hay có tên trong quy tắc) | `EnsureCanApproveDirectAsync` + `ApproveDirectAsync` (ghi mỗi cấp một dòng đã duyệt bởi chính người này). Nếu đơn vị **tắt** bước Chờ duyệt: `ApproveWithoutFlowAsync`, không cần người duyệt |
+| Duyệt cấp 1 / 2, Đã phê duyệt | quyền trạng thái đó của đơn vị (không cần cột Duyệt hay có tên trong quy tắc); cấp trung gian phải đang bật | `approvals.ApproveDraftToAsync(..., target)`: các cấp đến đó ghi là đã duyệt bởi chính người này, cấp sau được báo. Nếu đơn vị **tắt** bước Chờ duyệt: chỉ Đã phê duyệt, không có vòng duyệt |
 
-Quyền cho một trạng thái sau **bao gồm** các bước trước (Chờ duyệt < Đã duyệt). Một bước bị từ chối thì **cả lần lưu bị hủy** nhờ giao dịch chung: không bao giờ để phiếu dở dang.
+Quyền cho một trạng thái sau **bao gồm** các bước trước (Chờ duyệt < Duyệt cấp 1 < Duyệt cấp 2 < Đã duyệt). Một bước bị từ chối thì **cả lần lưu bị hủy** nhờ giao dịch chung: không bao giờ để phiếu dở dang.
 
 ### 3.7. Quyền
 

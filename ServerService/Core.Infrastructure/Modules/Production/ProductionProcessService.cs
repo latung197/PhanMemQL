@@ -194,7 +194,7 @@ public sealed class ProductionProcessService(CoreContext db, CatalogBatch batch,
             changed = true;
         }
         // The steps are edited in place, so the change log gets them as one field (the units are rows added / removed and log themselves).
-        if (changed) audit.Attach(row, [new AuditChange("operations", isNew ? null : string.Join(", ", before), string.Join(", ", wanted))]);
+        if (changed) AuditLog.Attach(row, [new AuditChange("operations", isNew ? null : string.Join(", ", before), string.Join(", ", wanted))]);
         return changed;
     }
 

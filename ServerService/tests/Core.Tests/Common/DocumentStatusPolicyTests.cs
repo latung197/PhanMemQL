@@ -82,6 +82,34 @@ public sealed class DocumentStatusPolicyTests
     }
 
     [Fact]
+    public void ApprovalLevelsAreStatusesBetweenPendingAndApproved()
+    {
+        var level1 = Actor(Clerk, true, SpecialRightCatalog.StatusApproved1);
+        var level2 = Actor(Clerk, true, SpecialRightCatalog.StatusApproved2);
+        var approved = Actor(Clerk, true, StatusApproved);
+        // Level 1 approves from Pending only; level 2 includes level 1; Approved includes both.
+        Assert.True(level1.Reaches(DocumentStatus.Pending) && level1.Reaches(DocumentStatus.Approved1));
+        Assert.False(level1.Reaches(DocumentStatus.Approved2));
+        Assert.True(level2.Reaches(DocumentStatus.Approved1) && level2.Reaches(DocumentStatus.Approved2));
+        Assert.False(level2.Reaches(DocumentStatus.Approved));
+        Assert.True(approved.Reaches(DocumentStatus.Approved1) && approved.Reaches(DocumentStatus.Approved2));
+
+        Assert.Equal(DocumentStatus.Approved1, DocumentStatuses.NextApproval(DocumentStatus.Pending));
+        Assert.Equal(DocumentStatus.Approved2, DocumentStatuses.NextApproval(DocumentStatus.Approved1));
+        Assert.Equal(DocumentStatus.Approved, DocumentStatuses.NextApproval(DocumentStatus.Approved2));
+        Assert.True(DocumentStatuses.InApproval("Approved2"));
+        Assert.False(DocumentStatuses.InApproval("Approved"));
+
+        // The intermediate levels are off until a unit switches them on, and can be switched off again.
+        Assert.False(Core.Application.Common.Documents.VoucherStatusCatalog.EnabledByDefault(DocumentStatus.Approved1));
+        Assert.False(Core.Application.Common.Documents.VoucherStatusCatalog.EnabledByDefault(DocumentStatus.Approved2));
+        Assert.True(Core.Application.Common.Documents.VoucherStatusCatalog.EnabledByDefault(DocumentStatus.Pending));
+        Assert.True(Core.Application.Common.Documents.VoucherStatusCatalog.CanDisable(DocumentStatus.Approved1));
+        Assert.False(Core.Application.Common.Documents.VoucherStatusCatalog.CanDisable(DocumentStatus.Approved));
+        Assert.Equal(SpecialRightCatalog.StatusApproved2, Core.Application.Common.Documents.VoucherStatusCatalog.RightOf(DocumentStatus.Approved2));
+    }
+
+    [Fact]
     public void ASaveStraightAtAStatusNeedsTheRightsToReachIt()
     {
         Assert.True(DocumentStatusPolicy.CheckTarget(DocumentStatus.Draft, Actor(Clerk, true)).Allowed);

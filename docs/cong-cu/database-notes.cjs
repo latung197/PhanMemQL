@@ -3,10 +3,10 @@
 const PER = {};
 const addPer = (tables, map) => { for (const t of tables) for (const [c, d] of Object.entries(map)) PER[t + '.' + c] = d; };
 
-addPer(['erp_goods_receipt', 'erp_goods_issue', 'erp_issue_request', 'erp_purchase_request', 'erp_purchase_order'], {
+addPer(['erp_goods_receipt', 'erp_goods_issue', 'erp_issue_request', 'erp_purchase_request', 'erp_purchase_order', 'erp_supplier_evaluation'], {
   code: 'Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001',
   unit_code: 'Đơn vị cơ sở của phiếu (trỏ sys_company_unit)',
-  status: 'Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted',
+  status: 'Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted',
   total_value: 'Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá)',
   approved_by_user_id: 'Người duyệt cuối cùng (mã người dùng)'
 });
@@ -235,7 +235,7 @@ Object.assign(PER, {
   'sys_voucher_sequence.period_key': 'Kỳ cấp số (ví dụ 202610: năm + tháng)',
   'sys_voucher_sequence.last_number': 'Số đã cấp gần nhất trong kỳ',
   'sys_voucher_status.voucher_type': 'Loại chứng từ',
-  'sys_voucher_status.status_code': 'Mã trạng thái cố định (Draft, Pending, Approved, Posted, Cancelled)',
+  'sys_voucher_status.status_code': 'Mã trạng thái cố định (Draft, Pending, Approved1, Approved2, Approved, Posted, Cancelled)',
   'sys_voucher_status.name': 'Tên tiếng Việt do đơn vị đặt',
   'sys_voucher_status.name_en': 'Tên tiếng Anh do đơn vị đặt',
   'sys_voucher_status.is_enabled': 'Bước còn dùng (tắt Chờ duyệt = phiếu bỏ qua bước duyệt)',
@@ -298,7 +298,7 @@ Object.assign(PER, {
   'sys_document_approval.document_title': 'Tiêu đề hiển thị',
   'sys_document_approval.amount': 'Giá trị phiếu lúc gửi duyệt',
   'sys_document_approval.round': 'Vòng duyệt (tăng mỗi lần gửi lại)',
-  'sys_document_approval.level': 'Cấp duyệt',
+  'sys_document_approval.level': 'Cấp duyệt (cấp k = bước duyệt thứ k mà đơn vị dùng: Duyệt cấp 1, Duyệt cấp 2, Đã duyệt)',
   'sys_document_approval.approver_user_ids': 'Danh sách mã người duyệt hợp lệ của cấp, cách nhau dấu phẩy',
   'sys_document_approval.approver_label': 'Mô tả người duyệt để hiển thị',
   'sys_document_approval.status': 'Trạng thái của cấp duyệt (chờ, đã duyệt, từ chối, rút lại)',
@@ -307,6 +307,16 @@ Object.assign(PER, {
   'sys_document_approval.acted_by_user_id': 'Người xử lý',
   'sys_document_approval.acted_at_utc': 'Thời điểm xử lý (UTC)',
   'sys_document_approval.note': 'Lý do / ghi chú',
+  'erp_supplier_evaluation.supplier_code': 'Nhà cung cấp được đánh giá (trỏ `erp_supplier`)',
+  'erp_supplier_evaluation.period_from': 'Kỳ đánh giá từ ngày',
+  'erp_supplier_evaluation.period_to': 'Kỳ đánh giá đến ngày',
+  'erp_supplier_evaluation.evaluator_name': 'Người đánh giá (tên gõ tay)',
+  'erp_supplier_evaluation.conclusion': 'Kết luận đánh giá',
+  'erp_supplier_evaluation_line.supplier_evaluation_id': 'Phiếu đánh giá của dòng (`erp_supplier_evaluation.id`)',
+  'erp_supplier_evaluation_line.criterion': 'Chỉ tiêu đánh giá',
+  'erp_supplier_evaluation_line.weight': 'Trọng số (%)',
+  'erp_supplier_evaluation_line.score': 'Điểm',
+  'sys_document_approval.target_status': 'Trạng thái phiếu sau khi cấp này duyệt xong: Approved1, Approved2 hoặc Approved; trống = Approved (vòng duyệt trước script 63)',
   'sys_notification.title': 'Tiêu đề',
   'sys_notification.body': 'Nội dung',
   'sys_notification.type': 'Mức: info, success, warning, danger',
@@ -506,7 +516,7 @@ Object.assign(PER, {
   'sys_password_history.created_at': 'Thời điểm mật khẩu đó bị thay',
 });
 
-// Danh mục sản xuất (script 55-production-catalogs, 56-production-process, 57).
+// Danh mục sản xuất (script 60-production-catalogs, 61-production-process, 62-product-structure).
 Object.assign(PER, {
   'erp_production_operation.name_en': 'Tên phụ (tiếng Anh)',
   'erp_production_operation.production_team_code': 'Tổ thực hiện (trỏ erp_production_team), tùy chọn',

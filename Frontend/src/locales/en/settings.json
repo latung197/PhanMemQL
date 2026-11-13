@@ -140,7 +140,8 @@
       "generate": "Generate",
       "reset": "Reset",
       "passwordReset": "Password of @{username} reset. Its previous sessions have been signed out."
-    }
+    },
+    "tabSecurity": "Sign-in security"
   },
   "roles": {
     "created": "Role \"{name}\" created",
@@ -267,10 +268,10 @@
     "ruleCount": "{n} rule(s)",
     "default": "Default",
     "title": "Approval workflow: {name}",
-    "description": "Vouchers are approved level by level from level 1. Rules of the same level pool their approvers; a rule with \"Amount from\" only applies when the total reaches it. The creator never approves their own voucher.",
+    "description": "The approval levels are the approval steps the unit uses in Settings › Voucher statuses (level 1, level 2 when switched on, then Approved): level k is the k-th step. Whoever holds the status right of a step in the unit approves it (a later step includes the earlier ones). The rules only choose whom to notify at each level; a rule with \"From amount\" only applies from that total; levels the unit does not use are ignored.",
     "add": "Add rule",
     "emptyTitle": "No specific workflow",
-    "emptyDescription": "Vouchers of this type are approved in one level by anyone with the Approve permission on this function (in the same unit).",
+    "emptyDescription": "At each level the users holding that level's status right (in the same unit) are notified.",
     "col": {
       "level": "Level",
       "appliesTo": "Applies to",
@@ -306,7 +307,7 @@
       "editTitle": "Edit approval rule — {name}",
       "when": "When it applies",
       "level": "Approval level",
-      "levelHint": "Level 1 approves first",
+      "levelHint": "Level k = the k-th approval step the unit uses",
       "minAmount": "Voucher amount from",
       "minAmountPlaceholder": "Empty = any amount",
       "allUnits": "All units",
@@ -552,8 +553,8 @@
   },
   "voucherStatus": {
     "title": "Voucher statuses",
-    "subtitle": "Every voucher has fixed statuses: Draft → Pending approval → Approved → Posted, or Cancelled. Each company unit may rename the statuses and switch off the \"Pending approval\" step (its vouchers then need no approval); new statuses cannot be added.",
-    "rightsHint": "The right to take a voucher into a status is granted per company unit in Settings › Users & permissions (group \"Document status\"): a user may save a voucher up to the status their rights reach.",
+    "subtitle": "Every voucher has fixed statuses: Draft → Pending approval → Approval level 1 → Approval level 2 → Approved → Posted, or Cancelled. Each company unit renames them, switches \"Pending approval\" off (vouchers then need no approval) and switches \"Approval level 1\" / \"Approval level 2\" on for multi-level approval (off by default; e.g. name it \"Head of department approved\" and rename \"Approved\" \"Director approved\"). Each step in use is one approval level; new statuses cannot be added.",
+    "rightsHint": "The right to take a voucher into each status is granted per company unit in Settings › Users & permissions (group \"Voucher statuses\"): a user approves / saves a voucher up to the status their rights reach (\"Approval level 2\" includes level 1, \"Approved\" includes both levels).",
     "unit": "Company unit",
     "loading": "Loading voucher statuses...",
     "status": "Status",
@@ -591,5 +592,75 @@
   },
   "globalSettings": {
     "adminOnly": "This setting applies to the whole system (every company unit): only an administrator can change it."
+  },
+  "security": {
+    "unit": {
+      "chars": "chars",
+      "days": "days",
+      "minutes": "min"
+    },
+    "policy": {
+      "title": "Security policy",
+      "loading": "Loading the policy...",
+      "save": "Save",
+      "saved": "Security policy saved.",
+      "defaults": "Defaults",
+      "defaultsHint": "Fill in the default values (not saved yet)",
+      "adminOnly": "The policy applies to the whole system: only an administrator can change it.",
+      "range": "Value from {min} to {max}.",
+      "groupPassword": "Password",
+      "groupLogin": "Failed sign-ins",
+      "groupSession": "Session",
+      "passwordMinLength": "Minimum length",
+      "passwordMinLengthHint": "From {min} to {max} characters.",
+      "passwordRequireLetter": "Must contain a letter",
+      "passwordRequireDigit": "Must contain a digit",
+      "passwordRequireUpper": "Must contain an upper-case letter",
+      "passwordRequireSpecial": "Must contain a special character",
+      "passwordExpiryDays": "Password lifetime",
+      "passwordExpiryDaysHint": "An expired password must be changed at sign-in. 0 = never expires.",
+      "passwordHistory": "Do not reuse the last passwords",
+      "passwordHistoryHint": "Number of recent passwords that cannot be reused (max {max}). 0 = not checked.",
+      "mustChangeAfterReset": "Must change the password after an administrator creates / resets it",
+      "loginMaxFailures": "Allowed failures",
+      "loginMaxFailuresHint": "Past this many failures the user name has to wait. 0 = no limit. Accounts are never locked.",
+      "loginFailureWindowMinutes": "Count failures within",
+      "loginFailureWindowMinutesHint": "Only failures within this time count ({min} to {max} minutes).",
+      "loginBlockMinutes": "Waiting time",
+      "loginBlockMinutesHint": "Time to wait before trying again ({min} to {max} minutes).",
+      "idleTimeoutMinutes": "Sign out after inactivity",
+      "idleTimeoutMinutesHint": "Warned 1 minute before. 0 = never."
+    },
+    "history": {
+      "title": "Sign-in history",
+      "description": "Every sign-in, failure and sign-out. A non-administrator sees only the accounts sharing a company unit with them.",
+      "reload": "Reload",
+      "loading": "Loading the sign-in history...",
+      "empty": "No rows.",
+      "search": "Search",
+      "searchPlaceholder": "User name, IP address",
+      "result": "Result",
+      "allResults": "All",
+      "from": "From",
+      "to": "To",
+      "clear": "Clear filters",
+      "col": {
+        "time": "Time",
+        "user": "User",
+        "result": "Result",
+        "unit": "Unit",
+        "ip": "IP address",
+        "device": "Browser / device"
+      }
+    },
+    "result": {
+      "SUCCESS": "Signed in",
+      "WRONG_PASSWORD": "Wrong password",
+      "UNKNOWN_USER": "Unknown user",
+      "UNIT_DENIED": "Unit not allowed",
+      "BLOCKED": "Waiting (too many failures)",
+      "LOGOUT": "Signed out",
+      "IDLE_TIMEOUT": "Idle sign-out"
+    }
   }
 }

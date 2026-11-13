@@ -222,9 +222,12 @@ public abstract class CatalogService<TEntity, TDto, TRequest>(CoreContext db, Ca
             // The key changes with raw SQL (EF cannot change a key); the tracked copy would still hold the old code.
             Db.Entry(row).State = EntityState.Detached;
             var changed = await CatalogCodeChange.RewriteAsync(Db, table, oldCode, newCode, merge: false, token);
+            // Only the table name is put into the text (from the EF model, never from the request); the values are parameters.
+#pragma warning disable EF1002
             var updated = await Db.Database.ExecuteSqlRawAsync(
                 $"UPDATE \"{table}\" SET \"code\" = {{0}}, \"updated_at\" = now(), \"updated_by\" = {{1}} WHERE \"code\" = {{2}}",
                 [newCode, (object?)Db.CurrentUserId ?? DBNull.Value, oldCode], token);
+#pragma warning restore EF1002
             if (updated != 1) throw new ConflictException("record.changed");
             await AfterCodeChangeAsync(oldCode, newCode, merged: false, token);
             await audit.RecordAsync(new AuditEntry(Spec.Function, Spec.ObjectType, newCode, label, AuditActions.CodeChange,

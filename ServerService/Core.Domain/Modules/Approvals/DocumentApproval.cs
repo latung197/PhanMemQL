@@ -48,6 +48,12 @@ public class DocumentApproval
     [Column("acted_at_utc")] public DateTime? ActedAtUtc { get; set; }
     [Column("note"), MaxLength(1000)] public string? Note { get; set; }
 
+    /// <summary>
+    /// The voucher status this level takes the voucher to once approved: Approved1 / Approved2 (the intermediate approval levels a
+    /// unit switched on) or Approved for the last one. Null on steps written before levels followed the statuses = Approved.
+    /// </summary>
+    [Column("target_status"), MaxLength(20)] public string? TargetStatus { get; set; }
+
     [NotMapped] public IReadOnlyList<int> ApproverIds =>
         ApproverUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
 }

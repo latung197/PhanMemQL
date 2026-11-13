@@ -253,7 +253,7 @@ public sealed class SalesOrderService(CoreContext db, IUnitOfWork unitOfWork, IV
         var normalized = action.ToLowerInvariant();
         if (normalized == "withdraw")
         {
-            if (row.Status != "Pending") throw new BusinessRuleException("policy.notPending");
+            if (!DocumentStatuses.InApproval(row.Status)) throw new BusinessRuleException("policy.notPending");
             if (row.CreatedBy != userId) throw new ForbiddenException("approval.withdrawOwnOnly");
             await EnsureActionAsync(userId, row, DocumentAction.View, ct);
             await unitOfWork.ExecuteAsync(async token =>
@@ -270,7 +270,7 @@ public sealed class SalesOrderService(CoreContext db, IUnitOfWork unitOfWork, IV
             "submit" => DocumentAction.Submit, "approve" => DocumentAction.Approve,
             "cancel" => DocumentAction.Cancel, "reopen" => DocumentAction.Reopen, _ => throw new BusinessRuleException("salesOrder.invalidAction")
         };
-        if (normalized == "cancel" && row.Status == "Pending")
+        if (normalized == "cancel" && DocumentStatuses.InApproval(row.Status))
             throw new BusinessRuleException("salesOrder.withdrawBeforeCancel");
         await EnsureActionAsync(userId, row, policyAction, ct);
         if (normalized == "reopen") await fiscal.EnsureDateOpenAsync(unitCode, row.DocumentDate, ct);
@@ -286,10 +286,9 @@ public sealed class SalesOrderService(CoreContext db, IUnitOfWork unitOfWork, IV
             }
             else if (normalized == "approve")
             {
-                // Approving is a status right: a draft, or every level still open, is approved at once by this user.
-                await approvals.ApproveToEndAsync(userId, unitCode, Function, row.Code, row.Code, token);
-                row.Status = "Approved";
-                row.ApprovedByUserId = userId;
+                // Approving is a status right: the voucher goes up to the highest approval level in use that this user reaches
+                // (its status: Duyệt cấp 1, Duyệt cấp 2 or Đã duyệt), the levels on the way recorded as approved by them.
+                await approvals.ApproveNextAsync(userId, unitCode, Function, row.Code, row.Code, token);
             }
             else if (normalized == "reopen")
             {
@@ -322,7 +321,8 @@ public sealed class SalesOrderService(CoreContext db, IUnitOfWork unitOfWork, IV
         var decision = DocumentStatusPolicy.CheckTarget(target, actor);
         if (!decision.Allowed) throw new ForbiddenException(decision.Reason ?? "permission.denied");
         // The step that is switched off is skipped, not refused: only saving at it (Pending) needs it in use.
-        if (target == DocumentStatus.Pending) await statuses.EnsureEnabledAsync(unitCode, Function, DocumentStatus.Pending, ct);
+        if (target is DocumentStatus.Pending or DocumentStatus.Approved1 or DocumentStatus.Approved2)
+            await statuses.EnsureEnabledAsync(unitCode, Function, target, ct);
     }
 
     /// <summary>Takes the just saved draft to the status the user asked for, in the same transaction (see GoodsReceiptService.AdvanceAsync).</summary>
@@ -334,12 +334,10 @@ public sealed class SalesOrderService(CoreContext db, IUnitOfWork unitOfWork, IV
             await approvals.SubmitAsync(userId, unitCode, new SubmitDocumentRequest(Function, row.Code, row.Code, row.TotalValue), token);
             return;
         }
-        if (await statuses.IsEnabledAsync(unitCode, Function, DocumentStatus.Pending, token))
-        {
-            await approvals.EnsureCanApproveDirectAsync(userId, unitCode, Function, row.TotalValue, token);
-            await approvals.ApproveDirectAsync(userId, unitCode, Function, row.Code, row.Code, token);
-        }
-        else await approvals.ApproveWithoutFlowAsync(userId, unitCode, Function, row.Code, token);
+        // Approved1 / Approved2 / Approved: the levels up to it approved by this user (no workflow when the unit has none); Posted
+        // goes through Approved first.
+        await approvals.ApproveDraftToAsync(userId, unitCode, Function, row.Code, row.Code,
+            target == DocumentStatus.Posted ? DocumentStatus.Approved : target, token);
     }
 
     public async Task DeleteAsync(int userId, string unitCode, long id, CancellationToken ct)

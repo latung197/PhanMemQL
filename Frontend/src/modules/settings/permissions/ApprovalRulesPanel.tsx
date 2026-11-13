@@ -297,7 +297,7 @@ const RuleModal: React.FC<{
         <FormSection title={t('approvalRules.form.when')}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <SelectInput label={t('approvalRules.form.level')} required value={String(form.level)} onChange={(e) => set('level', Number(e.target.value))}
-              options={[1, 2, 3, 4, 5].map(n => ({ value: String(n), label: t('approvalRules.level', { n }) }))} hint={t('approvalRules.form.levelHint')} />
+              options={[1, 2, 3].map(n => ({ value: String(n), label: t('approvalRules.level', { n }) }))} hint={t('approvalRules.form.levelHint')} />
             <TextInput label={t('approvalRules.form.minAmount')} type="number" min={0} placeholder={t('approvalRules.form.minAmountPlaceholder')}
               value={form.minAmount ?? ''} onChange={(e) => set('minAmount', e.target.value === '' ? null : Number(e.target.value))}
               hint={form.minAmount != null ? `≥ ${moneyWithSymbol(form.minAmount)}` : undefined} />

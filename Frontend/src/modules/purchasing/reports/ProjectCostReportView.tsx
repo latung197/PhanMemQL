@@ -51,7 +51,7 @@ const STATUS_VARIANT: Record<CostRow['status'], BadgeVariant> = { PLANNING: 'inf
 const KIND_TEXT: Record<string, string> = {
   pur_request: 'Yêu cầu mua hàng', pur_order: 'Đơn mua hàng', inv_receipt: 'Phiếu nhập kho', inv_issue: 'Phiếu xuất kho', inv_issue_request: 'Yêu cầu xuất kho'
 };
-const VOUCHER_STATUS_TEXT: Record<string, string> = { Draft: 'Lập chứng từ', Pending: 'Chờ duyệt', Approved: 'Đã phê duyệt', Posted: 'Chuyển sổ kho', Cancelled: 'Hủy' };
+const VOUCHER_STATUS_TEXT: Record<string, string> = { Draft: 'Lập chứng từ', Pending: 'Chờ duyệt', Approved1: 'Duyệt cấp 1', Approved2: 'Duyệt cấp 2', Approved: 'Đã phê duyệt', Posted: 'Chuyển sổ kho', Cancelled: 'Hủy' };
 
 const filterLabel = 'block text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider mb-0.5';
 const filterInput = 'w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[5px] px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium';

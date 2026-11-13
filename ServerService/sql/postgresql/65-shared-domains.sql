@@ -91,6 +91,6 @@ BEGIN
         changed := changed + 1;
     END LOOP;
 
-    RAISE NOTICE '60-shared-domains: % columns moved to a domain%', changed,
+    RAISE NOTICE '65-shared-domains: % columns moved to a domain%', changed,
         CASE WHEN skipped = '' THEN '' ELSE '; skipped (a view reads them):' || skipped END;
 END $$;

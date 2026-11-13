@@ -519,6 +519,7 @@ export type SubMenuKey =
   | 'prod_team_cat'             // Danh mục tổ sản xuất
   | 'prod_process_cat'          // Danh mục quy trình sản xuất
   | 'prod_structure_cat'        // Danh mục cấu trúc sản phẩm
+  | 'pur_supplier_eval'         // Phiếu đánh giá nhà cung cấp
   // [tao-danh-muc] Danh mục mới: thêm | 'mã chức năng' ngay trên dòng này.
   | 'pur_order'                 // Đơn mua hàng
   | 'pur_invoice'               // Hóa đơn mua hàng

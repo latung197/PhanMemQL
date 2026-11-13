@@ -40,7 +40,7 @@ interface OrderRecord {
   subTotal: number;
   taxAmount: number;
   note?: string | null;
-  status: 'Draft' | 'Pending' | 'Approved' | 'Posted' | 'Cancelled';
+  status: 'Draft' | 'Pending' | 'Approved1' | 'Approved2' | 'Approved' | 'Posted' | 'Cancelled';
   totalValue: number;
   createdBy: string;
   approvedBy?: string | null;
@@ -52,6 +52,8 @@ interface OrderRecord {
 const statusLabels: Record<OrderRecord['status'], string> = {
   Draft: 'Lập chứng từ',
   Pending: 'Chờ duyệt',
+  Approved1: 'Duyệt cấp 1',
+  Approved2: 'Duyệt cấp 2',
   Approved: 'Đã phê duyệt',
   Posted: 'Đã phê duyệt',
   Cancelled: 'Hủy'

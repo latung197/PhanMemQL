@@ -31,7 +31,9 @@ public static class VoucherCatalog
         new("sales_orders", "SO", "Đơn bán hàng"),
         new("sales_delivery", "PGH", "Phiếu giao hàng"),
         new("fin_receipt_voucher", "PT", "Phiếu thu"),
-        new("fin_payment_voucher", "PC", "Phiếu chi")
+        new("fin_payment_voucher", "PC", "Phiếu chi"),
+        new("pur_supplier_eval", "DGN", "Phiếu đánh giá nhà cung cấp"),
+        // [tao-chung-tu] Chứng từ mới: thêm new("mã chức năng", "LOẠI SỐ", "Tên"), ngay trên dòng này.
     ];
 
     /// <summary>

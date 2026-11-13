@@ -26,7 +26,7 @@ interface Props {
 type Draft = Pick<VoucherStatusRow, 'name' | 'nameEn' | 'isEnabled'>;
 
 const keyOf = (row: Pick<VoucherStatusRow, 'voucherType' | 'status'>) => `${row.voucherType}:${row.status}`;
-const variants = { Draft: 'slate', Pending: 'warning', Approved: 'info', Posted: 'success', Cancelled: 'danger' } as const;
+const variants = { Draft: 'slate', Pending: 'warning', Approved1: 'indigo', Approved2: 'indigo', Approved: 'info', Posted: 'success', Cancelled: 'danger' } as const;
 
 export const VoucherStatusView: React.FC<Props> = ({ canEdit, unitCode, companyUnits }) => {
   const { t } = useLanguage();

@@ -1,6 +1,6 @@
 // Settings › Người dùng & Phân quyền: accounts and roles with their permission matrices.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Briefcase, GitBranch, Plus, RefreshCw, ShieldCheck, UserPlus, Users } from 'lucide-react';
+import { Briefcase, GitBranch, KeyRound, Plus, RefreshCw, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Tabs } from '../../components/common/Tabs';
 import { useConfirm } from '../../components/common/ConfirmDialog';
@@ -18,13 +18,14 @@ import { UserDetailPanel } from './permissions/UserDetailPanel';
 import { RoleListPanel } from './permissions/RoleListPanel';
 import { RoleDetailPanel } from './permissions/RoleDetailPanel';
 import { ApprovalRulesPanel } from './permissions/ApprovalRulesPanel';
+import { SecurityPanel } from './permissions/SecurityPanel';
 
 interface UserPermissionManagerProps {
   currentUser: UserProfile;
   companyUnits: CompanyUnit[];
 }
 
-type View = 'users' | 'roles' | 'approvals';
+type View = 'users' | 'roles' | 'approvals' | 'security';
 
 const panelClass = 'bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-lg shadow-2xs min-h-0 overflow-hidden';
 
@@ -138,7 +139,7 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
             onClick={() => void leave(() => { setIsLoading(true); void loadData(); })}>
             {t('users.reload')}
           </Button>
-          {perms.create && view !== 'approvals' && (view === 'users' ? (
+          {perms.create && (view === 'users' || view === 'roles') && (view === 'users' ? (
             <Button size="sm" className="h-7 px-2.5 text-[11px]" icon={<UserPlus className="h-3.5 w-3.5" />}
               onClick={() => void leave(() => setModal('createUser'))}>
               {t('users.addUser')}
@@ -158,7 +159,8 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
         items={[
           { key: 'users', label: t('users.tabUsers', { n: users.length }), icon: <Users /> },
           { key: 'roles', label: t('users.tabRoles', { n: roles.length }), icon: <Briefcase /> },
-          { key: 'approvals', label: t('users.tabApprovals'), icon: <GitBranch /> }
+          { key: 'approvals', label: t('users.tabApprovals'), icon: <GitBranch /> },
+          { key: 'security', label: t('users.tabSecurity'), icon: <KeyRound /> }
         ]}
       />
 
@@ -169,8 +171,14 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
         </div>
       )}
 
+      {view === 'security' && (
+        <div className="min-h-0 xl:h-[calc(100vh-250px)]">
+          <SecurityPanel actorIsAdmin={!!currentUser.isSystemAdmin} />
+        </div>
+      )}
+
       {/* Master / detail */}
-      {view !== 'approvals' && <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-2 min-h-0 lg:h-[calc(100vh-250px)]">
+      {(view === 'users' || view === 'roles') &&<div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-2 min-h-0 lg:h-[calc(100vh-250px)]">
         <div className={`${panelClass} max-h-[50vh] lg:max-h-none`}>
           {view === 'users' ? (
             <UserListPanel users={users} roles={roles} selectedId={selectedUser?.id}

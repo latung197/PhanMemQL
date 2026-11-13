@@ -196,21 +196,23 @@ Danh mục (vật tư, khách hàng, nhà cung cấp, dự án...) **dùng chung
 Vòng đời của mọi phiếu:
 
 ```
- Lập ──gửi duyệt──► Chờ duyệt ──duyệt hết các cấp──► Đã duyệt ──ghi sổ──► Đã ghi sổ
-  ▲                    │                                                    │
-  └────bị từ chối──────┘                                       bỏ ghi sổ ◄──┘
+ Lập ──gửi duyệt──► Chờ duyệt ──► [Duyệt cấp 1] ──► [Duyệt cấp 2] ──► Đã duyệt ──ghi sổ──► Đã ghi sổ
+  ▲                    │              │                 │                                │
+  └──────bị từ chối / rút lại─────────┴─────────────────┘                   bỏ ghi sổ ◄──┘
  (mọi trạng thái trừ Đã ghi sổ) ──hủy──► Hủy
 ```
+
+Hai cấp trong ngoặc mặc định tắt; đơn vị bật ở Cài đặt › Trạng thái chứng từ khi phiếu cần duyệt nhiều cấp. **Số cấp duyệt = số bước duyệt đơn vị đang dùng** (xem `trang-thai-chung-tu.md`, "Duyệt nhiều cấp theo trạng thái chứng từ"). Trong bảng dưới, "Duyệt cấp 1 / 2" theo cột Chờ duyệt, với quyền của cấp kế tiếp.
 
 Được làm gì ở từng trạng thái:
 
 | Thao tác | Lập | Chờ duyệt | Đã duyệt | Đã ghi sổ | Hủy |
 | --- | --- | --- | --- | --- | --- |
 | Xem | Xem (+ `VIEW_ALL` nếu phiếu người khác) | như Lập | như Lập | như Lập | như Lập |
-| Sửa | Sửa | Sửa + `ST_PENDING` | Sửa + `ST_APPROVED` | Không ai | Không ai |
+| Sửa | Sửa | Sửa + `ST_PENDING` (ở Duyệt cấp 1 / 2: quyền của cấp đó) | Sửa + `ST_APPROVED` | Không ai | Không ai |
 | Gửi duyệt | Thêm hoặc Sửa + `ST_PENDING` | — | — | — | — |
-| Duyệt | `ST_APPROVED` (duyệt thẳng, như lưu ở Đã duyệt) | `ST_APPROVED`, **kể cả phiếu mình lập**; mọi cấp còn lại được duyệt một lần | — | — | — |
-| Từ chối | — | `ST_APPROVED` | — | — | — |
+| Duyệt | Quyền của cấp duyệt đầu tiên đơn vị dùng (`ST_APPROVED1`, …, `ST_APPROVED`): duyệt thẳng, như lưu ở cấp đó | Quyền của **cấp kế tiếp**, **kể cả phiếu mình lập**; phiếu lên cấp cao nhất mà quyền với tới | — | — | — |
+| Từ chối | — | Quyền của cấp đang chờ | — | — | — |
 | Ghi sổ | `ST_POSTED` (tự đi qua bước duyệt) | `ST_POSTED` (duyệt nốt rồi ghi sổ) | `ST_POSTED` | — | — |
 | Bỏ ghi sổ | — | — | — | `ST_UNPOST` | — |
 | Hủy | Người lập có Xóa; người khác cần `ST_CANCELLED` | `ST_CANCELLED` | `ST_CANCELLED` | Không (bỏ ghi sổ trước) | — |
@@ -242,16 +244,16 @@ Cài đặt **"Duyệt trước khi ghi sổ"** (Cài đặt mặc định) quy�
 | Đơn vị | Một đơn vị, hoặc để trống = mọi đơn vị |
 | Người lập | Bất kỳ ai; một người; một vai trò; một phòng ban |
 | Số tiền từ | Để trống = mọi giá trị |
-| Cấp | 1, 2, 3... |
-| Người duyệt | Một người, hoặc một vai trò (mọi người giữ vai trò đó). Chỉ tính người **có quyền trạng thái `ST_APPROVED` (hoặc `ST_POSTED`) của chức năng ở đơn vị của phiếu** và được làm việc ở đơn vị đó. Quy tắc chỉ quyết định **ai được báo**: ai có quyền đó cũng duyệt được dù không có tên trong quy tắc |
+| Cấp | 1, 2 hoặc 3: cấp k là bước duyệt thứ k mà đơn vị dùng cho loại phiếu đó; cấp đơn vị không dùng thì quy tắc bị bỏ qua |
+| Người duyệt | Một người, hoặc một vai trò (mọi người giữ vai trò đó). Chỉ tính người **có quyền trạng thái của cấp đó ở đơn vị của phiếu** (cấp 1 = `ST_APPROVED1` khi đơn vị bật Duyệt cấp 1, cấp cuối = `ST_APPROVED`; quyền cấp sau gồm cấp trước) và được làm việc ở đơn vị đó. Quy tắc chỉ quyết định **ai được báo**: ai có quyền đó cũng duyệt được dù không có tên trong quy tắc |
 
 ### Cách chạy
 
-1. Khi phiếu được gửi duyệt, hệ thống lấy mọi quy tắc **khớp** (đúng chức năng, đơn vị, người lập, số tiền) và gom theo cấp.
-2. Chỉ những người ở **cấp đầu** được báo. Ai có quyền `ST_APPROVED` bấm Duyệt thì **mọi cấp còn lại được duyệt luôn** (quyền duyệt là quyền trạng thái, không theo cấp). Muốn người cấp sau mới là người quyết định thì đừng cấp `ST_APPROVED` cho người cấp trước: họ chỉ xem, người có quyền mới duyệt.
+1. Khi phiếu được gửi duyệt, hệ thống lập **một bước cho mỗi cấp đơn vị dùng** (Duyệt cấp 1, Duyệt cấp 2 nếu bật, rồi Đã duyệt) và lấy mọi quy tắc **khớp** (đúng chức năng, đơn vị, người lập, số tiền) để chọn người được báo ở từng cấp.
+2. Những người ở **cấp 1** được báo. Người có quyền của một cấp bấm Duyệt thì phiếu lên **cấp cao nhất mà quyền của họ với tới** (trưởng bộ phận có `ST_APPROVED1`: lên Duyệt cấp 1; giám đốc có `ST_APPROVED`: lên thẳng Đã duyệt, các cấp đi qua ghi tên giám đốc), rồi người ở cấp kế tiếp được báo.
 3. Duyệt xong cấp cuối thì phiếu thành **Đã duyệt**. Bị từ chối ở bất kỳ cấp nào thì phiếu về **Lập**, người lập sửa rồi gửi lại (lượt mới).
-4. Người lập (hoặc quản trị viên) rút lại được khi phiếu đang chờ.
-5. Không có quy tắc nào khớp thì phiếu vẫn phải duyệt một cấp: mọi người có quyền `ST_APPROVED` (hoặc `ST_POSTED`) của chức năng ở đơn vị của phiếu, được làm việc ở đơn vị đó, trừ người lập (người lập có quyền đó thì tự duyệt luôn). Một cấp có quy tắc mà không còn ai duyệt được (vai trò không có người, người duyệt bị khóa) thì không gửi duyệt được và báo lỗi.
+4. Người lập (hoặc quản trị viên) rút lại được khi phiếu đang duyệt (Chờ duyệt hoặc cấp trung gian).
+5. Cấp không có quy tắc thì người được báo là những người có quyền **dừng đúng ở cấp đó** (với tới cấp đó nhưng không với tới cấp sau), không có ai thì mọi người với tới cấp đó; luôn chỉ người được làm việc ở đơn vị của phiếu, trừ người lập (người lập có quyền đó thì tự duyệt luôn). Một cấp có quy tắc mà không còn ai duyệt được (vai trò không có người, người duyệt bị khóa) thì không gửi duyệt được và báo lỗi.
 
 Mỗi bước gửi thông báo, theo ngôn ngữ của từng người:
 - người duyệt cấp kế tiếp nhận yêu cầu duyệt;
@@ -701,13 +703,13 @@ Ví dụ phiếu xuất kho. Mỗi dòng là một bước; cột phải là th�
 | --- | --- | --- |
 | 1. Lập phiếu (lưu nháp) | Nhân viên kho | Xem + Thêm của `inv_issue` |
 | 2. Gửi duyệt | Người lập | Thêm hoặc Sửa, và `ST_PENDING` ở đơn vị của phiếu; đơn vị không tắt bước Chờ duyệt |
-| 3. Duyệt | Bất kỳ ai có `ST_APPROVED` ở đơn vị của phiếu, **kể cả người lập**; người duyệt theo quy tắc (C6) là người được báo | `ST_APPROVED` (hoặc `ST_POSTED`); không cần Xem chức năng hay `VIEW_ALL`. Duyệt một lần là xong mọi cấp |
-| 3'. Từ chối | Người có `ST_APPROVED` | Như trên; phiếu về Lập kèm lý do, người lập sửa rồi gửi lại |
-| 3''. Rút lại | Người lập (hoặc quản trị viên) | Phiếu đang chờ duyệt |
+| 3. Duyệt (từng cấp) | Ai có quyền của cấp kế tiếp ở đơn vị của phiếu (`ST_APPROVED1` / `ST_APPROVED2` khi đơn vị bật, `ST_APPROVED` cho cấp cuối), **kể cả người lập**; người duyệt theo quy tắc (C6) là người được báo | Quyền của cấp đó; không cần Xem chức năng hay `VIEW_ALL`. Phiếu lên cấp cao nhất mà quyền với tới |
+| 3'. Từ chối | Người có quyền của cấp đang chờ | Như trên; phiếu về Lập kèm lý do, người lập sửa rồi gửi lại |
+| 3''. Rút lại | Người lập (hoặc quản trị viên) | Phiếu đang duyệt (Chờ duyệt / Duyệt cấp 1 / Duyệt cấp 2) |
 | 4. Ghi sổ | Thủ kho / kế toán kho | `ST_POSTED` ở đơn vị của phiếu; ghi được cả phiếu Lập / Chờ duyệt (hệ thống ghi luôn bước duyệt); sổ kho kiểm tra đủ tồn |
 | 5. Bỏ ghi sổ (khi cần) | Người có quyền | `ST_UNPOST`; không bỏ được nếu việc đó làm âm kho |
 
-**Lưu thẳng đến một trạng thái.** Ô "Trạng thái" trên phiếu cho chọn Lập, Chờ duyệt, Đã duyệt, Đã ghi sổ tùy quyền của người lập. Phiếu được lưu rồi chạy các bước trong **một giao dịch**; thiếu quyền ở bước nào thì cả lần lưu bị hoàn tác:
+**Lưu thẳng đến một trạng thái.** Ô "Trạng thái" trên phiếu cho chọn Lập, Chờ duyệt, Duyệt cấp 1 / 2 (khi đơn vị bật), Đã duyệt, Đã ghi sổ tùy quyền của người lập. Phiếu được lưu rồi chạy các bước trong **một giao dịch**; thiếu quyền ở bước nào thì cả lần lưu bị hoàn tác:
 - đến **Đã duyệt**: cần `ST_APPROVED` (không cần có tên trong quy tắc duyệt, không cần cột Duyệt);
 - đến **Đã ghi sổ**: cần thêm `ST_POSTED`.
 

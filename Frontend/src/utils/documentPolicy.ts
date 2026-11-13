@@ -5,8 +5,21 @@ import { SubMenuKey, UserProfile } from '../types';
 import { getActionPermission, hasRight, hasStatusRight, RIGHTS } from './permissions';
 import { translate } from './i18n';
 
-/** Voucher life cycle: Lập → Chờ duyệt → Đã duyệt → Đã ghi sổ, or Hủy. Same names as the backend enum. */
-export type DocumentStatus = 'Draft' | 'Pending' | 'Approved' | 'Posted' | 'Cancelled';
+/**
+ * Voucher life cycle: Lập → Chờ duyệt → [Duyệt cấp 1] → [Duyệt cấp 2] → Đã duyệt → Đã ghi sổ, or Hủy. Same names as the backend enum.
+ * The two approval levels in brackets are off until the company unit switches them on (Settings › Trạng thái chứng từ).
+ */
+export type DocumentStatus = 'Draft' | 'Pending' | 'Approved1' | 'Approved2' | 'Approved' | 'Posted' | 'Cancelled';
+
+/** The statuses an approval takes a voucher to, in order (the unit uses Approved and the levels it switched on). */
+export const APPROVAL_CHAIN: DocumentStatus[] = ['Approved1', 'Approved2', 'Approved'];
+
+/** Sent for approval and not approved to the end yet. Mirror of the backend DocumentStatuses.InApproval. */
+export const inApproval = (status: DocumentStatus): boolean => status === 'Pending' || status === 'Approved1' || status === 'Approved2';
+
+/** The approval status right after the given one in the full chain (a draft or pending voucher: level 1). */
+export const nextApproval = (status: DocumentStatus): DocumentStatus =>
+  status === 'Draft' || status === 'Pending' ? 'Approved1' : status === 'Approved1' ? 'Approved2' : 'Approved';
 
 export type DocumentAction = 'View' | 'Edit' | 'Submit' | 'Approve' | 'Reject' | 'Post' | 'Unpost' | 'Cancel' | 'Reopen';
 
@@ -47,7 +60,9 @@ const deny = (reasonKey: string): PolicyDecision => ({ allowed: false, reason: t
 export function reachesStatus(user: PolicyUser, fn: SubMenuKey, status: DocumentStatus): boolean {
   switch (status) {
     case 'Draft': return true;
-    case 'Pending': return hasStatusRight(user, fn, RIGHTS.ST_PENDING) || reachesStatus(user, fn, 'Approved');
+    case 'Pending': return hasStatusRight(user, fn, RIGHTS.ST_PENDING) || reachesStatus(user, fn, 'Approved1');
+    case 'Approved1': return hasStatusRight(user, fn, RIGHTS.ST_APPROVED1) || reachesStatus(user, fn, 'Approved2');
+    case 'Approved2': return hasStatusRight(user, fn, RIGHTS.ST_APPROVED2) || reachesStatus(user, fn, 'Approved');
     case 'Approved': return hasStatusRight(user, fn, RIGHTS.ST_APPROVED) || reachesStatus(user, fn, 'Posted');
     case 'Posted': return hasStatusRight(user, fn, RIGHTS.ST_POSTED);
     default: return hasStatusRight(user, fn, RIGHTS.ST_CANCELLED);
@@ -64,16 +79,17 @@ export function checkDocumentAction(user: PolicyUser, fn: SubMenuKey, action: Do
   status: DocumentStatus, isOwner: boolean): PolicyDecision {
   const a = getActionPermission(user, fn);
   const has = (code: string) => hasRight(user, fn, code);
-  // Approving is a status right like the others: whoever reaches "Approved" in the unit approves (own vouchers too), a pending
-  // voucher from an approval screen without "Xem" on the voucher, a draft straight away like saving it at Approved.
+  // Approving is a status right like the others: whoever reaches the next approval status in the unit approves (own vouchers too),
+  // a voucher in approval from an approval screen without "Xem" on the voucher, a draft straight away like saving it at that status.
+  // Which levels the unit uses is not known here: see canApproveVoucher for the buttons.
   if (action === 'Approve' || action === 'Reject') {
-    const open = status === 'Pending' || (action === 'Approve' && status === 'Draft');
+    const open = inApproval(status) || (action === 'Approve' && status === 'Draft');
     if (!open) return deny('notPending');
     if (status === 'Draft') {
       if (!a.view) return deny('noViewRight');
       if (!isOwner && !has(RIGHTS.VIEW_ALL)) return deny('ownOnly');
     }
-    return reachesStatus(user, fn, 'Approved') ? allow : deny('noApproveRight');
+    return reachesStatus(user, fn, nextApproval(status)) ? allow : deny('noApproveRight');
   }
 
   if (!a.view) return deny('noViewRight');
@@ -86,7 +102,9 @@ export function checkDocumentAction(user: PolicyUser, fn: SubMenuKey, action: Do
     case 'Edit':
       switch (status) {
         case 'Draft': return a.edit ? allow : deny('noEditRight');
-        case 'Pending': return a.edit && reachesStatus(user, fn, 'Pending')
+        case 'Pending':
+        case 'Approved1':
+        case 'Approved2': return a.edit && reachesStatus(user, fn, status)
           ? allow : deny('editPending');
         case 'Approved': return a.edit && reachesStatus(user, fn, 'Approved')
           ? allow : deny('editApproved');
@@ -100,7 +118,7 @@ export function checkDocumentAction(user: PolicyUser, fn: SubMenuKey, action: Do
 
     // The posted right takes a draft or pending voucher through the approval to posted in one go.
     case 'Post':
-      return (status === 'Draft' || status === 'Pending' || status === 'Approved') && reachesStatus(user, fn, 'Posted')
+      return (status === 'Draft' || status === 'Approved' || inApproval(status)) && reachesStatus(user, fn, 'Posted')
         ? allow : deny('postApprovedOnly');
 
     case 'Unpost':

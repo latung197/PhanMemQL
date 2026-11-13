@@ -31,7 +31,7 @@ interface CountRecord {
   counterName?: string | null;
   reason?: string | null;
   note?: string | null;
-  status: 'Draft' | 'Pending' | 'Approved' | 'Posted' | 'Cancelled';
+  status: 'Draft' | 'Pending' | 'Approved1' | 'Approved2' | 'Approved' | 'Posted' | 'Cancelled';
   surplusValue: number;
   shortageValue: number;
   totalValue: number;
@@ -44,6 +44,8 @@ interface CountRecord {
 const statusLabels: Record<CountRecord['status'], string> = {
   Draft: 'Lập chứng từ',
   Pending: 'Chờ duyệt',
+  Approved1: 'Duyệt cấp 1',
+  Approved2: 'Duyệt cấp 2',
   Approved: 'Đã phê duyệt',
   Posted: 'Chuyển sổ kho',
   Cancelled: 'Hủy'

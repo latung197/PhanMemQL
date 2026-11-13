@@ -38,6 +38,7 @@ import { PrintMenuButton } from '../PrintMenuButton';
 import { printStockCount } from '../voucherPrint';
 import { GoodsVoucher, VoucherItem, Product, Warehouse as WarehouseType, CompanyUnit, UserProfile } from '../../../../types';
 import { SAVE_STATUS_LABELS, saveStatusChoices, saveStatusName, type SaveStatus } from '../SaveStatusSelect';
+import { approvalLevelOptions, canApproveVoucher, isInApprovalLabel, POSTABLE_LABELS } from '../voucherStatusLabels';
 import { VoucherStatusBadge } from '../VoucherStatusBadge';
 import { useVoucherStatuses, voucherStatusService } from '../../../../services/voucherStatusService';
 import { reachesStatus } from '../../../../utils/documentPolicy';
@@ -84,7 +85,7 @@ const lineKey = (item: { sku?: string; productId?: string; lotNumber?: string | 
 
 /** The status filter of the form holds the labels the screens keep; the server filters by the status name. */
 const STATUS_OF_LABEL: Record<string, string> = {
-  'Lập chứng từ': 'Draft', 'Chờ duyệt': 'Pending', 'Đã phê duyệt': 'Approved', 'Chuyển sổ kho': 'Posted', 'Hủy': 'Cancelled'
+  'Lập chứng từ': 'Draft', 'Chờ duyệt': 'Pending', 'Duyệt cấp 1': 'Approved1', 'Duyệt cấp 2': 'Approved2', 'Đã phê duyệt': 'Approved', 'Chuyển sổ kho': 'Posted', 'Hủy': 'Cancelled'
 };
 
 export const StockCountView: React.FC<StockCountViewProps> = ({ companyUnits = [], activeUnitCode, currentUser }) => {
@@ -171,7 +172,8 @@ export const StockCountView: React.FC<StockCountViewProps> = ({ companyUnits = [
   const perm = getActionPermission(currentUser, FUNCTION);
   // "Duyệt" on the voucher or on its approval screen (Phê duyệt kiểm kê), as the backend.
   // Approving is a status right of the unit (own vouchers too); the approval rules only say whom to notify.
-  const canApprove = reachesStatus(currentUser, FUNCTION, 'Approved');
+  // The "Duyệt" button: the user reaches the next approval step the unit uses after the voucher's status.
+  const canApproveAt = (label?: string) => canApproveVoucher(currentUser, FUNCTION, 'PKK', label);
   // The values of a count are costs (cost of the stock found in surplus or missing).
   const canViewCost = hasRight(currentUser, FUNCTION, RIGHTS.VIEW_COST);
   const hiddenCostFields = canViewCost ? undefined : ['unitPrice', 'amount'];
@@ -652,11 +654,11 @@ export const StockCountView: React.FC<StockCountViewProps> = ({ companyUnits = [
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'submit')} title="Gửi duyệt phiếu kiểm kê"
                   className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"><ArrowUpRight className="h-4 w-4" /></button>
               )}
-              {(v.status === 'Chờ duyệt' || v.status === 'Lập chứng từ') && canApprove && (
+              {canApproveAt(v.status) && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'approve')} title="Phê duyệt phiếu kiểm kê"
                   className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"><ShieldCheck className="h-4 w-4" /></button>
               )}
-              {['Lập chứng từ', 'Chờ duyệt', 'Đã phê duyệt'].includes(v.status) && reachesStatus(currentUser, FUNCTION, 'Posted') && (
+              {POSTABLE_LABELS.includes(v.status) && reachesStatus(currentUser, FUNCTION, 'Posted') && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'post')} title="Chuyển sổ kho (nhập phần thừa, xuất phần thiếu)"
                   className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-colors cursor-pointer"><CheckCircle2 className="h-4 w-4" /></button>
               )}
@@ -666,7 +668,7 @@ export const StockCountView: React.FC<StockCountViewProps> = ({ companyUnits = [
               )}
           </RowActionSlot>
           <RowActionSlot>
-              {v.status === 'Chờ duyệt' && v.createdBy === currentUser?.fullName && (
+              {isInApprovalLabel(v.status) && v.createdBy === currentUser?.fullName && (
                 <button type="button" onClick={() => void handleQuickStatusChange(v.id, 'withdraw')} title="Rút phiếu khỏi quy trình duyệt"
                   className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg"><Undo2 className="h-4 w-4" /></button>
               )}
@@ -716,6 +718,7 @@ export const StockCountView: React.FC<StockCountViewProps> = ({ companyUnits = [
                 <option value="">-- Tất cả trạng thái --</option>
                 <option value="Lập chứng từ">Lập chứng từ</option>
                 <option value="Chờ duyệt">Chờ duyệt</option>
+                {approvalLevelOptions('PKK').map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 <option value="Đã phê duyệt">Đã phê duyệt</option>
                 <option value="Chuyển sổ kho">Chuyển sổ kho</option>
                 <option value="Hủy">Đã hủy</option>
@@ -871,6 +874,7 @@ export const StockCountView: React.FC<StockCountViewProps> = ({ companyUnits = [
                       : (<>
                           <option value="Lập chứng từ">Lập chứng từ</option>
                           <option value="Chờ duyệt">Chờ duyệt</option>
+                          {approvalLevelOptions('PKK', true).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                           <option value="Đã phê duyệt">Đã phê duyệt</option>
                           <option value="Chuyển sổ kho">Chuyển sổ kho</option>
                           <option value="Hủy">Hủy phiếu</option>

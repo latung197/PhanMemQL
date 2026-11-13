@@ -72,7 +72,7 @@ interface IssueRecord {
   salesOrderCode?: string | null;
   projectCode?: string | null;
   note?: string | null;
-  status: 'Draft' | 'Pending' | 'Approved' | 'Posted' | 'Cancelled';
+  status: 'Draft' | 'Pending' | 'Approved1' | 'Approved2' | 'Approved' | 'Posted' | 'Cancelled';
   totalValue: number;
   createdBy: string;
   approvedBy?: string | null;
@@ -84,6 +84,8 @@ interface IssueRecord {
 const statusLabels: Record<IssueRecord['status'], string> = {
   Draft: 'Lập chứng từ',
   Pending: 'Chờ duyệt',
+  Approved1: 'Duyệt cấp 1',
+  Approved2: 'Duyệt cấp 2',
   Approved: 'Đã phê duyệt',
   Posted: 'Chuyển sổ kho',
   Cancelled: 'Hủy'

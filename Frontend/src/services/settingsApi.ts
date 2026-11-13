@@ -304,7 +304,7 @@ export interface VoucherStatusRow {
   voucherName: string;
   function: string;
   /** Draft, Pending, Approved, Posted or Cancelled. */
-  status: 'Draft' | 'Pending' | 'Approved' | 'Posted' | 'Cancelled';
+  status: 'Draft' | 'Pending' | 'Approved1' | 'Approved2' | 'Approved' | 'Posted' | 'Cancelled';
   /** Name this unit set (empty = default) and its English name. */
   name?: string | null;
   nameEn?: string | null;

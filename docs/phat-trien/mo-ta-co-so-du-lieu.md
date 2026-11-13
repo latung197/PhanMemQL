@@ -1,6 +1,6 @@
 # Mô tả cơ sở dữ liệu S-ERP
 
-Tài liệu này mô tả toàn bộ cơ sở dữ liệu PostgreSQL của S-ERP: **92 bảng**, 1 view, 1221 cột, 335 chỉ mục. Kiểu dữ liệu, độ dài, ràng buộc, chỉ mục, trigger và tham chiếu được **sinh tự động từ database thật** (`erp_dev`) bằng `docs/cong-cu/gen-database-doc.cjs`; phần mô tả bảng và cột viết tay trong `docs/cong-cu/database-notes.cjs` và công cụ. Nhờ vậy khớp với cấu trúc đang chạy. Khi đổi cấu trúc: chạy script SQL, rồi chạy lại công cụ để sinh lại tài liệu.
+Tài liệu này mô tả toàn bộ cơ sở dữ liệu PostgreSQL của S-ERP: **94 bảng**, 1 view, 1251 cột, 341 chỉ mục. Kiểu dữ liệu, độ dài, ràng buộc, chỉ mục, trigger và tham chiếu được **sinh tự động từ database thật** (`erp_dev`) bằng `docs/cong-cu/gen-database-doc.cjs`; phần mô tả bảng và cột viết tay trong `docs/cong-cu/database-notes.cjs` và công cụ. Nhờ vậy khớp với cấu trúc đang chạy. Khi đổi cấu trúc: chạy script SQL, rồi chạy lại công cụ để sinh lại tài liệu.
 
 ## 1. Quy ước chung
 
@@ -75,7 +75,7 @@ Dự án **không dùng ràng buộc khóa ngoại**. Các bảng liên kết b�
 | Danh mục hệ thống | `sys_tax_rate` | 14 | Danh mục mã thuế (VAT, nhập khẩu, khác), thuế suất theo phần trăm, cờ miễn thuế |
 | Phê duyệt, thông báo, nhật ký | `sys_approval_rule` | 13 | Quy tắc phê duyệt: chức năng, điều kiện (giá trị, phòng ban), các cấp duyệt và người duyệt |
 | Phê duyệt, thông báo, nhật ký | `sys_audit_log` | 14 | **Nhật ký thay đổi** dùng chung mọi chức năng, tự ghi khi lưu (trường, giá trị trước → sau, người, đơn vị, địa chỉ IP); dọn tự động theo thời hạn giữ |
-| Phê duyệt, thông báo, nhật ký | `sys_document_approval` | 16 | Các cấp phê duyệt của từng chứng từ (khóa theo mã chức năng + số chứng từ): cấp, người duyệt hợp lệ, trạng thái, người và thời điểm xử lý, lý do |
+| Phê duyệt, thông báo, nhật ký | `sys_document_approval` | 17 | Các cấp phê duyệt của từng chứng từ (khóa theo mã chức năng + số chứng từ): cấp, người duyệt hợp lệ, trạng thái, người và thời điểm xử lý, lý do |
 | Phê duyệt, thông báo, nhật ký | `sys_notification` | 12 | Thông báo gửi cho người dùng (cá nhân hoặc toàn đơn vị), có liên kết mở thẳng chứng từ |
 | Phê duyệt, thông báo, nhật ký | `sys_notification_read` | 4 | Người dùng nào đã đọc thông báo nào |
 | Danh mục Kho | `erp_location` | 14 | Vị trí lưu kho (kệ, ô...) thuộc đúng một kho; mã duy nhất toàn hệ thống |
@@ -119,6 +119,8 @@ Dự án **không dùng ràng buộc khóa ngoại**. Các bảng liên kết b�
 | Chứng từ Mua hàng | `erp_purchase_order_line` | 16 | Dòng đơn mua hàng: dòng yêu cầu mua đã đặt, ngày dự kiến nhận của từng dòng |
 | Chứng từ Mua hàng | `erp_purchase_request` | 23 | Đầu **phiếu yêu cầu mua hàng** (duyệt, không ghi sổ) |
 | Chứng từ Mua hàng | `erp_purchase_request_line` | 14 | Dòng phiếu yêu cầu mua hàng |
+| Chứng từ Mua hàng | `erp_supplier_evaluation` | 18 | Đầu **phiếu đánh giá nhà cung cấp** (duyệt, không ghi sổ; sinh bằng npm run tao-chung-tu) |
+| Chứng từ Mua hàng | `erp_supplier_evaluation_line` | 11 | Dòng phiếu đánh giá nhà cung cấp: chỉ tiêu, trọng số, điểm |
 | Danh mục Bán hàng | `erp_customer` | 17 | Danh mục **khách hàng**: mã số thuế (duy nhất khi có), liên hệ, nhóm, điều khoản thanh toán mặc định, hạn mức công nợ (0 = không giới hạn) |
 | Danh mục Bán hàng | `erp_customer_group` | 9 | Danh mục **nhóm khách hàng**; một bảng giá bán có thể áp dụng cho một nhóm |
 | Danh mục Bán hàng | `erp_price_list` | 13 | Đầu **bảng giá bán**: một loại tiền, hiệu lực từ ngày - đến ngày, áp dụng cho một nhóm khách hoặc mọi khách |
@@ -272,6 +274,8 @@ Mỗi dòng: cột của một bảng trỏ tới khóa của bảng nào. **Ch�
 | `erp_stock_norm` | `material_code` | `erp_material.code` | có |  |
 | `erp_stock_norm` | `warehouse_code` | `erp_warehouse.code` | có |  |
 | `erp_supplier` | `supplier_group_code` | `erp_supplier_group.code` | có |  |
+| `erp_supplier_evaluation` | `supplier_code` | `erp_supplier.code` | có |  |
+| `erp_supplier_evaluation` | `unit_code` | `sys_company_unit.code` | có |  |
 | `erp_transfer_issue` | `from_warehouse_code` | `erp_warehouse.code` | có |  |
 | `erp_transfer_issue` | `to_warehouse_code` | `erp_warehouse.code` | có |  |
 | `erp_transfer_issue` | `unit_code` | `sys_company_unit.code` | có |  |
@@ -315,7 +319,7 @@ Mỗi dòng: cột của một bảng trỏ tới khóa của bảng nào. **Ch�
 | `sys_voucher_sequence` | `unit_code` | `sys_company_unit.code` | có |  |
 | `sys_voucher_status` | `unit_code` | `sys_company_unit.code` | có |  |
 
-(Tổng 149 tham chiếu. Cột chứng từ trỏ dòng nguồn bằng id như `purchase_request_line_id`, `purchase_order_line_id`, `issue_request_line_id` không nằm trong bản đồ vì là id, không phải mã danh mục; chúng được mô tả ở từng bảng.)
+(Tổng 151 tham chiếu. Cột chứng từ trỏ dòng nguồn bằng id như `purchase_request_line_id`, `purchase_order_line_id`, `issue_request_line_id` không nằm trong bản đồ vì là id, không phải mã danh mục; chúng được mô tả ở từng bảng.)
 
 ## 5. Mô tả từng bảng
 
@@ -329,11 +333,11 @@ Danh mục **chức năng và nút menu** (cây module → nhóm → chức năn
 |---|---|---|---|---|---|---|
 | 1 | `menuid0` | varchar(64) | không |  |  | Mã chức năng / nút menu (khóa chính; ví dụ inv_receipt) |
 | 2 | `menuid` | varchar(64) | không | '' |  | Mã nút kiểu cũ |
-| 3 | `text` | ud_text100 | không | '' |  | Tên tiếng Việt (kiểu cũ) |
-| 4 | `text2` | ud_text100 | không | '' |  | Tên thứ hai (kiểu cũ) |
+| 3 | `text` | varchar(100) | không | '' |  | Tên tiếng Việt (kiểu cũ) |
+| 4 | `text2` | varchar(100) | không | '' |  | Tên thứ hai (kiểu cũ) |
 | 5 | `ma_ct` | varchar(3) | không | '' |  | Mã chứng từ gắn với nút (kiểu cũ) |
-| 6 | `report` | ud_text100 | không | '' |  | Cờ báo cáo (kiểu cũ) |
-| 7 | `command` | ud_text100 | không | '' |  | Lệnh thực thi (kiểu cũ) |
+| 6 | `report` | varchar(100) | không | '' |  | Cờ báo cáo (kiểu cũ) |
+| 7 | `command` | varchar(100) | không | '' |  | Lệnh thực thi (kiểu cũ) |
 | 8 | `title` | text | không | '' |  | Tiêu đề (kiểu cũ) |
 | 9 | `title2` | text | không | '' |  | Tiêu đề thứ hai (kiểu cũ) |
 | 10 | `basicright` | smallint | không | 0 |  | Quyền cơ bản (kiểu cũ) |
@@ -351,7 +355,7 @@ Danh mục **chức năng và nút menu** (cây module → nhóm → chức năn
 | 22 | `menu_icon` | varchar(64) | không | '' |  | Tên biểu tượng |
 | 23 | `menu_icon_color` | varchar(64) | có |  |  | Màu biểu tượng |
 | 24 | `menu_badge_type` | varchar(32) | có |  |  | Kiểu huy hiệu |
-| 25 | `menu_direct_function_code` | ud_code64 | có |  |  | Module mở thẳng một chức năng (không có nhóm) |
+| 25 | `menu_direct_function_code` | varchar(64) | có |  |  | Module mở thẳng một chức năng (không có nhóm) |
 | 26 | `menu_order_no` | integer | không | 0 |  | Thứ tự trong cây |
 | 27 | `menu_is_active` | boolean | không | true |  | Nút đang hiển thị |
 
@@ -371,8 +375,8 @@ Tên chức năng / menu theo từng ngôn ngữ.
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `menuid0` | varchar(64) | không |  |  | Mã chức năng |
-| 2 | `language_code` | ud_code10 | không |  |  | Mã ngôn ngữ. Trỏ `sys_language` |
-| 3 | `title` | ud_text200 | không |  |  | Tên theo ngôn ngữ |
+| 2 | `language_code` | varchar(10) | không |  |  | Mã ngôn ngữ. Trỏ `sys_language` |
+| 3 | `title` | varchar(200) | không |  |  | Tên theo ngôn ngữ |
 
 Chỉ mục:
 
@@ -386,11 +390,11 @@ Chỉ mục:
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | nextval('sys_login_history_id_seq') |  | Khóa chính, tự tăng |
 | 2 | `log_time` | timestamptz | không | now() |  | Thời điểm (UTC) |
-| 3 | `user_name` | ud_text100 | không |  |  | Tên đăng nhập đã gõ (chữ thường), kể cả tên không tồn tại |
-| 4 | `user_id` | ud_user_id | có |  |  | Người dùng (trống khi tên không tồn tại) |
-| 5 | `unit_code` | ud_code20 | có |  |  | Đơn vị cơ sở đã chọn khi đăng nhập |
+| 3 | `user_name` | varchar(100) | không |  |  | Tên đăng nhập đã gõ (chữ thường), kể cả tên không tồn tại |
+| 4 | `user_id` | integer | có |  |  | Người dùng (trống khi tên không tồn tại) |
+| 5 | `unit_code` | varchar(20) | có |  |  | Đơn vị cơ sở đã chọn khi đăng nhập |
 | 6 | `ip_address` | varchar(64) | có |  |  | Địa chỉ IP của máy gọi |
-| 7 | `user_agent` | ud_text300 | có |  |  | Trình duyệt (User-Agent, cắt 300 ký tự) |
+| 7 | `user_agent` | varchar(300) | có |  |  | Trình duyệt (User-Agent, cắt 300 ký tự) |
 | 8 | `result` | varchar(30) | không |  |  | SUCCESS, WRONG_PASSWORD, UNKNOWN_USER, UNIT_DENIED, BLOCKED, LOGOUT, IDLE_TIMEOUT |
 
 Chỉ mục:
@@ -407,7 +411,7 @@ Mật khẩu cũ (dạng băm) của từng tài khoản, tối đa 24 dòng, đ
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | nextval('sys_password_history_id_seq') |  | Khóa chính, tự tăng |
-| 2 | `user_id` | ud_user_id | không |  |  | Mã người dùng (trỏ `sys_users`) |
+| 2 | `user_id` | integer | không |  |  | Mã người dùng (trỏ `sys_users`) |
 | 3 | `password_hash` | varchar(255) | không |  |  | Băm của một mật khẩu cũ (không bao giờ trả về qua API) |
 | 4 | `created_at` | timestamptz | không | now() |  | Thời điểm mật khẩu đó bị thay |
 
@@ -423,8 +427,8 @@ Vai trò (nhóm quyền). `role_code` duy nhất; vai trò `ADMIN` có mọi quy
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `role_id` | integer | không | tự tăng |  | Khóa chính |
-| 2 | `role_code` | ud_code50 | không |  |  | Mã vai trò, duy nhất; ADMIN có mọi quyền |
-| 3 | `role_name` | ud_text100 | không |  |  | Tên vai trò |
+| 2 | `role_code` | varchar(50) | không |  |  | Mã vai trò, duy nhất; ADMIN có mọi quyền |
+| 3 | `role_name` | varchar(100) | không |  |  | Tên vai trò |
 | 4 | `description` | text | có |  |  | Mô tả |
 | 5 | `validflg` | smallint | không | 1 |  | Cờ cũ: hợp lệ |
 | 6 | `createtime` | timestamp | có |  |  | Thời điểm tạo (kiểu cũ) |
@@ -477,7 +481,7 @@ Quyền đặc biệt của vai trò, dạng `{chức năng}:{MÃ}` (ví dụ `i
 |---|---|---|---|---|---|---|
 | 1 | `role_id` | integer | không |  |  | Mã vai trò (trỏ `sys_role`) |
 | 2 | `menuid0` | varchar(64) | không |  |  | Mã chức năng |
-| 3 | `right_code` | ud_code50 | không |  |  | Mã quyền đặc biệt (VIEW_PRICE, VIEW_ALL, VIEW_COST, ST_APPROVED@DVCS01...) |
+| 3 | `right_code` | varchar(50) | không |  |  | Mã quyền đặc biệt (VIEW_PRICE, VIEW_ALL, VIEW_COST, ST_APPROVED@DVCS01...) |
 | 4 | `createtime` | timestamp | có |  |  | Thời điểm tạo (kiểu cũ) |
 | 5 | `createid` | varchar(20) | có |  |  | Người tạo (kiểu cũ) |
 | 6 | `updatetime` | timestamp | có |  |  | Thời điểm sửa (kiểu cũ) |
@@ -494,7 +498,7 @@ Quyền **ngoại lệ** của người dùng: mỗi dòng thay thế quyền c�
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `user_id` | ud_user_id | không |  |  | Mã người dùng (trỏ `sys_users`) |
+| 1 | `user_id` | integer | không |  |  | Mã người dùng (trỏ `sys_users`) |
 | 2 | `menuid0` | varchar(64) | không |  |  | Mã chức năng |
 | 3 | `can_view` | boolean | không | false |  | Quyền Xem (thay thế quyền vai trò cho chức năng này) |
 | 4 | `can_add` | boolean | không | false |  | Quyền Thêm |
@@ -524,8 +528,8 @@ Các đơn vị cơ sở mà người dùng được làm việc (đổi đơn v
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `user_id` | ud_user_id | không |  |  | Mã người dùng (trỏ `sys_users`) |
-| 2 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở được phép làm việc. Trỏ `sys_company_unit` |
+| 1 | `user_id` | integer | không |  |  | Mã người dùng (trỏ `sys_users`) |
+| 2 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở được phép làm việc. Trỏ `sys_company_unit` |
 | 3 | `role_id` | integer | có |  |  | Vai trò của người dùng ở đơn vị này (trỏ sys_role); trống = vai trò mặc định ở sys_user_role; không bao giờ là ADMIN |
 
 Chỉ mục:
@@ -541,9 +545,9 @@ Quyền đặc biệt của riêng người dùng: `is_granted` = true cấp th�
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `user_id` | ud_user_id | không |  |  | Mã người dùng (trỏ `sys_users`) |
+| 1 | `user_id` | integer | không |  |  | Mã người dùng (trỏ `sys_users`) |
 | 2 | `menuid0` | varchar(64) | không |  |  | Mã chức năng |
-| 3 | `right_code` | ud_code50 | không |  |  | Mã quyền đặc biệt |
+| 3 | `right_code` | varchar(50) | không |  |  | Mã quyền đặc biệt |
 | 4 | `createtime` | timestamp | có |  |  | Thời điểm tạo (kiểu cũ) |
 | 5 | `createid` | varchar(20) | có |  |  | Người tạo (kiểu cũ) |
 | 6 | `updatetime` | timestamp | có |  |  | Thời điểm sửa (kiểu cũ) |
@@ -561,7 +565,7 @@ Gán vai trò cho người dùng.
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `user_id` | ud_user_id | không |  |  | Người dùng |
+| 1 | `user_id` | integer | không |  |  | Người dùng |
 | 2 | `role_id` | integer | không |  |  | Vai trò |
 | 3 | `createtime` | timestamp | có |  |  | Thời điểm tạo (kiểu cũ) |
 | 4 | `createid` | varchar(20) | có |  |  | Người tạo (kiểu cũ) |
@@ -581,13 +585,13 @@ Tài khoản người dùng. Khóa là `user_id`; `user_name` đăng nhập; `pa
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `user_id` | integer | không | tự tăng |  | Khóa chính (số nguyên tự tăng) |
-| 2 | `user_name` | ud_text100 | không |  |  | Tên đăng nhập, duy nhất |
+| 2 | `user_name` | varchar(100) | không |  |  | Tên đăng nhập, duy nhất |
 | 3 | `password_hash` | varchar(255) | không |  |  | Băm mật khẩu (không bao giờ trả về qua API) |
-| 4 | `full_name` | ud_text100 | không |  |  | Họ tên |
+| 4 | `full_name` | varchar(100) | không |  |  | Họ tên |
 | 5 | `ma_dvcs` | varchar(20) | không | '' |  | Đơn vị cơ sở mặc định của người dùng (trỏ sys_company_unit) |
 | 6 | `email` | varchar(150) | có |  |  | Email |
 | 7 | `phone` | varchar(20) | có |  |  | Điện thoại |
-| 8 | `department` | ud_text100 | không | '' |  | Tên phòng ban để hiển thị; mã nằm ở department_code |
+| 8 | `department` | varchar(100) | không | '' |  | Tên phòng ban để hiển thị; mã nằm ở department_code |
 | 9 | `avatar` | text | không | '' |  | Ảnh đại diện |
 | 10 | `theme_pref` | varchar(10) | không | 'light' |  | Giao diện ưa thích (light / dark) |
 | 11 | `notifications_enabled` | boolean | không | true |  | Bật nhận thông báo |
@@ -603,7 +607,7 @@ Tài khoản người dùng. Khóa là `user_id`; `user_name` đăng nhập; `pa
 | 21 | `updatetime` | timestamp | có |  |  | Thời điểm sửa (kiểu cũ) |
 | 22 | `updateid` | varchar(20) | có |  |  | Người sửa (kiểu cũ) |
 | 23 | `status` | varchar(1) | không | '1' |  | Cờ trạng thái kiểu cũ |
-| 24 | `department_code` | ud_code20 | có |  |  | Phòng ban (trỏ `sys_department`) |
+| 24 | `department_code` | varchar(20) | có |  |  | Phòng ban (trỏ `sys_department`) |
 | 25 | `language` | varchar(10) | có |  |  | Ngôn ngữ riêng của người dùng (rỗng = ngôn ngữ mặc định; gửi lên bằng Accept-Language) |
 | 26 | `password_changed_at` | timestamptz | có |  |  | Thời điểm đặt mật khẩu gần nhất (UTC); tính hạn mật khẩu theo chính sách; trống = không hết hạn |
 | 27 | `must_change_password` | boolean | không | false |  | Phải đổi mật khẩu ở lần đăng nhập tới (mật khẩu do quản trị viên đặt) |
@@ -623,19 +627,19 @@ Thanh thông báo hệ thống dưới header: mức INFO / WARNING / URGENT, kh
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code30 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `message` | ud_text500 | không |  |  | Nội dung tiếng Việt |
-| 3 | `message_en` | ud_text500 | có |  |  | Nội dung tiếng Anh |
+| 1 | `code` | varchar(30) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `message` | varchar(500) | không |  |  | Nội dung tiếng Việt |
+| 3 | `message_en` | varchar(500) | có |  |  | Nội dung tiếng Anh |
 | 4 | `level` | varchar(8) | không | 'INFO' |  | INFO, WARNING, URGENT (URGENT không đóng được) |
 | 5 | `start_at` | timestamptz | có |  |  | Bắt đầu hiển thị (UTC) |
 | 6 | `end_at` | timestamptz | có |  |  | Kết thúc hiển thị (UTC) |
-| 7 | `unit_codes` | ud_text500 | không | '' |  | Đơn vị áp dụng (rỗng = tất cả) |
+| 7 | `unit_codes` | varchar(500) | không | '' |  | Đơn vị áp dụng (rỗng = tất cả) |
 | 8 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 9 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 10 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 11 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 11 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 12 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 13 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 13 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -652,11 +656,11 @@ Khóa sổ theo **tháng và đơn vị cơ sở**: tháng đã khóa không l�
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 1 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
 | 2 | `year` | integer | không |  |  | Năm |
 | 3 | `month` | integer | không |  |  | Tháng |
 | 4 | `is_locked` | boolean | không | false |  | Đã khóa sổ: không lập / sửa / xóa chứng từ có ngày trong tháng |
-| 5 | `locked_by_user_id` | ud_user_id | có |  |  | Người khóa |
+| 5 | `locked_by_user_id` | integer | có |  |  | Người khóa |
 | 6 | `locked_at_utc` | timestamptz | có |  |  | Thời điểm khóa (UTC) |
 
 Chỉ mục:
@@ -674,17 +678,17 @@ Bố cục lưới của từng người dùng (cột ẩn, thứ tự, độ r�
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | nextval('sys_grid_layout_id_seq') |  | Khóa chính, tự tăng |
-| 2 | `function_code` | ud_code64 | không |  |  | Chức năng chứa lưới |
+| 2 | `function_code` | varchar(64) | không |  |  | Chức năng chứa lưới |
 | 3 | `grid_key` | varchar(64) | không | 'main' |  | Tên lưới trong chức năng |
-| 4 | `user_id` | ud_user_id | có |  |  | Người dùng; rỗng = bố cục mặc định của công ty |
+| 4 | `user_id` | integer | có |  |  | Người dùng; rỗng = bố cục mặc định của công ty |
 | 5 | `layout` | jsonb | không |  |  | JSON: cột ẩn, thứ tự, độ rộng, sắp xếp, cỡ trang |
 | 6 | `updated_at` | timestamptz | không | now() |  | Thời điểm sửa gần nhất (UTC) |
-| 7 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 7 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
 - `sys_grid_layout_pkey`: **duy nhất** (id)
-- `ux_sys_grid_layout`: **duy nhất** (function_code, grid_key, COALESCE((user_id)::integer, 0))
+- `ux_sys_grid_layout`: **duy nhất** (function_code, grid_key, COALESCE(user_id, 0))
 
 #### 5.2.4. `sys_login_image`
 
@@ -697,9 +701,9 @@ Chỉ mục:
 | 3 | `size_bytes` | integer | không |  |  | Dung lượng |
 | 4 | `data` | bytea | không |  |  | Nội dung ảnh (base64) |
 | 5 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 6 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 6 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 7 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 8 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 8 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -713,10 +717,10 @@ Thông báo hiện ở bảng bên trái màn đăng nhập (đang dùng, khoả
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code30 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `title` | ud_text200 | không |  |  | Tiêu đề (vi) |
+| 1 | `code` | varchar(30) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `title` | varchar(200) | không |  |  | Tiêu đề (vi) |
 | 3 | `content` | varchar(2000) | không | '' |  | Nội dung (vi) |
-| 4 | `title_en` | ud_text200 | có |  |  | Tiêu đề (en) |
+| 4 | `title_en` | varchar(200) | có |  |  | Tiêu đề (en) |
 | 5 | `content_en` | varchar(2000) | có |  |  | Nội dung (en) |
 | 6 | `kind` | varchar(12) | không | 'INFO' |  | Loại: thông báo hoặc BACKGROUND (chỉ ảnh nền) |
 | 7 | `start_date` | date | có |  |  | Từ ngày |
@@ -724,9 +728,9 @@ Thông báo hiện ở bảng bên trái màn đăng nhập (đang dùng, khoả
 | 9 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 10 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 11 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 12 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 12 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 13 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 14 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 14 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 | 15 | `pinned` | boolean | không | false |  | Ghim: giữ ô lớn, các thông báo khác luân phiên ở ô nhỏ |
 | 16 | `login_image_code` | varchar(40) | có |  |  | Ảnh đính kèm (trỏ sys_login_image) |
 
@@ -747,12 +751,12 @@ Cấu hình dạng JSON theo mục (`section`) và đơn vị: mặc định, n�
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `key` | ud_text100 | không |  |  | Tên mục cấu hình (FRONTEND_SYSTEM_DEFAULTS, FRONTEND_FISCAL_CONFIG, FRONTEND_COMPANY_PROFILE, MENU_VISIBILITY...) |
+| 2 | `key` | varchar(100) | không |  |  | Tên mục cấu hình (FRONTEND_SYSTEM_DEFAULTS, FRONTEND_FISCAL_CONFIG, FRONTEND_COMPANY_PROFILE, MENU_VISIBILITY...) |
 | 3 | `value` | text | không |  |  | Nội dung JSON của mục |
 | 4 | `scope` | varchar(50) | không |  |  | Phạm vi (GLOBAL hoặc theo đơn vị) |
 | 5 | `is_public` | boolean | không | true |  | Cho phép đọc công khai (trang đăng nhập) |
 | 6 | `updated_at_utc` | timestamptz | không |  |  | Thời điểm sửa (UTC) |
-| 7 | `updated_by_user_id` | ud_user_id | không |  |  | Người sửa (mã người dùng) |
+| 7 | `updated_by_user_id` | integer | không |  |  | Người sửa (mã người dùng) |
 
 Chỉ mục:
 
@@ -771,17 +775,17 @@ Một dòng một lưới chi tiết của chứng từ (mỗi tab là một lư
 |---|---|---|---|---|---|---|
 | 1 | `code` | varchar(40) | không |  |  | Mã lưới: <LOẠI>_<TAB>, ví dụ PNK_ITEMS |
 | 2 | `voucher_type` | varchar(20) | không |  |  | Loại chứng từ chứa lưới (PNK, PXK...) |
-| 3 | `name` | ud_text200 | không |  |  | Tên tiếng Việt của lưới (tab) |
-| 4 | `name_en` | ud_text200 | có |  |  | Tên tiếng Anh |
+| 3 | `name` | varchar(200) | không |  |  | Tên tiếng Việt của lưới (tab) |
+| 4 | `name_en` | varchar(200) | có |  |  | Tên tiếng Anh |
 | 5 | `tab_key` | varchar(20) | không | 'items' |  | Khóa tab (items, materials) |
 | 6 | `tab_order` | integer | không | 1 |  | Thứ tự tab trong chứng từ |
 | 7 | `allow_add_row` | boolean | không | true |  | Cho thêm dòng |
 | 8 | `allow_delete_row` | boolean | không | true |  | Cho xóa dòng |
 | 9 | `pin_count` | integer | không | 0 |  | Số cột đầu đang hiện được gim khi cuộn ngang (0-5) |
 | 10 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 11 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 11 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 12 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 13 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 13 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -803,8 +807,8 @@ Các cột của lưới chứng từ: thứ tự, tiêu đề, độ rộng, s�
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
 | 2 | `voucher_grid_code` | varchar(40) | không |  |  | Lưới chứa cột. Trỏ `sys_voucher_grid` |
 | 3 | `field` | varchar(60) | không |  |  | Tên trường dữ liệu của dòng (không đổi) |
-| 4 | `header` | ud_text200 | không |  |  | Tiêu đề tiếng Việt |
-| 5 | `header_en` | ud_text200 | có |  |  | Tiêu đề tiếng Anh |
+| 4 | `header` | varchar(200) | không |  |  | Tiêu đề tiếng Việt |
+| 5 | `header_en` | varchar(200) | có |  |  | Tiêu đề tiếng Anh |
 | 6 | `col_type` | varchar(20) | không |  |  | Kiểu cột (text, number, lookup...) do code quy định |
 | 7 | `width` | integer | có |  |  | Độ rộng (px), trống = theo code |
 | 8 | `min_width` | integer | có |  |  | Độ rộng tối thiểu (40-800) |
@@ -817,9 +821,9 @@ Các cột của lưới chứng từ: thứ tự, tiêu đề, độ rộng, s�
 | 15 | `summary_format` | varchar(10) | có |  |  | Định dạng tổng |
 | 16 | `sort_order` | integer | không | 0 |  | Thứ tự cột trong lưới |
 | 17 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 18 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 18 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 19 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 20 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 20 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -842,12 +846,12 @@ Mẫu số chứng từ theo loại chứng từ và đơn vị (có `{DVCS}`, n
 |---|---|---|---|---|---|---|
 | 1 | `voucher_type` | varchar(20) | không |  |  | Loại chứng từ (PNK, PXK, YCX, YCM, DMH...) |
 | 2 | `menuid0` | varchar(64) | không |  |  | Mã chức năng |
-| 3 | `name` | ud_text100 | không |  |  | Tên hiển thị |
+| 3 | `name` | varchar(100) | không |  |  | Tên hiển thị |
 | 4 | `prefix` | varchar(20) | không |  |  | Tiền tố số phiếu |
-| 5 | `pattern` | ud_text100 | không |  |  | Mẫu số: tiền tố, {DVCS}, năm, tháng, số thứ tự; bắt buộc có {DVCS} |
+| 5 | `pattern` | varchar(100) | không |  |  | Mẫu số: tiền tố, {DVCS}, năm, tháng, số thứ tự; bắt buộc có {DVCS} |
 | 6 | `digits` | smallint | không | 4 |  | Số chữ số của phần thứ tự |
 | 7 | `updated_at_utc` | timestamptz | có |  |  | Thời điểm sửa (UTC) |
-| 8 | `updated_by_user_id` | ud_user_id | có |  |  | Người sửa (mã người dùng) |
+| 8 | `updated_by_user_id` | integer | có |  |  | Người sửa (mã người dùng) |
 
 Chỉ mục:
 
@@ -860,7 +864,7 @@ Bộ đếm số chứng từ theo loại + đơn vị + kỳ (`period_key`); c�
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `voucher_type` | varchar(20) | không |  |  | Loại nghiệp vụ của chứng từ |
-| 2 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 2 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
 | 3 | `period_key` | varchar(8) | không |  |  | Kỳ cấp số (ví dụ 202610: năm + tháng) |
 | 4 | `last_number` | integer | không | 0 |  | Số đã cấp gần nhất trong kỳ |
 
@@ -876,16 +880,16 @@ Tên trạng thái chứng từ đổi theo đơn vị và việc bật / tắt 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | nextval('sys_voucher_status_id_seq') |  | Khóa chính, tự tăng |
-| 2 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 2 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
 | 3 | `voucher_type` | varchar(20) | không |  |  | Loại chứng từ |
-| 4 | `status_code` | ud_code20 | không |  |  | Mã trạng thái cố định (Draft, Pending, Approved, Posted, Cancelled) |
-| 5 | `name` | ud_text100 | có |  |  | Tên tiếng Việt do đơn vị đặt |
-| 6 | `name_en` | ud_text100 | có |  |  | Tên tiếng Anh do đơn vị đặt |
+| 4 | `status_code` | varchar(20) | không |  |  | Mã trạng thái cố định (Draft, Pending, Approved1, Approved2, Approved, Posted, Cancelled) |
+| 5 | `name` | varchar(100) | có |  |  | Tên tiếng Việt do đơn vị đặt |
+| 6 | `name_en` | varchar(100) | có |  |  | Tên tiếng Anh do đơn vị đặt |
 | 7 | `is_enabled` | boolean | không | true |  | Bước còn dùng (tắt Chờ duyệt = phiếu bỏ qua bước duyệt) |
 | 8 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 9 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 9 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 10 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 11 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 11 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -895,7 +899,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_sys_voucher_status_code` (CHECK): CHECK (((status_code)::text = ANY (ARRAY[('Draft'::character varying)::text, ('Pending'::character varying)::text, ('Approved'::character varying)::text, ('Posted'::character varying)::text, ('Cancelled'::character varying)::text])))
+- `ck_sys_voucher_status_code` (CHECK): CHECK (((status_code)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 
 ### 5.3. Danh mục hệ thống
 
@@ -905,26 +909,26 @@ Ràng buộc:
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
 | 2 | `name` | varchar(150) | không |  |  | Tên hiển thị |
-| 3 | `short_name` | ud_text100 | có |  |  | Tên viết tắt |
-| 4 | `address` | ud_text300 | có |  |  | Địa chỉ |
+| 3 | `short_name` | varchar(100) | có |  |  | Tên viết tắt |
+| 4 | `address` | varchar(300) | có |  |  | Địa chỉ |
 | 5 | `phone` | varchar(30) | có |  |  | Điện thoại |
 | 6 | `email` | varchar(150) | có |  |  | Email |
-| 7 | `tax_code` | ud_code30 | có |  |  | Mã số thuế (khác `tax_rate_code`) |
+| 7 | `tax_code` | varchar(30) | có |  |  | Mã số thuế (khác `tax_rate_code`) |
 | 8 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 9 | `is_default` | boolean | không | false |  | Đơn vị mặc định |
 | 10 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 11 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 12 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 12 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 13 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 14 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 14 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
 - `sys_company_unit_pkey`: **duy nhất** (code)
 
-Được trỏ tới bởi: `erp_goods_issue.unit_code`, `erp_goods_receipt.unit_code`, `erp_issue_request.unit_code`, `erp_production_process_unit.unit_code`, `erp_purchase_invoice.unit_code`, `erp_purchase_order.unit_code`, `erp_purchase_request.unit_code`, `erp_sales_order.unit_code`, `erp_stock_balance.unit_code`, `erp_stock_count.unit_code`, `erp_stock_location_balance.unit_code`, `erp_stock_lot_balance.unit_code`, `erp_stock_movement.unit_code`, `erp_transfer_issue.unit_code`, `erp_transfer_order.unit_code`, `erp_transfer_receipt.unit_code`, `erp_warehouse.unit_code`, `erp_warehouse_unit.unit_code`, `sys_approval_rule.unit_code`, `sys_company_unit_translation.unit_code`, `sys_document_approval.unit_code`, `sys_fiscal_period.unit_code`, `sys_notification.unit_code`, `sys_user_company_unit.unit_code`, `sys_voucher_sequence.unit_code`, `sys_voucher_status.unit_code`.
+Được trỏ tới bởi: `erp_goods_issue.unit_code`, `erp_goods_receipt.unit_code`, `erp_issue_request.unit_code`, `erp_production_process_unit.unit_code`, `erp_purchase_invoice.unit_code`, `erp_purchase_order.unit_code`, `erp_purchase_request.unit_code`, `erp_sales_order.unit_code`, `erp_stock_balance.unit_code`, `erp_stock_count.unit_code`, `erp_stock_location_balance.unit_code`, `erp_stock_lot_balance.unit_code`, `erp_stock_movement.unit_code`, `erp_supplier_evaluation.unit_code`, `erp_transfer_issue.unit_code`, `erp_transfer_order.unit_code`, `erp_transfer_receipt.unit_code`, `erp_warehouse.unit_code`, `erp_warehouse_unit.unit_code`, `sys_approval_rule.unit_code`, `sys_company_unit_translation.unit_code`, `sys_document_approval.unit_code`, `sys_fiscal_period.unit_code`, `sys_notification.unit_code`, `sys_user_company_unit.unit_code`, `sys_voucher_sequence.unit_code`, `sys_voucher_status.unit_code`.
 
 #### 5.3.2. `sys_company_unit_translation`
 
@@ -932,13 +936,13 @@ Tên đơn vị cơ sở theo ngôn ngữ.
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
-| 2 | `language_code` | ud_code10 | không |  |  | Mã ngôn ngữ (trỏ sys_language) |
+| 1 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 2 | `language_code` | varchar(10) | không |  |  | Mã ngôn ngữ (trỏ sys_language) |
 | 3 | `name` | varchar(150) | không |  |  | Tên hiển thị |
 | 4 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 5 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 5 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 6 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 7 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 7 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -951,17 +955,17 @@ Danh mục loại tiền; đúng một đồng tiền hạch toán (`is_base`).
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code10 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
+| 1 | `code` | varchar(10) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
 | 3 | `symbol` | varchar(10) | không | '' |  | Ký hiệu |
 | 4 | `decimal_places` | smallint | không | 2 |  | Số chữ số thập phân khi hiển thị |
 | 5 | `is_base` | boolean | không | false |  | Đồng tiền hạch toán (đúng một) |
 | 6 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 7 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 8 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 9 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 9 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 10 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 11 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 11 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -976,15 +980,15 @@ Danh mục phòng ban; người dùng và quy tắc duyệt trỏ tới bằng `
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
-| 3 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
+| 3 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 4 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 5 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 6 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 7 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 7 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 8 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 9 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 9 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1000,7 +1004,7 @@ Tỷ giá theo loại tiền và ngày; mã danh mục dạng `USD@2026-10-08`.
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `currency_code` | ud_code10 | không |  |  | Loại tiền (trỏ `sys_currency`) |
+| 2 | `currency_code` | varchar(10) | không |  |  | Loại tiền (trỏ `sys_currency`) |
 | 3 | `rate_date` | date | không |  |  | Ngày áp dụng tỷ giá |
 | 4 | `buy_rate` | numeric(18,6) | không | 0 |  | Tỷ giá mua |
 | 5 | `sell_rate` | numeric(18,6) | không | 0 |  | Tỷ giá bán |
@@ -1009,9 +1013,9 @@ Tỷ giá theo loại tiền và ngày; mã danh mục dạng `USD@2026-10-08`.
 | 10 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 11 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 12 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 13 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 13 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 14 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 15 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 15 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1029,16 +1033,16 @@ Danh mục ngôn ngữ giao diện (mã chữ thường như `vi`, `en`); một 
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code10 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 1 | `code` | varchar(10) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
 | 2 | `name` | varchar(50) | không |  |  | Tên hiển thị |
 | 3 | `native_name` | varchar(50) | không |  |  | Tên bằng chính ngôn ngữ đó |
 | 4 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 5 | `is_default` | boolean | không | false |  | Ngôn ngữ mặc định (đúng một) |
 | 6 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 7 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 8 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 8 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 9 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 10 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 10 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1053,20 +1057,20 @@ Danh mục mã thuế (VAT, nhập khẩu, khác), thuế suất theo phần tr�
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
 | 3 | `tax_type` | varchar(10) | không | 'VAT' |  | Loại thuế: VAT, IMPORT, OTHER |
 | 4 | `rate` | numeric(7,4) | không | 0 |  | Thuế suất (%) |
 | 5 | `is_exempt` | boolean | không | false |  | Miễn thuế (thuế suất coi như 0) |
-| 6 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 6 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 7 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 8 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 9 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 10 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 10 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 11 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 12 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
-| 13 | `input_account_code` | ud_code20 | có |  |  | Trỏ `erp_account` |
-| 14 | `output_account_code` | ud_code20 | có |  |  | Trỏ `erp_account` |
+| 12 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+| 13 | `input_account_code` | varchar(20) | có |  |  | Trỏ `erp_account` |
+| 14 | `output_account_code` | varchar(20) | có |  |  | Trỏ `erp_account` |
 
 Chỉ mục:
 
@@ -1092,17 +1096,17 @@ Quy tắc phê duyệt: chức năng, điều kiện (giá trị, phòng ban), c
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
 | 2 | `menuid0` | varchar(64) | không |  |  | Chức năng chứng từ áp dụng |
-| 3 | `unit_code` | ud_code20 | có |  |  | Đơn vị áp dụng. Trỏ `sys_company_unit` |
+| 3 | `unit_code` | varchar(20) | có |  |  | Đơn vị áp dụng. Trỏ `sys_company_unit` |
 | 4 | `level` | integer | không | 1 |  | Cấp duyệt (1, 2, ...) |
 | 5 | `requester_type` | varchar(20) | không | 'ANY' |  | Điều kiện người lập (tất cả hoặc theo phòng ban) |
-| 6 | `requester_value` | ud_text100 | có |  |  | Giá trị điều kiện (mã phòng ban) |
-| 7 | `min_amount` | ud_dec18_2 | có |  |  | Chỉ áp dụng khi giá trị phiếu từ mức này trở lên |
+| 6 | `requester_value` | varchar(100) | có |  |  | Giá trị điều kiện (mã phòng ban) |
+| 7 | `min_amount` | numeric(18,2) | có |  |  | Chỉ áp dụng khi giá trị phiếu từ mức này trở lên |
 | 8 | `approver_type` | varchar(20) | không |  |  | Kiểu người duyệt (người có quyền Duyệt, người cụ thể, phòng ban) |
-| 9 | `approver_value` | ud_text100 | không |  |  | Giá trị người duyệt |
-| 10 | `note` | ud_text500 | có |  |  | Ghi chú |
+| 9 | `approver_value` | varchar(100) | không |  |  | Giá trị người duyệt |
+| 10 | `note` | varchar(500) | có |  |  | Ghi chú |
 | 11 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 12 | `updated_at_utc` | timestamptz | không |  |  | Thời điểm sửa (UTC) |
-| 13 | `updated_by_user_id` | ud_user_id | không |  |  | Người sửa |
+| 13 | `updated_by_user_id` | integer | không |  |  | Người sửa |
 
 Chỉ mục:
 
@@ -1118,17 +1122,17 @@ Chỉ mục:
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | nextval('sys_audit_log_id_seq') |  | Khóa chính, tự tăng |
 | 2 | `log_time` | timestamp | không | now() |  | Thời điểm ghi |
-| 3 | `function_code` | ud_code64 | không |  |  | Chức năng |
+| 3 | `function_code` | varchar(64) | không |  |  | Chức năng |
 | 4 | `object_type` | varchar(50) | không |  |  | Loại đối tượng (purchaseOrder, project, user...) |
 | 5 | `object_id` | varchar(64) | không |  |  | Mã / id đối tượng |
-| 6 | `object_label` | ud_text300 | có |  |  | Nhãn hiển thị của đối tượng |
+| 6 | `object_label` | varchar(300) | có |  |  | Nhãn hiển thị của đối tượng |
 | 7 | `action` | varchar(30) | không |  |  | CREATE, UPDATE, DELETE, EXPORT, PURGE, các hành động duyệt... |
 | 8 | `changes` | jsonb | không | '[]' |  | JSON các thay đổi: trường, giá trị trước, giá trị sau |
-| 9 | `note` | ud_text1000 | có |  |  | Ghi chú |
+| 9 | `note` | varchar(1000) | có |  |  | Ghi chú |
 | 10 | `actor_id` | integer | có |  |  | Mã người thực hiện |
 | 11 | `actor_username` | varchar(50) | có |  |  | Tên đăng nhập người thực hiện (chép lúc ghi) |
-| 12 | `actor_name` | ud_text100 | có |  |  | Họ tên người thực hiện |
-| 13 | `unit_code` | ud_code20 | có |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 12 | `actor_name` | varchar(100) | có |  |  | Họ tên người thực hiện |
+| 13 | `unit_code` | varchar(20) | có |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
 | 14 | `ip_address` | varchar(64) | có |  |  | Địa chỉ IP |
 
 Chỉ mục:
@@ -1148,19 +1152,20 @@ Các cấp phê duyệt của từng chứng từ (khóa theo mã chức năng +
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
 | 2 | `menuid0` | varchar(64) | không |  |  | Chức năng của chứng từ |
 | 3 | `document_id` | varchar(64) | không |  |  | Số chứng từ (cùng với menuid0 xác định chứng từ) |
-| 4 | `document_title` | ud_text200 | có |  |  | Tiêu đề hiển thị |
-| 5 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
-| 6 | `amount` | ud_dec18_2 | có |  |  | Giá trị phiếu lúc gửi duyệt |
+| 4 | `document_title` | varchar(200) | có |  |  | Tiêu đề hiển thị |
+| 5 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 6 | `amount` | numeric(18,2) | có |  |  | Giá trị phiếu lúc gửi duyệt |
 | 7 | `round` | integer | không | 1 |  | Vòng duyệt (tăng mỗi lần gửi lại) |
-| 8 | `level` | integer | không |  |  | Cấp duyệt |
+| 8 | `level` | integer | không |  |  | Cấp duyệt (cấp k = bước duyệt thứ k mà đơn vị dùng: Duyệt cấp 1, Duyệt cấp 2, Đã duyệt) |
 | 9 | `approver_user_ids` | text | không |  |  | Danh sách mã người duyệt hợp lệ của cấp, cách nhau dấu phẩy |
-| 10 | `approver_label` | ud_text300 | có |  |  | Mô tả người duyệt để hiển thị |
-| 11 | `status` | ud_status | không |  |  | Trạng thái của cấp duyệt (chờ, đã duyệt, từ chối, rút lại) |
-| 12 | `requested_by_user_id` | ud_user_id | không |  |  | Người gửi duyệt |
+| 10 | `approver_label` | varchar(300) | có |  |  | Mô tả người duyệt để hiển thị |
+| 11 | `status` | varchar(20) | không |  |  | Trạng thái của cấp duyệt (chờ, đã duyệt, từ chối, rút lại) |
+| 12 | `requested_by_user_id` | integer | không |  |  | Người gửi duyệt |
 | 13 | `requested_at_utc` | timestamptz | không |  |  | Thời điểm gửi (UTC) |
-| 14 | `acted_by_user_id` | ud_user_id | có |  |  | Người xử lý |
+| 14 | `acted_by_user_id` | integer | có |  |  | Người xử lý |
 | 15 | `acted_at_utc` | timestamptz | có |  |  | Thời điểm xử lý (UTC) |
-| 16 | `note` | ud_text1000 | có |  |  | Lý do / ghi chú |
+| 16 | `note` | varchar(1000) | có |  |  | Lý do / ghi chú |
+| 17 | `target_status` | varchar(20) | có |  |  | Trạng thái phiếu sau khi cấp này duyệt xong: Approved1, Approved2 hoặc Approved; trống = Approved (vòng duyệt trước script 63) |
 
 Chỉ mục:
 
@@ -1175,15 +1180,15 @@ Thông báo gửi cho người dùng (cá nhân hoặc toàn đơn vị), có li
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `title` | ud_text200 | không |  |  | Tiêu đề |
+| 2 | `title` | varchar(200) | không |  |  | Tiêu đề |
 | 3 | `body` | text | không |  |  | Nội dung |
 | 4 | `type` | varchar(20) | không | 'info' |  | Mức: info, success, warning, danger |
 | 5 | `link_module` | varchar(64) | có |  |  | Module để mở khi bấm |
-| 6 | `unit_code` | ud_code20 | có |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
-| 7 | `recipient_user_id` | ud_user_id | có |  |  | Người nhận (rỗng = cả đơn vị) |
+| 6 | `unit_code` | varchar(20) | có |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 7 | `recipient_user_id` | integer | có |  |  | Người nhận (rỗng = cả đơn vị) |
 | 8 | `created_at_utc` | timestamptz | không |  |  | Thời điểm tạo (UTC) |
 | 9 | `expires_at_utc` | timestamptz | có |  |  | Hết hạn (dọn tự động) |
-| 10 | `created_by_user_id` | ud_user_id | không |  |  | Người gửi |
+| 10 | `created_by_user_id` | integer | không |  |  | Người gửi |
 | 11 | `link_function` | varchar(64) | có |  |  | Chức năng để mở khi bấm |
 | 12 | `link_document_id` | varchar(64) | có |  |  | Số chứng từ để mở khi bấm |
 
@@ -1200,7 +1205,7 @@ Người dùng nào đã đọc thông báo nào.
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `notification_id` | bigint | không |  |  | Thông báo |
-| 2 | `user_id` | ud_user_id | không |  |  | Mã người dùng (trỏ `sys_users`) |
+| 2 | `user_id` | integer | không |  |  | Mã người dùng (trỏ `sys_users`) |
 | 3 | `read_at_utc` | timestamptz | không |  |  | Đã đọc lúc |
 | 4 | `dismissed_at_utc` | timestamptz | có |  |  | Đã ẩn lúc |
 
@@ -1217,20 +1222,20 @@ Vị trí lưu kho (kệ, ô...) thuộc đúng một kho; mã duy nhất toàn 
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code30 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
-| 3 | `warehouse_code` | ud_code20 | không |  |  | Kho chứa vị trí (không đổi sau khi lưu). Trỏ `erp_warehouse` |
+| 1 | `code` | varchar(30) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
+| 3 | `warehouse_code` | varchar(20) | không |  |  | Kho chứa vị trí (không đổi sau khi lưu). Trỏ `erp_warehouse` |
 | 4 | `zone` | varchar(50) | có |  |  | Khu |
 | 5 | `rack` | varchar(50) | có |  |  | Dãy / kệ |
 | 6 | `shelf` | varchar(50) | có |  |  | Tầng / ô |
-| 7 | `capacity` | ud_dec18_4 | có |  |  | Sức chứa |
-| 8 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 7 | `capacity` | numeric(18,4) | có |  |  | Sức chứa |
+| 8 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 9 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 10 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 11 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 12 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 12 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 13 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 14 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 14 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1240,7 +1245,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_location_capacity` (CHECK): CHECK (((capacity IS NULL) OR ((capacity)::numeric >= (0)::numeric)))
+- `ck_erp_location_capacity` (CHECK): CHECK (((capacity IS NULL) OR (capacity >= (0)::numeric)))
 
 Được trỏ tới bởi: `erp_stock_location_balance.location_code`, `erp_stock_movement.location_code`.
 
@@ -1251,19 +1256,19 @@ Lô hàng của vật tư có theo dõi lô; khóa gộp vật tư + số lô, n
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `code` | varchar(81) | không |  |  | Mã lô dạng VT001@LOT-2610 (vật tư @ số lô) |
-| 2 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 2 | `material_code` | varchar(50) | không |  |  | Mã vật tư (trỏ `erp_material`) |
 | 3 | `lot_no` | varchar(30) | không |  |  | Số lô |
 | 4 | `mfg_date` | date | có |  |  | Ngày sản xuất |
 | 5 | `exp_date` | date | có |  |  | Ngày hết hạn |
-| 6 | `supplier_code` | ud_code20 | có |  |  | Nhà cung cấp của lô (tùy chọn). Trỏ `erp_supplier` |
+| 6 | `supplier_code` | varchar(20) | có |  |  | Nhà cung cấp của lô (tùy chọn). Trỏ `erp_supplier` |
 | 7 | `quality_status` | varchar(10) | không | 'PASSED' |  | Chất lượng: PASSED (đạt), INSPECT (đang kiểm), BLOCKED (chặn: không nhập, không xuất) |
-| 8 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 8 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 9 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 10 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 11 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 12 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 12 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 13 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 14 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 14 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1285,15 +1290,15 @@ Danh mục **vật tư / hàng hóa**: đơn vị tính gốc, loại, nhóm, c�
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code50 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text200 | không |  |  | Tên hiển thị |
-| 3 | `customer_material_code` | ud_code50 | có |  |  | Mã vật tư của khách hàng |
+| 1 | `code` | varchar(50) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(200) | không |  |  | Tên hiển thị |
+| 3 | `customer_material_code` | varchar(50) | có |  |  | Mã vật tư của khách hàng |
 | 4 | `part_no` | varchar(50) | có |  |  | Part number / mã hãng |
-| 5 | `material_type_code` | ud_code20 | có |  |  | Loại vật tư (trỏ erp_material_type) |
-| 6 | `material_group_code` | ud_code20 | có |  |  | Nhóm vật tư (trỏ erp_material_group) |
-| 7 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính gốc (tồn kho tính theo đơn vị này). Trỏ `erp_uom` |
-| 8 | `vat_tax_rate_code` | ud_code20 | có |  |  | Mã thuế GTGT mặc định (trỏ sys_tax_rate) |
-| 9 | `import_tax_rate_code` | ud_code20 | có |  |  | Mã thuế nhập khẩu mặc định (trỏ sys_tax_rate) |
+| 5 | `material_type_code` | varchar(20) | có |  |  | Loại vật tư (trỏ erp_material_type) |
+| 6 | `material_group_code` | varchar(20) | có |  |  | Nhóm vật tư (trỏ erp_material_group) |
+| 7 | `uom_code` | varchar(20) | không |  |  | Đơn vị tính gốc (tồn kho tính theo đơn vị này). Trỏ `erp_uom` |
+| 8 | `vat_tax_rate_code` | varchar(20) | có |  |  | Mã thuế GTGT mặc định (trỏ sys_tax_rate) |
+| 9 | `import_tax_rate_code` | varchar(20) | có |  |  | Mã thuế nhập khẩu mặc định (trỏ sys_tax_rate) |
 | 10 | `is_stock_item` | boolean | không | true |  | Là hàng tồn kho (chứng từ kho chỉ nhận vật tư có cờ này) |
 | 11 | `track_lot` | boolean | không | false |  | Theo dõi lô (tồn theo lô, phiếu nhập mở lô) |
 | 12 | `has_expiry` | boolean | không | false |  | Có hạn sử dụng (lô phải có ngày hết hạn) |
@@ -1301,20 +1306,20 @@ Danh mục **vật tư / hàng hóa**: đơn vị tính gốc, loại, nhóm, c�
 | 14 | `track_location` | boolean | không | false |  | Theo dõi vị trí lưu kho |
 | 15 | `is_cycle_counted` | boolean | không | false |  | Có trong kiểm kê định kỳ |
 | 16 | `costing_method` | varchar(10) | không | 'AVERAGE' |  | Phương pháp tính giá: AVERAGE (bình quân) hoặc FIFO |
-| 17 | `min_stock` | ud_dec18_4 | có |  |  | Tồn tối thiểu |
-| 18 | `max_stock` | ud_dec18_4 | có |  |  | Tồn tối đa |
-| 19 | `length` | ud_dec18_4 | có |  |  | Chiều dài |
-| 20 | `width` | ud_dec18_4 | có |  |  | Chiều rộng |
-| 21 | `height` | ud_dec18_4 | có |  |  | Chiều cao |
-| 22 | `weight` | ud_dec18_4 | có |  |  | Khối lượng |
-| 23 | `volume` | ud_dec18_4 | có |  |  | Thể tích |
-| 24 | `note` | ud_text500 | có |  |  | Ghi chú |
+| 17 | `min_stock` | numeric(18,4) | có |  |  | Tồn tối thiểu |
+| 18 | `max_stock` | numeric(18,4) | có |  |  | Tồn tối đa |
+| 19 | `length` | numeric(18,4) | có |  |  | Chiều dài |
+| 20 | `width` | numeric(18,4) | có |  |  | Chiều rộng |
+| 21 | `height` | numeric(18,4) | có |  |  | Chiều cao |
+| 22 | `weight` | numeric(18,4) | có |  |  | Khối lượng |
+| 23 | `volume` | numeric(18,4) | có |  |  | Thể tích |
+| 24 | `note` | varchar(500) | có |  |  | Ghi chú |
 | 25 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 26 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 27 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 28 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 28 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 29 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 30 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 30 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1329,8 +1334,8 @@ Ràng buộc:
 
 - `ck_erp_material_costing` (CHECK): CHECK (((costing_method)::text = ANY ((ARRAY['AVERAGE'::character varying, 'FIFO'::character varying])::text[])))
 - `ck_erp_material_shelf` (CHECK): CHECK (((shelf_life_days IS NULL) OR (shelf_life_days > 0)))
-- `ck_erp_material_stock` (CHECK): CHECK (((min_stock IS NULL) OR ((min_stock)::numeric >= (0)::numeric)))
-- `ck_erp_material_stock_max` (CHECK): CHECK (((max_stock IS NULL) OR (min_stock IS NULL) OR ((max_stock)::numeric >= (min_stock)::numeric)))
+- `ck_erp_material_stock` (CHECK): CHECK (((min_stock IS NULL) OR (min_stock >= (0)::numeric)))
+- `ck_erp_material_stock_max` (CHECK): CHECK (((max_stock IS NULL) OR (min_stock IS NULL) OR (max_stock >= min_stock)))
 
 Được trỏ tới bởi: `erp_goods_issue_line.material_code`, `erp_goods_receipt_line.material_code`, `erp_issue_request_line.material_code`, `erp_lot.material_code`, `erp_price_list_line.material_code`, `erp_product_structure.material_code`, `erp_product_structure_line.component_material_code`, `erp_purchase_invoice_line.material_code`, `erp_purchase_order_line.material_code`, `erp_purchase_request_line.material_code`, `erp_sales_order_line.material_code`, `erp_stock_balance.material_code`, `erp_stock_count_line.material_code`, `erp_stock_location_balance.material_code`, `erp_stock_lot_balance.material_code`, `erp_stock_movement.material_code`, `erp_stock_norm.material_code`, `erp_transfer_issue_line.material_code`, `erp_transfer_order_line.material_code`, `erp_transfer_receipt_line.material_code`, `erp_uom_conversion.material_code`.
 
@@ -1340,15 +1345,15 @@ Nhóm vật tư.
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
-| 3 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
+| 3 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 4 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 5 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 6 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 7 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 7 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 8 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 9 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 9 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1363,16 +1368,16 @@ Loại vật tư, thuộc một nhóm.
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
-| 3 | `group_name` | ud_text100 | có |  |  | Tên nhóm vật tư của loại (chữ) |
-| 4 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
+| 3 | `group_name` | varchar(100) | có |  |  | Tên nhóm vật tư của loại (chữ) |
+| 4 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 5 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 6 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 7 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 8 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 8 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 9 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 10 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 10 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1388,19 +1393,19 @@ Chỉ mục:
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `code` | varchar(71) | không |  |  | Mã định mức dạng VT001@KHO01 (vật tư @ kho) |
-| 2 | `material_code` | ud_code50 | không |  |  | Vật tư (không đổi sau khi lưu). Trỏ `erp_material` |
-| 3 | `warehouse_code` | ud_code20 | không |  |  | Kho (không đổi sau khi lưu). Trỏ `erp_warehouse` |
-| 4 | `min_quantity` | ud_dec18_4 | có |  |  | Tồn tối thiểu theo đơn vị tính gốc; trống hoặc 0 = dùng mức khai trên vật tư |
-| 5 | `max_quantity` | ud_dec18_4 | có |  |  | Tồn tối đa theo đơn vị tính gốc; trống hoặc 0 = dùng mức khai trên vật tư |
-| 6 | `safety_quantity` | ud_dec18_4 | có |  |  | Tồn an toàn (chỉ khai báo) |
-| 7 | `reorder_point` | ud_dec18_4 | có |  |  | Điểm đặt hàng lại (chỉ khai báo, không lớn hơn tồn tối đa) |
-| 8 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 2 | `material_code` | varchar(50) | không |  |  | Vật tư (không đổi sau khi lưu). Trỏ `erp_material` |
+| 3 | `warehouse_code` | varchar(20) | không |  |  | Kho (không đổi sau khi lưu). Trỏ `erp_warehouse` |
+| 4 | `min_quantity` | numeric(18,4) | có |  |  | Tồn tối thiểu theo đơn vị tính gốc; trống hoặc 0 = dùng mức khai trên vật tư |
+| 5 | `max_quantity` | numeric(18,4) | có |  |  | Tồn tối đa theo đơn vị tính gốc; trống hoặc 0 = dùng mức khai trên vật tư |
+| 6 | `safety_quantity` | numeric(18,4) | có |  |  | Tồn an toàn (chỉ khai báo) |
+| 7 | `reorder_point` | numeric(18,4) | có |  |  | Điểm đặt hàng lại (chỉ khai báo, không lớn hơn tồn tối đa) |
+| 8 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 9 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 10 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 11 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 12 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 12 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 13 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 14 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 14 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1411,8 +1416,8 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_stock_norm_qty` (CHECK): CHECK (((COALESCE((min_quantity)::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE((max_quantity)::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE((safety_quantity)::numeric, (0)::numeric) >= (0)::numeric) AND (COALESCE((reorder_point)::numeric, (0)::numeric) >= (0)::numeric)))
-- `ck_erp_stock_norm_range` (CHECK): CHECK (((min_quantity IS NULL) OR (max_quantity IS NULL) OR ((max_quantity)::numeric >= (min_quantity)::numeric)))
+- `ck_erp_stock_norm_qty` (CHECK): CHECK (((COALESCE(min_quantity, (0)::numeric) >= (0)::numeric) AND (COALESCE(max_quantity, (0)::numeric) >= (0)::numeric) AND (COALESCE(safety_quantity, (0)::numeric) >= (0)::numeric) AND (COALESCE(reorder_point, (0)::numeric) >= (0)::numeric)))
+- `ck_erp_stock_norm_range` (CHECK): CHECK (((min_quantity IS NULL) OR (max_quantity IS NULL) OR (max_quantity >= min_quantity)))
 
 #### 5.5.7. `erp_supplier`
 
@@ -1420,19 +1425,19 @@ Danh mục nhà cung cấp (mã số thuế, điện thoại, địa chỉ, nhó
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text200 | không |  |  | Tên hiển thị |
-| 3 | `tax_code` | ud_code30 | có |  |  | Mã số thuế của nhà cung cấp |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(200) | không |  |  | Tên hiển thị |
+| 3 | `tax_code` | varchar(30) | có |  |  | Mã số thuế của nhà cung cấp |
 | 4 | `phone` | varchar(30) | có |  |  | Điện thoại |
-| 5 | `address` | ud_text300 | có |  |  | Địa chỉ |
-| 6 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 5 | `address` | varchar(300) | có |  |  | Địa chỉ |
+| 6 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 7 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 8 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 9 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 10 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 10 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 11 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 12 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
-| 13 | `supplier_group_code` | ud_code20 | có |  |  | Nhóm nhà cung cấp (tùy chọn, trỏ erp_supplier_group) |
+| 12 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+| 13 | `supplier_group_code` | varchar(20) | có |  |  | Nhóm nhà cung cấp (tùy chọn, trỏ erp_supplier_group) |
 
 Chỉ mục:
 
@@ -1441,7 +1446,7 @@ Chỉ mục:
 - `ix_erp_supplier_tax_code`: (tax_code)
 - `ux_erp_supplier_name`: **duy nhất** (lower((name)::text))
 
-Được trỏ tới bởi: `erp_goods_receipt.supplier_code`, `erp_lot.supplier_code`, `erp_purchase_invoice.supplier_code`, `erp_purchase_order.supplier_code`, `erp_purchase_request.supplier_code`.
+Được trỏ tới bởi: `erp_goods_receipt.supplier_code`, `erp_lot.supplier_code`, `erp_purchase_invoice.supplier_code`, `erp_purchase_order.supplier_code`, `erp_purchase_request.supplier_code`, `erp_supplier_evaluation.supplier_code`.
 
 #### 5.5.8. `erp_uom`
 
@@ -1449,16 +1454,16 @@ Chỉ mục:
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
 | 3 | `symbol` | varchar(20) | không | '' |  | Ký hiệu |
-| 4 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 4 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 5 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 6 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 7 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 8 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 8 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 9 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 10 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 10 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1474,18 +1479,18 @@ Quy đổi đơn vị tính (có thể riêng cho một vật tư): hệ số t�
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `code` | varchar(80) | không |  |  | Mã gộp từ đơn vị và vật tư |
-| 2 | `material_code` | ud_code50 | có |  |  | Quy đổi riêng cho vật tư (rỗng = quy đổi chung). Trỏ `erp_material` |
-| 3 | `material_name` | ud_text200 | có |  |  | Tên vật tư chép từ danh mục lúc lưu |
-| 4 | `from_uom_code` | ud_code20 | không |  |  | Đơn vị nguồn (trỏ erp_uom) |
-| 5 | `to_uom_code` | ud_code20 | không |  |  | Đơn vị đích (trỏ erp_uom) |
-| 6 | `factor` | ud_dec20_8 | không |  |  | 1 đơn vị nguồn = factor đơn vị đích |
-| 7 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 2 | `material_code` | varchar(50) | có |  |  | Quy đổi riêng cho vật tư (rỗng = quy đổi chung). Trỏ `erp_material` |
+| 3 | `material_name` | varchar(200) | có |  |  | Tên vật tư chép từ danh mục lúc lưu |
+| 4 | `from_uom_code` | varchar(20) | không |  |  | Đơn vị nguồn (trỏ erp_uom) |
+| 5 | `to_uom_code` | varchar(20) | không |  |  | Đơn vị đích (trỏ erp_uom) |
+| 6 | `factor` | numeric(20,8) | không |  |  | 1 đơn vị nguồn = factor đơn vị đích |
+| 7 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 8 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 9 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 10 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 11 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 11 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 12 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 13 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 13 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1493,12 +1498,12 @@ Chỉ mục:
 - `ix_erp_uom_conversion_from`: (from_uom_code)
 - `ix_erp_uom_conversion_material`: (material_code)
 - `ix_erp_uom_conversion_to`: (to_uom_code)
-- `ux_erp_uom_conversion_pair`: **duy nhất** (COALESCE((material_code)::character varying, ''::character varying), from_uom_code, to_uom_code)
+- `ux_erp_uom_conversion_pair`: **duy nhất** (COALESCE(material_code, ''::character varying), from_uom_code, to_uom_code)
 
 Ràng buộc:
 
 - `ck_erp_uom_conversion_units` (CHECK): CHECK (((from_uom_code)::text <> (to_uom_code)::text))
-- `erp_uom_conversion_factor_check` (CHECK): CHECK (((factor)::numeric > (0)::numeric))
+- `erp_uom_conversion_factor_check` (CHECK): CHECK ((factor > (0)::numeric))
 
 #### 5.5.10. `erp_uom_translation`
 
@@ -1506,13 +1511,13 @@ Tên đơn vị tính theo ngôn ngữ.
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính (trỏ `erp_uom`) |
-| 2 | `language_code` | ud_code10 | không |  |  | Mã ngôn ngữ (trỏ sys_language) |
-| 3 | `name` | ud_text100 | không |  |  | Tên hiển thị |
+| 1 | `uom_code` | varchar(20) | không |  |  | Đơn vị tính (trỏ `erp_uom`) |
+| 2 | `language_code` | varchar(10) | không |  |  | Mã ngôn ngữ (trỏ sys_language) |
+| 3 | `name` | varchar(100) | không |  |  | Tên hiển thị |
 | 4 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 5 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 5 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 6 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 7 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 7 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1525,19 +1530,19 @@ Danh mục kho.
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
-| 3 | `address` | ud_text300 | có |  |  | Địa chỉ kho |
-| 4 | `manager` | ud_text100 | có |  |  | Thủ kho / người quản lý |
-| 5 | `capacity` | ud_text100 | có |  |  | Sức chứa |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
+| 3 | `address` | varchar(300) | có |  |  | Địa chỉ kho |
+| 4 | `manager` | varchar(100) | có |  |  | Thủ kho / người quản lý |
+| 5 | `capacity` | varchar(100) | có |  |  | Sức chứa |
 | 6 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 7 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 8 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 9 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 9 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 10 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 11 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
-| 12 | `warehouse_type_code` | ud_code20 | có |  |  | Loại kho (trỏ erp_warehouse_type) |
-| 13 | `unit_code` | ud_code20 | không | '' |  | Cột cũ của đơn vị cơ sở; danh sách đơn vị được dùng kho nằm ở erp_warehouse_unit. Trỏ `sys_company_unit` |
+| 11 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+| 12 | `warehouse_type_code` | varchar(20) | có |  |  | Loại kho (trỏ erp_warehouse_type) |
+| 13 | `unit_code` | varchar(20) | không | '' |  | Cột cũ của đơn vị cơ sở; danh sách đơn vị được dùng kho nằm ở erp_warehouse_unit. Trỏ `sys_company_unit` |
 
 Chỉ mục:
 
@@ -1554,15 +1559,15 @@ Loại kho.
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
-| 3 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
+| 3 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 4 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 5 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 6 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 7 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 7 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 8 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 9 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 9 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1577,13 +1582,13 @@ Tên loại kho theo ngôn ngữ.
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `warehouse_type_code` | ud_code20 | không |  |  | Trỏ `erp_warehouse_type` |
-| 2 | `language_code` | ud_code10 | không |  |  | Mã ngôn ngữ (trỏ sys_language) |
-| 3 | `name` | ud_text100 | không |  |  | Tên hiển thị |
+| 1 | `warehouse_type_code` | varchar(20) | không |  |  | Trỏ `erp_warehouse_type` |
+| 2 | `language_code` | varchar(10) | không |  |  | Mã ngôn ngữ (trỏ sys_language) |
+| 3 | `name` | varchar(100) | không |  |  | Tên hiển thị |
 | 4 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 5 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 5 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 6 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 7 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 7 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1596,12 +1601,12 @@ Chỉ mục:
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `warehouse_code` | ud_code20 | không |  |  | Kho. Trỏ `erp_warehouse` |
-| 2 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở được dùng kho. Trỏ `sys_company_unit` |
+| 1 | `warehouse_code` | varchar(20) | không |  |  | Kho. Trỏ `erp_warehouse` |
+| 2 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở được dùng kho. Trỏ `sys_company_unit` |
 | 3 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 4 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 4 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 5 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 6 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 6 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1617,27 +1622,27 @@ Chỉ mục:
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `code` | ud_code64 | không |  |  | Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001 |
-| 3 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
+| 2 | `code` | varchar(64) | không |  |  | Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001 |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
 | 4 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
 | 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
-| 6 | `warehouse_code` | ud_code20 | không |  |  | Kho (trỏ `erp_warehouse`) |
-| 7 | `voucher_type` | ud_text100 | không |  |  | Loại xuất: Xuất bán hàng, Xuất điều chuyển, Xuất sản xuất... |
-| 8 | `currency_code` | ud_code10 | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
+| 6 | `warehouse_code` | varchar(20) | không |  |  | Kho (trỏ `erp_warehouse`) |
+| 7 | `voucher_type` | varchar(100) | không |  |  | Loại xuất: Xuất bán hàng, Xuất điều chuyển, Xuất sản xuất... |
+| 8 | `currency_code` | varchar(10) | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
 | 9 | `exchange_rate` | numeric(18,6) | không | 1 |  | Tỷ giá so với tiền hạch toán tại ngày chứng từ |
-| 10 | `customer_name` | ud_text200 | có |  |  | Khách hàng / đơn vị nhận hàng (chữ tự do) |
-| 11 | `receiver_name` | ud_text200 | có |  |  | Người nhận hàng |
-| 12 | `note` | ud_text1000 | có |  |  | Ghi chú |
-| 13 | `status` | ud_status | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
-| 14 | `total_value` | ud_dec18_2 | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
-| 15 | `approved_by_user_id` | ud_user_id | có |  |  | Người duyệt cuối cùng (mã người dùng) |
+| 10 | `customer_name` | varchar(200) | có |  |  | Khách hàng / đơn vị nhận hàng (chữ tự do) |
+| 11 | `receiver_name` | varchar(200) | có |  |  | Người nhận hàng |
+| 12 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 13 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
+| 14 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
+| 15 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
 | 16 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 17 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 17 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 18 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 19 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 19 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 | 20 | `issue_request_code` | varchar(500) | có |  |  | Các số phiếu yêu cầu xuất kho mà phiếu thực hiện, cách nhau dấu phẩy; suy ra từ các dòng |
-| 21 | `project_code` | ud_code20 | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
-| 22 | `customer_code` | ud_code20 | có |  |  | Khách hàng trong danh mục (tùy chọn; vẫn được gõ tên khách tự do ở customer_name). Trỏ `erp_customer` |
+| 21 | `project_code` | varchar(20) | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
+| 22 | `customer_code` | varchar(20) | có |  |  | Khách hàng trong danh mục (tùy chọn; vẫn được gõ tên khách tự do ở customer_name). Trỏ `erp_customer` |
 | 23 | `sales_order_code` | varchar(500) | có |  |  | Các số đơn bán hàng mà phiếu xuất giao, cách nhau dấu phẩy; suy ra từ các dòng, không phải nguồn sự thật |
 
 Chỉ mục:
@@ -1654,7 +1659,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_goods_issue_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_goods_issue_status` (CHECK): CHECK (((status)::text = ANY (ARRAY[('Draft'::character varying)::text, ('Pending'::character varying)::text, ('Approved'::character varying)::text, ('Posted'::character varying)::text, ('Cancelled'::character varying)::text])))
+- `ck_erp_goods_issue_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_goods_issue_code_key` (UNIQUE): UNIQUE (code)
 
 Trigger:
@@ -1671,18 +1676,18 @@ Dòng phiếu xuất kho (ITEM / MATERIAL), dòng yêu cầu xuất kho đã th�
 | 2 | `issue_id` | bigint | không |  |  | Đầu phiếu xuất kho (không khóa ngoại; có chỉ mục) |
 | 3 | `kind` | varchar(20) | không |  |  | ITEM = hàng xuất (ghi sổ, trừ tồn); MATERIAL = nguyên vật liệu (không ghi sổ) |
 | 4 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 5 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 6 | `material_name` | ud_text200 | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
-| 7 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính của dòng (trỏ erp_uom) |
-| 8 | `quantity` | ud_dec18_4 | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
-| 9 | `unit_price` | ud_dec18_4 | không |  |  | Đơn giá theo loại tiền của phiếu (từ 0) |
-| 10 | `amount` | ud_dec18_2 | không |  |  | Thành tiền = số lượng × đơn giá |
-| 11 | `lot_number` | ud_code30 | có |  |  | Số lô |
-| 12 | `position` | ud_text100 | có |  |  | Vị trí lưu kho |
+| 5 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 6 | `material_name` | varchar(200) | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
+| 7 | `uom_code` | varchar(30) | không |  |  | Đơn vị tính của dòng (trỏ erp_uom) |
+| 8 | `quantity` | numeric(18,4) | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
+| 9 | `unit_price` | numeric(18,4) | không |  |  | Đơn giá theo loại tiền của phiếu (từ 0) |
+| 10 | `amount` | numeric(18,2) | không |  |  | Thành tiền = số lượng × đơn giá |
+| 11 | `lot_number` | varchar(64) | có |  |  | Số lô |
+| 12 | `position` | varchar(100) | có |  |  | Vị trí lưu kho |
 | 13 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 14 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 14 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 15 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 16 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 16 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 | 17 | `issue_request_line_id` | bigint | có |  |  | Nguồn sự thật việc dòng thực hiện dòng nào của phiếu yêu cầu xuất kho |
 | 18 | `sales_order_line_id` | bigint | có |  |  | Dòng đơn bán hàng được giao (nguồn sự thật); đã lấy theo đơn thì mọi dòng hàng phải theo một dòng đơn |
 
@@ -1699,8 +1704,8 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_goods_issue_line_kind` (CHECK): CHECK (((kind)::text = ANY ((ARRAY['ITEM'::character varying, 'MATERIAL'::character varying])::text[])))
-- `ck_erp_goods_issue_line_price` (CHECK): CHECK (((unit_price)::numeric >= (0)::numeric))
-- `ck_erp_goods_issue_line_quantity` (CHECK): CHECK (((quantity)::numeric > (0)::numeric))
+- `ck_erp_goods_issue_line_price` (CHECK): CHECK ((unit_price >= (0)::numeric))
+- `ck_erp_goods_issue_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
 - `erp_goods_issue_line_issue_id_kind_line_no_key` (UNIQUE): UNIQUE (issue_id, kind, line_no)
 
 #### 5.6.3. `erp_goods_receipt`
@@ -1710,27 +1715,27 @@ Ràng buộc:
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `code` | ud_code64 | không |  |  | Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001 |
-| 3 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
+| 2 | `code` | varchar(64) | không |  |  | Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001 |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
 | 4 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
 | 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
-| 6 | `warehouse_code` | ud_code20 | không |  |  | Kho (trỏ `erp_warehouse`) |
-| 7 | `voucher_type` | ud_text100 | không |  |  | Loại nhập: Nhập mua mới, Nhập điều chuyển, Nhập trả lại, Nhập sản xuất... |
-| 8 | `currency_code` | ud_code10 | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
+| 6 | `warehouse_code` | varchar(20) | không |  |  | Kho (trỏ `erp_warehouse`) |
+| 7 | `voucher_type` | varchar(100) | không |  |  | Loại nhập: Nhập mua mới, Nhập điều chuyển, Nhập trả lại, Nhập sản xuất... |
+| 8 | `currency_code` | varchar(10) | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
 | 9 | `exchange_rate` | numeric(18,6) | không | 1 |  | Tỷ giá so với tiền hạch toán tại ngày chứng từ |
-| 10 | `supplier_name` | ud_text200 | có |  |  | Tên nhà cung cấp / đối tác chép lúc lưu |
-| 11 | `deliverer_name` | ud_text200 | có |  |  | Người giao hàng |
-| 12 | `note` | ud_text1000 | có |  |  | Ghi chú |
-| 13 | `status` | ud_status | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
-| 14 | `total_value` | ud_dec18_2 | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
-| 15 | `approved_by_user_id` | ud_user_id | có |  |  | Người duyệt cuối cùng (mã người dùng) |
+| 10 | `supplier_name` | varchar(200) | có |  |  | Tên nhà cung cấp / đối tác chép lúc lưu |
+| 11 | `deliverer_name` | varchar(200) | có |  |  | Người giao hàng |
+| 12 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 13 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
+| 14 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
+| 15 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
 | 16 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 17 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 17 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 18 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 19 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
-| 20 | `supplier_code` | ud_code20 | có |  |  | Nhà cung cấp trong danh mục (tùy chọn). Trỏ `erp_supplier` |
+| 19 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+| 20 | `supplier_code` | varchar(20) | có |  |  | Nhà cung cấp trong danh mục (tùy chọn). Trỏ `erp_supplier` |
 | 21 | `purchase_order_code` | varchar(500) | có |  |  | Các số đơn mua hàng mà phiếu nhận, cách nhau dấu phẩy; suy ra từ các dòng, không phải nguồn sự thật |
-| 22 | `project_code` | ud_code20 | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
+| 22 | `project_code` | varchar(20) | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
 
 Chỉ mục:
 
@@ -1745,7 +1750,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_goods_receipt_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_goods_receipt_status` (CHECK): CHECK (((status)::text = ANY (ARRAY[('Draft'::character varying)::text, ('Pending'::character varying)::text, ('Approved'::character varying)::text, ('Posted'::character varying)::text, ('Cancelled'::character varying)::text])))
+- `ck_erp_goods_receipt_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_goods_receipt_code_key` (UNIQUE): UNIQUE (code)
 
 Trigger:
@@ -1762,18 +1767,18 @@ Dòng phiếu nhập kho: `kind` = ITEM (hàng nhập) hoặc MATERIAL (nguyên 
 | 2 | `receipt_id` | bigint | không |  |  | Đầu phiếu nhập kho (không khóa ngoại; có chỉ mục) |
 | 3 | `kind` | varchar(20) | không |  |  | ITEM = hàng nhập (ghi sổ); MATERIAL = nguyên vật liệu / cấu trúc sản phẩm (không ghi sổ) |
 | 4 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 5 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 6 | `material_name` | ud_text200 | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
-| 7 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính của dòng (trỏ erp_uom) |
-| 8 | `quantity` | ud_dec18_4 | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
-| 9 | `unit_price` | ud_dec18_4 | không |  |  | Đơn giá theo loại tiền của phiếu (từ 0) |
-| 10 | `amount` | ud_dec18_2 | không |  |  | Thành tiền = số lượng × đơn giá |
-| 11 | `lot_number` | ud_code30 | có |  |  | Số lô (chỉ có nghĩa với vật tư theo dõi lô) |
-| 12 | `position` | ud_text100 | có |  |  | Vị trí lưu kho (chỉ có nghĩa với vật tư theo dõi vị trí) |
+| 5 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 6 | `material_name` | varchar(200) | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
+| 7 | `uom_code` | varchar(30) | không |  |  | Đơn vị tính của dòng (trỏ erp_uom) |
+| 8 | `quantity` | numeric(18,4) | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
+| 9 | `unit_price` | numeric(18,4) | không |  |  | Đơn giá theo loại tiền của phiếu (từ 0) |
+| 10 | `amount` | numeric(18,2) | không |  |  | Thành tiền = số lượng × đơn giá |
+| 11 | `lot_number` | varchar(64) | có |  |  | Số lô (chỉ có nghĩa với vật tư theo dõi lô) |
+| 12 | `position` | varchar(100) | có |  |  | Vị trí lưu kho (chỉ có nghĩa với vật tư theo dõi vị trí) |
 | 13 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 14 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 14 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 15 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 16 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 16 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 | 17 | `purchase_order_line_id` | bigint | có |  |  | Nguồn sự thật việc dòng nhận dòng nào của đơn mua; số đã nhận của dòng đơn = tổng số lượng các dòng này trên phiếu chưa hủy |
 
 Chỉ mục:
@@ -1788,8 +1793,8 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_goods_receipt_line_kind` (CHECK): CHECK (((kind)::text = ANY ((ARRAY['ITEM'::character varying, 'MATERIAL'::character varying])::text[])))
-- `ck_erp_goods_receipt_line_price` (CHECK): CHECK (((unit_price)::numeric >= (0)::numeric))
-- `ck_erp_goods_receipt_line_quantity` (CHECK): CHECK (((quantity)::numeric > (0)::numeric))
+- `ck_erp_goods_receipt_line_price` (CHECK): CHECK ((unit_price >= (0)::numeric))
+- `ck_erp_goods_receipt_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
 - `erp_goods_receipt_line_receipt_id_kind_line_no_key` (UNIQUE): UNIQUE (receipt_id, kind, line_no)
 
 #### 5.6.5. `erp_issue_request`
@@ -1799,27 +1804,27 @@ Ràng buộc:
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `code` | ud_code64 | không |  |  | Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001 |
-| 3 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
+| 2 | `code` | varchar(64) | không |  |  | Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001 |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
 | 4 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
 | 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
 | 6 | `required_date` | date | có |  |  | Ngày cần hàng |
-| 7 | `warehouse_code` | ud_code20 | không |  |  | Kho (trỏ `erp_warehouse`) |
-| 8 | `voucher_type` | ud_text100 | không |  |  | Mục đích yêu cầu xuất |
-| 9 | `department_code` | ud_code20 | có |  |  | Phòng ban (trỏ `sys_department`) |
-| 10 | `requester_name` | ud_text200 | có |  |  | Người yêu cầu (chữ tự do) |
-| 11 | `customer_name` | ud_text200 | có |  |  | Khách hàng / bên nhận |
-| 12 | `currency_code` | ud_code10 | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
+| 7 | `warehouse_code` | varchar(20) | không |  |  | Kho (trỏ `erp_warehouse`) |
+| 8 | `voucher_type` | varchar(100) | không |  |  | Mục đích yêu cầu xuất |
+| 9 | `department_code` | varchar(20) | có |  |  | Phòng ban (trỏ `sys_department`) |
+| 10 | `requester_name` | varchar(200) | có |  |  | Người yêu cầu (chữ tự do) |
+| 11 | `customer_name` | varchar(200) | có |  |  | Khách hàng / bên nhận |
+| 12 | `currency_code` | varchar(10) | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
 | 13 | `exchange_rate` | numeric(18,6) | không | 1 |  | Tỷ giá so với tiền hạch toán tại ngày chứng từ |
-| 14 | `note` | ud_text1000 | có |  |  | Ghi chú |
-| 15 | `status` | ud_status | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
-| 16 | `total_value` | ud_dec18_2 | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
-| 17 | `approved_by_user_id` | ud_user_id | có |  |  | Người duyệt cuối cùng (mã người dùng) |
+| 14 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 15 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
+| 16 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
+| 17 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
 | 18 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 19 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 19 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 20 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 21 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
-| 22 | `project_code` | ud_code20 | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
+| 21 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+| 22 | `project_code` | varchar(20) | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
 
 Chỉ mục:
 
@@ -1834,7 +1839,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_issue_request_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_issue_request_status` (CHECK): CHECK (((status)::text = ANY (ARRAY[('Draft'::character varying)::text, ('Pending'::character varying)::text, ('Approved'::character varying)::text, ('Posted'::character varying)::text, ('Cancelled'::character varying)::text])))
+- `ck_erp_issue_request_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_issue_request_code_key` (UNIQUE): UNIQUE (code)
 
 #### 5.6.6. `erp_issue_request_line`
@@ -1846,17 +1851,17 @@ Dòng phiếu yêu cầu xuất kho.
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính của dòng; đổi sau mỗi lần sửa phiếu vì dòng được xóa và thêm lại |
 | 2 | `request_id` | bigint | không |  |  | Đầu phiếu yêu cầu xuất kho |
 | 3 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 4 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 5 | `material_name` | ud_text200 | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
-| 6 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính của dòng (trỏ erp_uom) |
-| 7 | `quantity` | ud_dec18_4 | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
-| 8 | `unit_price` | ud_dec18_4 | không | 0 |  | Đơn giá theo loại tiền của phiếu (từ 0) |
-| 9 | `amount` | ud_dec18_2 | không | 0 |  | Thành tiền = số lượng × đơn giá |
-| 10 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 4 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 5 | `material_name` | varchar(200) | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
+| 6 | `uom_code` | varchar(30) | không |  |  | Đơn vị tính của dòng (trỏ erp_uom) |
+| 7 | `quantity` | numeric(18,4) | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
+| 8 | `unit_price` | numeric(18,4) | không | 0 |  | Đơn giá theo loại tiền của phiếu (từ 0) |
+| 9 | `amount` | numeric(18,2) | không | 0 |  | Thành tiền = số lượng × đơn giá |
+| 10 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 11 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 12 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 12 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 13 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 14 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 14 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1868,8 +1873,8 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_issue_request_line_price` (CHECK): CHECK (((unit_price)::numeric >= (0)::numeric))
-- `ck_erp_issue_request_line_quantity` (CHECK): CHECK (((quantity)::numeric > (0)::numeric))
+- `ck_erp_issue_request_line_price` (CHECK): CHECK ((unit_price >= (0)::numeric))
+- `ck_erp_issue_request_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
 - `erp_issue_request_line_request_id_line_no_key` (UNIQUE): UNIQUE (request_id, line_no)
 
 #### 5.6.7. `erp_stock_count`
@@ -1879,23 +1884,23 @@ Ràng buộc:
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `code` | ud_code64 | không |  |  | Số chứng từ, duy nhất toàn hệ thống; ví dụ PKK-DVCS01-202610-0001 |
-| 3 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 2 | `code` | varchar(64) | không |  |  | Số chứng từ, duy nhất toàn hệ thống; ví dụ PKK-DVCS01-202610-0001 |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
 | 4 | `document_date` | date | không |  |  | Ngày kiểm kê: tồn sổ sách là tồn của sổ kho đến hết ngày này |
 | 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
-| 6 | `warehouse_code` | ud_code20 | không |  |  | Kho kiểm kê (kho của đơn vị cơ sở). Trỏ `erp_warehouse` |
-| 7 | `counter_name` | ud_text200 | có |  |  | Người hoặc ban kiểm kê |
-| 8 | `reason` | ud_text300 | có |  |  | Lý do / phạm vi kiểm kê |
-| 9 | `note` | ud_text1000 | có |  |  | Ghi chú |
-| 10 | `status` | ud_status | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK) |
-| 11 | `surplus_value` | ud_dec18_2 | không | 0 |  | Giá trị hàng thừa (số dương) theo tiền hạch toán |
-| 12 | `shortage_value` | ud_dec18_2 | không | 0 |  | Giá trị hàng thiếu (số dương) theo tiền hạch toán |
-| 13 | `total_value` | ud_dec18_2 | không | 0 |  | Thừa + thiếu: độ lớn chênh lệch, dùng chọn cấp duyệt theo số tiền |
-| 14 | `approved_by_user_id` | ud_user_id | có |  |  | Người duyệt cuối (mã người dùng) |
+| 6 | `warehouse_code` | varchar(20) | không |  |  | Kho kiểm kê (kho của đơn vị cơ sở). Trỏ `erp_warehouse` |
+| 7 | `counter_name` | varchar(200) | có |  |  | Người hoặc ban kiểm kê |
+| 8 | `reason` | varchar(300) | có |  |  | Lý do / phạm vi kiểm kê |
+| 9 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 10 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK) |
+| 11 | `surplus_value` | numeric(18,2) | không | 0 |  | Giá trị hàng thừa (số dương) theo tiền hạch toán |
+| 12 | `shortage_value` | numeric(18,2) | không | 0 |  | Giá trị hàng thiếu (số dương) theo tiền hạch toán |
+| 13 | `total_value` | numeric(18,2) | không | 0 |  | Thừa + thiếu: độ lớn chênh lệch, dùng chọn cấp duyệt theo số tiền |
+| 14 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối (mã người dùng) |
 | 15 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 16 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 16 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 17 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 18 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 18 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1906,7 +1911,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_stock_count_status` (CHECK): CHECK (((status)::text = ANY (ARRAY[('Draft'::character varying)::text, ('Pending'::character varying)::text, ('Approved'::character varying)::text, ('Posted'::character varying)::text, ('Cancelled'::character varying)::text])))
+- `ck_erp_stock_count_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_stock_count_code_key` (UNIQUE): UNIQUE (code)
 
 #### 5.6.8. `erp_stock_count_line`
@@ -1918,21 +1923,21 @@ Dòng phiếu kiểm kê: vật tư (đơn vị tính gốc), lô, vị trí, t�
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
 | 2 | `count_id` | bigint | không |  |  | Đầu phiếu kiểm kê (không khóa ngoại; có chỉ mục) |
 | 3 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 4 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 5 | `material_name` | ud_text200 | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
-| 6 | `uom_code` | ud_code20 | không |  |  | Luôn là đơn vị tính gốc của vật tư (trỏ erp_uom) |
-| 7 | `lot_number` | ud_code30 | có |  |  | Số lô: bắt buộc với vật tư theo dõi lô |
-| 8 | `position` | ud_text100 | có |  |  | Vị trí kho: bắt buộc với vật tư theo dõi vị trí |
-| 9 | `book_quantity` | ud_dec18_4 | không | 0 |  | Tồn sổ sách tại ngày kiểm kê, máy chủ tính từ sổ kho (tính lại khi lưu và khi ghi sổ) |
-| 10 | `counted_quantity` | ud_dec18_4 | không | 0 |  | Tồn thực tế do người kiểm kê nhập (từ 0) |
-| 11 | `diff_quantity` | ud_dec18_4 | không | 0 |  | Thực tế trừ sổ sách: dương là thừa (nhập kho), âm là thiếu (xuất kho) |
-| 12 | `unit_cost` | ud_dec18_4 | không | 0 |  | Giá vốn bình quân của vật tư trong kho tại ngày kiểm kê (hoặc giá nhập tay khi chưa có tồn), theo đơn vị tính gốc |
-| 13 | `diff_value` | ud_dec18_2 | không | 0 |  | Chênh lệch × giá vốn; âm khi thiếu |
-| 14 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 4 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 5 | `material_name` | varchar(200) | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
+| 6 | `uom_code` | varchar(30) | không |  |  | Luôn là đơn vị tính gốc của vật tư (trỏ erp_uom) |
+| 7 | `lot_number` | varchar(64) | có |  |  | Số lô: bắt buộc với vật tư theo dõi lô |
+| 8 | `position` | varchar(100) | có |  |  | Vị trí kho: bắt buộc với vật tư theo dõi vị trí |
+| 9 | `book_quantity` | numeric(18,4) | không | 0 |  | Tồn sổ sách tại ngày kiểm kê, máy chủ tính từ sổ kho (tính lại khi lưu và khi ghi sổ) |
+| 10 | `counted_quantity` | numeric(18,4) | không | 0 |  | Tồn thực tế do người kiểm kê nhập (từ 0) |
+| 11 | `diff_quantity` | numeric(18,4) | không | 0 |  | Thực tế trừ sổ sách: dương là thừa (nhập kho), âm là thiếu (xuất kho) |
+| 12 | `unit_cost` | numeric(18,4) | không | 0 |  | Giá vốn bình quân của vật tư trong kho tại ngày kiểm kê (hoặc giá nhập tay khi chưa có tồn), theo đơn vị tính gốc |
+| 13 | `diff_value` | numeric(18,2) | không | 0 |  | Chênh lệch × giá vốn; âm khi thiếu |
+| 14 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 15 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 16 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 16 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 17 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 18 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 18 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1944,8 +1949,8 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_stock_count_line_cost` (CHECK): CHECK (((unit_cost)::numeric >= (0)::numeric))
-- `ck_erp_stock_count_line_counted` (CHECK): CHECK (((counted_quantity)::numeric >= (0)::numeric))
+- `ck_erp_stock_count_line_cost` (CHECK): CHECK ((unit_cost >= (0)::numeric))
+- `ck_erp_stock_count_line_counted` (CHECK): CHECK ((counted_quantity >= (0)::numeric))
 - `erp_stock_count_line_count_id_line_no_key` (UNIQUE): UNIQUE (count_id, line_no)
 
 #### 5.6.9. `erp_transfer_issue`
@@ -1955,23 +1960,23 @@ Ràng buộc:
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `code` | ud_code64 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 3 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 2 | `code` | varchar(64) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
 | 4 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
 | 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
-| 6 | `from_warehouse_code` | ud_code20 | không |  |  | Trỏ `erp_warehouse` |
-| 7 | `to_warehouse_code` | ud_code20 | không |  |  | Trỏ `erp_warehouse` |
-| 8 | `reason` | ud_text100 | không |  |  | Lý do điều chuyển |
-| 9 | `person_name` | ud_text200 | có |  |  | Người xuất hàng |
+| 6 | `from_warehouse_code` | varchar(20) | không |  |  | Trỏ `erp_warehouse` |
+| 7 | `to_warehouse_code` | varchar(20) | không |  |  | Trỏ `erp_warehouse` |
+| 8 | `reason` | varchar(100) | không |  |  | Lý do điều chuyển |
+| 9 | `person_name` | varchar(200) | có |  |  | Người xuất hàng |
 | 10 | `transfer_order_code` | varchar(500) | có |  |  | Các số lệnh điều chuyển mà phiếu xuất thực hiện, cách nhau dấu phẩy; suy ra từ các dòng |
-| 11 | `note` | ud_text1000 | có |  |  | Ghi chú |
-| 12 | `status` | ud_status | không | 'Draft' |  | Trạng thái |
-| 13 | `total_value` | ud_dec18_2 | không | 0 |  | Tổng giá trị quy ra tiền hạch toán |
-| 14 | `approved_by_user_id` | ud_user_id | có |  |  | Người duyệt cuối (mã người dùng) |
+| 11 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 12 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái |
+| 13 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán |
+| 14 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối (mã người dùng) |
 | 15 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 16 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 16 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 17 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 18 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 18 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -1984,7 +1989,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_transfer_issue_status` (CHECK): CHECK (((status)::text = ANY (ARRAY[('Draft'::character varying)::text, ('Pending'::character varying)::text, ('Approved'::character varying)::text, ('Posted'::character varying)::text, ('Cancelled'::character varying)::text])))
+- `ck_erp_transfer_issue_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `ck_erp_transfer_issue_warehouses` (CHECK): CHECK (((from_warehouse_code)::text <> (to_warehouse_code)::text))
 - `erp_transfer_issue_code_key` (UNIQUE): UNIQUE (code)
 
@@ -2001,20 +2006,20 @@ Dòng phiếu xuất điều chuyển: dòng lệnh điều chuyển (`transfer_
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính của dòng; đổi sau mỗi lần sửa phiếu vì dòng được xóa và thêm lại |
 | 2 | `issue_id` | bigint | không |  |  | Đầu phiếu xuất điều chuyển (không khóa ngoại; có chỉ mục) |
 | 3 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 4 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 5 | `material_name` | ud_text200 | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
-| 6 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính của dòng: đơn vị gốc của vật tư hoặc đơn vị đã khai quy đổi (trỏ erp_uom) |
-| 7 | `quantity` | ud_dec18_4 | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
-| 8 | `unit_price` | ud_dec18_4 | không | 0 |  | Đơn giá bình quân do sổ kho tính khi ghi sổ, ghi ngược vào dòng |
-| 9 | `amount` | ud_dec18_2 | không | 0 |  | Thành tiền = số lượng × đơn giá |
-| 10 | `lot_number` | ud_code30 | có |  |  | Số lô |
-| 11 | `position` | ud_text100 | có |  |  | Vị trí lưu kho |
-| 12 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 4 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 5 | `material_name` | varchar(200) | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
+| 6 | `uom_code` | varchar(30) | không |  |  | Đơn vị tính của dòng: đơn vị gốc của vật tư hoặc đơn vị đã khai quy đổi (trỏ erp_uom) |
+| 7 | `quantity` | numeric(18,4) | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
+| 8 | `unit_price` | numeric(18,4) | không | 0 |  | Đơn giá bình quân do sổ kho tính khi ghi sổ, ghi ngược vào dòng |
+| 9 | `amount` | numeric(18,2) | không | 0 |  | Thành tiền = số lượng × đơn giá |
+| 10 | `lot_number` | varchar(64) | có |  |  | Số lô |
+| 11 | `position` | varchar(100) | có |  |  | Vị trí lưu kho |
+| 12 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 13 | `transfer_order_line_id` | bigint | có |  |  | Dòng lệnh điều chuyển được thực hiện (nguồn sự thật) |
 | 14 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 15 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 15 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 16 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 17 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 17 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2027,7 +2032,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_transfer_issue_line_quantity` (CHECK): CHECK (((quantity)::numeric > (0)::numeric))
+- `ck_erp_transfer_issue_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
 - `erp_transfer_issue_line_issue_id_line_no_key` (UNIQUE): UNIQUE (issue_id, line_no)
 
 #### 5.6.11. `erp_transfer_order`
@@ -2037,23 +2042,23 @@ Ràng buộc:
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `code` | ud_code64 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 3 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 2 | `code` | varchar(64) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
 | 4 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
 | 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
 | 6 | `required_date` | date | có |  |  | Ngày cần hàng |
-| 7 | `from_warehouse_code` | ud_code20 | không |  |  | Kho xuất (kho của đơn vị cơ sở). Trỏ `erp_warehouse` |
-| 8 | `to_warehouse_code` | ud_code20 | không |  |  | Kho nhận (khác kho xuất, cùng đơn vị cơ sở). Trỏ `erp_warehouse` |
-| 9 | `reason` | ud_text100 | không |  |  | Lý do điều chuyển |
-| 10 | `person_name` | ud_text200 | có |  |  | Người đề nghị / thực hiện |
-| 11 | `note` | ud_text1000 | có |  |  | Ghi chú |
-| 12 | `status` | ud_status | không | 'Draft' |  | Trạng thái |
-| 13 | `total_value` | ud_dec18_2 | không | 0 |  | Tổng giá trị quy ra tiền hạch toán |
-| 14 | `approved_by_user_id` | ud_user_id | có |  |  | Người duyệt cuối (mã người dùng) |
+| 7 | `from_warehouse_code` | varchar(20) | không |  |  | Kho xuất (kho của đơn vị cơ sở). Trỏ `erp_warehouse` |
+| 8 | `to_warehouse_code` | varchar(20) | không |  |  | Kho nhận (khác kho xuất, cùng đơn vị cơ sở). Trỏ `erp_warehouse` |
+| 9 | `reason` | varchar(100) | không |  |  | Lý do điều chuyển |
+| 10 | `person_name` | varchar(200) | có |  |  | Người đề nghị / thực hiện |
+| 11 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 12 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái |
+| 13 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán |
+| 14 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối (mã người dùng) |
 | 15 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 16 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 16 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 17 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 18 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 18 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2065,7 +2070,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_transfer_order_status` (CHECK): CHECK (((status)::text = ANY (ARRAY[('Draft'::character varying)::text, ('Pending'::character varying)::text, ('Approved'::character varying)::text, ('Posted'::character varying)::text, ('Cancelled'::character varying)::text])))
+- `ck_erp_transfer_order_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `ck_erp_transfer_order_warehouses` (CHECK): CHECK (((from_warehouse_code)::text <> (to_warehouse_code)::text))
 - `erp_transfer_order_code_key` (UNIQUE): UNIQUE (code)
 
@@ -2078,15 +2083,15 @@ Dòng lệnh điều chuyển kho (vật tư, đơn vị tính, số lượng; k
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính của dòng; đổi sau mỗi lần sửa phiếu vì dòng được xóa và thêm lại |
 | 2 | `order_id` | bigint | không |  |  | Đầu lệnh điều chuyển (không khóa ngoại; có chỉ mục) |
 | 3 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 4 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 5 | `material_name` | ud_text200 | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
-| 6 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính của dòng: đơn vị gốc của vật tư hoặc đơn vị đã khai quy đổi (trỏ erp_uom) |
-| 7 | `quantity` | ud_dec18_4 | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
-| 8 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 4 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 5 | `material_name` | varchar(200) | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
+| 6 | `uom_code` | varchar(30) | không |  |  | Đơn vị tính của dòng: đơn vị gốc của vật tư hoặc đơn vị đã khai quy đổi (trỏ erp_uom) |
+| 7 | `quantity` | numeric(18,4) | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
+| 8 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 9 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 10 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 10 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 11 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 12 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 12 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2098,7 +2103,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_transfer_order_line_quantity` (CHECK): CHECK (((quantity)::numeric > (0)::numeric))
+- `ck_erp_transfer_order_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
 - `erp_transfer_order_line_order_id_line_no_key` (UNIQUE): UNIQUE (order_id, line_no)
 
 #### 5.6.13. `erp_transfer_receipt`
@@ -2108,23 +2113,23 @@ Ràng buộc:
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `code` | ud_code64 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 3 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 2 | `code` | varchar(64) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
 | 4 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
 | 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
-| 6 | `from_warehouse_code` | ud_code20 | không |  |  | Trỏ `erp_warehouse` |
-| 7 | `to_warehouse_code` | ud_code20 | không |  |  | Trỏ `erp_warehouse` |
-| 8 | `reason` | ud_text100 | không |  |  | Lý do điều chuyển |
-| 9 | `person_name` | ud_text200 | có |  |  | Người nhận hàng |
+| 6 | `from_warehouse_code` | varchar(20) | không |  |  | Trỏ `erp_warehouse` |
+| 7 | `to_warehouse_code` | varchar(20) | không |  |  | Trỏ `erp_warehouse` |
+| 8 | `reason` | varchar(100) | không |  |  | Lý do điều chuyển |
+| 9 | `person_name` | varchar(200) | có |  |  | Người nhận hàng |
 | 10 | `transfer_issue_code` | varchar(500) | có |  |  | Các số phiếu xuất điều chuyển mà phiếu nhập nhận, cách nhau dấu phẩy; suy ra từ các dòng |
-| 11 | `note` | ud_text1000 | có |  |  | Ghi chú |
-| 12 | `status` | ud_status | không | 'Draft' |  | Trạng thái |
-| 13 | `total_value` | ud_dec18_2 | không | 0 |  | Tổng giá trị quy ra tiền hạch toán |
-| 14 | `approved_by_user_id` | ud_user_id | có |  |  | Người duyệt cuối (mã người dùng) |
+| 11 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 12 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái |
+| 13 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán |
+| 14 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối (mã người dùng) |
 | 15 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 16 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 16 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 17 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 18 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 18 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2137,7 +2142,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_transfer_receipt_status` (CHECK): CHECK (((status)::text = ANY (ARRAY[('Draft'::character varying)::text, ('Pending'::character varying)::text, ('Approved'::character varying)::text, ('Posted'::character varying)::text, ('Cancelled'::character varying)::text])))
+- `ck_erp_transfer_receipt_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `ck_erp_transfer_receipt_warehouses` (CHECK): CHECK (((from_warehouse_code)::text <> (to_warehouse_code)::text))
 - `erp_transfer_receipt_code_key` (UNIQUE): UNIQUE (code)
 
@@ -2154,20 +2159,20 @@ Dòng phiếu nhập điều chuyển: dòng phiếu xuất đã nhận (`transf
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính của dòng; đổi sau mỗi lần sửa phiếu vì dòng được xóa và thêm lại |
 | 2 | `receipt_id` | bigint | không |  |  | Đầu phiếu nhập điều chuyển (không khóa ngoại; có chỉ mục) |
 | 3 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 4 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 5 | `material_name` | ud_text200 | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
-| 6 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính của dòng: đơn vị gốc của vật tư hoặc đơn vị đã khai quy đổi (trỏ erp_uom) |
-| 7 | `quantity` | ud_dec18_4 | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
-| 8 | `unit_price` | ud_dec18_4 | không | 0 |  | Đơn giá của dòng phiếu xuất: giá vốn đi theo hàng sang kho nhận |
-| 9 | `amount` | ud_dec18_2 | không | 0 |  | Thành tiền = số lượng × đơn giá |
-| 10 | `lot_number` | ud_code30 | có |  |  | Số lô |
-| 11 | `position` | ud_text100 | có |  |  | Vị trí lưu kho |
-| 12 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 4 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 5 | `material_name` | varchar(200) | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
+| 6 | `uom_code` | varchar(30) | không |  |  | Đơn vị tính của dòng: đơn vị gốc của vật tư hoặc đơn vị đã khai quy đổi (trỏ erp_uom) |
+| 7 | `quantity` | numeric(18,4) | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
+| 8 | `unit_price` | numeric(18,4) | không | 0 |  | Đơn giá của dòng phiếu xuất: giá vốn đi theo hàng sang kho nhận |
+| 9 | `amount` | numeric(18,2) | không | 0 |  | Thành tiền = số lượng × đơn giá |
+| 10 | `lot_number` | varchar(64) | có |  |  | Số lô |
+| 11 | `position` | varchar(100) | có |  |  | Vị trí lưu kho |
+| 12 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 13 | `transfer_issue_line_id` | bigint | có |  |  | Dòng phiếu xuất đã ghi sổ được nhận (nguồn sự thật) |
 | 14 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 15 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 15 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 16 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 17 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 17 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2180,7 +2185,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_transfer_receipt_line_quantity` (CHECK): CHECK (((quantity)::numeric > (0)::numeric))
+- `ck_erp_transfer_receipt_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
 - `erp_transfer_receipt_line_receipt_id_line_no_key` (UNIQUE): UNIQUE (receipt_id, line_no)
 
 ### 5.7. Sổ kho và tồn kho
@@ -2191,15 +2196,15 @@ Tồn theo đơn vị + kho + vật tư (số lượng, giá trị); luôn bằn
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
-| 2 | `warehouse_code` | ud_code20 | không |  |  | Kho (trỏ `erp_warehouse`) |
-| 3 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 4 | `quantity` | ud_dec18_4 | không | 0 |  | Số lượng tồn theo đơn vị tính gốc |
-| 5 | `value` | ud_dec18_2 | không | 0 |  | Giá trị tồn theo tiền hạch toán |
+| 1 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 2 | `warehouse_code` | varchar(20) | không |  |  | Kho (trỏ `erp_warehouse`) |
+| 3 | `material_code` | varchar(50) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 4 | `quantity` | numeric(18,4) | không | 0 |  | Số lượng tồn theo đơn vị tính gốc |
+| 5 | `value` | numeric(18,2) | không | 0 |  | Giá trị tồn theo tiền hạch toán |
 | 6 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 7 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 7 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 8 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 9 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 9 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2213,16 +2218,16 @@ Tồn theo thêm vị trí (chỉ vật tư theo dõi vị trí).
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
-| 2 | `warehouse_code` | ud_code20 | không |  |  | Kho (trỏ `erp_warehouse`) |
-| 3 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 1 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 2 | `warehouse_code` | varchar(20) | không |  |  | Kho (trỏ `erp_warehouse`) |
+| 3 | `material_code` | varchar(50) | không |  |  | Mã vật tư (trỏ `erp_material`) |
 | 4 | `lot_code` | varchar(81) | không | '' |  | Mã lô (rỗng nếu không theo lô). Trỏ `erp_lot` |
-| 5 | `location_code` | ud_code30 | không |  |  | Mã vị trí. Trỏ `erp_location` |
-| 6 | `quantity` | ud_dec18_4 | không | 0 |  | Số lượng |
+| 5 | `location_code` | varchar(30) | không |  |  | Mã vị trí. Trỏ `erp_location` |
+| 6 | `quantity` | numeric(18,4) | không | 0 |  | Số lượng |
 | 7 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 8 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 8 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 9 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 10 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 10 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2238,15 +2243,15 @@ Tồn theo thêm lô (chỉ vật tư theo dõi lô).
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
-| 2 | `warehouse_code` | ud_code20 | không |  |  | Kho (trỏ `erp_warehouse`) |
-| 3 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 1 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 2 | `warehouse_code` | varchar(20) | không |  |  | Kho (trỏ `erp_warehouse`) |
+| 3 | `material_code` | varchar(50) | không |  |  | Mã vật tư (trỏ `erp_material`) |
 | 4 | `lot_code` | varchar(81) | không |  |  | Mã lô (dạng VT001@LOT-2610). Trỏ `erp_lot` |
-| 5 | `quantity` | ud_dec18_4 | không | 0 |  | Số lượng |
+| 5 | `quantity` | numeric(18,4) | không | 0 |  | Số lượng |
 | 6 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 7 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 7 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 8 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 9 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 9 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2265,23 +2270,23 @@ Chỉ mục:
 | 2 | `source_function` | varchar(64) | không |  |  | Mã chức năng của chứng từ gây ra dòng sổ (inv_receipt, inv_issue) |
 | 3 | `source_id` | bigint | không |  |  | Id đầu phiếu nguồn |
 | 4 | `source_line_id` | bigint | không |  |  | Id dòng phiếu nguồn |
-| 5 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
-| 6 | `warehouse_code` | ud_code20 | không |  |  | Kho (trỏ `erp_warehouse`) |
-| 7 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 5 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 6 | `warehouse_code` | varchar(20) | không |  |  | Kho (trỏ `erp_warehouse`) |
+| 7 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
 | 8 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
-| 9 | `quantity` | ud_dec18_4 | không |  |  | Số lượng có dấu theo đơn vị tính gốc của vật tư (nhập dương, xuất âm) |
-| 10 | `value` | ud_dec18_2 | không |  |  | Giá trị có dấu theo tiền hạch toán (nhập: từ phiếu; xuất: sổ tính giá bình quân) |
+| 9 | `quantity` | numeric(18,4) | không |  |  | Số lượng có dấu theo đơn vị tính gốc của vật tư (nhập dương, xuất âm) |
+| 10 | `value` | numeric(18,2) | không |  |  | Giá trị có dấu theo tiền hạch toán (nhập: từ phiếu; xuất: sổ tính giá bình quân) |
 | 12 | `lot_code` | varchar(81) | có |  |  | Lô (chỉ vật tư theo dõi lô). Trỏ `erp_lot` |
-| 13 | `location_code` | ud_code30 | có |  |  | Vị trí (chỉ vật tư theo dõi vị trí). Trỏ `erp_location` |
-| 14 | `uom_code` | ud_code20 | không | '' |  | Đơn vị tính gốc của vật tư. Trỏ `erp_uom` |
-| 15 | `line_uom_code` | ud_code20 | có |  |  | Đơn vị tính ghi trên dòng phiếu (có thể khác đơn vị gốc, quy đổi qua erp_uom_conversion). Trỏ `erp_uom` |
-| 16 | `line_quantity` | ud_dec18_4 | có |  |  | Số lượng theo đơn vị tính của dòng phiếu |
+| 13 | `location_code` | varchar(30) | có |  |  | Vị trí (chỉ vật tư theo dõi vị trí). Trỏ `erp_location` |
+| 14 | `uom_code` | varchar(20) | không | '' |  | Đơn vị tính gốc của vật tư. Trỏ `erp_uom` |
+| 15 | `line_uom_code` | varchar(20) | có |  |  | Đơn vị tính ghi trên dòng phiếu (có thể khác đơn vị gốc, quy đổi qua erp_uom_conversion). Trỏ `erp_uom` |
+| 16 | `line_quantity` | numeric(18,4) | có |  |  | Số lượng theo đơn vị tính của dòng phiếu |
 | 17 | `posting_seq` | integer | không | 1 |  | Lần ghi sổ của phiếu (tăng khi bỏ ghi sổ rồi ghi lại) |
 | 18 | `reversal_of_id` | bigint | có |  |  | Có giá trị = dòng này là dòng đảo của dòng sổ có id đó (bỏ ghi sổ) |
 | 19 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 20 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 20 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 21 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 22 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 22 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2305,16 +2310,16 @@ Danh mục điều khoản thanh toán (số ngày công nợ).
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
 | 3 | `days` | integer | không | 0 |  | Số ngày công nợ, 0 = trả ngay, tối đa 1000 (CHECK) |
-| 4 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 4 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 5 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 6 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 7 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 8 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 8 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 9 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 10 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 10 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2333,22 +2338,22 @@ Danh mục **dự án**: chiều theo dõi chi phí (và sau này doanh thu) tr�
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text200 | không |  |  | Tên hiển thị |
-| 3 | `department_code` | ud_code20 | có |  |  | Phòng ban (trỏ `sys_department`) |
-| 4 | `customer_name` | ud_text200 | có |  |  | Khách hàng (chữ tự do) |
-| 5 | `manager_name` | ud_text100 | có |  |  | Người quản lý (chữ tự do) |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(200) | không |  |  | Tên hiển thị |
+| 3 | `department_code` | varchar(20) | có |  |  | Phòng ban (trỏ `sys_department`) |
+| 4 | `customer_name` | varchar(200) | có |  |  | Khách hàng (chữ tự do) |
+| 5 | `manager_name` | varchar(100) | có |  |  | Người quản lý (chữ tự do) |
 | 6 | `start_date` | date | có |  |  | Ngày bắt đầu |
 | 7 | `end_date` | date | có |  |  | Ngày kết thúc (không trước ngày bắt đầu) |
-| 8 | `budget` | ud_dec18_2 | không | 0 |  | Ngân sách = chi phí dự kiến, tiền hạch toán; báo cáo so chi phí thực tế với số này |
+| 8 | `budget` | numeric(18,2) | không | 0 |  | Ngân sách = chi phí dự kiến, tiền hạch toán; báo cáo so chi phí thực tế với số này |
 | 9 | `status` | varchar(12) | không | 'ACTIVE' |  | PLANNING, ACTIVE, ONHOLD, DONE, CANCELLED (CHECK); chỉ PLANNING / ACTIVE nhận chứng từ mới |
-| 10 | `note` | ud_text500 | có |  |  | Ghi chú |
+| 10 | `note` | varchar(500) | có |  |  | Ghi chú |
 | 11 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 12 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 13 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 14 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 14 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 15 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 16 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 16 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2358,7 +2363,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_project_budget` (CHECK): CHECK (((budget)::numeric >= (0)::numeric))
+- `ck_erp_project_budget` (CHECK): CHECK ((budget >= (0)::numeric))
 - `ck_erp_project_dates` (CHECK): CHECK (((start_date IS NULL) OR (end_date IS NULL) OR (end_date >= start_date)))
 - `ck_erp_project_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['PLANNING'::character varying, 'ACTIVE'::character varying, 'ONHOLD'::character varying, 'DONE'::character varying, 'CANCELLED'::character varying])::text[])))
 
@@ -2370,15 +2375,15 @@ Danh mục nhóm nhà cung cấp.
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
-| 3 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
+| 3 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 4 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 5 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 6 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 7 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 7 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 8 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 9 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 9 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2396,36 +2401,36 @@ Chỉ mục:
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `code` | ud_code64 | không |  |  | Số chứng từ, duy nhất toàn hệ thống; ví dụ SO-DVCS01-202704-0001, HDM-DVCS01-202703-0001 |
-| 3 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
+| 2 | `code` | varchar(64) | không |  |  | Số chứng từ, duy nhất toàn hệ thống; ví dụ SO-DVCS01-202704-0001, HDM-DVCS01-202703-0001 |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
 | 4 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
 | 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
-| 6 | `voucher_type` | ud_text100 | không |  |  | Loại nghiệp vụ của chứng từ |
-| 7 | `supplier_code` | ud_code20 | không |  |  | Nhà cung cấp (trỏ `erp_supplier`) |
-| 8 | `supplier_name` | ud_text200 | có |  |  | Tên nhà cung cấp chép lúc lưu |
+| 6 | `voucher_type` | varchar(100) | không |  |  | Loại nghiệp vụ của chứng từ |
+| 7 | `supplier_code` | varchar(20) | không |  |  | Nhà cung cấp (trỏ `erp_supplier`) |
+| 8 | `supplier_name` | varchar(200) | có |  |  | Tên nhà cung cấp chép lúc lưu |
 | 9 | `invoice_no` | varchar(50) | không |  |  | Số hóa đơn của nhà cung cấp (nhà cung cấp + số + ký hiệu duy nhất giữa các hóa đơn chưa hủy) |
 | 10 | `invoice_series` | varchar(30) | có |  |  | Ký hiệu hóa đơn của nhà cung cấp (có thể rỗng) |
 | 11 | `invoice_date` | date | không |  |  | Ngày ghi trên hóa đơn của nhà cung cấp (khác ngày chứng từ là ngày vào sổ) |
 | 12 | `due_date` | date | không |  |  | Hạn thanh toán: nhập tay hoặc ngày hóa đơn + số ngày của điều khoản; không trước ngày hóa đơn; dùng chia tuổi nợ |
-| 13 | `payment_terms` | ud_text200 | có |  |  | Tên điều khoản thanh toán chép lúc lưu |
-| 14 | `payment_term_code` | ud_code20 | có |  |  | Trỏ `erp_payment_term` |
-| 15 | `currency_code` | ud_code10 | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
+| 13 | `payment_terms` | varchar(200) | có |  |  | Tên điều khoản thanh toán chép lúc lưu |
+| 14 | `payment_term_code` | varchar(20) | có |  |  | Trỏ `erp_payment_term` |
+| 15 | `currency_code` | varchar(10) | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
 | 16 | `exchange_rate` | numeric(18,6) | không | 1 |  | Tỷ giá so với tiền hạch toán tại ngày chứng từ |
-| 17 | `tax_rate_code` | ud_code20 | có |  |  | Mã thuế (trỏ `sys_tax_rate`) |
+| 17 | `tax_rate_code` | varchar(20) | có |  |  | Mã thuế (trỏ `sys_tax_rate`) |
 | 18 | `tax_rate` | numeric(7,4) | không | 0 |  | Thuế suất phần trăm chép từ mã thuế lúc lưu |
-| 19 | `sub_total` | ud_dec18_2 | không | 0 |  | Tiền hàng theo loại tiền của phiếu (cộng thành tiền từng dòng, đã làm tròn) |
-| 20 | `tax_amount` | ud_dec18_2 | không | 0 |  | Tiền thuế theo loại tiền của phiếu (tính trên tổng tiền hàng) |
-| 21 | `total_value` | ud_dec18_2 | không | 0 |  | Tổng cộng (đã gồm thuế) quy ra tiền hạch toán = tổng cộng × tỷ giá; dùng chọn cấp duyệt theo số tiền |
+| 19 | `sub_total` | numeric(18,2) | không | 0 |  | Tiền hàng theo loại tiền của phiếu (cộng thành tiền từng dòng, đã làm tròn) |
+| 20 | `tax_amount` | numeric(18,2) | không | 0 |  | Tiền thuế theo loại tiền của phiếu (tính trên tổng tiền hàng) |
+| 21 | `total_value` | numeric(18,2) | không | 0 |  | Tổng cộng (đã gồm thuế) quy ra tiền hạch toán = tổng cộng × tỷ giá; dùng chọn cấp duyệt theo số tiền |
 | 22 | `purchase_order_code` | varchar(500) | có |  |  | Các số đơn mua hàng mà hóa đơn lập theo, cách nhau dấu phẩy; suy ra từ các dòng, không phải nguồn sự thật |
 | 23 | `goods_receipt_code` | varchar(500) | có |  |  | Các số phiếu nhập kho mà hóa đơn lập theo, cách nhau dấu phẩy; suy ra từ các dòng |
-| 24 | `project_code` | ud_code20 | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
-| 25 | `note` | ud_text1000 | có |  |  | Ghi chú |
-| 26 | `status` | ud_status | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Cancelled (có CHECK); không ghi sổ nên không bao giờ tới Posted |
-| 27 | `approved_by_user_id` | ud_user_id | có |  |  | Người duyệt cuối cùng (mã người dùng) |
+| 24 | `project_code` | varchar(20) | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
+| 25 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 26 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Cancelled (có CHECK); không ghi sổ nên không bao giờ tới Posted |
+| 27 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
 | 28 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 29 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 29 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 30 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 31 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 31 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2443,7 +2448,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_purchase_invoice_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_purchase_invoice_status` (CHECK): CHECK (((status)::text = ANY (ARRAY[('Draft'::character varying)::text, ('Pending'::character varying)::text, ('Approved'::character varying)::text, ('Posted'::character varying)::text, ('Cancelled'::character varying)::text])))
+- `ck_erp_purchase_invoice_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_purchase_invoice_code_key` (UNIQUE): UNIQUE (code)
 
 #### 5.9.2. `erp_purchase_invoice_line`
@@ -2455,19 +2460,19 @@ Dòng hóa đơn mua hàng: lập hóa đơn cho dòng phiếu nhập kho (`good
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính của dòng; đổi sau mỗi lần sửa phiếu vì dòng được xóa và thêm lại |
 | 2 | `invoice_id` | bigint | không |  |  | Đầu hóa đơn mua hàng (không khóa ngoại; có chỉ mục) |
 | 3 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 4 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 5 | `material_name` | ud_text200 | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
-| 6 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính của dòng: đơn vị gốc của vật tư hoặc đơn vị đã khai quy đổi (trỏ erp_uom) |
-| 7 | `quantity` | ud_dec18_4 | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
-| 8 | `unit_price` | ud_dec18_4 | không | 0 |  | Đơn giá theo loại tiền của phiếu (từ 0) |
-| 9 | `amount` | ud_dec18_2 | không | 0 |  | Thành tiền = số lượng × đơn giá |
-| 10 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 4 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 5 | `material_name` | varchar(200) | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
+| 6 | `uom_code` | varchar(30) | không |  |  | Đơn vị tính của dòng: đơn vị gốc của vật tư hoặc đơn vị đã khai quy đổi (trỏ erp_uom) |
+| 7 | `quantity` | numeric(18,4) | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
+| 8 | `unit_price` | numeric(18,4) | không | 0 |  | Đơn giá theo loại tiền của phiếu (từ 0) |
+| 9 | `amount` | numeric(18,2) | không | 0 |  | Thành tiền = số lượng × đơn giá |
+| 10 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 11 | `purchase_order_line_id` | bigint | có |  |  | Dòng đơn mua hàng được lập hóa đơn (nguồn sự thật); dòng lấy từ phiếu nhập tự lấy dòng đơn của dòng nhập |
 | 12 | `goods_receipt_line_id` | bigint | có |  |  | Dòng phiếu nhập kho được lập hóa đơn (nguồn sự thật) |
 | 13 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 14 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 14 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 15 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 16 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 16 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2481,8 +2486,8 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_purchase_invoice_line_price` (CHECK): CHECK (((unit_price)::numeric >= (0)::numeric))
-- `ck_erp_purchase_invoice_line_quantity` (CHECK): CHECK (((quantity)::numeric > (0)::numeric))
+- `ck_erp_purchase_invoice_line_price` (CHECK): CHECK ((unit_price >= (0)::numeric))
+- `ck_erp_purchase_invoice_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
 - `erp_purchase_invoice_line_invoice_id_line_no_key` (UNIQUE): UNIQUE (invoice_id, line_no)
 
 #### 5.9.3. `erp_purchase_order`
@@ -2492,33 +2497,33 @@ Ràng buộc:
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `code` | ud_code64 | không |  |  | Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001 |
-| 3 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
+| 2 | `code` | varchar(64) | không |  |  | Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001 |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
 | 4 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
 | 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
 | 6 | `delivery_date` | date | có |  |  | Ngày dự kiến nhận hàng mặc định cho các dòng (không trước ngày chứng từ) |
-| 7 | `warehouse_code` | ud_code20 | không |  |  | Kho (trỏ `erp_warehouse`) |
-| 8 | `voucher_type` | ud_text100 | không |  |  | Loại mua hàng |
-| 9 | `supplier_code` | ud_code20 | không |  |  | Nhà cung cấp (bắt buộc, trỏ erp_supplier) |
-| 10 | `supplier_name` | ud_text200 | có |  |  | Tên nhà cung cấp chép lúc lưu |
-| 11 | `payment_terms` | ud_text200 | có |  |  | Chữ điều khoản thanh toán lúc lưu (chép tên điều khoản đã chọn, hoặc chữ tự do của đơn cũ) |
-| 12 | `currency_code` | ud_code10 | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
+| 7 | `warehouse_code` | varchar(20) | không |  |  | Kho (trỏ `erp_warehouse`) |
+| 8 | `voucher_type` | varchar(100) | không |  |  | Loại mua hàng |
+| 9 | `supplier_code` | varchar(20) | không |  |  | Nhà cung cấp (bắt buộc, trỏ erp_supplier) |
+| 10 | `supplier_name` | varchar(200) | có |  |  | Tên nhà cung cấp chép lúc lưu |
+| 11 | `payment_terms` | varchar(200) | có |  |  | Chữ điều khoản thanh toán lúc lưu (chép tên điều khoản đã chọn, hoặc chữ tự do của đơn cũ) |
+| 12 | `currency_code` | varchar(10) | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
 | 13 | `exchange_rate` | numeric(18,6) | không | 1 |  | Tỷ giá so với tiền hạch toán tại ngày chứng từ |
-| 14 | `tax_rate_code` | ud_code20 | có |  |  | Mã thuế của cả đơn (tùy chọn, trỏ sys_tax_rate) |
+| 14 | `tax_rate_code` | varchar(20) | có |  |  | Mã thuế của cả đơn (tùy chọn, trỏ sys_tax_rate) |
 | 15 | `tax_rate` | numeric(7,4) | không | 0 |  | Thuế suất (%) chép lúc lưu để đổi danh mục thuế không làm đổi đơn cũ |
-| 16 | `sub_total` | ud_dec18_2 | không | 0 |  | Tiền hàng trước thuế, theo loại tiền của đơn |
-| 17 | `tax_amount` | ud_dec18_2 | không | 0 |  | Tiền thuế = tiền hàng × thuế suất / 100, theo loại tiền của đơn |
-| 18 | `total_value` | ud_dec18_2 | không | 0 |  | (Tiền hàng + tiền thuế) × tỷ giá = tiền hạch toán (mức duyệt theo giá trị nhìn vào số này) |
+| 16 | `sub_total` | numeric(18,2) | không | 0 |  | Tiền hàng trước thuế, theo loại tiền của đơn |
+| 17 | `tax_amount` | numeric(18,2) | không | 0 |  | Tiền thuế = tiền hàng × thuế suất / 100, theo loại tiền của đơn |
+| 18 | `total_value` | numeric(18,2) | không | 0 |  | (Tiền hàng + tiền thuế) × tỷ giá = tiền hạch toán (mức duyệt theo giá trị nhìn vào số này) |
 | 19 | `purchase_request_code` | varchar(500) | có |  |  | Các số phiếu yêu cầu mua mà đơn thực hiện, cách nhau dấu phẩy; suy ra từ các dòng |
-| 20 | `note` | ud_text1000 | có |  |  | Ghi chú |
-| 21 | `status` | ud_status | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
-| 22 | `approved_by_user_id` | ud_user_id | có |  |  | Người duyệt cuối cùng (mã người dùng) |
+| 20 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 21 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
+| 22 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
 | 23 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 24 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 24 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 25 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 26 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
-| 27 | `payment_term_code` | ud_code20 | có |  |  | Điều khoản chọn từ danh mục (tùy chọn, trỏ erp_payment_term) |
-| 28 | `project_code` | ud_code20 | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
+| 26 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+| 27 | `payment_term_code` | varchar(20) | có |  |  | Điều khoản chọn từ danh mục (tùy chọn, trỏ erp_payment_term) |
+| 28 | `project_code` | varchar(20) | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
 
 Chỉ mục:
 
@@ -2535,7 +2540,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_purchase_order_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_purchase_order_status` (CHECK): CHECK (((status)::text = ANY (ARRAY[('Draft'::character varying)::text, ('Pending'::character varying)::text, ('Approved'::character varying)::text, ('Posted'::character varying)::text, ('Cancelled'::character varying)::text])))
+- `ck_erp_purchase_order_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_purchase_order_code_key` (UNIQUE): UNIQUE (code)
 
 #### 5.9.4. `erp_purchase_order_line`
@@ -2547,18 +2552,18 @@ Dòng đơn mua hàng: dòng yêu cầu mua đã đặt, ngày dự kiến nhậ
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính của dòng; đổi sau mỗi lần sửa phiếu vì dòng được xóa và thêm lại |
 | 2 | `order_id` | bigint | không |  |  | Đầu đơn mua hàng |
 | 3 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 4 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 5 | `material_name` | ud_text200 | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
-| 6 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính của dòng (trỏ erp_uom) |
-| 7 | `quantity` | ud_dec18_4 | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
-| 8 | `unit_price` | ud_dec18_4 | không | 0 |  | Đơn giá theo loại tiền của phiếu (từ 0) |
-| 9 | `amount` | ud_dec18_2 | không | 0 |  | Thành tiền = số lượng × đơn giá |
-| 10 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 4 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 5 | `material_name` | varchar(200) | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
+| 6 | `uom_code` | varchar(30) | không |  |  | Đơn vị tính của dòng (trỏ erp_uom) |
+| 7 | `quantity` | numeric(18,4) | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
+| 8 | `unit_price` | numeric(18,4) | không | 0 |  | Đơn giá theo loại tiền của phiếu (từ 0) |
+| 9 | `amount` | numeric(18,2) | không | 0 |  | Thành tiền = số lượng × đơn giá |
+| 10 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 11 | `purchase_request_line_id` | bigint | có |  |  | Nguồn sự thật việc dòng đặt mua dòng nào của phiếu yêu cầu; số đã đặt = tổng số lượng các dòng này trên đơn chưa hủy |
 | 12 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 13 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 13 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 14 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 15 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 15 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 | 16 | `delivery_date` | date | có |  |  | Ngày dự kiến nhận của dòng; lưu không kèm ngày thì lấy ngày ở đầu đơn |
 
 Chỉ mục:
@@ -2572,8 +2577,8 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_purchase_order_line_price` (CHECK): CHECK (((unit_price)::numeric >= (0)::numeric))
-- `ck_erp_purchase_order_line_quantity` (CHECK): CHECK (((quantity)::numeric > (0)::numeric))
+- `ck_erp_purchase_order_line_price` (CHECK): CHECK ((unit_price >= (0)::numeric))
+- `ck_erp_purchase_order_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
 - `erp_purchase_order_line_order_id_line_no_key` (UNIQUE): UNIQUE (order_id, line_no)
 
 #### 5.9.5. `erp_purchase_request`
@@ -2583,28 +2588,28 @@ Ràng buộc:
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `code` | ud_code64 | không |  |  | Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001 |
-| 3 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
+| 2 | `code` | varchar(64) | không |  |  | Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001 |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
 | 4 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
 | 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
 | 6 | `required_date` | date | có |  |  | Ngày bộ phận cần hàng |
-| 7 | `warehouse_code` | ud_code20 | không |  |  | Kho (trỏ `erp_warehouse`) |
-| 8 | `voucher_type` | ud_text100 | không |  |  | Loại mua (trong nước, nhập khẩu, nguyên vật liệu sản xuất...) |
-| 9 | `department_code` | ud_code20 | có |  |  | Phòng ban (trỏ `sys_department`) |
-| 10 | `requester_name` | ud_text200 | có |  |  | Người yêu cầu (chữ tự do) |
-| 11 | `supplier_code` | ud_code20 | có |  |  | Nhà cung cấp đề nghị (tùy chọn). Trỏ `erp_supplier` |
-| 12 | `supplier_name` | ud_text200 | có |  |  | Tên nhà cung cấp đề nghị chép lúc lưu |
-| 13 | `currency_code` | ud_code10 | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
+| 7 | `warehouse_code` | varchar(20) | không |  |  | Kho (trỏ `erp_warehouse`) |
+| 8 | `voucher_type` | varchar(100) | không |  |  | Loại mua (trong nước, nhập khẩu, nguyên vật liệu sản xuất...) |
+| 9 | `department_code` | varchar(20) | có |  |  | Phòng ban (trỏ `sys_department`) |
+| 10 | `requester_name` | varchar(200) | có |  |  | Người yêu cầu (chữ tự do) |
+| 11 | `supplier_code` | varchar(20) | có |  |  | Nhà cung cấp đề nghị (tùy chọn). Trỏ `erp_supplier` |
+| 12 | `supplier_name` | varchar(200) | có |  |  | Tên nhà cung cấp đề nghị chép lúc lưu |
+| 13 | `currency_code` | varchar(10) | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
 | 14 | `exchange_rate` | numeric(18,6) | không | 1 |  | Tỷ giá so với tiền hạch toán tại ngày chứng từ |
-| 15 | `note` | ud_text1000 | có |  |  | Ghi chú |
-| 16 | `status` | ud_status | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
-| 17 | `total_value` | ud_dec18_2 | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
-| 18 | `approved_by_user_id` | ud_user_id | có |  |  | Người duyệt cuối cùng (mã người dùng) |
+| 15 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 16 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
+| 17 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
+| 18 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
 | 19 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 20 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 20 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 21 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 22 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
-| 23 | `project_code` | ud_code20 | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
+| 22 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+| 23 | `project_code` | varchar(20) | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
 
 Chỉ mục:
 
@@ -2620,7 +2625,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_purchase_request_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_purchase_request_status` (CHECK): CHECK (((status)::text = ANY (ARRAY[('Draft'::character varying)::text, ('Pending'::character varying)::text, ('Approved'::character varying)::text, ('Posted'::character varying)::text, ('Cancelled'::character varying)::text])))
+- `ck_erp_purchase_request_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_purchase_request_code_key` (UNIQUE): UNIQUE (code)
 
 #### 5.9.6. `erp_purchase_request_line`
@@ -2632,17 +2637,17 @@ Dòng phiếu yêu cầu mua hàng.
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính của dòng; đổi sau mỗi lần sửa phiếu vì dòng được xóa và thêm lại |
 | 2 | `request_id` | bigint | không |  |  | Đầu phiếu yêu cầu mua hàng |
 | 3 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 4 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 5 | `material_name` | ud_text200 | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
-| 6 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính của dòng (trỏ erp_uom) |
-| 7 | `quantity` | ud_dec18_4 | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
-| 8 | `unit_price` | ud_dec18_4 | không | 0 |  | Đơn giá dự kiến |
-| 9 | `amount` | ud_dec18_2 | không | 0 |  | Thành tiền = số lượng × đơn giá |
-| 10 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 4 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 5 | `material_name` | varchar(200) | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
+| 6 | `uom_code` | varchar(30) | không |  |  | Đơn vị tính của dòng (trỏ erp_uom) |
+| 7 | `quantity` | numeric(18,4) | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
+| 8 | `unit_price` | numeric(18,4) | không | 0 |  | Đơn giá dự kiến |
+| 9 | `amount` | numeric(18,2) | không | 0 |  | Thành tiền = số lượng × đơn giá |
+| 10 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 11 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 12 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 12 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 13 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 14 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 14 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2654,9 +2659,69 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_purchase_request_line_price` (CHECK): CHECK (((unit_price)::numeric >= (0)::numeric))
-- `ck_erp_purchase_request_line_quantity` (CHECK): CHECK (((quantity)::numeric > (0)::numeric))
+- `ck_erp_purchase_request_line_price` (CHECK): CHECK ((unit_price >= (0)::numeric))
+- `ck_erp_purchase_request_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
 - `erp_purchase_request_line_request_id_line_no_key` (UNIQUE): UNIQUE (request_id, line_no)
+
+#### 5.9.7. `erp_supplier_evaluation`
+
+Đầu **phiếu đánh giá nhà cung cấp** (duyệt, không ghi sổ; sinh bằng npm run tao-chung-tu).
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
+| 2 | `code` | varchar(64) | không |  |  | Số chứng từ, duy nhất toàn hệ thống (vòng duyệt khóa theo số phiếu); ví dụ PNK-DVCS01-202610-0001 |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
+| 4 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
+| 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
+| 6 | `supplier_code` | varchar(20) | không |  |  | Nhà cung cấp được đánh giá (trỏ `erp_supplier`) |
+| 7 | `period_from` | date | không |  |  | Kỳ đánh giá từ ngày |
+| 8 | `period_to` | date | không |  |  | Kỳ đánh giá đến ngày |
+| 9 | `evaluator_name` | varchar(200) | có |  |  | Người đánh giá (tên gõ tay) |
+| 10 | `conclusion` | varchar(1000) | có |  |  | Kết luận đánh giá |
+| 11 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 12 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved1, Approved2 (hai cấp duyệt trung gian), Approved, Posted, Cancelled (có CHECK); phiếu không ghi sổ không bao giờ tới Posted |
+| 13 | `total_value` | numeric(18,2) | không | 0 |  | Tổng giá trị quy ra tiền hạch toán (đã nhân tỷ giá) |
+| 14 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
+| 15 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 16 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 17 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 18 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `erp_supplier_evaluation_code_key`: **duy nhất** (code)
+- `erp_supplier_evaluation_pkey`: **duy nhất** (id)
+- `ix_erp_supplier_evaluation_supplier_code`: (supplier_code)
+- `ix_erp_supplier_evaluation_unit_date`: (unit_code, document_date DESC)
+
+Ràng buộc:
+
+- `ck_erp_supplier_evaluation_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
+- `erp_supplier_evaluation_code_key` (UNIQUE): UNIQUE (code)
+
+#### 5.9.8. `erp_supplier_evaluation_line`
+
+Dòng phiếu đánh giá nhà cung cấp: chỉ tiêu, trọng số, điểm.
+
+| STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
+|---|---|---|---|---|---|---|
+| 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
+| 2 | `supplier_evaluation_id` | bigint | không |  |  | Phiếu đánh giá của dòng (`erp_supplier_evaluation.id`) |
+| 3 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
+| 4 | `criterion` | varchar(200) | không |  |  | Chỉ tiêu đánh giá |
+| 5 | `weight` | numeric(18,2) | không | 0 |  | Trọng số (%) |
+| 6 | `score` | numeric(18,2) | không | 0 |  | Điểm |
+| 7 | `note` | varchar(300) | có |  |  | Ghi chú |
+| 8 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
+| 9 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 10 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
+| 11 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
+
+Chỉ mục:
+
+- `erp_supplier_evaluation_line_pkey`: **duy nhất** (id)
+- `ix_erp_supplier_evaluation_line_supplier_evaluation_id`: (supplier_evaluation_id, line_no)
 
 ### 5.10. Danh mục Bán hàng
 
@@ -2666,23 +2731,23 @@ Danh mục **khách hàng**: mã số thuế (duy nhất khi có), liên hệ, n
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text200 | không |  |  | Tên hiển thị |
-| 3 | `tax_code` | ud_code30 | có |  |  | Mã số thuế của khách (duy nhất khi không rỗng; khác tax_rate_code) |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(200) | không |  |  | Tên hiển thị |
+| 3 | `tax_code` | varchar(30) | có |  |  | Mã số thuế của khách (duy nhất khi không rỗng; khác tax_rate_code) |
 | 4 | `phone` | varchar(30) | có |  |  | Điện thoại |
-| 5 | `email` | ud_text100 | có |  |  | Email |
-| 6 | `contact_name` | ud_text100 | có |  |  | Người liên hệ của khách hàng |
-| 7 | `address` | ud_text300 | có |  |  | Địa chỉ |
-| 8 | `customer_group_code` | ud_code20 | có |  |  | Nhóm khách hàng (trỏ erp_customer_group), tùy chọn |
-| 9 | `payment_term_code` | ud_code20 | có |  |  | Điều khoản thanh toán mặc định (trỏ erp_payment_term), tùy chọn |
-| 10 | `credit_limit` | ud_dec18_2 | không | 0 |  | Hạn mức công nợ; 0 = không giới hạn (cảnh báo khi lập đơn sẽ làm cùng công nợ phải thu) |
-| 11 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 5 | `email` | varchar(100) | có |  |  | Email |
+| 6 | `contact_name` | varchar(100) | có |  |  | Người liên hệ của khách hàng |
+| 7 | `address` | varchar(300) | có |  |  | Địa chỉ |
+| 8 | `customer_group_code` | varchar(20) | có |  |  | Nhóm khách hàng (trỏ erp_customer_group), tùy chọn |
+| 9 | `payment_term_code` | varchar(20) | có |  |  | Điều khoản thanh toán mặc định (trỏ erp_payment_term), tùy chọn |
+| 10 | `credit_limit` | numeric(18,2) | không | 0 |  | Hạn mức công nợ; 0 = không giới hạn (cảnh báo khi lập đơn sẽ làm cùng công nợ phải thu) |
+| 11 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 12 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 13 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 14 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 15 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 15 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 16 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 17 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 17 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2694,7 +2759,7 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_customer_credit_limit` (CHECK): CHECK (((credit_limit)::numeric >= (0)::numeric))
+- `ck_erp_customer_credit_limit` (CHECK): CHECK ((credit_limit >= (0)::numeric))
 
 Được trỏ tới bởi: `erp_goods_issue.customer_code`, `erp_sales_order.customer_code`.
 
@@ -2704,15 +2769,15 @@ Danh mục **nhóm khách hàng**; một bảng giá bán có thể áp dụng c
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
-| 3 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
+| 3 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 4 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 5 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 6 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 7 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 7 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 8 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 9 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 9 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2727,19 +2792,19 @@ Chỉ mục:
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text200 | không |  |  | Tên hiển thị |
-| 3 | `currency_code` | ud_code10 | không |  |  | Loại tiền của bảng giá (một bảng một loại tiền). Trỏ `sys_currency` |
-| 4 | `customer_group_code` | ud_code20 | có |  |  | Nhóm khách áp dụng; rỗng = mọi khách. Trỏ `erp_customer_group` |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(200) | không |  |  | Tên hiển thị |
+| 3 | `currency_code` | varchar(10) | không |  |  | Loại tiền của bảng giá (một bảng một loại tiền). Trỏ `sys_currency` |
+| 4 | `customer_group_code` | varchar(20) | có |  |  | Nhóm khách áp dụng; rỗng = mọi khách. Trỏ `erp_customer_group` |
 | 5 | `valid_from` | date | không |  |  | Hiệu lực từ ngày |
 | 6 | `valid_to` | date | có |  |  | Hiệu lực đến ngày; rỗng = không hết hạn |
-| 7 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 7 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 8 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 9 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 10 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 11 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 11 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 12 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 13 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 13 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2762,16 +2827,16 @@ Dòng bảng giá: vật tư, đơn vị tính, số lượng từ (bậc giá),
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính của dòng; đổi sau mỗi lần sửa phiếu vì dòng được xóa và thêm lại |
-| 2 | `price_list_code` | ud_code20 | không |  |  | Bảng giá (trỏ erp_price_list) |
-| 3 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 4 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính của dòng: đơn vị gốc của vật tư hoặc đơn vị đã khai quy đổi (trỏ erp_uom) |
-| 5 | `min_quantity` | ud_dec18_4 | không | 0 |  | Bậc giá: áp dụng từ số lượng này trở lên |
-| 6 | `unit_price` | ud_dec18_4 | không |  |  | Đơn giá theo loại tiền của phiếu (từ 0) |
-| 7 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 2 | `price_list_code` | varchar(20) | không |  |  | Bảng giá (trỏ erp_price_list) |
+| 3 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 4 | `uom_code` | varchar(30) | không |  |  | Đơn vị tính của dòng: đơn vị gốc của vật tư hoặc đơn vị đã khai quy đổi (trỏ erp_uom) |
+| 5 | `min_quantity` | numeric(18,4) | không | 0 |  | Bậc giá: áp dụng từ số lượng này trở lên |
+| 6 | `unit_price` | numeric(18,4) | không |  |  | Đơn giá theo loại tiền của phiếu (từ 0) |
+| 7 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 8 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 9 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 9 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 10 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 11 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 11 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2782,8 +2847,8 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_price_list_line_min_quantity` (CHECK): CHECK (((min_quantity)::numeric >= (0)::numeric))
-- `ck_erp_price_list_line_price` (CHECK): CHECK (((unit_price)::numeric >= (0)::numeric))
+- `ck_erp_price_list_line_min_quantity` (CHECK): CHECK ((min_quantity >= (0)::numeric))
+- `ck_erp_price_list_line_price` (CHECK): CHECK ((unit_price >= (0)::numeric))
 
 ### 5.11. Chứng từ Bán hàng
 
@@ -2794,33 +2859,33 @@ Ràng buộc:
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính, tự tăng |
-| 2 | `code` | ud_code64 | không |  |  | Số chứng từ, duy nhất toàn hệ thống; ví dụ SO-DVCS01-202704-0001, HDM-DVCS01-202703-0001 |
-| 3 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
+| 2 | `code` | varchar(64) | không |  |  | Số chứng từ, duy nhất toàn hệ thống; ví dụ SO-DVCS01-202704-0001, HDM-DVCS01-202703-0001 |
+| 3 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở của phiếu (trỏ sys_company_unit) |
 | 4 | `document_date` | date | không |  |  | Ngày chứng từ (quyết định kỳ khóa sổ và số phiếu) |
 | 5 | `created_date` | date | không |  |  | Ngày lập chứng từ |
 | 6 | `delivery_date` | date | có |  |  | Ngày giao hàng dự kiến, không trước ngày chứng từ |
-| 7 | `warehouse_code` | ud_code20 | không |  |  | Kho xuất hàng (kho của đơn vị cơ sở); phiếu xuất giao đơn phải cùng kho. Trỏ `erp_warehouse` |
-| 8 | `voucher_type` | ud_text100 | không |  |  | Loại bán hàng: trong nước, xuất khẩu, đại lý, bán lẻ |
-| 9 | `customer_code` | ud_code20 | không |  |  | Khách hàng trong danh mục (bắt buộc; trỏ erp_customer) |
-| 10 | `customer_name` | ud_text200 | có |  |  | Tên khách hàng chép lúc lưu |
-| 11 | `delivery_address` | ud_text300 | có |  |  | Địa chỉ giao hàng |
-| 12 | `payment_terms` | ud_text200 | có |  |  | Tên điều khoản thanh toán chép lúc lưu |
-| 13 | `payment_term_code` | ud_code20 | có |  |  | Trỏ `erp_payment_term` |
-| 14 | `currency_code` | ud_code10 | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
+| 7 | `warehouse_code` | varchar(20) | không |  |  | Kho xuất hàng (kho của đơn vị cơ sở); phiếu xuất giao đơn phải cùng kho. Trỏ `erp_warehouse` |
+| 8 | `voucher_type` | varchar(100) | không |  |  | Loại bán hàng: trong nước, xuất khẩu, đại lý, bán lẻ |
+| 9 | `customer_code` | varchar(20) | không |  |  | Khách hàng trong danh mục (bắt buộc; trỏ erp_customer) |
+| 10 | `customer_name` | varchar(200) | có |  |  | Tên khách hàng chép lúc lưu |
+| 11 | `delivery_address` | varchar(300) | có |  |  | Địa chỉ giao hàng |
+| 12 | `payment_terms` | varchar(200) | có |  |  | Tên điều khoản thanh toán chép lúc lưu |
+| 13 | `payment_term_code` | varchar(20) | có |  |  | Trỏ `erp_payment_term` |
+| 14 | `currency_code` | varchar(10) | không | 'VND' |  | Loại tiền (trỏ `sys_currency`) |
 | 15 | `exchange_rate` | numeric(18,6) | không | 1 |  | Tỷ giá so với tiền hạch toán tại ngày chứng từ |
-| 16 | `tax_rate_code` | ud_code20 | có |  |  | Mã thuế (trỏ `sys_tax_rate`) |
+| 16 | `tax_rate_code` | varchar(20) | có |  |  | Mã thuế (trỏ `sys_tax_rate`) |
 | 17 | `tax_rate` | numeric(7,4) | không | 0 |  | Thuế suất phần trăm chép từ mã thuế lúc lưu |
-| 18 | `sub_total` | ud_dec18_2 | không | 0 |  | Tiền hàng theo loại tiền của phiếu (cộng thành tiền từng dòng, đã làm tròn) |
-| 19 | `tax_amount` | ud_dec18_2 | không | 0 |  | Tiền thuế theo loại tiền của phiếu (tính trên tổng tiền hàng) |
-| 20 | `total_value` | ud_dec18_2 | không | 0 |  | Tổng cộng (đã gồm thuế) quy ra tiền hạch toán = tổng cộng × tỷ giá; dùng chọn cấp duyệt theo số tiền |
-| 21 | `project_code` | ud_code20 | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
-| 22 | `note` | ud_text1000 | có |  |  | Ghi chú |
-| 23 | `status` | ud_status | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Cancelled (có CHECK); không ghi sổ nên không bao giờ tới Posted |
-| 24 | `approved_by_user_id` | ud_user_id | có |  |  | Người duyệt cuối cùng (mã người dùng) |
+| 18 | `sub_total` | numeric(18,2) | không | 0 |  | Tiền hàng theo loại tiền của phiếu (cộng thành tiền từng dòng, đã làm tròn) |
+| 19 | `tax_amount` | numeric(18,2) | không | 0 |  | Tiền thuế theo loại tiền của phiếu (tính trên tổng tiền hàng) |
+| 20 | `total_value` | numeric(18,2) | không | 0 |  | Tổng cộng (đã gồm thuế) quy ra tiền hạch toán = tổng cộng × tỷ giá; dùng chọn cấp duyệt theo số tiền |
+| 21 | `project_code` | varchar(20) | có |  |  | Dự án (trỏ `erp_project`), tùy chọn |
+| 22 | `note` | varchar(1000) | có |  |  | Ghi chú |
+| 23 | `status` | varchar(20) | không | 'Draft' |  | Trạng thái: Draft, Pending, Approved, Cancelled (có CHECK); không ghi sổ nên không bao giờ tới Posted |
+| 24 | `approved_by_user_id` | integer | có |  |  | Người duyệt cuối cùng (mã người dùng) |
 | 25 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 26 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 26 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 27 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 28 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 28 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2837,7 +2902,7 @@ Chỉ mục:
 Ràng buộc:
 
 - `ck_erp_sales_order_rate` (CHECK): CHECK ((exchange_rate > (0)::numeric))
-- `ck_erp_sales_order_status` (CHECK): CHECK (((status)::text = ANY (ARRAY[('Draft'::character varying)::text, ('Pending'::character varying)::text, ('Approved'::character varying)::text, ('Posted'::character varying)::text, ('Cancelled'::character varying)::text])))
+- `ck_erp_sales_order_status` (CHECK): CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved1'::character varying, 'Approved2'::character varying, 'Approved'::character varying, 'Posted'::character varying, 'Cancelled'::character varying])::text[])))
 - `erp_sales_order_code_key` (UNIQUE): UNIQUE (code)
 
 #### 5.11.2. `erp_sales_order_line`
@@ -2849,17 +2914,17 @@ Dòng đơn bán hàng; số lượng đã xuất của một dòng được tí
 | 1 | `id` | bigint | không | tự tăng |  | Khóa chính của dòng; đổi sau mỗi lần sửa phiếu vì dòng được xóa và thêm lại |
 | 2 | `order_id` | bigint | không |  |  | Đầu đơn bán hàng (không khóa ngoại; có chỉ mục) |
 | 3 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 4 | `material_code` | ud_code50 | không |  |  | Mã vật tư (trỏ `erp_material`) |
-| 5 | `material_name` | ud_text200 | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
-| 6 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính của dòng: đơn vị gốc của vật tư hoặc đơn vị đã khai quy đổi (trỏ erp_uom) |
-| 7 | `quantity` | ud_dec18_4 | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
-| 8 | `unit_price` | ud_dec18_4 | không | 0 |  | Đơn giá theo loại tiền của phiếu (từ 0) |
-| 9 | `amount` | ud_dec18_2 | không | 0 |  | Thành tiền = số lượng × đơn giá |
-| 10 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 4 | `material_code` | varchar(64) | không |  |  | Mã vật tư (trỏ `erp_material`) |
+| 5 | `material_name` | varchar(200) | không |  |  | Tên vật tư chép từ danh mục lúc lưu |
+| 6 | `uom_code` | varchar(30) | không |  |  | Đơn vị tính của dòng: đơn vị gốc của vật tư hoặc đơn vị đã khai quy đổi (trỏ erp_uom) |
+| 7 | `quantity` | numeric(18,4) | không |  |  | Số lượng theo đơn vị tính của dòng (lớn hơn 0) |
+| 8 | `unit_price` | numeric(18,4) | không | 0 |  | Đơn giá theo loại tiền của phiếu (từ 0) |
+| 9 | `amount` | numeric(18,2) | không | 0 |  | Thành tiền = số lượng × đơn giá |
+| 10 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 11 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 12 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 12 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 13 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 14 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 14 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2871,8 +2936,8 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_sales_order_line_price` (CHECK): CHECK (((unit_price)::numeric >= (0)::numeric))
-- `ck_erp_sales_order_line_quantity` (CHECK): CHECK (((quantity)::numeric > (0)::numeric))
+- `ck_erp_sales_order_line_price` (CHECK): CHECK ((unit_price >= (0)::numeric))
+- `ck_erp_sales_order_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
 - `erp_sales_order_line_order_id_line_no_key` (UNIQUE): UNIQUE (order_id, line_no)
 
 ### 5.12. Danh mục Tài chính
@@ -2883,20 +2948,20 @@ Danh mục **hệ thống tài khoản kế toán** (Thông tư 200) nhiều c�
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Số hiệu tài khoản (111, 1331, 33311...); mã con bắt đầu bằng mã cha |
-| 2 | `name` | ud_text200 | không |  |  | Tên hiển thị |
-| 3 | `name_en` | ud_text200 | có |  |  | Tên tiếng Anh |
-| 4 | `parent_account_code` | ud_code20 | có |  |  | Tài khoản cha (cùng bảng, không phải tham chiếu danh mục); cố định sau khi lưu |
+| 1 | `code` | varchar(20) | không |  |  | Số hiệu tài khoản (111, 1331, 33311...); mã con bắt đầu bằng mã cha |
+| 2 | `name` | varchar(200) | không |  |  | Tên hiển thị |
+| 3 | `name_en` | varchar(200) | có |  |  | Tên tiếng Anh |
+| 4 | `parent_account_code` | varchar(20) | có |  |  | Tài khoản cha (cùng bảng, không phải tham chiếu danh mục); cố định sau khi lưu |
 | 5 | `level` | integer | không | 1 |  | Cấp của tài khoản (1 = tài khoản cấp 1) |
 | 6 | `account_type` | varchar(20) | không |  |  | ASSET, LIABILITY, EQUITY, REVENUE, COST, OTHER_INCOME, OTHER_EXPENSE, PROFIT_LOSS, OFF_BALANCE |
 | 7 | `nature` | varchar(10) | không |  |  | Tính chất số dư: DEBIT, CREDIT, BOTH |
-| 8 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 8 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 9 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 10 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 11 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 12 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 12 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 13 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 14 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 14 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2919,14 +2984,14 @@ Ràng buộc:
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code50 | không |  |  | Mã cấu trúc = mã vật tư thành phẩm |
-| 2 | `material_code` | ud_code50 | không |  |  | Vật tư thành phẩm (trỏ erp_material); chép từ code để có tham chiếu |
-| 3 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 1 | `code` | varchar(50) | không |  |  | Mã cấu trúc = mã vật tư thành phẩm |
+| 2 | `material_code` | varchar(50) | không |  |  | Vật tư thành phẩm (trỏ erp_material); chép từ code để có tham chiếu |
+| 3 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 4 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 5 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 6 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 6 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 7 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 8 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 8 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2941,18 +3006,18 @@ Dòng cấu trúc sản phẩm: vật tư thành phần, đơn vị tính (gốc
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `product_structure_code` | ud_code50 | không |  |  | Cấu trúc (trỏ erp_product_structure) |
+| 1 | `product_structure_code` | varchar(50) | không |  |  | Cấu trúc (trỏ erp_product_structure) |
 | 2 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 3 | `component_material_code` | ud_code50 | không |  |  | Vật tư thành phần (trỏ erp_material) |
-| 4 | `uom_code` | ud_code20 | không |  |  | Đơn vị tính (trỏ `erp_uom`) |
-| 5 | `production_operation_code` | ud_code20 | có |  |  | Công đoạn dùng thành phần (trỏ erp_production_operation), tùy chọn |
-| 6 | `quantity` | ud_dec18_4 | không |  |  | Số lượng thành phần cho một đơn vị thành phẩm |
-| 7 | `scrap_percent` | ud_dec9_4 | không | 0 |  | Tỷ lệ hao hụt (%) |
-| 8 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 3 | `component_material_code` | varchar(50) | không |  |  | Vật tư thành phần (trỏ erp_material) |
+| 4 | `uom_code` | varchar(20) | không |  |  | Đơn vị tính (trỏ `erp_uom`) |
+| 5 | `production_operation_code` | varchar(20) | có |  |  | Công đoạn dùng thành phần (trỏ erp_production_operation), tùy chọn |
+| 6 | `quantity` | numeric(18,4) | không |  |  | Số lượng thành phần cho một đơn vị thành phẩm |
+| 7 | `scrap_percent` | numeric(9,4) | không | 0 |  | Tỷ lệ hao hụt (%) |
+| 8 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 9 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 10 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 10 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 11 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 12 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 12 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -2963,8 +3028,8 @@ Chỉ mục:
 
 Ràng buộc:
 
-- `ck_erp_product_structure_line_quantity` (CHECK): CHECK (((quantity)::numeric > (0)::numeric))
-- `ck_erp_product_structure_line_scrap` (CHECK): CHECK ((((scrap_percent)::numeric >= (0)::numeric) AND ((scrap_percent)::numeric < (100)::numeric)))
+- `ck_erp_product_structure_line_quantity` (CHECK): CHECK ((quantity > (0)::numeric))
+- `ck_erp_product_structure_line_scrap` (CHECK): CHECK (((scrap_percent >= (0)::numeric) AND (scrap_percent < (100)::numeric)))
 
 #### 5.13.3. `erp_production_operation`
 
@@ -2972,19 +3037,19 @@ Danh mục **công đoạn sản xuất**: tên phụ (`name_en`), tổ thực h
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text200 | không |  |  | Tên hiển thị |
-| 3 | `name_en` | ud_text200 | có |  |  | Tên phụ (tiếng Anh) |
-| 4 | `production_team_code` | ud_code20 | có |  |  | Tổ thực hiện (trỏ erp_production_team), tùy chọn |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(200) | không |  |  | Tên hiển thị |
+| 3 | `name_en` | varchar(200) | có |  |  | Tên phụ (tiếng Anh) |
+| 4 | `production_team_code` | varchar(20) | có |  |  | Tổ thực hiện (trỏ erp_production_team), tùy chọn |
 | 5 | `require_machine` | boolean | không | false |  | Công đoạn cần máy |
 | 6 | `is_heavy` | boolean | không | false |  | Công đoạn nặng |
-| 7 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 7 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 8 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 9 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 10 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 11 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 11 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 12 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 13 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 13 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -3000,18 +3065,18 @@ Danh mục **quy trình sản xuất**: các công đoạn theo thứ tự, ngà
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text200 | không |  |  | Tên hiển thị |
-| 3 | `name_en` | ud_text200 | có |  |  | Tên phụ (tiếng Anh) |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(200) | không |  |  | Tên hiển thị |
+| 3 | `name_en` | varchar(200) | có |  |  | Tên phụ (tiếng Anh) |
 | 4 | `effective_from` | date | không |  |  | Ngày ban hành / hiệu lực từ |
 | 5 | `effective_to` | date | có |  |  | Ngày hết hiệu lực (trống = còn hiệu lực) |
-| 6 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 6 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 7 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 8 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 9 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 10 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 10 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 11 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 12 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 12 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -3030,13 +3095,13 @@ Các bước của quy trình: khóa quy trình + `line_no`, công đoạn của
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `production_process_code` | ud_code20 | không |  |  | Quy trình (trỏ erp_production_process) |
+| 1 | `production_process_code` | varchar(20) | không |  |  | Quy trình (trỏ erp_production_process) |
 | 2 | `line_no` | integer | không |  |  | Số thứ tự dòng trong chứng từ |
-| 3 | `production_operation_code` | ud_code20 | không |  |  | Công đoạn của bước (trỏ erp_production_operation) |
+| 3 | `production_operation_code` | varchar(20) | không |  |  | Công đoạn của bước (trỏ erp_production_operation) |
 | 4 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 5 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 5 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 6 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 7 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 7 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -3049,12 +3114,12 @@ Chỉ mục:
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `production_process_code` | ud_code20 | không |  |  | Quy trình (trỏ erp_production_process) |
-| 2 | `unit_code` | ud_code20 | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
+| 1 | `production_process_code` | varchar(20) | không |  |  | Quy trình (trỏ erp_production_process) |
+| 2 | `unit_code` | varchar(20) | không |  |  | Đơn vị cơ sở (trỏ `sys_company_unit`) |
 | 3 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 4 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 4 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 5 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 6 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 6 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -3067,15 +3132,15 @@ Danh mục **tổ sản xuất**.
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `code` | ud_code20 | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
-| 2 | `name` | ud_text100 | không |  |  | Tên hiển thị |
-| 3 | `note` | ud_text300 | có |  |  | Ghi chú |
+| 1 | `code` | varchar(20) | không |  |  | Mã (khóa nghiệp vụ, chữ hoa) |
+| 2 | `name` | varchar(100) | không |  |  | Tên hiển thị |
+| 3 | `note` | varchar(300) | có |  |  | Ghi chú |
 | 4 | `is_active` | boolean | không | true |  | Đang sử dụng (false = ngừng dùng) |
 | 5 | `sort_order` | integer | không | 0 |  | Thứ tự sắp xếp mặc định |
 | 6 | `created_at` | timestamptz | không | now() |  | Thời điểm tạo (UTC), do hệ thống điền |
-| 7 | `created_by` | ud_user_id | có |  |  | Mã người dùng tạo, do hệ thống điền |
+| 7 | `created_by` | integer | có |  |  | Mã người dùng tạo, do hệ thống điền |
 | 8 | `updated_at` | timestamptz | có |  |  | Thời điểm sửa gần nhất (UTC) |
-| 9 | `updated_by` | ud_user_id | có |  |  | Mã người dùng sửa gần nhất |
+| 9 | `updated_by` | integer | có |  |  | Mã người dùng sửa gần nhất |
 
 Chỉ mục:
 
@@ -3092,7 +3157,7 @@ Dấu các script SQL đã chạy (nếu dùng); không chứa dữ liệu nghi�
 
 | STT | Cột | Kiểu | Null | Mặc định | Khóa | Mô tả |
 |---|---|---|---|---|---|---|
-| 1 | `name` | ud_text100 | không |  |  | Tên bước chuyển dữ liệu một lần đã chạy (ví dụ permission_exceptions) |
+| 1 | `name` | varchar(100) | không |  |  | Tên bước chuyển dữ liệu một lần đã chạy (ví dụ permission_exceptions) |
 | 2 | `applied_at_utc` | timestamptz | không | now() |  | Thời điểm chạy (UTC) |
 
 Chỉ mục:
@@ -3112,7 +3177,7 @@ Bản đồ tham chiếu giữa các bảng (không có khóa ngoại): mỗi c�
 | 5 | `table_kind` | varchar(16) | không |  |  | catalog, document, system, translation |
 | 6 | `blocks_delete` | boolean | không | true |  | true = bảng đích không xóa được khi còn dòng dùng |
 | 7 | `optional` | boolean | không | false |  | true = cột được để rỗng |
-| 8 | `entity_type` | ud_text100 | không |  |  | Lớp thực thể C# khai báo |
+| 8 | `entity_type` | varchar(100) | không |  |  | Lớp thực thể C# khai báo |
 | 9 | `synced_at` | timestamptz | không | now() |  | Lần đồng bộ gần nhất lúc khởi động backend |
 
 Chỉ mục:
@@ -3262,13 +3327,14 @@ Chạy theo thứ tự tên file trong `ServerService/sql/postgresql/`:
 | `53-sales-orders.sql` | Đơn bán hàng (đầu phiếu, dòng) và cột nối sang phiếu xuất kho: khách hàng, số đơn, dòng đơn |
 | `54-stock-counts.sql` | Phiếu kiểm kê (đầu phiếu, dòng): tồn sổ sách tính từ sổ kho, ghi sổ phần thừa và phần thiếu |
 | `55-inventory-reports.sql` | Báo cáo kho dưới dạng hàm `rpt_*` (nhập xuất tồn, hàng nhập / xuất chi tiết và tổng hợp, tuổi hàng tồn, tồn tức thời có giữ chỗ, giá trung bình tháng); không có bảng mới |
-| `55-production-catalogs.sql` | Sản xuất: danh mục tổ sản xuất và công đoạn sản xuất |
-| `56-production-process.sql` | Sản xuất: danh mục quy trình sản xuất (các bước công đoạn theo thứ tự, đơn vị áp dụng) |
 | `56-stock-norms.sql` | Định mức tồn kho theo kho (mã VATTU@KHO) và hàm `rpt_stock_balance` đọc định mức (chạy sau 55) |
-| `57-product-structure.sql` | Sản xuất: cấu trúc sản phẩm (định mức nguyên vật liệu, BOM) và các dòng thành phần |
 | `58-user-unit-roles.sql` | Vai trò theo từng đơn vị cơ sở (`sys_user_company_unit.role_id`) |
 | `59-login-security.sql` | Bảo mật đăng nhập: hạn và cờ bắt đổi mật khẩu trên `sys_users`, lịch sử đăng nhập, lịch sử mật khẩu |
-| `60-shared-domains.sql` | Chuyển các cột của mọi bảng `erp_*` / `sys_*` sang domain dùng chung `ud_*` (định nghĩa ở 00-helpers.sql); không bảng mới, chạy lại không đổi gì thêm |
+| `60-production-catalogs.sql` | Sản xuất: danh mục tổ sản xuất và công đoạn sản xuất |
+| `61-production-process.sql` | Sản xuất: danh mục quy trình sản xuất (các bước công đoạn theo thứ tự, đơn vị áp dụng) |
+| `62-product-structure.sql` | Sản xuất: cấu trúc sản phẩm (định mức nguyên vật liệu, BOM) và các dòng thành phần |
+| `63-approval-levels.sql` | Duyệt nhiều cấp theo trạng thái chứng từ: thêm Duyệt cấp 1 / Duyệt cấp 2 (Approved1, Approved2) vào ràng buộc trạng thái các bảng chứng từ, cột target_status của bước duyệt |
+| `64-purchasing-supplier-evaluations.sql` | Phiếu đánh giá nhà cung cấp (đầu phiếu, dòng chỉ tiêu), sinh bằng npm run tao-chung-tu |
 
 ## 8. Kiểm tra cấu trúc bằng test tự động
 
