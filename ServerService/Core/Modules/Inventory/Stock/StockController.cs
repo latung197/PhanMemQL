@@ -33,13 +33,19 @@ public sealed class StockController(IStockQuery stock, IPermissionService permis
 
 /// <summary>Kho › Tính tồn kho tức thời (<c>inv_calc_instant_stock</c>): checks the balance tables against the ledger and rebuilds them.</summary>
 [Route("api/inventory/stock")]
-public sealed class StockProcessController(IStockLedger ledger) : ApiControllerBase
+public sealed class StockProcessController(IStockLedger ledger, IPermissionService permissions) : ApiControllerBase
 {
     private const string Function = "inv_calc_instant_stock";
 
-    /// <summary>Differences between the ledger and the balance tables of the unit (empty = all is well).</summary>
+    /// <summary>Differences between the ledger and the balance tables of the unit (empty = all is well). The quantities are always shown;
+    /// the values are stock costs, so they are 0 without the VIEW_COST right of the stock report (as its own balances).</summary>
     [HttpGet("verify"), RequirePermission(Function, PermissionAction.View)]
-    public Task<IReadOnlyList<StockDiscrepancy>> Verify(CancellationToken ct) => ledger.VerifyAsync(CurrentUnitCode, ct);
+    public async Task<IReadOnlyList<StockDiscrepancy>> Verify(CancellationToken ct)
+    {
+        var found = await ledger.VerifyAsync(CurrentUnitCode, ct);
+        if (await permissions.HasRightAsync(CurrentUserId, "inv_report_stock", SpecialRightCatalog.ViewCost, ct)) return found;
+        return found.Select(x => x with { LedgerValue = 0, BalanceValue = 0 }).ToList();
+    }
 
     /// <summary>Rebuilds the balance tables of the unit from the ledger; returns the number of balance rows written.</summary>
     [HttpPost("rebuild"), RequirePermission(Function, PermissionAction.Edit)]
