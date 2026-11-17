@@ -98,6 +98,12 @@ public sealed class GrantGuard(CoreContext db, IPermissionService permissions)
                 await permissions.GetEffectiveInUnitAsync(actorUserId, unit, ct), await permissions.GetRightsInUnitAsync(actorUserId, unit, ct),
                 [unit], await permissions.GetEffectiveInUnitAsync(targetUserId, unit, ct), await permissions.GetRightsInUnitAsync(targetUserId, unit, ct));
         }
+        // An account without any unit has no unit to compare, which would let anyone manage it whatever its rights: compare its
+        // default role instead (what it would hold once given a unit) with the manager's.
+        if (missing is null && theirs.Count == 0)
+            missing = AccountCoverage.FirstUncovered(mine,
+                await permissions.GetEffectiveInUnitAsync(actorUserId, null, ct), await permissions.GetRightsInUnitAsync(actorUserId, null, ct),
+                [], await permissions.GetEffectiveInUnitAsync(targetUserId, null, ct), await permissions.GetRightsInUnitAsync(targetUserId, null, ct));
         switch (missing?.Kind)
         {
             case UncoveredAccess.Unit:

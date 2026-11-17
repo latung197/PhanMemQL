@@ -7,7 +7,8 @@
 --   varchar  status (20)                         -> ud_status
 --            code / *_code (10, 20, 30, 50, 64)  -> ud_code<N>
 --            other names (100, 200, 300, 500, 1000) -> ud_text<N>
---   numeric  (18,2) (18,4) (9,4) (20,8)          -> ud_dec<P>_<S>
+--   numeric  (18,2) (18,4) (9,4) (18,6) (20,8)   -> ud_dec<P>_<S>  (18,6 = exchange rates)
+--            (7,4), the tax rates, are widened to (9,4) (same scale, nothing is lost) -> ud_dec9_4
 --   integer  created_by, updated_by, user_id, *_user_id -> ud_user_id
 -- Plain types (integer, boolean, date, timestamptz) are NOT converted: ud_int / ud_bool / ud_date / ud_timestamptz are for
 -- new columns only. Identity / serial columns, generated columns and columns a view reads are skipped (listed in a NOTICE).
@@ -56,8 +57,10 @@ BEGIN
                 target := 'ud_text' || n;
             END IF;
         ELSIF r.data_type = 'numeric' THEN
-            IF (r.prec, r.scale) IN ((18, 2), (18, 4), (9, 4), (20, 8)) THEN
+            IF (r.prec, r.scale) IN ((18, 2), (18, 4), (9, 4), (18, 6), (20, 8)) THEN
                 target := 'ud_dec' || r.prec || '_' || r.scale;
+            ELSIF (r.prec, r.scale) = (7, 4) THEN
+                target := 'ud_dec9_4';
             END IF;
         ELSIF r.data_type = 'integer' THEN
             IF r.column_name IN ('created_by', 'updated_by', 'user_id') OR r.column_name ~ '(^|_)user_id$' THEN
@@ -91,6 +94,6 @@ BEGIN
         changed := changed + 1;
     END LOOP;
 
-    RAISE NOTICE '60-shared-domains: % columns moved to a domain%', changed,
+    RAISE NOTICE '65-shared-domains: % columns moved to a domain%', changed,
         CASE WHEN skipped = '' THEN '' ELSE '; skipped (a view reads them):' || skipped END;
 END $$;

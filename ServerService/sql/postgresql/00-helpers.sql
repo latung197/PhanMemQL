@@ -67,8 +67,8 @@ LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$ SELECT sys_unaccent(coalesce(value, '
 -- code change is needed.
 --   ud_codeN   codes: catalog codes, document numbers
 --   ud_textN   free text: names, descriptions, notes
---   ud_decP_S  numeric(P,S): ud_dec18_2 money, ud_dec18_4 quantity / unit price / unit cost, ud_dec9_4 percent / rate,
---              ud_dec20_8 conversion factor
+--   ud_decP_S  numeric(P,S): ud_dec18_2 money, ud_dec18_4 quantity / unit price / unit cost, ud_dec9_4 percent (tax rate, scrap),
+--              ud_dec18_6 exchange rate, ud_dec20_8 conversion factor
 --   ud_status  status of a record or voucher (Draft, Pending, ...); ud_user_id  id of a user (created_by, approved_by_user_id)
 --   ud_smallint / ud_int / ud_bigint / ud_bool / ud_date / ud_timestamptz  plain types, named after the type
 -- Add one line to the list when a new length is really needed; never type a bare varchar(N) / numeric(P,S) in a new column.
@@ -81,7 +81,7 @@ BEGIN
         ('ud_text100', 'varchar(100)'), ('ud_text200', 'varchar(200)'), ('ud_text300', 'varchar(300)'),
         ('ud_text500', 'varchar(500)'), ('ud_text1000', 'varchar(1000)'),
         ('ud_dec18_2', 'numeric(18,2)'), ('ud_dec18_4', 'numeric(18,4)'),
-        ('ud_dec9_4', 'numeric(9,4)'), ('ud_dec20_8', 'numeric(20,8)'),
+        ('ud_dec9_4', 'numeric(9,4)'), ('ud_dec18_6', 'numeric(18,6)'), ('ud_dec20_8', 'numeric(20,8)'),
         ('ud_status', 'varchar(20)'), ('ud_user_id', 'integer'),
         ('ud_smallint', 'smallint'), ('ud_int', 'integer'), ('ud_bigint', 'bigint'),
         ('ud_bool', 'boolean'), ('ud_date', 'date'), ('ud_timestamptz', 'timestamptz')

@@ -61,7 +61,7 @@ public sealed class ApiClientMiddleware(RequestDelegate next)
 {
     private const long MaxBodyToHash = 1_048_576;
 
-    public async Task InvokeAsync(HttpContext context, IIdempotencyStore store)
+    public async Task InvokeAsync(HttpContext context, IIdempotencyStore store, ApiKeyRateLimit rateLimit, IConfiguration configuration)
     {
         var client = context.User.FindFirstValue(ErpClaimTypes.ApiClient);
         if (client is null)
@@ -75,6 +75,15 @@ public sealed class ApiClientMiddleware(RequestDelegate next)
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             await context.Response.WriteAsJsonAsync(new { message = Messages.T("apiClient.outOfScope") });
+            return;
+        }
+
+        // A limit per key (calls a minute, ApiKeys:RequestsPerMinute, 0 = off): a robot stuck in a loop cannot flood the system.
+        if (!rateLimit.TryAcquire(client, configuration.GetValue("ApiKeys:RequestsPerMinute", 600), DateTime.UtcNow, out var retryAfter))
+        {
+            context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            context.Response.Headers.RetryAfter = retryAfter.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            await context.Response.WriteAsJsonAsync(new { message = Messages.T("apiClient.tooManyRequests", retryAfter) });
             return;
         }
 

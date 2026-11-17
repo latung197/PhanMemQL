@@ -15,7 +15,7 @@ public class TaxRate : ErpEntity, ICatalogRecord
     /// <summary>VAT (giá trị gia tăng), IMPORT (nhập khẩu) or OTHER; see <see cref="TaxTypes"/>.</summary>
     [Required, Column("tax_type"), MaxLength(10)] public string TaxType { get; set; } = TaxTypes.Vat;
     /// <summary>Percent, 0 to 100.</summary>
-    [Column("rate", TypeName = "numeric(7,4)")] public decimal Rate { get; set; }
+    [Column("rate", TypeName = "numeric(9,4)")] public decimal Rate { get; set; }
     /// <summary>Not subject to tax at all (different from a taxed rate of 0%).</summary>
     [Column("is_exempt")] public bool IsExempt { get; set; }
     /// <summary>The account the tax of purchases goes to (e.g. 1331 input VAT); a leaf account.</summary>

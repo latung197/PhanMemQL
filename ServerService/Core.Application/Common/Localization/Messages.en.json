@@ -1434,5 +1434,6 @@
   "apiClient.idempotencyReused": "This Idempotency-Key was used for another request. Each command needs its own key.",
   "apiClient.idempotencyBusy": "A request with this Idempotency-Key is being processed. Send it again in a few seconds.",
   "field.apiClientName": "API key name",
-  "table.sys_api_client": "API keys"
+  "table.sys_api_client": "API keys",
+  "apiClient.tooManyRequests": "The API key made too many calls in a minute. Send again in {0} seconds."
 }

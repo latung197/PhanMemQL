@@ -47,7 +47,7 @@ public class PurchaseInvoice : ErpEntity, IApprovableDocument
     /// <summary>The tax of the whole invoice (optional); its percent is copied so a later change of the catalog does not move old invoices.</summary>
     [References<TaxRate>(Optional = true)]
     [Column("tax_rate_code"), MaxLength(20)] public string? TaxRateCode { get; set; }
-    [Column("tax_rate", TypeName = "numeric(7,4)")] public decimal TaxRate { get; set; }
+    [Column("tax_rate", TypeName = "numeric(9,4)")] public decimal TaxRate { get; set; }
     /// <summary>Total of the lines before tax, in the invoice's currency.</summary>
     [Column("sub_total", TypeName = "numeric(18,2)")] public decimal SubTotal { get; set; }
     [Column("tax_amount", TypeName = "numeric(18,2)")] public decimal TaxAmount { get; set; }

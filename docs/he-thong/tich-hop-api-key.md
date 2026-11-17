@@ -147,6 +147,7 @@ Cách đặt mã: gắn với **lệnh của robot**, không phải với lần 
 | 403 | Khóa không được gọi chức năng này (ngoài phạm vi), hoặc vai trò thiếu quyền | Kiểm tra đường dẫn và quyền của vai trò. |
 | 409 | Phiếu đã bị sửa bởi người khác, hoặc lệnh trùng đang xử lý | Đọc lại phiếu / gửi lại sau. |
 | 422 | `Idempotency-Key` đã dùng cho lệnh khác | Đổi mã. |
+| 429 | Khóa gọi quá nhiều lần trong một phút (mặc định 600; header `Retry-After` cho biết số giây phải chờ) | Giảm tần suất, hoặc báo người quản trị nâng `ApiKeys:RequestsPerMinute`. |
 
 ---
 
@@ -203,5 +204,5 @@ Giám sát: mỗi yêu cầu có dòng log kèm tên tài khoản máy và IP (`
 
 - Phạm vi duy nhất là `TRANSFER`.
 - Chưa có **webhook** (S-ERP chủ động báo cho hệ thống robot khi phiếu được duyệt): robot phải hỏi (`GET .../open-issues`...) hoặc nhận lệnh từ nơi khác.
-- Chưa giới hạn **tần suất riêng cho khóa** (chỉ có giới hạn đăng nhập theo IP).
+- Giới hạn tần suất theo khóa (`ApiKeys:RequestsPerMinute`, mặc định 600 lần mỗi phút, 0 = tắt) đếm trong bộ nhớ của một máy chủ, nên chỉ đúng khi chạy một máy chủ (như bộ nhớ đệm và kênh thông báo).
 - Phản hồi được lưu để chống ghi trùng là phản hồi của lần đầu: nếu phiếu bị sửa sau đó, gửi lại cùng mã vẫn trả bản cũ trong vòng 7 ngày.

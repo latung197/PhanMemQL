@@ -1340,5 +1340,6 @@
   "apiClient.idempotencyReused": "Idempotency-Key này đã dùng cho một yêu cầu khác. Mỗi lệnh cần một mã riêng.",
   "apiClient.idempotencyBusy": "Yêu cầu với Idempotency-Key này đang được xử lý. Hãy gửi lại sau vài giây.",
   "field.apiClientName": "tên khóa API",
-  "table.sys_api_client": "Khóa API"
+  "table.sys_api_client": "Khóa API",
+  "apiClient.tooManyRequests": "Khóa API gọi quá nhiều lần trong một phút. Hãy gửi lại sau {0} giây."
 }

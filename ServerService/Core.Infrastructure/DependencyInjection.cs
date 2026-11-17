@@ -139,6 +139,7 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<Core.Application.Modules.ApiClients.IApiClientService, Core.Infrastructure.Modules.ApiClients.ApiClientService>();
         services.AddScoped<Core.Application.Modules.ApiClients.IIdempotencyStore, Core.Infrastructure.Modules.ApiClients.IdempotencyStore>();
+        services.AddSingleton<Core.Application.Modules.ApiClients.ApiKeyRateLimit>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<Core.Application.Common.Security.ISecurityPolicyService, SecurityPolicyService>();
