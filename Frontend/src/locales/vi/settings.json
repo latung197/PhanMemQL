@@ -140,7 +140,8 @@
       "generate": "Tạo ngẫu nhiên",
       "reset": "Đặt lại",
       "passwordReset": "Đã đặt lại mật khẩu cho @{username}. Các phiên đăng nhập cũ đã bị đăng xuất."
-    }
+    },
+    "tabApiKeys": "Khóa API"
   },
   "roles": {
     "created": "Đã tạo vai trò \"{name}\"",
@@ -591,5 +592,64 @@
   },
   "globalSettings": {
     "adminOnly": "Đây là cài đặt chung của toàn hệ thống (mọi đơn vị cơ sở): chỉ quản trị viên sửa được."
+  },
+  "apiKeys": {
+    "title": "Khóa API cho máy gọi vào hệ thống",
+    "description": "Cấp khóa cho robot hoặc hệ thống khác gọi API thay cho người dùng. Mỗi khóa chạy bằng một tài khoản máy với vai trò và đơn vị đã chọn, nên chỉ làm được những gì vai trò đó cho phép; khóa chỉ gọi được các phiếu điều chuyển kho. Khóa chỉ hiện một lần khi tạo.",
+    "loading": "Đang tải danh sách khóa...",
+    "add": "Thêm khóa",
+    "empty": "Chưa có khóa API",
+    "emptyHint": "Bấm \"Thêm khóa\" để cấp khóa cho robot hoặc hệ thống bên ngoài.",
+    "anyAddress": "Mọi địa chỉ",
+    "never": "Không hết hạn",
+    "neverUsed": "Chưa dùng",
+    "on": "Đang bật",
+    "off": "Đã tắt",
+    "expired": "Hết hạn",
+    "switchOn": "Bật khóa",
+    "switchOff": "Tắt khóa",
+    "switchedOn": "Đã bật khóa {code}",
+    "switchedOff": "Đã tắt khóa {code}",
+    "rotate": "Đổi khóa",
+    "rotateTitle": "Đổi khóa API?",
+    "rotateMessage": "Khóa {code} sẽ được thay bằng khóa mới, khóa cũ ngừng dùng được ngay. Bên đang dùng phải cập nhật khóa mới.",
+    "deleteTitle": "Xóa khóa API?",
+    "deleteMessage": "Khóa {code} bị xóa và tài khoản máy của nó bị tắt. Các phiếu nó đã tạo vẫn giữ nguyên.",
+    "deleted": "Đã xóa khóa {code}",
+    "createTitle": "Thêm khóa API",
+    "create": "Tạo khóa",
+    "keyTitle": "Khóa API {code}",
+    "keyOnce": "Sao chép khóa này ngay và đưa cho bên sử dụng. Hệ thống chỉ lưu bản mã hóa nên sẽ không hiện lại được; mất khóa thì dùng \"Đổi khóa\" để cấp khóa mới.",
+    "copy": "Sao chép",
+    "copied": "Đã chép",
+    "copyFailed": "Không sao chép được, hãy bôi đen khóa và chép tay.",
+    "howToUse": "Cách gọi",
+    "keySaved": "Tôi đã lưu khóa",
+    "col": {
+      "code": "Mã / tên",
+      "account": "Tài khoản máy",
+      "unit": "Đơn vị",
+      "key": "Khóa",
+      "ips": "Địa chỉ IP",
+      "expires": "Hết hạn",
+      "lastUsed": "Dùng lần cuối",
+      "status": "Trạng thái"
+    },
+    "form": {
+      "code": "Mã khóa",
+      "codeHint": "Chữ in hoa, số, - hoặc _ (ví dụ ROBOT-KHO1)",
+      "name": "Tên (bên sử dụng)",
+      "role": "Vai trò",
+      "pickRole": "-- Chọn vai trò --",
+      "roleHint": "Khóa chỉ làm được những gì vai trò này cho phép (quyền chức năng và quyền trạng thái phiếu của đơn vị).",
+      "unit": "Đơn vị cơ sở",
+      "unitHint": "Mọi lệnh của khóa chạy trong đơn vị này.",
+      "ips": "Địa chỉ IP được gọi",
+      "ipsHint": "Địa chỉ hoặc dải CIDR, cách nhau dấu phẩy. Để trống = gọi từ đâu cũng được.",
+      "expires": "Ngày hết hạn",
+      "expiresHint": "Để trống = không hết hạn.",
+      "note": "Ghi chú",
+      "scopeNote": "Khóa chỉ gọi được ba phiếu điều chuyển kho (lệnh, xuất, nhập) và các danh sách chọn của chúng. Không vào được màn quản trị, kể cả khi vai trò có quyền."
+    }
   }
 }

@@ -12,6 +12,10 @@ public static class ErpClaimTypes
     public const string SessionId = "erp_sid";
     /// <summary>"1" while the password must be changed: every API but the few that change it is refused.</summary>
     public const string PasswordChange = "erp_pwd_change";
+    /// <summary>Code of the API client when the request is signed with an API key instead of a token.</summary>
+    public const string ApiClient = "erp_api_client";
+    /// <summary>Scope of that API client (which APIs the key may call).</summary>
+    public const string ApiScope = "erp_api_scope";
 }
 
 /// <summary>The signed-in user of the current request.</summary>

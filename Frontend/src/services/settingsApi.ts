@@ -134,6 +134,48 @@ export const approvalRulesApi = {
     apiRequest<ApprovalPreview>('POST', '/api/settings/approval-rules/preview', { function: fn, requesterUserId, amount, unitCode })
 };
 
+/** An API client: a machine that calls the API with a key (never returned again after it is created). */
+export interface ApiClient {
+  code: string;
+  name: string;
+  userId: number;
+  userName: string;
+  unitCode: string;
+  scope: string;
+  keyPrefix: string;
+  allowedIps: string | null;
+  expiresAt: string | null;
+  isActive: boolean;
+  lastUsedAt: string | null;
+  lastUsedIp: string | null;
+  note: string | null;
+  createdAt: string;
+}
+export interface CreateApiClientInput {
+  code: string;
+  name: string;
+  roleId: string;
+  unitCode: string;
+  allowedIps?: string | null;
+  expiresAt?: string | null;
+  note?: string | null;
+}
+export interface UpdateApiClientInput {
+  name: string;
+  allowedIps?: string | null;
+  expiresAt?: string | null;
+  isActive: boolean;
+  note?: string | null;
+}
+/** Settings › Người dùng & phân quyền › Khóa API (super administrator only). The key is in the reply of create / rotateKey only. */
+export const apiClientsApi = {
+  getAll: () => apiRequest<ApiClient[]>('GET', '/api/settings/api-clients'),
+  create: (input: CreateApiClientInput) => apiRequest<{ client: ApiClient; apiKey: string }>('POST', '/api/settings/api-clients', input),
+  update: (code: string, input: UpdateApiClientInput) => apiRequest<ApiClient>('PUT', `/api/settings/api-clients/${encodeURIComponent(code)}`, input),
+  rotateKey: (code: string) => apiRequest<{ client: ApiClient; apiKey: string }>('POST', `/api/settings/api-clients/${encodeURIComponent(code)}/rotate-key`),
+  remove: (code: string) => apiRequest<void>('DELETE', `/api/settings/api-clients/${encodeURIComponent(code)}`)
+};
+
 /** A company unit row of the catalog screen (the list of signed-in users comes from the lookup, see lookupOptions.ts). */
 export type CompanyUnitRow = CompanyUnit & { stamp: RecordStamp };
 

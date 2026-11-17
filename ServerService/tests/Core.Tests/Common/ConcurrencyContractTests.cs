@@ -15,6 +15,8 @@ public sealed partial class ConcurrencyContractTests
     /// <summary>Update methods that do not edit a single record loaded in a form; give the reason.</summary>
     private static readonly Dictionary<string, string> Exempt = new(StringComparer.Ordinal)
     {
+        ["IApiClientService.UpdateAsync"] = "Every call of an API key writes last_used_at on the client row (moves xmin), so a form would always be stale; " +
+            "only the super administrator edits it."
     };
 
     private static IEnumerable<(Type Service, MethodInfo Method)> UpdateMethods() =>

@@ -140,7 +140,8 @@
       "generate": "Generate",
       "reset": "Reset",
       "passwordReset": "Password of @{username} reset. Its previous sessions have been signed out."
-    }
+    },
+    "tabApiKeys": "API keys"
   },
   "roles": {
     "created": "Role \"{name}\" created",
@@ -591,5 +592,64 @@
   },
   "globalSettings": {
     "adminOnly": "This setting applies to the whole system (every company unit): only an administrator can change it."
+  },
+  "apiKeys": {
+    "title": "API keys for machines calling the system",
+    "description": "Give a robot or another system a key to call the API instead of a user. Each key acts as a service account with the role and unit you choose, so it can only do what that role allows; it can only call the warehouse transfer vouchers. The key is shown once, when it is created.",
+    "loading": "Loading the keys...",
+    "add": "Add key",
+    "empty": "No API keys yet",
+    "emptyHint": "Click \"Add key\" to give a robot or an outside system a key.",
+    "anyAddress": "Any address",
+    "never": "Never expires",
+    "neverUsed": "Never used",
+    "on": "On",
+    "off": "Off",
+    "expired": "Expired",
+    "switchOn": "Switch key on",
+    "switchOff": "Switch key off",
+    "switchedOn": "Key {code} switched on",
+    "switchedOff": "Key {code} switched off",
+    "rotate": "Replace key",
+    "rotateTitle": "Replace the API key?",
+    "rotateMessage": "Key {code} is replaced by a new one and the old one stops working at once. Whoever uses it must be given the new key.",
+    "deleteTitle": "Delete the API key?",
+    "deleteMessage": "Key {code} is deleted and its service account is switched off. The vouchers it made stay as they are.",
+    "deleted": "Key {code} deleted",
+    "createTitle": "Add an API key",
+    "create": "Create key",
+    "keyTitle": "API key {code}",
+    "keyOnce": "Copy this key now and give it to whoever uses it. Only an encrypted form is kept, so it cannot be shown again; if it is lost use \"Replace key\" to issue a new one.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "Could not copy: select the key and copy it by hand.",
+    "howToUse": "How to call",
+    "keySaved": "I have saved the key",
+    "col": {
+      "code": "Code / name",
+      "account": "Service account",
+      "unit": "Unit",
+      "key": "Key",
+      "ips": "IP addresses",
+      "expires": "Expires",
+      "lastUsed": "Last used",
+      "status": "Status"
+    },
+    "form": {
+      "code": "Key code",
+      "codeHint": "Capital letters, digits, - or _ (e.g. ROBOT-KHO1)",
+      "name": "Name (who uses it)",
+      "role": "Role",
+      "pickRole": "-- Choose a role --",
+      "roleHint": "The key can only do what this role allows (function rights and the voucher status rights of the unit).",
+      "unit": "Company unit",
+      "unitHint": "Every command of the key runs in this unit.",
+      "ips": "Allowed IP addresses",
+      "ipsHint": "Addresses or CIDR ranges separated by commas. Empty = may call from anywhere.",
+      "expires": "Expiry date",
+      "expiresHint": "Empty = never expires.",
+      "note": "Note",
+      "scopeNote": "The key can only call the three warehouse transfer vouchers (order, issue, receipt) and their pick lists. It never reaches the admin screens, even when the role would allow it."
+    }
   }
 }

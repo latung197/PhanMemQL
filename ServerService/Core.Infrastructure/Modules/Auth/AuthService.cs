@@ -53,6 +53,12 @@ public sealed class AuthService(CoreContext db, IPasswordService passwords, ITok
             if (username.Length > 0) await history.RecordAsync(username, null, unitCode, LoginResults.UnknownUser, ct);
             throw new AuthenticationFailedException(WrongCredentials);
         }
+        // The account of an API client only works with its key: it answers like a wrong password.
+        if (user.IsServiceAccount)
+        {
+            await history.RecordAsync(username, user.UserId, unitCode, LoginResults.WrongPassword, ct);
+            throw new AuthenticationFailedException(WrongCredentials);
+        }
         if (!passwords.Verify(user, request.Password ?? string.Empty, out var needsUpgrade))
         {
             await history.RecordAsync(username, user.UserId, unitCode, LoginResults.WrongPassword, ct);

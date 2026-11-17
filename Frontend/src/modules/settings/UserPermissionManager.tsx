@@ -1,6 +1,6 @@
 // Settings › Người dùng & Phân quyền: accounts and roles with their permission matrices.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Briefcase, GitBranch, Plus, RefreshCw, ShieldCheck, UserPlus, Users } from 'lucide-react';
+import { Briefcase, GitBranch, KeyRound, Plus, RefreshCw, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Tabs } from '../../components/common/Tabs';
 import { useConfirm } from '../../components/common/ConfirmDialog';
@@ -18,13 +18,15 @@ import { UserDetailPanel } from './permissions/UserDetailPanel';
 import { RoleListPanel } from './permissions/RoleListPanel';
 import { RoleDetailPanel } from './permissions/RoleDetailPanel';
 import { ApprovalRulesPanel } from './permissions/ApprovalRulesPanel';
+import { ApiClientsPanel } from './permissions/ApiClientsPanel';
+import { menuService } from '../../services/menuService';
 
 interface UserPermissionManagerProps {
   currentUser: UserProfile;
   companyUnits: CompanyUnit[];
 }
 
-type View = 'users' | 'roles' | 'approvals';
+type View = 'users' | 'roles' | 'approvals' | 'apiKeys';
 
 const panelClass = 'bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-lg shadow-2xs min-h-0 overflow-hidden';
 
@@ -42,6 +44,9 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [modal, setModal] = useState<'createUser' | 'createRole' | 'editUser' | null>(null);
+  // API keys are made by the super administrator only (the same account that edits the menu structure).
+  const [canManageKeys, setCanManageKeys] = useState(false);
+  useEffect(() => { void menuService.canEditStructure().then(setCanManageKeys); }, []);
 
   const perms = getActionPermission(currentUser, 'sys_users');
   const activeUnits = companyUnits.filter(u => u.status === 'Hoạt động');  // i18n-ignore: stored status
@@ -158,7 +163,8 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
         items={[
           { key: 'users', label: t('users.tabUsers', { n: users.length }), icon: <Users /> },
           { key: 'roles', label: t('users.tabRoles', { n: roles.length }), icon: <Briefcase /> },
-          { key: 'approvals', label: t('users.tabApprovals'), icon: <GitBranch /> }
+          { key: 'approvals', label: t('users.tabApprovals'), icon: <GitBranch /> },
+          ...(canManageKeys ? [{ key: 'apiKeys' as const, label: t('users.tabApiKeys'), icon: <KeyRound /> }] : [])
         ]}
       />
 
@@ -169,8 +175,14 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
         </div>
       )}
 
+      {view === 'apiKeys' && canManageKeys && (
+        <div className={`${panelClass} lg:h-[calc(100vh-250px)]`}>
+          <ApiClientsPanel roles={roles} companyUnits={activeUnits} />
+        </div>
+      )}
+
       {/* Master / detail */}
-      {view !== 'approvals' && <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-2 min-h-0 lg:h-[calc(100vh-250px)]">
+      {view !== 'approvals' && view !== 'apiKeys' && <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-2 min-h-0 lg:h-[calc(100vh-250px)]">
         <div className={`${panelClass} max-h-[50vh] lg:max-h-none`}>
           {view === 'users' ? (
             <UserListPanel users={users} roles={roles} selectedId={selectedUser?.id}

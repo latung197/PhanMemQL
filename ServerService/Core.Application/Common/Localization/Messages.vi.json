@@ -1324,5 +1324,21 @@
   "security.passwordSpecial": "Mật khẩu phải có ít nhất một ký tự đặc biệt (ví dụ ! @ # $).",
   "security.passwordReused": "Không dùng lại {0} mật khẩu gần nhất. Hãy chọn mật khẩu khác.",
   "auth.tooManyFailures": "Đăng nhập sai quá nhiều lần. Hãy thử lại sau {0} phút.",
-  "auth.passwordChangeRequired": "Bạn cần đổi mật khẩu trước khi làm việc tiếp."
+  "auth.passwordChangeRequired": "Bạn cần đổi mật khẩu trước khi làm việc tiếp.",
+  "field.apiClientCode": "mã khóa API",
+  "field.allowedIps": "danh sách địa chỉ IP",
+  "field.scope": "phạm vi",
+  "apiClient.scope": "Phạm vi \"{0}\" không có. Chọn: TRANSFER.",
+  "apiClient.badIps": "Danh sách IP chỉ gồm địa chỉ (10.0.0.5) hoặc dải (10.0.0.0/24), cách nhau bằng dấu phẩy.",
+  "apiClient.expiryPast": "Ngày hết hạn của khóa phải ở tương lai.",
+  "apiClient.roleRequired": "Chọn vai trò cho khóa: khóa chỉ làm được những gì vai trò đó được phép.",
+  "apiClient.codeUsed": "Mã khóa API đã được dùng. Hãy chọn mã khác.",
+  "apiClient.notFound": "Không tìm thấy khóa API.",
+  "apiClient.keyRefused": "Khóa API không hợp lệ, đã bị khóa, hết hạn hoặc không được dùng từ địa chỉ này.",
+  "apiClient.outOfScope": "Khóa API này không được gọi chức năng đó.",
+  "apiClient.idempotencyKeyLong": "Idempotency-Key tối đa 200 ký tự.",
+  "apiClient.idempotencyReused": "Idempotency-Key này đã dùng cho một yêu cầu khác. Mỗi lệnh cần một mã riêng.",
+  "apiClient.idempotencyBusy": "Yêu cầu với Idempotency-Key này đang được xử lý. Hãy gửi lại sau vài giây.",
+  "field.apiClientName": "tên khóa API",
+  "table.sys_api_client": "Khóa API"
 }

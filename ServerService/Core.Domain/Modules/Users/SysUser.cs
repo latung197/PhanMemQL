@@ -45,6 +45,10 @@ public class SysUser : AuditableEntity, IVersioned
     [AuditField("mustChangePassword"), Column("must_change_password")] public bool MustChangePassword { get; set; }
 
     [Column("is_active")] public bool IsActive { get; set; } = true;
+
+    /// <summary>The account of an API client (a machine): it never signs in with a password, no idle sign-out, no password expiry.</summary>
+    [AuditField("serviceAccount"), Column("is_service_account")] public bool IsServiceAccount { get; set; }
+
     [NotReference("mã nhân viên của chính tài khoản")]
     [Column("employee_code")] public string EmployeeCode { get; set; } = string.Empty;
 
