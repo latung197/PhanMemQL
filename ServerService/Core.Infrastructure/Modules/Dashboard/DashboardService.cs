@@ -26,7 +26,6 @@ public sealed class DashboardService(ISqlExecutor sql, IPermissionService permis
         ("pur_request", "erp_purchase_request"), ("pur_order", "erp_purchase_order"),
         ("inv_receipt", "erp_goods_receipt"), ("inv_issue_request", "erp_issue_request"), ("inv_issue", "erp_goods_issue"),
         ("inv_transfer_order", "erp_transfer_order"), ("inv_transfer_issue", "erp_transfer_issue"), ("inv_transfer_receipt", "erp_transfer_receipt"),
-        ("pur_supplier_eval", "erp_supplier_evaluation"),
         // [tao-chung-tu] Chứng từ mới: thêm ("mã chức năng", "bảng"), ngay trên dòng này.
     ];
 

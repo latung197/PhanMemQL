@@ -15,7 +15,6 @@ public static class VoucherStatusCatalog
     private static readonly HashSet<string> NonPosting = new(StringComparer.Ordinal)
     {
         "inv_issue_request", "pur_request", "pur_order", "pur_invoice", "sales_orders", "inv_transfer_order",
-        "pur_supplier_eval",
         // [tao-chung-tu] Chứng từ mới không ghi sổ: thêm "mã chức năng", ngay trên dòng này.
     };
 

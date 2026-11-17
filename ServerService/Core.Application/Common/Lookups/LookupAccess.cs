@@ -45,7 +45,6 @@ public static class LookupAccessCatalog
     /// </summary>
     private static readonly (string Lookup, string Function)[] VoucherPicks =
     [
-        ("suppliers", "pur_supplier_eval"),
         // [tao-chung-tu] Ô chọn của chứng từ mới: thêm ("tên tra cứu", "mã chức năng"), ngay trên dòng này.
     ];
 

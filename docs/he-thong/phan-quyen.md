@@ -311,7 +311,7 @@ Mọi thay đổi về quyền được ghi ở Cài đặt › Nhật ký thay 
 | Mở lại phiếu đã hủy | **Đã làm**: nút "Khôi phục", quyền `ST_CANCELLED` (mục C8) |
 | Sửa / xóa phiếu đã ghi sổ | **Đã làm** cho phiếu nhập, xuất, điều chuyển: quyền `ST_EDIT_POSTED` |
 | Phiếu, màn phê duyệt trên giao diện | Các phiếu kho, mua hàng, bán hàng đã chạy thật dùng API duyệt; phiếu giao hàng, thu, chi còn là dữ liệu mẫu |
-| Chính sách mật khẩu (độ phức tạp, hết hạn), khóa tài khoản sau N lần sai theo tài khoản, tự đăng xuất khi không dùng, lịch sử đăng nhập | Chưa có |
+| Chính sách mật khẩu (độ phức tạp, hết hạn), khóa tài khoản sau N lần sai theo tài khoản, tự đăng xuất khi không dùng, lịch sử đăng nhập | **Đã làm** (`docs/he-thong/bao-mat-dang-nhap.md`) |
 | Cắt dữ liệu quản trị theo đơn vị (người dùng, quy tắc duyệt, nhật ký, cài đặt chung, ô chọn kho) và chặn quản lý tài khoản rộng hơn mình | **Đã làm** (A6, A9) |
 | Quyền chức năng (7 hành động) khác nhau theo đơn vị cơ sở | **Đã làm** bằng vai trò theo từng đơn vị (A6, C4b) |
 | Phạm vi dữ liệu chi tiết hơn "của mình / tất cả" (theo kho, theo phòng ban) | Chưa có |

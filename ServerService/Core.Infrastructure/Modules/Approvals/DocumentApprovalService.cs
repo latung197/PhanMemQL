@@ -352,7 +352,6 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
     {
         "inv_receipt", "inv_issue", "inv_issue_request", "pur_request", "pur_order", "pur_invoice", "sales_orders",
         "inv_transfer_order", "inv_transfer_issue", "inv_transfer_receipt", "inv_audit_count",
-        "pur_supplier_eval",
         // [tao-chung-tu] Chứng từ mới: thêm "mã chức năng", ngay trên dòng này (và ở NotFoundKeys, FindVoucherAsync).
     };
 
@@ -364,7 +363,6 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         ["pur_order"] = "purchaseOrder.notFound", ["pur_invoice"] = "purchaseInvoice.notFound", ["sales_orders"] = "salesOrder.notFound",
         ["inv_transfer_order"] = "transferOrder.notFound", ["inv_transfer_issue"] = "transferIssue.notFound",
         ["inv_transfer_receipt"] = "transferReceipt.notFound", ["inv_audit_count"] = "stockCount.notFound",
-        ["pur_supplier_eval"] = "supplierEvaluation.notFound",
         // [tao-chung-tu] Chứng từ mới: thêm ["mã chức năng"] = "loại.notFound", ngay trên dòng này.
     };
 
@@ -382,7 +380,6 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
             "inv_transfer_issue" => await db.TransferIssues.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             "inv_transfer_receipt" => await db.TransferReceipts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             "inv_audit_count" => await db.StockCounts.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
-            "pur_supplier_eval" => await db.SupplierEvaluations.FirstOrDefaultAsync(x => x.Code == documentId && x.UnitCode == unitCode, ct),
             // [tao-chung-tu] Chứng từ mới: thêm "mã chức năng" => await db.<DbSet>.FirstOrDefaultAsync(...), ngay trên dòng này.
             _ => null
         };
