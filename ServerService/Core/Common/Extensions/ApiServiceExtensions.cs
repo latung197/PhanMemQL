@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Core.Application.Common.Localization;
 using Core.Application.Common.Security;
+using Core.Application.Modules.ApiClients;
 using Core.Application.Modules.Users;
 using Core.Common.Authorization;
 using Core.Common.Errors;
@@ -39,7 +40,18 @@ public static class ApiServiceExtensions
 
     private static void AddJwtAuthentication(this IServiceCollection services, JwtOptions jwt)
     {
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o =>
+        // Two ways in: the token of a signed-in person, or the X-Api-Key header of a machine (ApiKeyAuthenticationHandler).
+        // A policy scheme looks at the request and hands it to the right one, so everything after authentication is unchanged.
+        services.AddAuthentication(o =>
+            {
+                o.DefaultScheme = "Smart";
+                o.DefaultChallengeScheme = "Smart";
+            })
+            .AddPolicyScheme("Smart", "Token or API key", o =>
+                o.ForwardDefaultSelector = context => context.Request.Headers.ContainsKey(ApiKeyRules.Header)
+                    ? ApiKeyAuthenticationHandler.Scheme : JwtBearerDefaults.AuthenticationScheme)
+            .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.Scheme, _ => { })
+            .AddJwtBearer(o =>
         {
             o.TokenValidationParameters = new TokenValidationParameters
             {

@@ -224,7 +224,8 @@ Cột mới **không gõ `varchar(N)` / `numeric(P,S)` tay**: dùng domain trong
 | Chữ tự do (tên, mô tả, ghi chú) | `ud_text100`, `ud_text200`, `ud_text300`, `ud_text500`, `ud_text1000` |
 | Tiền | `ud_dec18_2` |
 | Số lượng, đơn giá, giá vốn | `ud_dec18_4` |
-| Tỷ lệ phần trăm | `ud_dec9_4` |
+| Tỷ lệ phần trăm (thuế suất, hao hụt) | `ud_dec9_4` |
+| Tỷ giá | `ud_dec18_6` |
 | Hệ số quy đổi | `ud_dec20_8` |
 | Trạng thái; id người dùng | `ud_status` (`varchar(20)`); `ud_user_id` (`integer`) |
 | Kiểu thường | `ud_smallint`, `ud_int`, `ud_bigint`, `ud_bool`, `ud_date`, `ud_timestamptz` |

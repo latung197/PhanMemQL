@@ -74,7 +74,10 @@ public sealed class PermissionService(CoreContext db, IAppCache cache, ICurrentU
                 SpecialRightCatalog.KeysFor(activeUnits));
         }
 
-        var roleIds = defaultRoles.Select(x => x.RoleId).Concat(unitRoles.Values).Distinct().ToList();
+        // A role switched off (validflg 0) gives nothing, also as the role of a unit: that unit then has no rights from it (never the
+        // default role instead, which may be wider).
+        var liveUnitRoles = await LiveRoleIdsAsync(unitRoles.Values, ct);
+        var roleIds = defaultRoles.Select(x => x.RoleId).Concat(unitRoles.Values.Where(liveUnitRoles.Contains)).Distinct().ToList();
         var grantRows = await db.RoleCommands.AsNoTracking().Where(x => x.Status == "1" && roleIds.Contains(x.RoleId)).ToListAsync(ct);
         var rightRows = await db.RoleRights.AsNoTracking().Where(x => x.Status == "1" && roleIds.Contains(x.RoleId))
             .Select(x => new { x.RoleId, Key = x.MenuId0 + ":" + x.RightCode }).ToListAsync(ct);
@@ -90,6 +93,14 @@ public sealed class PermissionService(CoreContext db, IAppCache cache, ICurrentU
                 .Select(x => (x.MenuId0, x.ToActions())).ToList()),
             roleIds.ToDictionary(id => id, id => (IReadOnlyList<string>)rightRows.Where(x => x.RoleId == id).Select(x => x.Key).ToList()),
             new HashSet<string>());
+    }
+
+    /// <summary>The ids among <paramref name="ids"/> of roles that are in use (validflg 1).</summary>
+    private async Task<HashSet<int>> LiveRoleIdsAsync(IEnumerable<int> ids, CancellationToken ct)
+    {
+        var wanted = ids.Distinct().ToList();
+        if (wanted.Count == 0) return [];
+        return (await db.Roles.AsNoTracking().Where(x => wanted.Contains(x.RoleId) && x.ValidFlg == 1).Select(x => x.RoleId).ToListAsync(ct)).ToHashSet();
     }
 
     /// <summary>The matrix and special rights of the user in a unit (worked out once per unit and kept with the snapshot).</summary>
@@ -157,7 +168,8 @@ public sealed class PermissionService(CoreContext db, IAppCache cache, ICurrentU
             var unitRoles = unit is null ? []
                 : await db.UserCompanyUnits.AsNoTracking().Where(x => missingIds.Contains(x.UserId) && x.UnitCode == unit && x.RoleId != null)
                     .ToDictionaryAsync(x => x.UserId, x => x.RoleId!.Value, ct);
-            var roleIds = userRoles.Select(x => x.RoleId).Concat(unitRoles.Values).Distinct().ToList();
+            var liveUnitRoles = await LiveRoleIdsAsync(unitRoles.Values, ct);
+            var roleIds = userRoles.Select(x => x.RoleId).Concat(unitRoles.Values.Where(liveUnitRoles.Contains)).Distinct().ToList();
             var roleRows = await db.RoleCommands.AsNoTracking().Where(x => x.Status == "1" && roleIds.Contains(x.RoleId)).ToListAsync(ct);
             var ownRows = await db.UserCommands.AsNoTracking().Where(x => x.Status == "1" && missingIds.Contains(x.UserId)).ToListAsync(ct);
             foreach (var user in missing)

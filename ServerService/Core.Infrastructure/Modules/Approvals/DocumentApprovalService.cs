@@ -328,10 +328,11 @@ public sealed class DocumentApprovalService(CoreContext db, ApprovalResolver res
         var requesterIds = pending.Select(x => x.RequestedByUserId).Distinct().ToList();
         var users = await db.Users.AsNoTracking().Where(x => requesterIds.Contains(x.UserId))
             .ToDictionaryAsync(x => x.UserId, x => new ApproverUserDto(x.UserId.ToString(), x.UserName, x.FullName), ct);
-        // The amount of a receipt / issue is a price: only for those who may see prices on that voucher.
+        // The amount of a voucher is a price (or a stock cost for the vouchers the ledger values): only for those who hold that right on
+        // that voucher, the same right the notification of the approval checks (AmountRight).
         var hiddenAmountFunctions = new HashSet<string>();
         foreach (var function in pending.Select(x => x.MenuId0).Where(IsVoucherFunction).Distinct())
-            if (!await permissions.HasRightAsync(userId, function, SpecialRightCatalog.ViewPrice, ct)) hiddenAmountFunctions.Add(function);
+            if (!await permissions.HasRightAsync(userId, function, AmountRight(function), ct)) hiddenAmountFunctions.Add(function);
         return pending.Select(x => new PendingApprovalDto(x.MenuId0, x.DocumentId, x.DocumentTitle,
             hiddenAmountFunctions.Contains(x.MenuId0) ? null : x.Amount, x.Level,
             users.GetValueOrDefault(x.RequestedByUserId, new ApproverUserDto(x.RequestedByUserId.ToString(), "?", "?")),

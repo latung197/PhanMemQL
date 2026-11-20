@@ -1453,5 +1453,22 @@
   "field.supplierEvaluationLineCriterion": "criterion",
   "field.supplierEvaluationLineWeight": "weight (%)",
   "field.supplierEvaluationLineScore": "score",
-  "field.supplierEvaluationLineNote": "note"
+  "field.supplierEvaluationLineNote": "note",
+  "field.apiClientCode": "API key code",
+  "field.allowedIps": "IP address list",
+  "field.scope": "scope",
+  "apiClient.scope": "Scope \"{0}\" does not exist. Choose: TRANSFER.",
+  "apiClient.badIps": "The IP list holds only addresses (10.0.0.5) or ranges (10.0.0.0/24), separated by commas.",
+  "apiClient.expiryPast": "The expiry date of the key must be in the future.",
+  "apiClient.roleRequired": "Choose a role for the key: it can only do what that role allows.",
+  "apiClient.codeUsed": "The API key code is already used. Choose another code.",
+  "apiClient.notFound": "API key not found.",
+  "apiClient.keyRefused": "The API key is invalid, switched off, expired or not allowed from this address.",
+  "apiClient.outOfScope": "This API key may not call that function.",
+  "apiClient.idempotencyKeyLong": "The Idempotency-Key is at most 200 characters.",
+  "apiClient.idempotencyReused": "This Idempotency-Key was used for another request. Each command needs its own key.",
+  "apiClient.idempotencyBusy": "A request with this Idempotency-Key is being processed. Send it again in a few seconds.",
+  "field.apiClientName": "API key name",
+  "table.sys_api_client": "API keys",
+  "apiClient.tooManyRequests": "The API key made too many calls in a minute. Send again in {0} seconds."
 }

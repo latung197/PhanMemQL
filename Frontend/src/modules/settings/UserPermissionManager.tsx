@@ -19,13 +19,15 @@ import { RoleListPanel } from './permissions/RoleListPanel';
 import { RoleDetailPanel } from './permissions/RoleDetailPanel';
 import { ApprovalRulesPanel } from './permissions/ApprovalRulesPanel';
 import { SecurityPanel } from './permissions/SecurityPanel';
+import { ApiClientsPanel } from './permissions/ApiClientsPanel';
+import { menuService } from '../../services/menuService';
 
 interface UserPermissionManagerProps {
   currentUser: UserProfile;
   companyUnits: CompanyUnit[];
 }
 
-type View = 'users' | 'roles' | 'approvals' | 'security';
+type View = 'users' | 'roles' | 'approvals' | 'security' | 'apiKeys';
 
 const panelClass = 'bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-lg shadow-2xs min-h-0 overflow-hidden';
 
@@ -43,6 +45,9 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [isDirty, setIsDirty] = useState(false);
   const [modal, setModal] = useState<'createUser' | 'createRole' | 'editUser' | null>(null);
+  // API keys are made by the super administrator only (the same account that edits the menu structure).
+  const [canManageKeys, setCanManageKeys] = useState(false);
+  useEffect(() => { void menuService.canEditStructure().then(setCanManageKeys); }, []);
 
   const perms = getActionPermission(currentUser, 'sys_users');
   const activeUnits = companyUnits.filter(u => u.status === 'Hoạt động');  // i18n-ignore: stored status
@@ -160,7 +165,8 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
           { key: 'users', label: t('users.tabUsers', { n: users.length }), icon: <Users /> },
           { key: 'roles', label: t('users.tabRoles', { n: roles.length }), icon: <Briefcase /> },
           { key: 'approvals', label: t('users.tabApprovals'), icon: <GitBranch /> },
-          { key: 'security', label: t('users.tabSecurity'), icon: <KeyRound /> }
+          { key: 'security', label: t('users.tabSecurity'), icon: <KeyRound /> },
+          ...(canManageKeys ? [{ key: 'apiKeys' as const, label: t('users.tabApiKeys'), icon: <KeyRound /> }] : [])
         ]}
       />
 
@@ -174,6 +180,12 @@ export const UserPermissionManager: React.FC<UserPermissionManagerProps> = ({ cu
       {view === 'security' && (
         <div className="min-h-0 xl:h-[calc(100vh-250px)]">
           <SecurityPanel actorIsAdmin={!!currentUser.isSystemAdmin} />
+        </div>
+      )}
+
+      {view === 'apiKeys' && canManageKeys && (
+        <div className={`${panelClass} lg:h-[calc(100vh-250px)]`}>
+          <ApiClientsPanel roles={roles} companyUnits={activeUnits} />
         </div>
       )}
 

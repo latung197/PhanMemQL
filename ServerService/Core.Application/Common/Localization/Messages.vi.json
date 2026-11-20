@@ -1359,5 +1359,22 @@
   "field.supplierEvaluationLineCriterion": "chỉ tiêu đánh giá",
   "field.supplierEvaluationLineWeight": "trọng số (%)",
   "field.supplierEvaluationLineScore": "điểm",
-  "field.supplierEvaluationLineNote": "ghi chú"
+  "field.supplierEvaluationLineNote": "ghi chú",
+  "field.apiClientCode": "mã khóa API",
+  "field.allowedIps": "danh sách địa chỉ IP",
+  "field.scope": "phạm vi",
+  "apiClient.scope": "Phạm vi \"{0}\" không có. Chọn: TRANSFER.",
+  "apiClient.badIps": "Danh sách IP chỉ gồm địa chỉ (10.0.0.5) hoặc dải (10.0.0.0/24), cách nhau bằng dấu phẩy.",
+  "apiClient.expiryPast": "Ngày hết hạn của khóa phải ở tương lai.",
+  "apiClient.roleRequired": "Chọn vai trò cho khóa: khóa chỉ làm được những gì vai trò đó được phép.",
+  "apiClient.codeUsed": "Mã khóa API đã được dùng. Hãy chọn mã khác.",
+  "apiClient.notFound": "Không tìm thấy khóa API.",
+  "apiClient.keyRefused": "Khóa API không hợp lệ, đã bị khóa, hết hạn hoặc không được dùng từ địa chỉ này.",
+  "apiClient.outOfScope": "Khóa API này không được gọi chức năng đó.",
+  "apiClient.idempotencyKeyLong": "Idempotency-Key tối đa 200 ký tự.",
+  "apiClient.idempotencyReused": "Idempotency-Key này đã dùng cho một yêu cầu khác. Mỗi lệnh cần một mã riêng.",
+  "apiClient.idempotencyBusy": "Yêu cầu với Idempotency-Key này đang được xử lý. Hãy gửi lại sau vài giây.",
+  "field.apiClientName": "tên khóa API",
+  "table.sys_api_client": "Khóa API",
+  "apiClient.tooManyRequests": "Khóa API gọi quá nhiều lần trong một phút. Hãy gửi lại sau {0} giây."
 }

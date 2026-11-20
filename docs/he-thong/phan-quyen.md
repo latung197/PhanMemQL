@@ -316,6 +316,8 @@ Mọi thay đổi về quyền được ghi ở Cài đặt › Nhật ký thay 
 | Quyền chức năng (7 hành động) khác nhau theo đơn vị cơ sở | **Đã làm** bằng vai trò theo từng đơn vị (A6, C4b) |
 | Phạm vi dữ liệu chi tiết hơn "của mình / tất cả" (theo kho, theo phòng ban) | Chưa có |
 | Nhiều vai trò cho một người | Bảng dữ liệu cho phép, màn hình và API hiện chỉ gán một vai trò |
+| Ô "Lấy từ phiếu yêu cầu / đơn mua / đơn bán..." liệt kê phiếu đã duyệt của đơn vị mà **không xét `VIEW_ALL`** của phiếu nguồn | **Có chủ đích**: người lập phiếu sau (thủ kho lấy từ yêu cầu của phòng khác) phải kéo được phiếu trước do người khác lập. Số tiền trên các dòng vẫn che theo quyền xem giá của phiếu đang lập |
+| Tài khoản không thuộc đơn vị nào; vai trò đã tắt (`validflg 0`) dùng làm vai trò của một đơn vị | **Đã sửa**: tài khoản không có đơn vị vẫn phải được so quyền (theo vai trò mặc định) trước khi người quản lý không phải admin sửa / đặt lại mật khẩu / xóa; vai trò đã tắt không cấp quyền nào ở đơn vị đó (không tụt về vai trò mặc định) |
 | Danh sách đầy đủ của các danh mục hệ thống cần quyền Xem | Đã làm; ô chọn ở màn khác đọc qua tra cứu, **tra cứu cũng được phân quyền theo danh mục** (mục C10). Còn **tỷ giá** (`GET /api/settings/exchange-rates`) đang mở cho mọi người đăng nhập vì phiếu cần tỷ giá của ngày chứng từ |
 
 ---
